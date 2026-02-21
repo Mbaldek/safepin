@@ -32,7 +32,18 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   const [addressLoading, setAddressLoading] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
   const [accessInfo, setAccessInfo] = useState('');
+  const [isAutoLocation, setIsAutoLocation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-set location to current GPS position on mount
+  useEffect(() => {
+    const { userLocation, newPinCoords: existing } = useStore.getState();
+    if (!existing && userLocation) {
+      setNewPinCoords(userLocation);
+      setIsAutoLocation(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!newPinCoords) {
@@ -131,7 +142,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   return (
     <>
       <div
-        className="absolute bottom-0 left-0 right-0 rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto animate-slide-up"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto animate-slide-up"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           boxShadow: '0 -10px 40px var(--bg-overlay)',
@@ -161,24 +172,36 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                 <span className="text-base leading-tight mt-0.5 font-bold" style={{ color: 'var(--safe)' }}>✓</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[0.65rem] font-bold uppercase tracking-wider mb-0.5" style={{ color: 'var(--safe)' }}>
-                    Location confirmed
+                    {isAutoLocation ? '📍 Your current location' : 'Location confirmed'}
                   </p>
                   <p className="text-sm leading-snug" style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                     {addressLoading ? '⏳ Fetching address…' : address ?? '📍 Address not found'}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowCoords(!showCoords)}
-                className="text-[0.65rem] font-bold transition hover:opacity-70"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {showCoords ? '▲ Hide coordinates' : '▼ Show coordinates'}
-              </button>
-              {showCoords && (
-                <p className="text-[0.65rem] mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>
-                  {newPinCoords.lat.toFixed(6)}°N, {newPinCoords.lng.toFixed(6)}°E
-                </p>
+              {isAutoLocation ? (
+                <button
+                  onClick={() => { setNewPinCoords(null); setIsAutoLocation(false); }}
+                  className="text-[0.65rem] font-bold transition hover:opacity-70"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  📌 Use a different spot? Tap the map above
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowCoords(!showCoords)}
+                    className="text-[0.65rem] font-bold transition hover:opacity-70"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    {showCoords ? '▲ Hide coordinates' : '▼ Show coordinates'}
+                  </button>
+                  {showCoords && (
+                    <p className="text-[0.65rem] mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>
+                      {newPinCoords.lat.toFixed(6)}°N, {newPinCoords.lng.toFixed(6)}°E
+                    </p>
+                  )}
+                </>
               )}
               <input
                 type="text"
@@ -195,7 +218,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             </div>
           ) : (
             <p className="text-xs font-medium mb-5" style={{ color: 'var(--text-muted)' }}>
-              👆 Tap the map above to set location
+              👆 Tap the map above to set a different location
             </p>
           )}
 
