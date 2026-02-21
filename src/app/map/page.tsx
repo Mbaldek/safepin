@@ -17,6 +17,7 @@ import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
 import IncidentsView from '@/components/IncidentsView';
+import ProfileView from '@/components/ProfileView';
 
 // ─── Push helpers ─────────────────────────────────────────────────────────────
 
@@ -78,24 +79,39 @@ function ComingSoon({ tab }: { tab: string }) {
 
 export default function MapPage() {
   const router = useRouter();
-  const { setPins, addPin, updatePin, activeSheet, setActiveSheet, activeTab } = useStore();
+  const { setPins, addPin, updatePin, activeSheet, setActiveSheet, activeTab, setUserProfile } = useStore();
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Auth + push setup
+  // Auth + push + profile setup
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         router.replace('/login');
       } else {
-        setUserId(session.user.id);
+        const uid = session.user.id;
+        setUserId(uid);
+        setUserEmail(session.user.email ?? '');
         setLoading(false);
+
+        // Load or create profile
+        supabase.from('profiles').select('*').eq('id', uid).single().then(({ data }) => {
+          if (data) {
+            setUserProfile(data);
+          } else {
+            supabase.from('profiles').upsert({ id: uid }).select().single().then(({ data: created }) => {
+              if (created) setUserProfile(created);
+            });
+          }
+        });
+
         Notification.requestPermission().then((perm) => {
-          if (perm === 'granted') registerPush(session.user.id);
+          if (perm === 'granted') registerPush(uid);
         });
       }
     });
-  }, [router]);
+  }, [router, setUserProfile]);
 
   // Load pins
   useEffect(() => {
@@ -211,8 +227,16 @@ export default function MapPage() {
         </div>
       )}
 
+      {/* ── Profile tab ────────────────────────────────────────────── */}
+      {activeTab === 'profile' && userId && (
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <ProfileView userId={userId} userEmail={userEmail} />
+          {activeSheet === 'detail' && <DetailSheet />}
+        </div>
+      )}
+
       {/* ── Placeholder tabs ───────────────────────────────────────── */}
-      {(activeTab === 'community' || activeTab === 'messages' || activeTab === 'profile') && (
+      {(activeTab === 'community' || activeTab === 'messages') && (
         <ComingSoon tab={activeTab} />
       )}
 

@@ -232,6 +232,7 @@ export default function IncidentsView() {
         className="shrink-0 px-4 pt-4 pb-3"
         style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
       >
+      <div className="max-w-[440px] mx-auto w-full">
         {/* Title row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -310,9 +311,11 @@ export default function IncidentsView() {
           </div>
         )}
       </div>
+      </div>
 
       {/* ── List ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto py-3">
+      <div className="max-w-[440px] mx-auto w-full px-4 flex flex-col gap-3">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
             <div
@@ -349,6 +352,7 @@ export default function IncidentsView() {
               : <PinCard       key={pin.id} pin={pin} dist={dist} />;
           })
         )}
+      </div>
       </div>
     </div>
   );

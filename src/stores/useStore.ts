@@ -23,6 +23,8 @@ type Store = {
   setUserLocation: (loc: { lat: number; lng: number } | null) => void;
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
+  userProfile: { id: string; display_name: string | null; created_at: string } | null;
+  setUserProfile: (p: { id: string; display_name: string | null; created_at: string } | null) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -44,4 +46,6 @@ export const useStore = create<Store>((set) => ({
   setUserLocation: (loc) => set({ userLocation: loc }),
   activeTab: 'map',
   setActiveTab: (tab) => set({ activeTab: tab }),
+  userProfile: null,
+  setUserProfile: (p) => set({ userProfile: p }),
 }));
