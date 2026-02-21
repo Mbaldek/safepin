@@ -3,16 +3,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Map, AlertTriangle, Users, MessageSquare, User, type LucideIcon } from 'lucide-react';
+import { Map, AlertTriangle, Users, UserPlus, User, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 
-type Tab = 'map' | 'incidents' | 'community' | 'messages' | 'profile';
+type Tab = 'map' | 'incidents' | 'community' | 'friends' | 'profile';
 
 const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
   { id: 'map',       label: 'Map',       Icon: Map           },
   { id: 'incidents', label: 'Incidents', Icon: AlertTriangle  },
   { id: 'community', label: 'Community', Icon: Users          },
-  { id: 'messages',  label: 'Messages',  Icon: MessageSquare  },
+  { id: 'friends',   label: 'Friends',   Icon: UserPlus       },
   { id: 'profile',   label: 'Profile',   Icon: User           },
 ];
 
