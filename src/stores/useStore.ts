@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Pin, AppNotification } from '@/types';
 
 type Sheet = 'none' | 'report' | 'detail';
-type Tab = 'map' | 'incidents' | 'community' | 'friends' | 'profile';
+type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'profile';
 
 export type MapFilters = {
   severity: string;        // 'all' | 'low' | 'med' | 'high'

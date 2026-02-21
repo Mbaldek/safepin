@@ -8,8 +8,10 @@ import { useStore } from '@/stores/useStore';
 import { Community, CommunityMessage } from '@/types';
 import { toast } from 'sonner';
 import StoriesRow from '@/components/StoriesRow';
+import FriendsView from '@/components/FriendsView';
 
 type View = 'list' | 'chat' | 'create';
+type CommTab = 'groups' | 'friends';
 
 const EMOJI_OPTIONS = ['🏘️', '🏙️', '🌳', '🛡️', '🔒', '🌍', '🎯', '💡', '🎭', '⚡', '🌐', '🏃', '🚴', '🌙', '🎪'];
 
@@ -104,6 +106,7 @@ function CommunityCard({
 export default function CommunityView() {
   const { userId, userProfile } = useStore();
   const [view, setView] = useState<View>('list');
+  const [commTab, setCommTab] = useState<CommTab>('groups');
   const [communities, setCommunities] = useState<Community[]>([]);
   const [myMemberships, setMyMemberships] = useState<Set<string>>(new Set());
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
@@ -522,22 +525,51 @@ export default function CommunityView() {
   const myCommunities = communities.filter((c) => myMemberships.has(c.id));
   const discoverCommunities = communities.filter((c) => !myMemberships.has(c.id) && !c.is_private);
 
+  // ── Friends sub-tab ──────────────────────────────────────────────────────────
+  if (commTab === 'friends') {
+    return (
+      <div className="flex flex-col h-full">
+        <FriendsView onBack={() => setCommTab('groups')} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
       <div
-        className="shrink-0 px-4 py-3"
+        className="shrink-0 px-4 pt-3 pb-0"
         style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
       >
-        <div className="max-w-[440px] mx-auto w-full flex items-center justify-between">
-          <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Communities</h2>
-          <button
-            onClick={() => setView('create')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-          >
-            + New
-          </button>
+        <div className="max-w-[440px] mx-auto w-full">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Community</h2>
+            {commTab === 'groups' && (
+              <button
+                onClick={() => setView('create')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+              >
+                + New
+              </button>
+            )}
+          </div>
+          {/* Segment switcher */}
+          <div className="flex">
+            {(['groups', 'friends'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setCommTab(tab)}
+                className="flex-1 py-2.5 text-xs font-black transition capitalize"
+                style={{
+                  color: commTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                  borderBottom: commTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+                }}
+              >
+                {tab === 'groups' ? 'Groups' : 'Friends'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

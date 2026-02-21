@@ -52,7 +52,7 @@ function Avatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function FriendsView() {
+export default function FriendsView({ onBack }: { onBack?: () => void }) {
   const { userId } = useStore();
   const [view, setView] = useState<View>('list');
   const [listTab, setListTab] = useState<ListTab>('friends');
@@ -471,7 +471,18 @@ export default function FriendsView() {
         style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
         <div className="max-w-[440px] mx-auto w-full">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Friends</h2>
+            <div className="flex items-center gap-2">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
+                  style={{ backgroundColor: 'var(--bg-card)' }}
+                >
+                  <ArrowLeft size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                </button>
+              )}
+              <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Friends</h2>
+            </div>
             <button onClick={() => setView('search')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>

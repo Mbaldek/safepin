@@ -21,7 +21,7 @@ import BottomNav from '@/components/BottomNav';
 import IncidentsView from '@/components/IncidentsView';
 import ProfileView from '@/components/ProfileView';
 import CommunityView from '@/components/CommunityView';
-import FriendsView from '@/components/FriendsView';
+import TripView from '@/components/TripView';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
 
@@ -313,10 +313,10 @@ export default function MapPage() {
             <CommunityView />
           </motion.div>
         )}
-        {activeTab === 'friends' && (
-          <motion.div key="friends" className="flex-1 min-h-0 overflow-hidden flex flex-col"
+        {activeTab === 'trip' && (
+          <motion.div key="trip" className="flex-1 min-h-0 overflow-hidden flex flex-col"
             variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-            <FriendsView />
+            <TripView />
           </motion.div>
         )}
         {activeTab === 'profile' && userId && (
