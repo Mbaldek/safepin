@@ -9,7 +9,7 @@ const TABS = [
   { id: 'incidents',  label: 'Incidents',  icon: '📋',  live: true  },
   { id: 'community',  label: 'Community',  icon: '💬',  live: false },
   { id: 'messages',   label: 'Messages',   icon: '✉️',   live: false },
-  { id: 'profile',    label: 'Profile',    icon: '👤',  live: false },
+  { id: 'profile',    label: 'Profile',    icon: '👤',  live: true  },
 ] as const;
 
 export default function BottomNav() {
