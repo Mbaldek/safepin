@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+:root {
+  --accent: #f43f5e;
+  --accent-glow: rgba(244, 63, 94, 0.25);
+  --safe: #10b981;
+  --warn: #f59e0b;
+  --blue: #38bdf8;
+}
+
+body {
+  font-family: Plus Jakarta Sans, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+.mapboxgl-ctrl-attrib {
+  display: none !important;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
