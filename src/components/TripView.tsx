@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Navigation, Check, X } from 'lucide-react';
+import { Navigation, Check, X, Map } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 
 type TripState = {
@@ -34,12 +34,43 @@ function formatCountdown(ms: number): string {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
+async function fetchRoute(
+  userLoc: { lat: number; lng: number },
+  destText: string,
+): Promise<[number, number][] | null> {
+  try {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    // Geocode the destination
+    const geoRes = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destText)}.json` +
+      `?proximity=${userLoc.lng},${userLoc.lat}&access_token=${token}&limit=1&language=fr,en`,
+    );
+    const geoData = await geoRes.json();
+    const destCoords: [number, number] | undefined = geoData.features?.[0]?.geometry?.coordinates;
+    if (!destCoords) return null;
+
+    // OSRM walking route (public demo, no key needed)
+    const routeRes = await fetch(
+      `https://router.project-osrm.org/route/v1/foot/` +
+      `${userLoc.lng},${userLoc.lat};${destCoords[0]},${destCoords[1]}` +
+      `?overview=full&geometries=geojson`,
+    );
+    const routeData = await routeRes.json();
+    const coords: [number, number][] | undefined = routeData.routes?.[0]?.geometry?.coordinates;
+    return coords ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function TripView() {
-  const { userProfile } = useStore();
+  const { userProfile, setActiveRoute, setActiveTab } = useStore();
   const [trip, setTrip]           = useState<TripState | null>(null);
   const [destination, setDest]    = useState('');
   const [durationMs, setDuration] = useState(30 * 60_000);
   const [now, setNow]             = useState(Date.now());
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [hasRoute, setHasRoute]   = useState(false);
 
   // Restore saved trip on mount
   useEffect(() => {
@@ -51,6 +82,7 @@ export default function TripView() {
           setTrip(parsed);
         } else {
           localStorage.removeItem(STORAGE_KEY);
+          useStore.getState().setActiveRoute(null);
         }
       }
     } catch {
@@ -70,10 +102,11 @@ export default function TripView() {
     if (trip && now >= trip.expiresAt) {
       setTrip(null);
       localStorage.removeItem(STORAGE_KEY);
+      useStore.getState().setActiveRoute(null);
     }
   }, [now, trip]);
 
-  function startTrip() {
+  async function startTrip() {
     if (!destination.trim()) return;
     const t: TripState = {
       destination: destination.trim(),
@@ -82,12 +115,27 @@ export default function TripView() {
     };
     setTrip(t);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
+    const destText = destination.trim();
     setDest('');
+
+    // Fetch route in background
+    const loc = useStore.getState().userLocation;
+    if (loc) {
+      setRouteLoading(true);
+      const coords = await fetchRoute(loc, destText);
+      setRouteLoading(false);
+      if (coords) {
+        useStore.getState().setActiveRoute({ coords, destination: destText });
+        setHasRoute(true);
+      }
+    }
   }
 
   function endTrip() {
     setTrip(null);
+    setHasRoute(false);
     localStorage.removeItem(STORAGE_KEY);
+    useStore.getState().setActiveRoute(null);
   }
 
   // ── Active trip ─────────────────────────────────────────────────────────────
@@ -120,7 +168,6 @@ export default function TripView() {
               >
                 <Navigation size={36} style={{ color: 'var(--accent)' }} />
               </div>
-              {/* Live indicator */}
               <span
                 className="absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 animate-pulse"
                 style={{ backgroundColor: '#22c55e', borderColor: 'var(--bg-primary)' }}
@@ -133,6 +180,22 @@ export default function TripView() {
               <p className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
                 {trip.destination}
               </p>
+              {/* Route status */}
+              {routeLoading && (
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Calculating route…
+                </p>
+              )}
+              {hasRoute && !routeLoading && (
+                <button
+                  onClick={() => setActiveTab('map')}
+                  className="flex items-center gap-1 mx-auto mt-1.5 text-xs font-bold"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  <Map size={11} strokeWidth={2.5} />
+                  View on map
+                </button>
+              )}
             </div>
           </div>
 
@@ -149,7 +212,6 @@ export default function TripView() {
             </div>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>remaining</p>
 
-            {/* Progress bar */}
             <div
               className="w-full h-2 rounded-full overflow-hidden mt-1"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
@@ -201,7 +263,6 @@ export default function TripView() {
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Header */}
       <div
         className="shrink-0 px-4 py-3"
         style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
@@ -215,7 +276,6 @@ export default function TripView() {
       <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 gap-8">
         <div className="w-full max-w-[360px] flex flex-col gap-6">
 
-          {/* Illustration */}
           <div className="flex flex-col items-center gap-3 text-center">
             <div
               className="w-20 h-20 rounded-3xl flex items-center justify-center"
@@ -228,17 +288,13 @@ export default function TripView() {
                 Plan a Safe Trip
               </p>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Set a destination and a timer. Get reminded when it expires.
+                Set a destination and a timer. A route will appear on the map.
               </p>
             </div>
           </div>
 
-          {/* Destination */}
           <div>
-            <p
-              className="text-[0.7rem] font-black uppercase tracking-widest mb-2"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
               Destination
             </p>
             <input
@@ -255,12 +311,8 @@ export default function TripView() {
             />
           </div>
 
-          {/* Duration chips */}
           <div>
-            <p
-              className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
               Expected Duration
             </p>
             <div className="flex flex-wrap gap-2">
@@ -281,7 +333,6 @@ export default function TripView() {
             </div>
           </div>
 
-          {/* Start button */}
           <button
             onClick={startTrip}
             disabled={!destination.trim()}

@@ -259,6 +259,26 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           <p className="text-sm mb-10" style={{ color: 'var(--text-muted)' }}>
             Your location will be shared
           </p>
+          {/* Emergency quick-dials */}
+          <div className="flex gap-3 mb-6">
+            {[
+              { label: 'SAMU', num: '15' },
+              { label: 'Police', num: '17' },
+              { label: 'Pompiers', num: '18' },
+              { label: 'EU', num: '112' },
+            ].map(({ label, num }) => (
+              <a
+                key={num}
+                href={`tel:${num}`}
+                className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-center"
+                style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
+              >
+                <span className="text-base font-black leading-none">{num}</span>
+                <span className="text-[0.55rem] font-bold uppercase tracking-wide">{label}</span>
+              </a>
+            ))}
+          </div>
+
           <button
             onClick={cancel}
             className="px-10 py-4 rounded-2xl font-bold text-lg border-2 transition hover:opacity-80"

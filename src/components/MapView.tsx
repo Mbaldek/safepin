@@ -10,7 +10,9 @@ import { SEVERITY, Pin } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
-const SOURCE_ID = 'pins-source';
+const SOURCE_ID  = 'pins-source';
+const ROUTE_SRC  = 'route-source';
+const ROUTE_LYR  = 'route-line';
 
 function getPinOpacity(pin: Pin): number {
   const base = pin.last_confirmed_at
@@ -127,7 +129,8 @@ export default function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation } = useStore();
+  const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -187,6 +190,59 @@ export default function MapView() {
     map.current.flyTo({ center: [mapFlyTo.lng, mapFlyTo.lat], zoom: mapFlyTo.zoom });
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
+
+  // Draw / clear trip route
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    // Remove previous route layer + source + destination marker
+    if (m.getLayer(ROUTE_LYR)) m.removeLayer(ROUTE_LYR);
+    if (m.getSource(ROUTE_SRC)) m.removeSource(ROUTE_SRC);
+    destMarkerRef.current?.remove();
+    destMarkerRef.current = null;
+
+    if (!activeRoute || activeRoute.coords.length === 0) return;
+
+    // Add route line (beneath cluster dots)
+    m.addSource(ROUTE_SRC, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: activeRoute.coords },
+        properties: {},
+      },
+    });
+    m.addLayer({
+      id: ROUTE_LYR,
+      type: 'line',
+      source: ROUTE_SRC,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': '#f43f5e',
+        'line-width': 4,
+        'line-opacity': 0.80,
+        'line-dasharray': [1, 0],
+      },
+    }, 'clusters');
+
+    // Destination marker
+    const last = activeRoute.coords[activeRoute.coords.length - 1];
+    const el = document.createElement('div');
+    el.style.cssText = 'width:36px;height:36px;border-radius:50%;background:#f43f5e;border:3px solid #fff;box-shadow:0 2px 10px #f43f5e88;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:default';
+    el.textContent = '📍';
+    destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+      .setLngLat(last)
+      .addTo(m);
+
+    // Fly to fit route
+    const lngs = activeRoute.coords.map((c) => c[0]);
+    const lats  = activeRoute.coords.map((c) => c[1]);
+    m.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 60, duration: 1200 },
+    );
+  }, [activeRoute, mapReady, layersReady]);
 
   // Switch map style when theme changes — re-add cluster layers after style loads
   useEffect(() => {

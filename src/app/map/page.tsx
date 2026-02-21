@@ -9,7 +9,7 @@ import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Settings, X } from 'lucide-react';
+import { Bell, Search, Settings, X, Building2 } from 'lucide-react';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
@@ -23,6 +23,8 @@ import ProfileView from '@/components/ProfileView';
 import CommunityView from '@/components/CommunityView';
 import TripView from '@/components/TripView';
 import NotificationsSheet from '@/components/NotificationsSheet';
+import CityContextPanel from '@/components/CityContextPanel';
+import SosBanner from '@/components/SosBanner';
 import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
 
 const tabVariants = {
@@ -78,6 +80,8 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showCityContext, setShowCityContext] = useState(false);
+  const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -126,7 +130,7 @@ export default function MapPage() {
   const handleNewPin = useCallback((pin: Pin) => {
     addPin(pin);
     if (pin.is_emergency) {
-      toast.error('🆘 Emergency alert nearby!', { duration: 6000 });
+      setSosPin(pin);
       addNotification({
         id: crypto.randomUUID(),
         type: 'emergency',
@@ -291,6 +295,15 @@ export default function MapPage() {
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
+        {/* City context button */}
+        <button
+          onClick={() => setShowCityContext(true)}
+          className="absolute bottom-[5.5rem] right-4 w-11 h-11 rounded-2xl flex items-center justify-center shadow-md z-[60] transition hover:scale-105 active:scale-95"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+          title="City context"
+        >
+          <Building2 size={18} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+        </button>
         <button
           onClick={() => setActiveSheet('report')}
           className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
@@ -298,6 +311,27 @@ export default function MapPage() {
           +
         </button>
       </div>
+
+      {/* SOS nearby banner */}
+      <AnimatePresence>
+        {sosPin && (
+          <motion.div
+            key="sos-banner"
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="absolute left-3 right-3 z-[200]"
+            style={{ top: '72px' }}
+          >
+            <SosBanner
+              pin={sosPin}
+              userLocation={useStore.getState().userLocation}
+              onDismiss={() => setSosPin(null)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Non-map tabs — fade in/out with AnimatePresence ────────── */}
       <AnimatePresence mode="wait">
@@ -335,6 +369,17 @@ export default function MapPage() {
 
       {/* ── Bottom navigation ──────────────────────────────────────── */}
       <BottomNav />
+
+      {/* ── City context overlay ───────────────────────────────────── */}
+      <AnimatePresence>
+        {showCityContext && (
+          <motion.div key="city-context" className="absolute inset-0 z-[300]"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}>
+            <CityContextPanel onClose={() => setShowCityContext(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Notifications overlay ──────────────────────────────────── */}
       <AnimatePresence>

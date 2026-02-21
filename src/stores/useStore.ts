@@ -69,6 +69,10 @@ type Store = {
     verification_id?: string | null;
   } | null) => void;
 
+  // Active trip route
+  activeRoute: { coords: [number, number][]; destination: string } | null;
+  setActiveRoute: (r: { coords: [number, number][]; destination: string } | null) => void;
+
   // Notifications
   notifications: AppNotification[];
   addNotification: (n: AppNotification) => void;
@@ -111,6 +115,10 @@ export const useStore = create<Store>((set) => ({
   // Profile
   userProfile: null,
   setUserProfile: (p) => set({ userProfile: p }),
+
+  // Active trip route
+  activeRoute: null,
+  setActiveRoute: (r) => set({ activeRoute: r }),
 
   // Notifications
   notifications: [],
