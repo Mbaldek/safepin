@@ -1,51 +1,94 @@
 import { create } from 'zustand';
-import { Pin } from '@/types';
+import { Pin, AppNotification } from '@/types';
 
 type Sheet = 'none' | 'report' | 'detail';
 type Tab = 'map' | 'incidents' | 'community' | 'messages' | 'profile';
 
 type Store = {
+  // Auth
+  userId: string | null;
+  setUserId: (id: string | null) => void;
+
+  // Pins
   pins: Pin[];
   setPins: (pins: Pin[]) => void;
   addPin: (pin: Pin) => void;
   updatePin: (pin: Pin) => void;
+
+  // Filters
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
+
+  // Sheets
   activeSheet: Sheet;
   setActiveSheet: (sheet: Sheet) => void;
   selectedPin: Pin | null;
   setSelectedPin: (pin: Pin | null) => void;
+
+  // Map
   newPinCoords: { lat: number; lng: number } | null;
   setNewPinCoords: (coords: { lat: number; lng: number } | null) => void;
   mapFlyTo: { lat: number; lng: number; zoom: number } | null;
   setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
   userLocation: { lat: number; lng: number } | null;
   setUserLocation: (loc: { lat: number; lng: number } | null) => void;
+
+  // Navigation
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
+
+  // Profile
   userProfile: { id: string; display_name: string | null; created_at: string } | null;
   setUserProfile: (p: { id: string; display_name: string | null; created_at: string } | null) => void;
+
+  // Notifications
+  notifications: AppNotification[];
+  addNotification: (n: AppNotification) => void;
+  markNotificationsRead: () => void;
 };
 
 export const useStore = create<Store>((set) => ({
+  // Auth
+  userId: null,
+  setUserId: (id) => set({ userId: id }),
+
+  // Pins
   pins: [],
   setPins: (pins) => set({ pins }),
   addPin: (pin) => set((state) => ({ pins: [...state.pins, pin] })),
   updatePin: (pin) => set((state) => ({ pins: state.pins.map((p) => p.id === pin.id ? pin : p) })),
+
+  // Filters
   activeFilter: 'all',
   setActiveFilter: (filter) => set({ activeFilter: filter }),
+
+  // Sheets
   activeSheet: 'none',
   setActiveSheet: (sheet) => set({ activeSheet: sheet }),
   selectedPin: null,
   setSelectedPin: (pin) => set({ selectedPin: pin }),
+
+  // Map
   newPinCoords: null,
   setNewPinCoords: (coords) => set({ newPinCoords: coords }),
   mapFlyTo: null,
   setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
   userLocation: null,
   setUserLocation: (loc) => set({ userLocation: loc }),
+
+  // Navigation
   activeTab: 'map',
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  // Profile
   userProfile: null,
   setUserProfile: (p) => set({ userProfile: p }),
+
+  // Notifications
+  notifications: [],
+  addNotification: (n) => set((state) => ({ notifications: [...state.notifications, n] })),
+  markNotificationsRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, read: true })),
+    })),
 }));

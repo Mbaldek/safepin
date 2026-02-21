@@ -21,6 +21,46 @@ export type Pin = {
   created_at: string;
 };
 
+export type Comment = {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  display_name: string | null;
+  content: string;
+  created_at: string;
+};
+
+export type AppNotification = {
+  id: string;
+  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community';
+  title: string;
+  body: string | null;
+  read: boolean;
+  created_at: string;
+  pin_id?: string;
+  community_id?: string;
+};
+
+export type Community = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_private: boolean;
+  owner_id: string;
+  avatar_emoji: string;
+  created_at: string;
+  member_count: number; // computed client-side
+};
+
+export type CommunityMessage = {
+  id: string;
+  community_id: string;
+  user_id: string;
+  display_name: string | null;
+  content: string;
+  created_at: string;
+};
+
 export type Profile = {
   id: string;
   name: string;
@@ -46,7 +86,7 @@ export const ENVIRONMENTS = {
 } as const;
 
 export const SEVERITY = {
-  low: { label: 'Mild', emoji: '😟', color: '#10b981' },
+  low: { label: 'Mild',     emoji: '😟', color: '#10b981' },
   med: { label: 'Moderate', emoji: '⚠️', color: '#f59e0b' },
-  high: { label: 'Danger', emoji: '🚨', color: '#f43f5e' },
+  high: { label: 'Danger',  emoji: '🚨', color: '#f43f5e' },
 } as const;

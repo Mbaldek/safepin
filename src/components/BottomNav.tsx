@@ -7,7 +7,7 @@ import { useStore } from '@/stores/useStore';
 const TABS = [
   { id: 'map',        label: 'Map',        icon: '🗺️',  live: true  },
   { id: 'incidents',  label: 'Incidents',  icon: '📋',  live: true  },
-  { id: 'community',  label: 'Community',  icon: '💬',  live: false },
+  { id: 'community',  label: 'Community',  icon: '💬',  live: true  },
   { id: 'messages',   label: 'Messages',   icon: '✉️',   live: false },
   { id: 'profile',    label: 'Profile',    icon: '👤',  live: true  },
 ] as const;

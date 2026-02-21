@@ -18,6 +18,8 @@ import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
 import IncidentsView from '@/components/IncidentsView';
 import ProfileView from '@/components/ProfileView';
+import CommunityView from '@/components/CommunityView';
+import NotificationsSheet from '@/components/NotificationsSheet';
 
 // ─── Push helpers ─────────────────────────────────────────────────────────────
 
@@ -33,7 +35,6 @@ async function registerPush(userId: string) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidKey) return;
-
     const reg = await navigator.serviceWorker.register('/sw.js');
     const existing = await reg.pushManager.getSubscription();
     const sub = existing ?? await reg.pushManager.subscribe({
@@ -49,40 +50,23 @@ async function registerPush(userId: string) {
   }
 }
 
-// ─── Coming soon placeholder ──────────────────────────────────────────────────
-
-function ComingSoon({ tab }: { tab: string }) {
-  const icons: Record<string, string> = { community: '💬', messages: '✉️', profile: '👤' };
-  const names: Record<string, string> = { community: 'Community', messages: 'Messages', profile: 'Profile' };
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4"
-      style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        {icons[tab] ?? '🚧'}
-      </div>
-      <div className="text-center">
-        <p className="text-xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-          {names[tab] ?? tab}
-        </p>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Coming in a future sprint</p>
-      </div>
-      <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-        style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-        🚧 In progress
-      </span>
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MapPage() {
   const router = useRouter();
-  const { setPins, addPin, updatePin, activeSheet, setActiveSheet, activeTab, setUserProfile } = useStore();
-  const [userId, setUserId] = useState<string | null>(null);
+  const {
+    setPins, addPin, updatePin,
+    activeSheet, setActiveSheet,
+    activeTab,
+    setUserProfile, setUserId, userId,
+    addNotification, notifications,
+  } = useStore();
+
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Auth + push + profile setup
   useEffect(() => {
@@ -95,7 +79,6 @@ export default function MapPage() {
         setUserEmail(session.user.email ?? '');
         setLoading(false);
 
-        // Load or create profile
         supabase.from('profiles').select('*').eq('id', uid).single().then(({ data }) => {
           if (data) {
             setUserProfile(data);
@@ -111,7 +94,7 @@ export default function MapPage() {
         });
       }
     });
-  }, [router, setUserProfile]);
+  }, [router, setUserProfile, setUserId]);
 
   // Load pins
   useEffect(() => {
@@ -120,18 +103,26 @@ export default function MapPage() {
         .from('pins')
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) { toast.error('Failed to load pins'); console.error(error); return; }
+      if (error) { toast.error('Failed to load pins'); return; }
       setPins((data as Pin[]) || []);
     }
     loadPins();
   }, [setPins]);
 
-  // Realtime
+  // Realtime: new/updated pins
   const handleNewPin = useCallback((pin: Pin) => {
     addPin(pin);
     if (pin.is_emergency) {
       toast.error('🆘 Emergency alert nearby!', { duration: 6000 });
-      // Broadcast push to all subscribers via API
+      addNotification({
+        id: crypto.randomUUID(),
+        type: 'emergency',
+        title: '🆘 Emergency alert nearby!',
+        body: pin.description?.slice(0, 100) ?? 'Someone needs help in your area',
+        read: false,
+        created_at: new Date().toISOString(),
+        pin_id: pin.id,
+      });
       fetch('/api/push-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,18 +134,54 @@ export default function MapPage() {
     } else {
       toast('📍 New report nearby');
     }
-  }, [addPin]);
+  }, [addPin, addNotification]);
+
+  // Realtime: comment on own pin → notification
+  const handleNewComment = useCallback((payload: { pin_id: string; display_name: string | null; content: string }) => {
+    const store = useStore.getState();
+    const pin = store.pins.find((p) => p.id === payload.pin_id);
+    if (!pin || pin.user_id !== store.userId) return;
+    addNotification({
+      id: crypto.randomUUID(),
+      type: 'comment',
+      title: '💬 New comment on your pin',
+      body: `${payload.display_name ?? 'Someone'}: ${payload.content.slice(0, 80)}`,
+      read: false,
+      created_at: new Date().toISOString(),
+      pin_id: payload.pin_id,
+    });
+  }, [addNotification]);
+
+  // Realtime: vote on own pin → notification
+  const handleNewVote = useCallback((payload: { pin_id: string }) => {
+    const store = useStore.getState();
+    const pin = store.pins.find((p) => p.id === payload.pin_id);
+    if (!pin || pin.user_id !== store.userId) return;
+    addNotification({
+      id: crypto.randomUUID(),
+      type: 'vote',
+      title: '👍 Someone confirmed your report',
+      body: null,
+      read: false,
+      created_at: new Date().toISOString(),
+      pin_id: payload.pin_id,
+    });
+  }, [addNotification]);
 
   useEffect(() => {
     const channel = supabase
-      .channel('pins-realtime')
+      .channel('realtime-all')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pins' },
         (payload) => handleNewPin(payload.new as Pin))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pins' },
         (payload) => updatePin(payload.new as Pin))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_comments' },
+        (payload) => handleNewComment(payload.new as { pin_id: string; display_name: string | null; content: string }))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_votes' },
+        (payload) => handleNewVote(payload.new as { pin_id: string }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [handleNewPin, updatePin]);
+  }, [handleNewPin, updatePin, handleNewComment, handleNewVote]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -187,6 +214,22 @@ export default function MapPage() {
             <span style={{ color: 'var(--text-primary)' }}>Pin</span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Notification bell */}
+            <button
+              onClick={() => setShowNotifications(true)}
+              className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
+              style={{ backgroundColor: 'var(--bg-card)' }}
+            >
+              <span className="text-base leading-none">🔔</span>
+              {unreadCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full text-[0.55rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: '#ef4444', color: '#fff', lineHeight: 1 }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <ThemeToggle />
             <button
               onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}
@@ -227,6 +270,13 @@ export default function MapPage() {
         </div>
       )}
 
+      {/* ── Community tab ──────────────────────────────────────────── */}
+      {activeTab === 'community' && (
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <CommunityView />
+        </div>
+      )}
+
       {/* ── Profile tab ────────────────────────────────────────────── */}
       {activeTab === 'profile' && userId && (
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -235,13 +285,34 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* ── Placeholder tabs ───────────────────────────────────────── */}
-      {(activeTab === 'community' || activeTab === 'messages') && (
-        <ComingSoon tab={activeTab} />
+      {/* ── Messages placeholder ───────────────────────────────────── */}
+      {activeTab === 'messages' && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4"
+          style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            ✉️
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>Messages</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Coming in a future sprint</p>
+          </div>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full"
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+            🚧 In progress
+          </span>
+        </div>
       )}
 
       {/* ── Bottom navigation ──────────────────────────────────────── */}
       <BottomNav />
+
+      {/* ── Notifications overlay ──────────────────────────────────── */}
+      {showNotifications && (
+        <div className="absolute inset-0 z-[300]">
+          <NotificationsSheet onClose={() => setShowNotifications(false)} />
+        </div>
+      )}
     </div>
   );
 }

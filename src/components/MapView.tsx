@@ -10,6 +10,116 @@ import { SEVERITY, Pin } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+const SOURCE_ID = 'pins-source';
+
+function getPinOpacity(createdAt: string): number {
+  const ageH = (Date.now() - new Date(createdAt).getTime()) / 3_600_000;
+  if (ageH >= 24) return 0;
+  if (ageH >= 18) return 0.25;
+  if (ageH >= 12) return 0.5;
+  if (ageH >= 6)  return 0.75;
+  return 1;
+}
+
+function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: regularPins.map((pin) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [pin.lng, pin.lat] },
+      properties: {
+        id: pin.id,
+        color: SEVERITY[pin.severity as keyof typeof SEVERITY]?.color ?? '#6b7490',
+        opacity: getPinOpacity(pin.created_at),
+      },
+    })),
+  };
+}
+
+function addClusterLayers(m: mapboxgl.Map, isDark: boolean) {
+  if (m.getSource(SOURCE_ID)) return;
+
+  m.addSource(SOURCE_ID, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+    cluster: true,
+    clusterMaxZoom: 13,
+    clusterRadius: 50,
+  });
+
+  // Cluster circle
+  m.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: SOURCE_ID,
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#f43f5e',
+      'circle-radius': ['step', ['get', 'point_count'], 20, 5, 28, 20, 36],
+      'circle-opacity': 0.88,
+    },
+  });
+
+  // Cluster count label
+  m.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: SOURCE_ID,
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-size': 13,
+      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+    },
+    paint: { 'text-color': '#fff' },
+  });
+
+  // Individual unclustered pins
+  m.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: SOURCE_ID,
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': ['get', 'color'],
+      'circle-opacity': ['get', 'opacity'],
+      'circle-radius': 8,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)',
+    },
+  });
+
+  // Cluster click → zoom in
+  m.on('click', 'clusters', (e) => {
+    const features = m.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    if (!features[0]) return;
+    const clusterId = features[0].properties?.cluster_id;
+    (m.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(
+      clusterId,
+      (err, zoom) => {
+        if (err || zoom == null) return;
+        const coords = (features[0].geometry as GeoJSON.Point).coordinates as [number, number];
+        m.easeTo({ center: coords, zoom: zoom + 0.5 });
+      }
+    );
+  });
+
+  // Individual pin click
+  m.on('click', 'unclustered-point', (e) => {
+    const pinId = e.features?.[0]?.properties?.id;
+    if (!pinId) return;
+    const store = useStore.getState();
+    const pin = store.pins.find((p) => p.id === pinId);
+    if (pin) { store.setSelectedPin(pin); store.setActiveSheet('detail'); }
+  });
+
+  // Cursor pointers
+  m.on('mouseenter', 'clusters', () => { m.getCanvas().style.cursor = 'pointer'; });
+  m.on('mouseleave', 'clusters', () => { m.getCanvas().style.cursor = ''; });
+  m.on('mouseenter', 'unclustered-point', () => { m.getCanvas().style.cursor = 'pointer'; });
+  m.on('mouseleave', 'unclustered-point', () => { m.getCanvas().style.cursor = ''; });
+}
+
 export default function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -17,6 +127,7 @@ export default function MapView() {
   const { pins, activeFilter, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
+  const [layersReady, setLayersReady] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -54,12 +165,17 @@ export default function MapView() {
       }
     });
 
-    map.current.on('load', () => setMapReady(true));
+    map.current.on('load', () => {
+      addClusterLayers(map.current!, theme === 'dark');
+      setLayersReady(true);
+      setMapReady(true);
+    });
 
     return () => {
       map.current?.remove();
       map.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fly to address search result
@@ -69,49 +185,38 @@ export default function MapView() {
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
 
-  // Switch map style when theme changes
-  useEffect(() => {
-    if (!map.current) return;
-    const style = theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
-    map.current.setStyle(style);
-  }, [theme]);
-
-  // Render pin markers
+  // Switch map style when theme changes — re-add cluster layers after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
+    const style = theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
+    setLayersReady(false);
+    map.current.once('style.load', () => {
+      addClusterLayers(map.current!, theme === 'dark');
+      setLayersReady(true);
+    });
+    map.current.setStyle(style);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
 
+  // Render emergency HTML markers + update regular pins GeoJSON
+  useEffect(() => {
+    if (!map.current || !mapReady || !layersReady) return;
+
+    // ── Emergency HTML markers (trail effect) ────────────────────────────────
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    function getPinOpacity(createdAt: string): number {
-      const ageH = (Date.now() - new Date(createdAt).getTime()) / 3_600_000;
-      if (ageH >= 24) return 0;
-      if (ageH >= 18) return 0.25;
-      if (ageH >= 12) return 0.5;
-      if (ageH >= 6) return 0.75;
-      return 1;
-    }
+    const now = Date.now();
 
-    const filtered = pins.filter((pin) => {
-      // Never show resolved emergencies
-      if (pin.is_emergency && pin.resolved_at) return false;
-      // Emergency pins expire after 2h
-      if (pin.is_emergency) {
-        const ageH = (Date.now() - new Date(pin.created_at).getTime()) / 3_600_000;
-        return ageH < 2;
-      }
-      // Regular pins: fade then expire at 24h
-      if (getPinOpacity(pin.created_at) === 0) return false;
-      if (activeFilter === 'all') return true;
-      if (activeFilter === 'verified') return false;
-      return pin.severity === activeFilter;
+    const filteredEmergency = pins.filter((pin) => {
+      if (!pin.is_emergency || pin.resolved_at) return false;
+      const ageH = (now - new Date(pin.created_at).getTime()) / 3_600_000;
+      return ageH < 2;
     });
 
-    // Build trail groups: userId → pins sorted newest-first
-    // Index 0 = latest (full size + pulse), 1 = faded, 2 = more faded, 3+ = hidden
+    // Trail groups: userId → pins sorted newest-first
     const trailGroups = new Map<string, Pin[]>();
-    filtered.forEach((pin) => {
-      if (!pin.is_emergency) return;
+    filteredEmergency.forEach((pin) => {
       const arr = trailGroups.get(pin.user_id) ?? [];
       arr.push(pin);
       trailGroups.set(pin.user_id, arr);
@@ -122,98 +227,59 @@ export default function MapView() {
       ));
     });
 
-    // Trail config: [opacity, dotPx, wrapperPx, showRing]
     const TRAIL_LEVELS: [number, number, number, boolean][] = [
-      [1.0, 38, 44, true],   // latest — full, pulsing
-      [0.55, 28, 34, false], // previous — medium
-      [0.28, 20, 26, false], // older — small
-      // index 3+ → skipped (hidden)
+      [1.0, 38, 44, true],
+      [0.55, 28, 34, false],
+      [0.28, 20, 26, false],
     ];
 
-    function trailLevel(pin: Pin): [number, number, number, boolean] | null {
-      if (!pin.is_emergency) return null;
+    filteredEmergency.forEach((pin) => {
       const group = trailGroups.get(pin.user_id) ?? [];
       const idx = group.findIndex((p) => p.id === pin.id);
-      return TRAIL_LEVELS[idx] ?? null; // null = hidden
-    }
-
-    filtered.forEach((pin) => {
-      const isEmergency = !!pin.is_emergency;
-
-      // Determine trail rendering for emergency pins
-      let trailOpacity = 1;
-      let dotPx = 0;
-      let wrapperPx = 0;
-      let showRing = false;
-
-      if (isEmergency) {
-        const level = trailLevel(pin);
-        if (!level) return; // too old in trail — skip
-        [trailOpacity, dotPx, wrapperPx, showRing] = level;
-      }
-
-      const color = isEmergency
-        ? '#ef4444'
-        : (SEVERITY[pin.severity as keyof typeof SEVERITY]?.color || '#6b7490');
-
-      const wrapperSize = isEmergency ? `${wrapperPx}px` : '28px';
+      const level = TRAIL_LEVELS[idx];
+      if (!level) return;
+      const [trailOpacity, dotPx, wrapperPx, showRing] = level;
 
       const wrapper = document.createElement('div');
-      wrapper.style.width = wrapperSize;
-      wrapper.style.height = wrapperSize;
-      wrapper.style.cursor = 'pointer';
-      wrapper.style.position = 'relative';
-      wrapper.style.display = 'flex';
-      wrapper.style.alignItems = 'center';
-      wrapper.style.justifyContent = 'center';
-      if (isEmergency) wrapper.style.opacity = String(trailOpacity);
+      wrapper.style.cssText = `width:${wrapperPx}px;height:${wrapperPx}px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;opacity:${trailOpacity}`;
 
-      if (isEmergency && showRing) {
+      if (showRing) {
         const ring = document.createElement('div');
         ring.className = 'emergency-ring';
         wrapper.appendChild(ring);
       }
 
       const dot = document.createElement('div');
-      const dotSize = isEmergency ? `${dotPx}px` : '100%';
-      dot.style.width = dotSize;
-      dot.style.height = dotSize;
-      dot.style.borderRadius = '50%';
-      dot.style.backgroundColor = color;
-      dot.style.border = theme === 'dark' ? '3px solid rgba(255,255,255,0.9)' : '3px solid rgba(0,0,0,0.15)';
-      dot.style.boxShadow = `0 2px 8px ${color}88`;
-      dot.style.transition = 'box-shadow 0.15s';
-      dot.style.zIndex = '1';
-      dot.style.position = 'relative';
-
-      if (isEmergency) {
-        dot.style.fontSize = `${Math.round(dotPx * 0.47)}px`;
-        dot.style.display = 'flex';
-        dot.style.alignItems = 'center';
-        dot.style.justifyContent = 'center';
-        dot.textContent = '🆘';
-      } else {
-        dot.style.opacity = String(getPinOpacity(pin.created_at));
-      }
-
-      wrapper.onmouseenter = () => { dot.style.boxShadow = `0 2px 16px ${color}bb`; };
-      wrapper.onmouseleave = () => { dot.style.boxShadow = `0 2px 8px ${color}88`; };
+      dot.style.cssText = `width:${dotPx}px;height:${dotPx}px;border-radius:50%;background-color:#ef4444;border:3px solid ${theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)'};box-shadow:0 2px 8px #ef444488;z-index:1;position:relative;font-size:${Math.round(dotPx * 0.47)}px;display:flex;align-items:center;justify-content:center`;
+      dot.textContent = '🆘';
 
       wrapper.addEventListener('click', (e) => {
         e.stopPropagation();
         setSelectedPin(pin);
         setActiveSheet('detail');
       });
-
       wrapper.appendChild(dot);
 
       const marker = new mapboxgl.Marker({ element: wrapper, anchor: 'center' })
         .setLngLat([pin.lng, pin.lat])
         .addTo(map.current!);
-
       markersRef.current.push(marker);
     });
-  }, [pins, activeFilter, mapReady, setSelectedPin, setActiveSheet, theme]);
+
+    // ── Regular pins via GeoJSON clustering ───────────────────────────────────
+    const regularPins = pins.filter((pin) => {
+      if (pin.is_emergency) return false;
+      if (getPinOpacity(pin.created_at) === 0) return false;
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'verified') return false;
+      return pin.severity === activeFilter;
+    });
+
+    const source = map.current.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(buildGeoJSON(regularPins));
+    }
+  }, [pins, activeFilter, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
   return <div ref={mapContainer} className="w-full h-full" />;
 }
