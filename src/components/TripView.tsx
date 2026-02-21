@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, BookOpen } from 'lucide-react';
 import { useStore, RouteOption } from '@/stores/useStore';
 import { Pin, SavedRoute } from '@/types';
+import AutocompleteInput from '@/components/AutocompleteInput';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -98,6 +99,68 @@ async function geocodePlace(
   } catch { return null; }
 }
 
+// ─── OSRM helpers ──────────────────────────────────────────────────────────────
+
+async function osrmRoutes(
+  waypoints: [number, number][],
+  profile: string,
+): Promise<{ coords: [number, number][]; duration: number; distance: number }[]> {
+  const coords = waypoints.map(([lng, lat]) => `${lng},${lat}`).join(';');
+  const res = await fetch(
+    `https://router.project-osrm.org/route/v1/${profile}/${coords}` +
+    `?overview=full&geometries=geojson&alternatives=2`,
+  );
+  const data = await res.json();
+  return (data.routes ?? []).map((r: { geometry: { coordinates: [number, number][] }; duration: number; distance: number }) => ({
+    coords: r.geometry.coordinates as [number, number][],
+    duration: r.duration,
+    distance: r.distance,
+  }));
+}
+
+// Haversine distance in metres between two [lng, lat] points
+function haversineM(a: [number, number], b: [number, number]): number {
+  const R = 6_371_000;
+  const dLat = ((b[1] - a[1]) * Math.PI) / 180;
+  const dLng = ((b[0] - a[0]) * Math.PI) / 180;
+  const lat1 = (a[1] * Math.PI) / 180;
+  const lat2 = (b[1] * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// Closest unresolved danger pin to any point on the route; returns [lng, lat] or null
+function closestDangerPin(
+  coords: [number, number][],
+  pins: Pin[],
+): { pin: Pin; closest: [number, number] } | null {
+  const step = Math.max(1, Math.floor(coords.length / 30));
+  let best: { dist: number; pin: Pin; pt: [number, number] } | null = null;
+  for (let i = 0; i < coords.length; i += step) {
+    const pt = coords[i];
+    for (const pin of pins) {
+      if (pin.resolved_at) continue;
+      const d = haversineM(pt, [pin.lng, pin.lat]);
+      if (d < 200 && (!best || d < best.dist)) best = { dist: d, pin, pt };
+    }
+  }
+  return best ? { pin: best.pin, closest: best.pt } : null;
+}
+
+// Compute a bypass waypoint 380 m perpendicular away from the danger pin
+function bypassWaypoint(closestPt: [number, number], pin: Pin): [number, number] {
+  // Direction vector from pin to route point (perpendicular = rotate 90°)
+  const dLng = closestPt[0] - pin.lng;
+  const dLat = closestPt[1] - pin.lat;
+  const len = Math.sqrt(dLng * dLng + dLat * dLat) || 1;
+  // Perpendicular direction
+  const perpLng = -dLat / len;
+  const perpLat = dLng / len;
+  // 380 m in degrees (approx): 380 / 111_320
+  const offset = 380 / 111_320;
+  return [pin.lng + perpLng * offset, pin.lat + perpLat * offset];
+}
+
 async function fetchRouteOptions(
   from: [number, number],
   to: [number, number],
@@ -105,24 +168,36 @@ async function fetchRouteOptions(
   pins: Pin[],
 ): Promise<RouteOption[]> {
   const profile = OSRM_PROFILES[mode];
-  const res = await fetch(
-    `https://router.project-osrm.org/route/v1/${profile}/` +
-    `${from[0]},${from[1]};${to[0]},${to[1]}` +
-    `?overview=full&geometries=geojson&alternatives=2`,
-  );
-  const data = await res.json();
-  const rawRoutes: { geometry: { coordinates: [number, number][] }; duration: number; distance: number }[] =
-    data.routes ?? [];
-  if (rawRoutes.length === 0) return [];
 
-  const scored = rawRoutes.map((r) => ({
-    coords: r.geometry.coordinates as [number, number][],
-    duration: r.duration,
-    distance: r.distance,
-    dangerScore: scoreDanger(r.geometry.coordinates as [number, number][], pins),
-  }));
+  // ── Phase 1: standard OSRM alternatives ────────────────────────────────────
+  const raw = await osrmRoutes([from, to], profile);
+  if (raw.length === 0) return [];
 
+  const scored = raw.map((r) => ({ ...r, dangerScore: scoreDanger(r.coords, pins), rerouted: false }));
   scored.sort((a, b) => a.dangerScore - b.dangerScore);
+  const best = scored[0];
+
+  // ── Phase 2: bypass waypoint if best route has danger ──────────────────────
+  if (best.dangerScore > 0) {
+    const hit = closestDangerPin(best.coords, pins);
+    if (hit) {
+      const bypass = bypassWaypoint(hit.closest, hit.pin);
+      try {
+        const reroutedRaw = await osrmRoutes([from, bypass, to], profile);
+        if (reroutedRaw.length > 0) {
+          const rerouted = reroutedRaw[0];
+          const reroutedScore = scoreDanger(rerouted.coords, pins);
+          // Accept if: score improved AND duration penalty ≤ 50%
+          const durationPenalty = rerouted.duration / best.duration;
+          if (reroutedScore < best.dangerScore && durationPenalty <= 1.5) {
+            // Replace best route with rerouted version
+            scored[0] = { ...rerouted, dangerScore: reroutedScore, rerouted: true };
+            scored.sort((a, b) => a.dangerScore - b.dangerScore);
+          }
+        }
+      } catch { /* rerouting failed — keep original */ }
+    }
+  }
 
   const n = Math.min(scored.length, 3);
   const LABEL_SETS: Record<number, Array<{ label: RouteOption['label']; color: string }>> = {
@@ -142,6 +217,7 @@ async function fetchRouteOptions(
     duration: r.duration,
     distance: r.distance,
     dangerScore: r.dangerScore,
+    rerouted: r.rerouted,
   }));
 }
 
@@ -167,11 +243,15 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     userProfile, userLocation, pins, userId,
     setActiveRoute, setPendingRoutes,
     isSharingLocation, setIsSharingLocation,
+    placeNotes,
+    tripPrefill, setTripPrefill,
   } = useStore();
 
   const [phase, setPhase]                 = useState<Phase>('idle');
   const [departure, setDeparture]         = useState('');
+  const [departureCoords, setDepartureCoords] = useState<[number, number] | null>(null);
   const [destination, setDest]           = useState('');
+  const [destCoords, setDestCoords]      = useState<[number, number] | null>(null);
   const [mode, setMode]                  = useState<Mode>('walk');
   const [durationMs, setDuration]        = useState(30 * 60_000);
   const [options, setOptions]            = useState<RouteOption[]>([]);
@@ -184,6 +264,31 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   // My saved routes
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
   const [showRoutes, setShowRoutes]   = useState(false);
+
+  // Favourite routes — persisted in localStorage
+  const FAV_KEY = 'safepin_fav_routes';
+  const [favIds, setFavIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(FAV_KEY);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
+
+  function toggleFav(id: string) {
+    setFavIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try { localStorage.setItem(FAV_KEY, JSON.stringify([...next])); } catch { /* noop */ }
+      return next;
+    });
+  }
+
+  // Sorted list — favourites first
+  const sortedRoutes = [
+    ...savedRoutes.filter((r) => favIds.has(r.id)),
+    ...savedRoutes.filter((r) => !favIds.has(r.id)),
+  ];
 
   useEffect(() => {
     if (!userProfile?.id) return;
@@ -214,6 +319,21 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Apply trip prefill from map popup (place note tap)
+  useEffect(() => {
+    if (!tripPrefill) return;
+    if (tripPrefill.departure !== undefined) {
+      setDeparture(tripPrefill.departure);
+      setDepartureCoords(tripPrefill.departureCoords ?? null);
+    }
+    if (tripPrefill.destination !== undefined) {
+      setDest(tripPrefill.destination);
+      setDestCoords(tripPrefill.destCoords ?? null);
+    }
+    setTripPrefill(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripPrefill]);
+
   // Tick every second while active
   useEffect(() => {
     if (phase !== 'active') return;
@@ -239,11 +359,13 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setError(null);
     setPhase('searching');
 
-    let fromCoords: [number, number] | null = null;
-    if (departure.trim()) {
-      fromCoords = await geocodePlace(departure.trim(), userLocation ?? undefined);
-    } else if (userLocation) {
-      fromCoords = [userLocation.lng, userLocation.lat];
+    let fromCoords: [number, number] | null = departureCoords;
+    if (!fromCoords) {
+      if (departure.trim()) {
+        fromCoords = await geocodePlace(departure.trim(), userLocation ?? undefined);
+      } else if (userLocation) {
+        fromCoords = [userLocation.lng, userLocation.lat];
+      }
     }
 
     if (!fromCoords) {
@@ -252,7 +374,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    const toCoords = await geocodePlace(destination.trim(), userLocation ?? undefined);
+    const toCoords = destCoords ?? await geocodePlace(destination.trim(), userLocation ?? undefined);
     if (!toCoords) {
       setError('Could not find destination. Try a more specific address.');
       setPhase('idle');
@@ -302,7 +424,9 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   function loadSavedRoute(r: SavedRoute) {
     setDeparture(r.from_label ?? '');
+    setDepartureCoords(null);
     setDest(r.to_label);
+    setDestCoords(r.coords?.[(r.coords?.length ?? 1) - 1] as [number, number] | null ?? null);
     setMode(r.mode as Mode);
     setShowRoutes(false);
   }
@@ -474,10 +598,20 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 style={{ border: `2px solid ${opt.color}33`, backgroundColor: 'var(--bg-card)' }}
               >
                 <div
-                  className="px-4 py-2 flex items-center justify-between"
+                  className="px-4 py-2 flex items-center justify-between gap-2"
                   style={{ backgroundColor: `${opt.color}18` }}
                 >
-                  <span className="text-sm font-black" style={{ color: opt.color }}>{opt.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black" style={{ color: opt.color }}>{opt.label}</span>
+                    {opt.rerouted && (
+                      <span
+                        className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}
+                      >
+                        ↺ Rerouted
+                      </span>
+                    )}
+                  </div>
                   <DangerBadge score={opt.dangerScore} />
                 </div>
                 <div className="px-4 py-3 flex items-center gap-3">
@@ -619,7 +753,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                   <div className="flex items-center gap-1.5">
                     <BookOpen size={12} strokeWidth={2.5} style={{ color: 'var(--text-muted)' }} />
                     <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                      My Routes ({savedRoutes.length})
+                      My Routes ({savedRoutes.length}){favIds.size > 0 ? ` · ${favIds.size} ⭐` : ''}
                     </p>
                   </div>
                   <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
@@ -628,32 +762,51 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 </button>
                 {showRoutes && (
                   <div className="flex flex-col gap-1.5">
-                    {savedRoutes.map((r) => (
-                      <button
-                        key={r.id}
-                        onClick={() => loadSavedRoute(r)}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition active:scale-[0.98]"
-                        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                      >
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                            {r.from_label ? `${r.from_label} → ` : ''}{r.to_label}
-                          </p>
-                          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                            {MODES.find((m) => m.id === r.mode)?.emoji ?? ''} {r.mode} · {r.trip_count}× used
-                          </p>
-                        </div>
-                        <span
-                          className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0 ml-2"
+                    {sortedRoutes.map((r) => {
+                      const isFav = favIds.has(r.id);
+                      return (
+                        <div
+                          key={r.id}
+                          className="flex items-center gap-1 rounded-xl overflow-hidden"
                           style={{
-                            backgroundColor: r.danger_score_last === 0 ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                            color: r.danger_score_last === 0 ? '#22c55e' : '#f59e0b',
+                            backgroundColor: 'var(--bg-card)',
+                            border: isFav ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid var(--border)',
                           }}
                         >
-                          {r.danger_score_last === 0 ? 'Clear' : `${r.danger_score_last} risk`}
-                        </span>
-                      </button>
-                    ))}
+                          {/* Fav toggle */}
+                          <button
+                            onClick={() => toggleFav(r.id)}
+                            className="shrink-0 w-9 flex items-center justify-center self-stretch transition hover:opacity-70"
+                            title={isFav ? 'Remove from favourites' : 'Add to favourites'}
+                          >
+                            <span className="text-base">{isFav ? '⭐' : '☆'}</span>
+                          </button>
+                          {/* Route info */}
+                          <button
+                            onClick={() => loadSavedRoute(r)}
+                            className="flex-1 flex items-center justify-between py-2.5 pr-3 text-left transition active:scale-[0.98] min-w-0"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                                {r.from_label ? `${r.from_label} → ` : ''}{r.to_label}
+                              </p>
+                              <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                {MODES.find((m) => m.id === r.mode)?.emoji ?? ''} {r.mode} · {r.trip_count}× used
+                              </p>
+                            </div>
+                            <span
+                              className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0 ml-2"
+                              style={{
+                                backgroundColor: r.danger_score_last === 0 ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+                                color: r.danger_score_last === 0 ? '#22c55e' : '#f59e0b',
+                              }}
+                            >
+                              {r.danger_score_last === 0 ? 'Clear' : `${r.danger_score_last} risk`}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -674,12 +827,19 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
                 Departure
               </p>
-              <input
+              <AutocompleteInput
                 value={departure}
-                onChange={(e) => setDeparture(e.target.value)}
+                onChange={(text, coords) => { setDeparture(text); setDepartureCoords(coords ?? null); }}
                 placeholder="My current location"
-                className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                localSections={[{
+                  title: 'My Places',
+                  items: placeNotes.map((n) => ({
+                    label: ('name' in n && n.name) ? String(n.name) : `${n.emoji} ${n.note.slice(0, 30)}`,
+                    sublabel: ('name' in n && n.name) ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
+                    coords: [n.lng, n.lat] as [number, number],
+                    icon: n.emoji,
+                  })),
+                }]}
               />
             </div>
 
@@ -688,13 +848,32 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
                 Destination <span style={{ color: 'var(--accent)' }}>*</span>
               </p>
-              <input
+              <AutocompleteInput
                 value={destination}
-                onChange={(e) => setDest(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') findRoutes(); }}
+                onChange={(text, coords) => { setDest(text); setDestCoords(coords ?? null); }}
                 placeholder="e.g. Home, Gare du Nord, Café…"
-                className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                localSections={[
+                  {
+                    title: 'My Places',
+                    items: placeNotes.map((n) => ({
+                      label: ('name' in n && n.name) ? String(n.name) : `${n.emoji} ${n.note.slice(0, 30)}`,
+                      sublabel: ('name' in n && n.name) ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
+                      coords: [n.lng, n.lat] as [number, number],
+                      icon: n.emoji,
+                    })),
+                  },
+                  {
+                    title: 'My Routes',
+                    items: savedRoutes.map((r) => ({
+                      label: r.to_label,
+                      sublabel: r.from_label
+                        ? `From: ${r.from_label}`
+                        : `${MODES.find((m) => m.id === r.mode)?.emoji ?? ''} ${r.mode} · ${r.trip_count}× used`,
+                      coords: r.coords?.[(r.coords?.length ?? 1) - 1] as [number, number] | undefined,
+                      icon: MODES.find((m) => m.id === r.mode)?.emoji,
+                    })),
+                  },
+                ]}
               />
             </div>
 

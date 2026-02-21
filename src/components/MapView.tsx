@@ -141,7 +141,7 @@ export default function MapView() {
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -393,9 +393,13 @@ export default function MapView() {
       el.style.cssText =
         'width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid #fff;' +
         'box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;' +
-        'font-size:14px;cursor:default;';
+        'font-size:14px;cursor:pointer;';
       el.textContent = note.emoji;
-      el.title = note.note;
+      el.title = note.name || note.note;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSelectedPlaceNote(note);
+      });
 
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([note.lng, note.lat])

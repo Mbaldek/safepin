@@ -22,6 +22,7 @@ type Props = {
 
 export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Props) {
   const { addPlaceNote } = useStore();
+  const [name, setName]   = useState('');
   const [note, setNote]   = useState('');
   const [emoji, setEmoji] = useState('📌');
   const [saving, setSaving] = useState(false);
@@ -31,7 +32,7 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
     setSaving(true);
     const { data, error } = await supabase
       .from('place_notes')
-      .insert({ user_id: userId, lat: coords.lat, lng: coords.lng, note: note.trim(), emoji })
+      .insert({ user_id: userId, lat: coords.lat, lng: coords.lng, name: name.trim() || null, note: note.trim(), emoji })
       .select()
       .single();
     setSaving(false);
@@ -79,6 +80,20 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
           </p>
+
+          {/* Name (optional) */}
+          <div>
+            <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+              Name <span style={{ color: 'var(--text-placeholder)' }}>(optional)</span>
+            </p>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Home, Work, Coffee spot…"
+              className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
 
           {/* Emoji picker */}
           <div>

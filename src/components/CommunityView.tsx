@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { Community, CommunityMessage } from '@/types';
@@ -16,6 +17,7 @@ type CommTab = 'groups' | 'friends';
 type CreateType = 'community' | 'group';
 
 const EMOJI_OPTIONS = ['🏘️', '🏙️', '🌳', '🛡️', '🔒', '🌍', '🎯', '💡', '🎭', '⚡', '🌐', '🏃', '🚴', '🌙', '🎪'];
+const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -119,7 +121,7 @@ function ItemCard({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export default function CommunityView() {
+export default function CommunityView({ onClose }: { onClose: () => void }) {
   const { userId, userProfile } = useStore();
 
   // Navigation
@@ -379,583 +381,599 @@ export default function CommunityView() {
     setView('create');
   }
 
-  // ── Chat view ──────────────────────────────────────────────────────────────
+  // Pre-compute for list view
+  const myCommunities = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'community');
+  const myGroups      = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'group');
+  const discoverItems = items.filter((c) => !myMemberships.has(c.id) && !c.is_private);
 
-  if (view === 'chat' && selectedItem) {
-    const isMember = myMemberships.has(selectedItem.id);
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3"
-          style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-        >
-          <button
-            onClick={() => chatFrom === 'community-detail' ? setView('community-detail') : setView('list')}
-            className="text-xl transition hover:opacity-60"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ←
-          </button>
-          <span className="text-2xl">{selectedItem.avatar_emoji}</span>
-          <div className="flex-1 min-w-0">
-            <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-              {selectedItem.name}
-            </p>
-            <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-              {selectedItem.member_count} members
-              {selectedItem.community_type === 'group' && communityDetailOf && ` · ${communityDetailOf.name}`}
-            </p>
-          </div>
-          {selectedItem.is_private && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full font-bold"
-              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+  // ── Close button helper ────────────────────────────────────────────────────
+  const CloseBtn = () => (
+    <button
+      onClick={onClose}
+      className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80 shrink-0"
+      style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+    >
+      ✕
+    </button>
+  );
+
+  // ── Sheet wrapper ──────────────────────────────────────────────────────────
+  return (
+    <motion.div
+      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201 flex flex-col overflow-hidden"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        boxShadow: '0 -10px 40px var(--bg-overlay)',
+        maxHeight: '72dvh',
+      }}
+      initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+      transition={springTransition}
+    >
+      {/* Drag handle */}
+      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+
+      {/* ── CHAT VIEW ─────────────────────────────────────────────────── */}
+      {view === 'chat' && selectedItem && (() => {
+        const isMember = myMemberships.has(selectedItem.id);
+        return (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div
+              className="shrink-0 flex items-center gap-3 px-4 py-3"
+              style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
             >
-              🔒 Private
-            </span>
-          )}
-        </div>
-
-        <StoriesRow communityId={selectedItem.id} />
-
-        <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full gap-3">
-              <span className="text-5xl">{selectedItem.avatar_emoji}</span>
-              <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No messages yet</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {isMember ? 'Start the conversation!' : 'Join to participate'}
-              </p>
-            </div>
-          )}
-          {messages.map((m, i) => {
-            const isMe = m.user_id === userId;
-            const prevMsg = messages[i - 1];
-            const showAvatar = !isMe && (!prevMsg || prevMsg.user_id !== m.user_id);
-            return (
-              <div key={m.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                {!isMe && (
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 self-end ${!showAvatar ? 'invisible' : ''}`}
-                    style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
-                  >
-                    {(m.display_name?.[0] ?? '?').toUpperCase()}
-                  </div>
-                )}
-                <div className={`flex flex-col max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
-                  {showAvatar && !isMe && (
-                    <span className="text-[0.6rem] font-bold mb-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
-                      {m.display_name ?? 'Anonymous'}
-                    </span>
-                  )}
-                  <div
-                    className="px-3 py-2 rounded-2xl text-sm leading-snug"
-                    style={{
-                      backgroundColor: isMe ? 'var(--accent)' : 'var(--bg-card)',
-                      color: isMe ? '#fff' : 'var(--text-primary)',
-                      borderBottomRightRadius: isMe ? '6px' : undefined,
-                      borderBottomLeftRadius: !isMe ? '6px' : undefined,
-                    }}
-                  >
-                    {m.content}
-                  </div>
-                  <span className="text-[0.55rem] mt-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
-                    {timeAgo(m.created_at)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {isMember ? (
-          <div
-            className="shrink-0 flex gap-2 px-4 py-3"
-            style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
-          >
-            <input
-              value={msgInput}
-              onChange={(e) => setMsgInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Message…"
-              className="flex-1 text-sm rounded-2xl px-4 py-2.5 outline-none"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!msgInput.trim() || sending}
-              className="w-10 h-10 rounded-full flex items-center justify-center font-bold transition disabled:opacity-40"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-            >
-              ↑
-            </button>
-          </div>
-        ) : (
-          <div
-            className="shrink-0 px-4 py-3"
-            style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
-          >
-            <button
-              onClick={() => joinSubGroup(selectedItem)}
-              className="w-full py-3 rounded-xl font-bold text-sm"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-            >
-              Join to send messages
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ── Community detail view ──────────────────────────────────────────────────
-
-  if (view === 'community-detail' && communityDetailOf) {
-    const isMember = myMemberships.has(communityDetailOf.id);
-    const isOwner  = communityDetailOf.owner_id === userId;
-
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        {/* Header */}
-        <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3"
-          style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-        >
-          <button
-            onClick={() => setView('list')}
-            className="text-xl transition hover:opacity-60"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ←
-          </button>
-          <span className="text-2xl">{communityDetailOf.avatar_emoji}</span>
-          <div className="flex-1 min-w-0">
-            <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-              {communityDetailOf.name}
-            </p>
-            <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-              {communityDetailOf.member_count} members · {subGroups.length} {subGroups.length === 1 ? 'group' : 'groups'}
-            </p>
-          </div>
-          {isMember ? (
-            !isOwner && (
               <button
-                onClick={() => leaveItem(communityDetailOf)}
-                className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
-                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                onClick={() => chatFrom === 'community-detail' ? setView('community-detail') : setView('list')}
+                className="text-xl transition hover:opacity-60"
+                style={{ color: 'var(--text-muted)' }}
               >
-                Leave
+                ←
               </button>
-            )
-          ) : (
-            <button
-              onClick={() => joinItem(communityDetailOf)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold"
-              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
-            >
-              Join
-            </button>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-          {communityDetailOf.description && (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {communityDetailOf.description}
-            </p>
-          )}
-
-          {/* Community general chat */}
-          {isMember && (
-            <button
-              onClick={() => openChat(communityDetailOf, 'community-detail')}
-              className="flex items-center justify-between px-4 py-3 rounded-2xl"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg">{communityDetailOf.avatar_emoji}</span>
-                <div className="text-left">
-                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Community Chat</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>General discussion</p>
-                </div>
+              <span className="text-2xl">{selectedItem.avatar_emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                  {selectedItem.name}
+                </p>
+                <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                  {selectedItem.member_count} members
+                  {selectedItem.community_type === 'group' && communityDetailOf && ` · ${communityDetailOf.name}`}
+                </p>
               </div>
-              <span className="text-base" style={{ color: 'var(--text-muted)' }}>→</span>
-            </button>
-          )}
-
-          {/* Groups section */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                Groups
-              </p>
-              <button
-                onClick={() => startCreate('group', communityDetailOf.id)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
-              >
-                <Plus size={11} strokeWidth={2.5} />
-                Add a group
-              </button>
+              {selectedItem.is_private && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-bold"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  🔒 Private
+                </span>
+              )}
+              <CloseBtn />
             </div>
 
-            {subGroups.length === 0 ? (
+            <StoriesRow communityId={selectedItem.id} />
+
+            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full gap-3">
+                  <span className="text-5xl">{selectedItem.avatar_emoji}</span>
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No messages yet</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {isMember ? 'Start the conversation!' : 'Join to participate'}
+                  </p>
+                </div>
+              )}
+              {messages.map((m, i) => {
+                const isMe = m.user_id === userId;
+                const prevMsg = messages[i - 1];
+                const showAvatar = !isMe && (!prevMsg || prevMsg.user_id !== m.user_id);
+                return (
+                  <div key={m.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    {!isMe && (
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 self-end ${!showAvatar ? 'invisible' : ''}`}
+                        style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+                      >
+                        {(m.display_name?.[0] ?? '?').toUpperCase()}
+                      </div>
+                    )}
+                    <div className={`flex flex-col max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
+                      {showAvatar && !isMe && (
+                        <span className="text-[0.6rem] font-bold mb-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
+                          {m.display_name ?? 'Anonymous'}
+                        </span>
+                      )}
+                      <div
+                        className="px-3 py-2 rounded-2xl text-sm leading-snug"
+                        style={{
+                          backgroundColor: isMe ? 'var(--accent)' : 'var(--bg-card)',
+                          color: isMe ? '#fff' : 'var(--text-primary)',
+                          borderBottomRightRadius: isMe ? '6px' : undefined,
+                          borderBottomLeftRadius: !isMe ? '6px' : undefined,
+                        }}
+                      >
+                        {m.content}
+                      </div>
+                      <span className="text-[0.55rem] mt-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
+                        {timeAgo(m.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {isMember ? (
               <div
-                className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                className="shrink-0 flex gap-2 px-4 py-3"
+                style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
               >
-                <span className="text-3xl">👥</span>
-                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No groups yet</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Add the first group to this community</p>
+                <input
+                  value={msgInput}
+                  onChange={(e) => setMsgInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder="Message…"
+                  className="flex-1 text-sm rounded-2xl px-4 py-2.5 outline-none"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                />
                 <button
-                  onClick={() => startCreate('group', communityDetailOf.id)}
-                  className="mt-1 px-4 py-2 rounded-xl text-xs font-bold"
+                  onClick={sendMessage}
+                  disabled={!msgInput.trim() || sending}
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold transition disabled:opacity-40"
                   style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                 >
-                  + Add a Group
+                  ↑
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {subGroups.map((group) => (
-                  <ItemCard
-                    key={group.id}
-                    item={group}
-                    isMember={myMemberships.has(group.id)}
-                    isOwner={group.owner_id === userId}
-                    onPrimary={() => openChat(group, 'community-detail')}
-                    onJoin={() => joinSubGroup(group)}
-                    onLeave={() => leaveSubGroup(group)}
-                  />
-                ))}
+              <div
+                className="shrink-0 px-4 py-3"
+                style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
+              >
+                <button
+                  onClick={() => joinSubGroup(selectedItem)}
+                  className="w-full py-3 rounded-xl font-bold text-sm"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                >
+                  Join to send messages
+                </button>
               </div>
             )}
           </div>
-        </div>
-      </div>
-    );
-  }
+        );
+      })()}
 
-  // ── Create view ────────────────────────────────────────────────────────────
-
-  if (view === 'create') {
-    const isGroup = createType === 'group';
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3"
-          style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-        >
-          <button
-            onClick={() => setView(createParentId ? 'community-detail' : 'list')}
-            className="text-xl hover:opacity-60 transition"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            ←
-          </button>
-          <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
-            {isGroup ? 'New Group' : 'New Community'}
-          </h2>
-          {createParentId && communityDetailOf && (
-            <span
-              className="ml-auto text-[0.6rem] px-2 py-1 rounded-full font-bold"
-              style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}
+      {/* ── COMMUNITY DETAIL VIEW ──────────────────────────────────────── */}
+      {view === 'community-detail' && communityDetailOf && (() => {
+        const isMember = myMemberships.has(communityDetailOf.id);
+        const isOwner  = communityDetailOf.owner_id === userId;
+        return (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div
+              className="shrink-0 flex items-center gap-3 px-4 py-3"
+              style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
             >
-              in {communityDetailOf.name}
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[440px] mx-auto w-full px-4 py-6 flex flex-col gap-5">
-            {/* Emoji */}
-            <div>
-              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                Icon
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {EMOJI_OPTIONS.map((e) => (
+              <button
+                onClick={() => setView('list')}
+                className="text-xl transition hover:opacity-60"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                ←
+              </button>
+              <span className="text-2xl">{communityDetailOf.avatar_emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                  {communityDetailOf.name}
+                </p>
+                <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                  {communityDetailOf.member_count} members · {subGroups.length} {subGroups.length === 1 ? 'group' : 'groups'}
+                </p>
+              </div>
+              {isMember ? (
+                !isOwner && (
                   <button
-                    key={e}
-                    onClick={() => setNewEmoji(e)}
-                    className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition"
+                    onClick={() => leaveItem(communityDetailOf)}
+                    className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  >
+                    Leave
+                  </button>
+                )
+              ) : (
+                <button
+                  onClick={() => joinItem(communityDetailOf)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
+                >
+                  Join
+                </button>
+              )}
+              <CloseBtn />
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+              {communityDetailOf.description && (
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {communityDetailOf.description}
+                </p>
+              )}
+
+              {isMember && (
+                <button
+                  onClick={() => openChat(communityDetailOf, 'community-detail')}
+                  className="flex items-center justify-between px-4 py-3 rounded-2xl"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">{communityDetailOf.avatar_emoji}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Community Chat</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>General discussion</p>
+                    </div>
+                  </div>
+                  <span className="text-base" style={{ color: 'var(--text-muted)' }}>→</span>
+                </button>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                    Groups
+                  </p>
+                  <button
+                    onClick={() => startCreate('group', communityDetailOf.id)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                    style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
+                  >
+                    <Plus size={11} strokeWidth={2.5} />
+                    Add a group
+                  </button>
+                </div>
+
+                {subGroups.length === 0 ? (
+                  <div
+                    className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                  >
+                    <span className="text-3xl">👥</span>
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No groups yet</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Add the first group to this community</p>
+                    <button
+                      onClick={() => startCreate('group', communityDetailOf.id)}
+                      className="mt-1 px-4 py-2 rounded-xl text-xs font-bold"
+                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    >
+                      + Add a Group
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {subGroups.map((group) => (
+                      <ItemCard
+                        key={group.id}
+                        item={group}
+                        isMember={myMemberships.has(group.id)}
+                        isOwner={group.owner_id === userId}
+                        onPrimary={() => openChat(group, 'community-detail')}
+                        onJoin={() => joinSubGroup(group)}
+                        onLeave={() => leaveSubGroup(group)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── CREATE VIEW ────────────────────────────────────────────────── */}
+      {view === 'create' && (() => {
+        const isGroup = createType === 'group';
+        return (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div
+              className="shrink-0 flex items-center gap-3 px-4 py-3"
+              style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
+            >
+              <button
+                onClick={() => setView(createParentId ? 'community-detail' : 'list')}
+                className="text-xl hover:opacity-60 transition"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                ←
+              </button>
+              <h2 className="text-lg font-black flex-1" style={{ color: 'var(--text-primary)' }}>
+                {isGroup ? 'New Group' : 'New Community'}
+              </h2>
+              {createParentId && communityDetailOf && (
+                <span
+                  className="text-[0.6rem] px-2 py-1 rounded-full font-bold"
+                  style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}
+                >
+                  in {communityDetailOf.name}
+                </span>
+              )}
+              <CloseBtn />
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-110 mx-auto w-full px-4 py-6 flex flex-col gap-5">
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                    Icon
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {EMOJI_OPTIONS.map((e) => (
+                      <button
+                        key={e}
+                        onClick={() => setNewEmoji(e)}
+                        className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition"
+                        style={{
+                          backgroundColor: newEmoji === e ? 'rgba(244,63,94,0.12)' : 'var(--bg-card)',
+                          border: newEmoji === e ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        }}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Name *
+                  </p>
+                  <input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder={isGroup ? 'e.g. Night Watch, Support Circle…' : 'e.g. Night Runners Paris'}
+                    className="w-full text-sm rounded-xl px-4 py-3 outline-none"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                    Description
+                  </p>
+                  <textarea
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder={isGroup ? 'What is this group for?' : 'What is this community about?'}
+                    rows={3}
+                    className="w-full text-sm rounded-xl px-4 py-3 outline-none resize-none"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+
+                <button
+                  onClick={() => setNewPrivate(!newPrivate)}
+                  className="flex items-center justify-between px-4 py-3.5 rounded-xl transition"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">{newPrivate ? '🔒' : '🌐'}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {newPrivate ? 'Private' : 'Public'}
+                      </p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {newPrivate ? 'Invite-only, not discoverable' : 'Anyone can find and join'}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="w-11 h-6 rounded-full relative transition-all"
+                    style={{ backgroundColor: newPrivate ? 'var(--accent)' : 'var(--border)' }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                      style={{ left: newPrivate ? '22px' : '2px' }}
+                    />
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleCreate}
+                  disabled={!newName.trim() || creating}
+                  className="w-full py-4 rounded-xl font-bold text-sm transition disabled:opacity-40"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                >
+                  {creating
+                    ? 'Creating…'
+                    : `Create ${newPrivate ? '🔒 Private' : '🌐 Public'} ${isGroup ? 'Group' : 'Community'}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── FRIENDS VIEW ──────────────────────────────────────────────── */}
+      {view === 'list' && commTab === 'friends' && (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <FriendsView onBack={() => setCommTab('groups')} />
+        </div>
+      )}
+
+      {/* ── LIST VIEW ─────────────────────────────────────────────────── */}
+      {view === 'list' && commTab === 'groups' && (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Header */}
+          <div
+            className="shrink-0 px-4 pt-3 pb-0"
+            style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
+          >
+            <div className="max-w-110 mx-auto w-full">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>Community</h2>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowNewPicker(!showNewPicker)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    >
+                      + New
+                    </button>
+                    {showNewPicker && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowNewPicker(false)} />
+                        <div
+                          className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl overflow-hidden shadow-xl"
+                          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minWidth: '190px' }}
+                        >
+                          <button
+                            onClick={() => startCreate('community', null)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
+                          >
+                            <span className="text-lg">🏛️</span>
+                            <div>
+                              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Community</p>
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Contains groups</p>
+                            </div>
+                          </button>
+                          <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />
+                          <button
+                            onClick={() => startCreate('group', null)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
+                          >
+                            <span className="text-lg">👥</span>
+                            <div>
+                              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Group</p>
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Standalone chat group</p>
+                            </div>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <CloseBtn />
+                </div>
+              </div>
+              {/* Segment switcher */}
+              <div className="flex">
+                {(['groups', 'friends'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setCommTab(tab)}
+                    className="flex-1 py-2.5 text-xs font-black transition"
                     style={{
-                      backgroundColor: newEmoji === e ? 'rgba(244,63,94,0.12)' : 'var(--bg-card)',
-                      border: newEmoji === e ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      color: commTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                      borderBottom: commTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
                     }}
                   >
-                    {e}
+                    {tab === 'groups' ? 'Groups' : 'Friends'}
                   </button>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Name */}
-            <div>
-              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-                Name *
-              </p>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder={isGroup ? 'e.g. Night Watch, Support Circle…' : 'e.g. Night Runners Paris'}
-                className="w-full text-sm rounded-xl px-4 py-3 outline-none"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
-              />
-            </div>
+          <div
+            className="flex-1 overflow-y-auto"
+            onClick={() => showNewPicker && setShowNewPicker(false)}
+          >
+            <div className="max-w-110 mx-auto w-full px-4 py-4 flex flex-col gap-5">
 
-            {/* Description */}
-            <div>
-              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-                Description
-              </p>
-              <textarea
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder={isGroup ? 'What is this group for?' : 'What is this community about?'}
-                rows={3}
-                className="w-full text-sm rounded-xl px-4 py-3 outline-none resize-none"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
-              />
-            </div>
-
-            {/* Private toggle */}
-            <button
-              onClick={() => setNewPrivate(!newPrivate)}
-              className="flex items-center justify-between px-4 py-3.5 rounded-xl transition"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-xl">{newPrivate ? '🔒' : '🌐'}</span>
-                <div className="text-left">
-                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {newPrivate ? 'Private' : 'Public'}
+              {myCommunities.length > 0 && (
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                    Your Communities
                   </p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {newPrivate ? 'Invite-only, not discoverable' : 'Anyone can find and join'}
-                  </p>
+                  <div className="flex flex-col gap-2">
+                    {myCommunities.map((c) => (
+                      <ItemCard
+                        key={c.id}
+                        item={c}
+                        isMember
+                        isOwner={c.owner_id === userId}
+                        onPrimary={() => openCommunityDetail(c)}
+                        onLeave={() => leaveItem(c)}
+                        subGroupCount={subGroupCounts[c.id] ?? 0}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div
-                className="w-11 h-6 rounded-full relative transition-all"
-                style={{ backgroundColor: newPrivate ? 'var(--accent)' : 'var(--border)' }}
-              >
-                <div
-                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-                  style={{ left: newPrivate ? '22px' : '2px' }}
-                />
-              </div>
-            </button>
+              )}
 
-            <button
-              onClick={handleCreate}
-              disabled={!newName.trim() || creating}
-              className="w-full py-4 rounded-xl font-bold text-sm transition disabled:opacity-40"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-            >
-              {creating
-                ? 'Creating…'
-                : `Create ${newPrivate ? '🔒 Private' : '🌐 Public'} ${isGroup ? 'Group' : 'Community'}`}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+              {myGroups.length > 0 && (
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                    Your Groups
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {myGroups.map((g) => (
+                      <ItemCard
+                        key={g.id}
+                        item={g}
+                        isMember
+                        isOwner={g.owner_id === userId}
+                        onPrimary={() => openChat(g, 'list')}
+                        onLeave={() => leaveItem(g)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-  // ── List view ──────────────────────────────────────────────────────────────
+              {discoverItems.length > 0 && (
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                    Discover
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {discoverItems.map((c) => (
+                      <ItemCard
+                        key={c.id}
+                        item={c}
+                        isMember={false}
+                        onPrimary={() =>
+                          c.community_type === 'community'
+                            ? openCommunityDetail(c)
+                            : openChat(c, 'list')
+                        }
+                        onJoin={() => joinItem(c)}
+                        subGroupCount={subGroupCounts[c.id] ?? 0}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-  const myCommunities   = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'community');
-  const myGroups        = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'group');
-  const discoverItems   = items.filter((c) => !myMemberships.has(c.id) && !c.is_private);
-
-  if (commTab === 'friends') {
-    return (
-      <div className="flex flex-col h-full">
-        <FriendsView onBack={() => setCommTab('groups')} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Header */}
-      <div
-        className="shrink-0 px-4 pt-3 pb-0"
-        style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-      >
-        <div className="max-w-[440px] mx-auto w-full">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Community</h2>
-            {commTab === 'groups' && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowNewPicker(!showNewPicker)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  + New
-                </button>
-                {showNewPicker && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowNewPicker(false)} />
-                    <div
-                      className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl overflow-hidden shadow-xl"
-                      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minWidth: '190px' }}
+              {myCommunities.length === 0 && myGroups.length === 0 && discoverItems.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-10 gap-4">
+                  <span className="text-5xl">💬</span>
+                  <div className="text-center">
+                    <p className="text-lg font-black mb-1" style={{ color: 'var(--text-primary)' }}>
+                      Nothing here yet
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                      Create a community or a standalone group
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startCreate('community', null)}
+                      className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                     >
-                      <button
-                        onClick={() => startCreate('community', null)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
-                      >
-                        <span className="text-lg">🏛️</span>
-                        <div>
-                          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Community</p>
-                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Contains groups</p>
-                        </div>
-                      </button>
-                      <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />
-                      <button
-                        onClick={() => startCreate('group', null)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
-                      >
-                        <span className="text-lg">👥</span>
-                        <div>
-                          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Group</p>
-                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Standalone chat group</p>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          {/* Segment switcher */}
-          <div className="flex">
-            {(['groups', 'friends'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setCommTab(tab)}
-                className="flex-1 py-2.5 text-xs font-black transition"
-                style={{
-                  color: commTab === tab ? 'var(--accent)' : 'var(--text-muted)',
-                  borderBottom: commTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-                }}
-              >
-                {tab === 'groups' ? 'Groups' : 'Friends'}
-              </button>
-            ))}
+                      🏛️ Community
+                    </button>
+                    <button
+                      onClick={() => startCreate('group', null)}
+                      className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                    >
+                      👥 Group
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-
-      <div
-        className="flex-1 overflow-y-auto"
-        onClick={() => showNewPicker && setShowNewPicker(false)}
-      >
-        <div className="max-w-[440px] mx-auto w-full px-4 py-4 flex flex-col gap-5">
-
-          {/* Your Communities */}
-          {myCommunities.length > 0 && (
-            <div>
-              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                Your Communities
-              </p>
-              <div className="flex flex-col gap-2">
-                {myCommunities.map((c) => (
-                  <ItemCard
-                    key={c.id}
-                    item={c}
-                    isMember
-                    isOwner={c.owner_id === userId}
-                    onPrimary={() => openCommunityDetail(c)}
-                    onLeave={() => leaveItem(c)}
-                    subGroupCount={subGroupCounts[c.id] ?? 0}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Your Groups */}
-          {myGroups.length > 0 && (
-            <div>
-              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                Your Groups
-              </p>
-              <div className="flex flex-col gap-2">
-                {myGroups.map((g) => (
-                  <ItemCard
-                    key={g.id}
-                    item={g}
-                    isMember
-                    isOwner={g.owner_id === userId}
-                    onPrimary={() => openChat(g, 'list')}
-                    onLeave={() => leaveItem(g)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Discover */}
-          {discoverItems.length > 0 && (
-            <div>
-              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                Discover
-              </p>
-              <div className="flex flex-col gap-2">
-                {discoverItems.map((c) => (
-                  <ItemCard
-                    key={c.id}
-                    item={c}
-                    isMember={false}
-                    onPrimary={() =>
-                      c.community_type === 'community'
-                        ? openCommunityDetail(c)
-                        : openChat(c, 'list')
-                    }
-                    onJoin={() => joinItem(c)}
-                    subGroupCount={subGroupCounts[c.id] ?? 0}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty state */}
-          {myCommunities.length === 0 && myGroups.length === 0 && discoverItems.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-10 gap-4">
-              <span className="text-5xl">💬</span>
-              <div className="text-center">
-                <p className="text-lg font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-                  Nothing here yet
-                </p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  Create a community or a standalone group
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => startCreate('community', null)}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  🏛️ Community
-                </button>
-                <button
-                  onClick={() => startCreate('group', null)}
-                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-                >
-                  👥 Group
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      )}
+    </motion.div>
   );
 }

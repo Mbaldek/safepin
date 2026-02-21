@@ -14,6 +14,7 @@ export type RouteOption = {
   duration: number;   // seconds
   distance: number;   // meters
   dangerScore: number;
+  rerouted?: boolean; // true when bypass waypoint was applied
 };
 
 export type MapFilters = {
@@ -106,6 +107,12 @@ type Store = {
   placeNotes: PlaceNote[];
   setPlaceNotes: (notes: PlaceNote[]) => void;
   addPlaceNote: (note: PlaceNote) => void;
+  selectedPlaceNote: PlaceNote | null;
+  setSelectedPlaceNote: (note: PlaceNote | null) => void;
+
+  // Trip prefill — set by map popup to pre-fill trip planner fields
+  tripPrefill: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null;
+  setTripPrefill: (p: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -182,4 +189,8 @@ export const useStore = create<Store>((set) => ({
   placeNotes: [],
   setPlaceNotes: (notes) => set({ placeNotes: notes }),
   addPlaceNote: (note) => set((state) => ({ placeNotes: [note, ...state.placeNotes] })),
+  selectedPlaceNote: null,
+  setSelectedPlaceNote: (note) => set({ selectedPlaceNote: note }),
+  tripPrefill: null,
+  setTripPrefill: (p) => set({ tripPrefill: p }),
 }));

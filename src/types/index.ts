@@ -132,6 +132,7 @@ export type PlaceNote = {
   user_id: string;
   lat: number;
   lng: number;
+  name: string | null;
   note: string;
   emoji: string;
   created_at: string;

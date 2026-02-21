@@ -27,6 +27,7 @@ import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
 import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
 import PlaceNoteSheet from '@/components/PlaceNoteSheet';
+import PlaceNotePopup from '@/components/PlaceNotePopup';
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -78,6 +79,7 @@ export default function MapPage() {
     isSharingLocation, setWatchedLocation,
     userLocation, userProfile,
     newPlaceNoteCoords, setNewPlaceNoteCoords,
+    selectedPlaceNote, setSelectedPlaceNote,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -378,8 +380,8 @@ export default function MapPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── Map tab — visible for map AND trip tabs ────────────────── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' ? 'hidden' : 'flex flex-col'}`}>
+      {/* ── Map tab — visible for map, trip, incidents AND community tabs ── */}
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' && activeTab !== 'community' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
@@ -415,6 +417,13 @@ export default function MapPage() {
             <IncidentsView key="incidents-sheet" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
+
+        {/* Community sheet — overlays the map when on community tab */}
+        <AnimatePresence>
+          {activeTab === 'community' && (
+            <CommunityView key="community-sheet" onClose={() => setActiveTab('map')} />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* SOS nearby banner */}
@@ -440,12 +449,6 @@ export default function MapPage() {
 
       {/* ── Non-map tabs — fade in/out with AnimatePresence ────────── */}
       <AnimatePresence mode="wait">
-        {activeTab === 'community' && (
-          <motion.div key="community" className="flex-1 min-h-0 overflow-hidden flex flex-col"
-            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-            <CommunityView />
-          </motion.div>
-        )}
         {activeTab === 'profile' && userId && (
           <motion.div key="profile" className="flex-1 min-h-0 overflow-hidden flex flex-col"
             variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
@@ -469,6 +472,17 @@ export default function MapPage() {
             userId={userId}
             onClose={() => setNewPlaceNoteCoords(null)}
             onSaved={() => setNewPlaceNoteCoords(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Place Note popup — tap a note marker on the map ────────── */}
+      <AnimatePresence>
+        {selectedPlaceNote && (
+          <PlaceNotePopup
+            key="place-note-popup"
+            note={selectedPlaceNote}
+            onClose={() => setSelectedPlaceNote(null)}
           />
         )}
       </AnimatePresence>
