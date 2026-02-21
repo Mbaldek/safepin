@@ -10,9 +10,11 @@ import { SEVERITY, Pin } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
-const SOURCE_ID  = 'pins-source';
-const ROUTE_SRC  = 'route-source';
-const ROUTE_LYR  = 'route-line';
+const SOURCE_ID   = 'pins-source';
+const ROUTE_SRC   = 'route-source';
+const ROUTE_LYR   = 'route-line';
+const PENDING_SRCS = ['pending-src-0', 'pending-src-1', 'pending-src-2'];
+const PENDING_LYRS = ['pending-line-0', 'pending-line-1', 'pending-line-2'];
 
 function getPinOpacity(pin: Pin): number {
   const base = pin.last_confirmed_at
@@ -130,7 +132,7 @@ export default function MapView() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -243,6 +245,51 @@ export default function MapView() {
       { padding: 60, duration: 1200 },
     );
   }, [activeRoute, mapReady, layersReady]);
+
+  // Draw / clear pending route options (colored multi-route selection)
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    // Remove previous pending layers + sources
+    PENDING_LYRS.forEach((lyr) => { if (m.getLayer(lyr)) m.removeLayer(lyr); });
+    PENDING_SRCS.forEach((src) => { if (m.getSource(src)) m.removeSource(src); });
+
+    if (!pendingRoutes || pendingRoutes.length === 0) return;
+
+    pendingRoutes.forEach((route, i) => {
+      m.addSource(PENDING_SRCS[i], {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: route.coords },
+          properties: {},
+        },
+      });
+      m.addLayer({
+        id: PENDING_LYRS[i],
+        type: 'line',
+        source: PENDING_SRCS[i],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': route.color,
+          'line-width': 4,
+          'line-opacity': 0.85,
+        },
+      }, 'clusters');
+    });
+
+    // Fit bounds to show all routes
+    const allCoords = pendingRoutes.flatMap((r) => r.coords);
+    if (allCoords.length > 0) {
+      const lngs = allCoords.map((c) => c[0]);
+      const lats  = allCoords.map((c) => c[1]);
+      m.fitBounds(
+        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+        { padding: 60, duration: 1200 },
+      );
+    }
+  }, [pendingRoutes, mapReady, layersReady]);
 
   // Switch map style when theme changes — re-add cluster layers after style loads
   useEffect(() => {

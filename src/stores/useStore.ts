@@ -4,6 +4,16 @@ import { Pin, AppNotification } from '@/types';
 type Sheet = 'none' | 'report' | 'detail';
 type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'profile';
 
+export type RouteOption = {
+  id: string;
+  label: 'Safest' | 'Balanced' | 'Fastest';
+  color: string;
+  coords: [number, number][];
+  duration: number;   // seconds
+  distance: number;   // meters
+  dangerScore: number;
+};
+
 export type MapFilters = {
   severity: string;        // 'all' | 'low' | 'med' | 'high'
   age: string;             // 'all' | '1h' | '6h' | 'today'
@@ -73,6 +83,10 @@ type Store = {
   activeRoute: { coords: [number, number][]; destination: string } | null;
   setActiveRoute: (r: { coords: [number, number][]; destination: string } | null) => void;
 
+  // Pending route options (multi-route selection)
+  pendingRoutes: RouteOption[] | null;
+  setPendingRoutes: (routes: RouteOption[] | null) => void;
+
   // Notifications
   notifications: AppNotification[];
   addNotification: (n: AppNotification) => void;
@@ -119,6 +133,10 @@ export const useStore = create<Store>((set) => ({
   // Active trip route
   activeRoute: null,
   setActiveRoute: (r) => set({ activeRoute: r }),
+
+  // Pending route options
+  pendingRoutes: null,
+  setPendingRoutes: (routes) => set({ pendingRoutes: routes }),
 
   // Notifications
   notifications: [],
