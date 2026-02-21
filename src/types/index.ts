@@ -62,6 +62,43 @@ export type CommunityMessage = {
   created_at: string;
 };
 
+export type DMConversation = {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  last_message: string | null;
+  last_message_sender_id: string | null;
+  last_message_at: string;
+  user1_last_read_at: string | null;
+  user2_last_read_at: string | null;
+  created_at: string;
+  // enriched client-side
+  partner_id: string;
+  partner_name: string | null;
+  is_unread: boolean;
+};
+
+export type DirectMessage = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string | null;
+  content_type: 'text' | 'image' | 'video' | 'audio';
+  media_url: string | null;
+  created_at: string;
+};
+
+export type CommunityStory = {
+  id: string;
+  community_id: string;
+  user_id: string;
+  display_name: string | null;
+  media_url: string;
+  media_type: 'image' | 'video';
+  caption: string | null;
+  created_at: string;
+};
+
 export type Profile = {
   id: string;
   name: string;

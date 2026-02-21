@@ -8,7 +8,7 @@ const TABS = [
   { id: 'map',        label: 'Map',        icon: '🗺️',  live: true  },
   { id: 'incidents',  label: 'Incidents',  icon: '📋',  live: true  },
   { id: 'community',  label: 'Community',  icon: '💬',  live: true  },
-  { id: 'messages',   label: 'Messages',   icon: '✉️',   live: false },
+  { id: 'messages',   label: 'Messages',   icon: '✉️',   live: true  },
   { id: 'profile',    label: 'Profile',    icon: '👤',  live: true  },
 ] as const;
 

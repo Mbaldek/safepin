@@ -19,7 +19,9 @@ import BottomNav from '@/components/BottomNav';
 import IncidentsView from '@/components/IncidentsView';
 import ProfileView from '@/components/ProfileView';
 import CommunityView from '@/components/CommunityView';
+import MessagesView from '@/components/MessagesView';
 import NotificationsSheet from '@/components/NotificationsSheet';
+import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
 
 // ─── Push helpers ─────────────────────────────────────────────────────────────
 
@@ -62,6 +64,7 @@ export default function MapPage() {
     addNotification, notifications,
   } = useStore();
 
+  const [onboardingDone, markOnboardingDone] = useOnboardingDone();
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -285,22 +288,10 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* ── Messages placeholder ───────────────────────────────────── */}
+      {/* ── Messages tab ───────────────────────────────────────────── */}
       {activeTab === 'messages' && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4"
-          style={{ backgroundColor: 'var(--bg-primary)' }}>
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            ✉️
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>Messages</p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Coming in a future sprint</p>
-          </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-            🚧 In progress
-          </span>
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <MessagesView />
         </div>
       )}
 
@@ -312,6 +303,11 @@ export default function MapPage() {
         <div className="absolute inset-0 z-[300]">
           <NotificationsSheet onClose={() => setShowNotifications(false)} />
         </div>
+      )}
+
+      {/* ── Onboarding overlay (first launch only) ─────────────────── */}
+      {!loading && !onboardingDone && (
+        <OnboardingOverlay onDone={markOnboardingDone} />
       )}
     </div>
   );
