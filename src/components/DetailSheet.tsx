@@ -87,7 +87,7 @@ export default function DetailSheet() {
           )}
 
           {/* Description */}
-          <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>
             {selectedPin.description}
           </p>
 

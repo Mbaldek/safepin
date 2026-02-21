@@ -6,7 +6,7 @@ import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
-import { SEVERITY } from '@/types';
+import { SEVERITY, Pin } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -107,30 +107,77 @@ export default function MapView() {
       return pin.severity === activeFilter;
     });
 
+    // Build trail groups: userId → pins sorted newest-first
+    // Index 0 = latest (full size + pulse), 1 = faded, 2 = more faded, 3+ = hidden
+    const trailGroups = new Map<string, Pin[]>();
+    filtered.forEach((pin) => {
+      if (!pin.is_emergency) return;
+      const arr = trailGroups.get(pin.user_id) ?? [];
+      arr.push(pin);
+      trailGroups.set(pin.user_id, arr);
+    });
+    trailGroups.forEach((arr, key) => {
+      trailGroups.set(key, [...arr].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ));
+    });
+
+    // Trail config: [opacity, dotPx, wrapperPx, showRing]
+    const TRAIL_LEVELS: [number, number, number, boolean][] = [
+      [1.0, 38, 44, true],   // latest — full, pulsing
+      [0.55, 28, 34, false], // previous — medium
+      [0.28, 20, 26, false], // older — small
+      // index 3+ → skipped (hidden)
+    ];
+
+    function trailLevel(pin: Pin): [number, number, number, boolean] | null {
+      if (!pin.is_emergency) return null;
+      const group = trailGroups.get(pin.user_id) ?? [];
+      const idx = group.findIndex((p) => p.id === pin.id);
+      return TRAIL_LEVELS[idx] ?? null; // null = hidden
+    }
+
     filtered.forEach((pin) => {
       const isEmergency = !!pin.is_emergency;
-      const color = isEmergency ? '#ef4444' : (SEVERITY[pin.severity as keyof typeof SEVERITY]?.color || '#6b7490');
-      const size = isEmergency ? '44px' : '28px';
+
+      // Determine trail rendering for emergency pins
+      let trailOpacity = 1;
+      let dotPx = 0;
+      let wrapperPx = 0;
+      let showRing = false;
+
+      if (isEmergency) {
+        const level = trailLevel(pin);
+        if (!level) return; // too old in trail — skip
+        [trailOpacity, dotPx, wrapperPx, showRing] = level;
+      }
+
+      const color = isEmergency
+        ? '#ef4444'
+        : (SEVERITY[pin.severity as keyof typeof SEVERITY]?.color || '#6b7490');
+
+      const wrapperSize = isEmergency ? `${wrapperPx}px` : '28px';
 
       const wrapper = document.createElement('div');
-      wrapper.style.width = size;
-      wrapper.style.height = size;
+      wrapper.style.width = wrapperSize;
+      wrapper.style.height = wrapperSize;
       wrapper.style.cursor = 'pointer';
       wrapper.style.position = 'relative';
       wrapper.style.display = 'flex';
       wrapper.style.alignItems = 'center';
       wrapper.style.justifyContent = 'center';
+      if (isEmergency) wrapper.style.opacity = String(trailOpacity);
 
-      if (isEmergency) {
-        // Pulsing ring behind the dot
+      if (isEmergency && showRing) {
         const ring = document.createElement('div');
         ring.className = 'emergency-ring';
         wrapper.appendChild(ring);
       }
 
       const dot = document.createElement('div');
-      dot.style.width = isEmergency ? '38px' : '100%';
-      dot.style.height = isEmergency ? '38px' : '100%';
+      const dotSize = isEmergency ? `${dotPx}px` : '100%';
+      dot.style.width = dotSize;
+      dot.style.height = dotSize;
       dot.style.borderRadius = '50%';
       dot.style.backgroundColor = color;
       dot.style.border = theme === 'dark' ? '3px solid rgba(255,255,255,0.9)' : '3px solid rgba(0,0,0,0.15)';
@@ -140,7 +187,7 @@ export default function MapView() {
       dot.style.position = 'relative';
 
       if (isEmergency) {
-        dot.style.fontSize = '18px';
+        dot.style.fontSize = `${Math.round(dotPx * 0.47)}px`;
         dot.style.display = 'flex';
         dot.style.alignItems = 'center';
         dot.style.justifyContent = 'center';
