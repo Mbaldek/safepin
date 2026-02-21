@@ -14,7 +14,7 @@ export default function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const { pins, activeFilter, setSelectedPin, setActiveSheet, setNewPinCoords, mapFlyTo, setMapFlyTo } = useStore();
+  const { pins, activeFilter, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
 
@@ -31,10 +31,9 @@ export default function MapView() {
 
     navigator.geolocation?.getCurrentPosition(
       (pos) => {
-        map.current?.flyTo({
-          center: [pos.coords.longitude, pos.coords.latitude],
-          zoom: 14,
-        });
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(loc);
+        map.current?.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
       },
       () => {},
       { enableHighAccuracy: true }
@@ -94,6 +93,14 @@ export default function MapView() {
     }
 
     const filtered = pins.filter((pin) => {
+      // Never show resolved emergencies
+      if (pin.is_emergency && pin.resolved_at) return false;
+      // Emergency pins expire after 2h
+      if (pin.is_emergency) {
+        const ageH = (Date.now() - new Date(pin.created_at).getTime()) / 3_600_000;
+        return ageH < 2;
+      }
+      // Regular pins: fade then expire at 24h
       if (getPinOpacity(pin.created_at) === 0) return false;
       if (activeFilter === 'all') return true;
       if (activeFilter === 'verified') return false;
@@ -101,29 +108,49 @@ export default function MapView() {
     });
 
     filtered.forEach((pin) => {
-      const color = SEVERITY[pin.severity as keyof typeof SEVERITY]?.color || '#6b7490';
+      const isEmergency = !!pin.is_emergency;
+      const color = isEmergency ? '#ef4444' : (SEVERITY[pin.severity as keyof typeof SEVERITY]?.color || '#6b7490');
+      const size = isEmergency ? '44px' : '28px';
 
       const wrapper = document.createElement('div');
-      wrapper.style.width = '28px';
-      wrapper.style.height = '28px';
+      wrapper.style.width = size;
+      wrapper.style.height = size;
       wrapper.style.cursor = 'pointer';
+      wrapper.style.position = 'relative';
+      wrapper.style.display = 'flex';
+      wrapper.style.alignItems = 'center';
+      wrapper.style.justifyContent = 'center';
+
+      if (isEmergency) {
+        // Pulsing ring behind the dot
+        const ring = document.createElement('div');
+        ring.className = 'emergency-ring';
+        wrapper.appendChild(ring);
+      }
 
       const dot = document.createElement('div');
-      dot.style.width = '100%';
-      dot.style.height = '100%';
+      dot.style.width = isEmergency ? '38px' : '100%';
+      dot.style.height = isEmergency ? '38px' : '100%';
       dot.style.borderRadius = '50%';
       dot.style.backgroundColor = color;
       dot.style.border = theme === 'dark' ? '3px solid rgba(255,255,255,0.9)' : '3px solid rgba(0,0,0,0.15)';
-      dot.style.boxShadow = `0 2px 8px ${color}66`;
-      dot.style.opacity = String(getPinOpacity(pin.created_at));
+      dot.style.boxShadow = `0 2px 8px ${color}88`;
       dot.style.transition = 'box-shadow 0.15s';
+      dot.style.zIndex = '1';
+      dot.style.position = 'relative';
 
-      wrapper.onmouseenter = () => {
-        dot.style.boxShadow = `0 2px 16px ${color}aa`;
-      };
-      wrapper.onmouseleave = () => {
-        dot.style.boxShadow = `0 2px 8px ${color}66`;
-      };
+      if (isEmergency) {
+        dot.style.fontSize = '18px';
+        dot.style.display = 'flex';
+        dot.style.alignItems = 'center';
+        dot.style.justifyContent = 'center';
+        dot.textContent = '🆘';
+      } else {
+        dot.style.opacity = String(getPinOpacity(pin.created_at));
+      }
+
+      wrapper.onmouseenter = () => { dot.style.boxShadow = `0 2px 16px ${color}bb`; };
+      wrapper.onmouseleave = () => { dot.style.boxShadow = `0 2px 8px ${color}88`; };
 
       wrapper.addEventListener('click', (e) => {
         e.stopPropagation();

@@ -69,3 +69,30 @@ body {
 .animate-slide-up {
   animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* Hide scrollbar utility */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Emergency marker pulse ring */
+@keyframes emergency-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.emergency-ring {
+  animation: emergency-ring 1.6s ease-out infinite;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.35);
+  pointer-events: none;
+}
+
+/* Emergency FAB button pulse */
+@keyframes emergency-btn-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6), 0 4px 20px rgba(239, 68, 68, 0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0), 0 4px 20px rgba(239, 68, 68, 0.4); }
+}
+.emergency-btn-pulse {
+  animation: emergency-btn-glow 2s ease-in-out infinite;
+}

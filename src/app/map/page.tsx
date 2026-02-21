@@ -14,10 +14,11 @@ import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
 import ThemeToggle from '@/components/ThemeToggle';
 import AddressSearch from '@/components/AddressSearch';
+import EmergencyButton from '@/components/EmergencyButton';
 
 export default function MapPage() {
   const router = useRouter();
-  const { setPins, addPin, activeSheet, setActiveSheet } = useStore();
+  const { setPins, addPin, updatePin, activeSheet, setActiveSheet } = useStore();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,8 +57,20 @@ export default function MapPage() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'pins' },
         (payload) => {
-          addPin(payload.new as Pin);
-          toast('New pin reported nearby');
+          const pin = payload.new as Pin;
+          addPin(pin);
+          if (pin.is_emergency) {
+            toast.error('🆘 Emergency alert nearby!', { duration: 6000 });
+          } else {
+            toast('📍 New report nearby');
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'pins' },
+        (payload) => {
+          updatePin(payload.new as Pin);
         }
       )
       .subscribe();
@@ -65,7 +78,7 @@ export default function MapPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [addPin]);
+  }, [addPin, updatePin]);
 
   if (loading) {
     return (
@@ -115,7 +128,10 @@ export default function MapPage() {
         <MapView />
         <FilterBar />
 
-        {/* FAB report button */}
+        {/* Emergency FAB — bottom left */}
+        <EmergencyButton userId={userId} />
+
+        {/* Report FAB — bottom right */}
         <button
           onClick={() => setActiveSheet('report')}
           className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"

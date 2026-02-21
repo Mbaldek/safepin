@@ -7,6 +7,7 @@ type Store = {
   pins: Pin[];
   setPins: (pins: Pin[]) => void;
   addPin: (pin: Pin) => void;
+  updatePin: (pin: Pin) => void;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
   activeSheet: Sheet;
@@ -17,12 +18,15 @@ type Store = {
   setNewPinCoords: (coords: { lat: number; lng: number } | null) => void;
   mapFlyTo: { lat: number; lng: number; zoom: number } | null;
   setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
+  userLocation: { lat: number; lng: number } | null;
+  setUserLocation: (loc: { lat: number; lng: number } | null) => void;
 };
 
 export const useStore = create<Store>((set) => ({
   pins: [],
   setPins: (pins) => set({ pins }),
   addPin: (pin) => set((state) => ({ pins: [...state.pins, pin] })),
+  updatePin: (pin) => set((state) => ({ pins: state.pins.map((p) => p.id === pin.id ? pin : p) })),
   activeFilter: 'all',
   setActiveFilter: (filter) => set({ activeFilter: filter }),
   activeSheet: 'none',
@@ -33,4 +37,6 @@ export const useStore = create<Store>((set) => ({
   setNewPinCoords: (coords) => set({ newPinCoords: coords }),
   mapFlyTo: null,
   setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
+  userLocation: null,
+  setUserLocation: (loc) => set({ userLocation: loc }),
 }));

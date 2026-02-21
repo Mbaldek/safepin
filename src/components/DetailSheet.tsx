@@ -48,6 +48,20 @@ export default function DetailSheet() {
       >
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
         <div className="p-5 pb-10">
+          {/* Emergency banner */}
+          {selectedPin.is_emergency && (
+            <div className="rounded-xl px-4 py-3 mb-4 flex items-center gap-3"
+              style={{ backgroundColor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)' }}>
+              <span className="text-2xl">🆘</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#ef4444' }}>Emergency Alert</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {selectedPin.resolved_at ? '✅ This alert has been resolved' : 'This person signalled they need help'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
