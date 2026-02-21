@@ -1,12 +1,26 @@
 // src/app/layout.tsx
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'SafePin',
   description: 'A safer world, mapped by women — for women.',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'SafePin',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#0a0c10',
 };
 
 export default function RootLayout({
@@ -16,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-[#0a0c10] text-white min-h-dvh">
+      <body className="bg-[#0a0c10] text-white min-h-dvh overscroll-none touch-manipulation">
         {children}
         <Toaster
           position="top-center"

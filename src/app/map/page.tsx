@@ -17,14 +17,16 @@ export default function MapPage() {
   const router = useRouter();
   const { setPins, addPin, activeSheet, setActiveSheet } = useStore();
   const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Check auth — kick to login if not signed in
+  // Check auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         router.replace('/login');
       } else {
         setUserId(session.user.id);
+        setLoading(false);
       }
     });
   }, [router]);
@@ -56,16 +58,31 @@ export default function MapPage() {
         { event: 'INSERT', schema: 'public', table: 'pins' },
         (payload) => {
           addPin(payload.new as Pin);
-          toast('📍 New pin reported nearby');
+          toast('New pin reported nearby');
         }
       )
       .subscribe();
 
-    // Cleanup when component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
   }, [addPin]);
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center bg-[#0a0c10] gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(244,63,94,0.3)] animate-pulse">
+          🛡️
+        </div>
+        <div className="text-lg font-bold tracking-tight">
+          <span className="text-[#f43f5e]">Safe</span>
+          <span className="text-white">Pin</span>
+        </div>
+        <div className="w-6 h-6 border-2 border-[#f43f5e] border-t-transparent rounded-full animate-spin mt-2" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
@@ -90,12 +107,12 @@ export default function MapPage() {
         <MapView />
         <FilterBar />
 
-        {/* FAB — report button */}
+        {/* FAB report button */}
         <button
           onClick={() => setActiveSheet('report')}
           className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
         >
-          ＋
+          +
         </button>
 
         {/* Sheets */}
