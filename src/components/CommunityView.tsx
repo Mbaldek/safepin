@@ -7,37 +7,42 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { Community, CommunityMessage } from '@/types';
 import { toast } from 'sonner';
+import { Plus } from 'lucide-react';
 import StoriesRow from '@/components/StoriesRow';
 import FriendsView from '@/components/FriendsView';
 
-type View = 'list' | 'chat' | 'create';
+type View = 'list' | 'community-detail' | 'chat' | 'create';
 type CommTab = 'groups' | 'friends';
+type CreateType = 'community' | 'group';
 
 const EMOJI_OPTIONS = ['🏘️', '🏙️', '🌳', '🛡️', '🔒', '🌍', '🎯', '💡', '🎭', '⚡', '🌐', '🏃', '🚴', '🌙', '🎪'];
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
+  const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
-  const days = Math.floor(diff / 86_400_000);
+  const days  = Math.floor(diff / 86_400_000);
   if (mins < 1) return 'now';
   if (mins < 60) return `${mins}m`;
   if (days < 1) return `${hours}h`;
   return `${days}d`;
 }
 
-// ─── Community Card ────────────────────────────────────────────────────────────
+// ─── Unified Card ─────────────────────────────────────────────────────────────
 
-function CommunityCard({
-  community, isMember, isOwner = false, onChat, onJoin, onLeave,
+function ItemCard({
+  item, isMember, isOwner = false,
+  onPrimary, onJoin, onLeave, subGroupCount = 0,
 }: {
-  community: Community;
+  item: Community;
   isMember: boolean;
   isOwner?: boolean;
-  onChat: () => void;
+  onPrimary: () => void;
   onJoin?: () => void;
   onLeave?: () => void;
+  subGroupCount?: number;
 }) {
+  const isCommunity = item.community_type === 'community';
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-2xl"
@@ -47,35 +52,46 @@ function CommunityCard({
         className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
       >
-        {community.avatar_emoji}
+        {item.avatar_emoji}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5">
+        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>
-            {community.name}
+            {item.name}
           </p>
-          {community.is_private && (
-            <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>🔒</span>
+          {isCommunity && (
+            <span
+              className="text-[0.5rem] px-1.5 py-0.5 rounded-full font-black uppercase tracking-wide shrink-0"
+              style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}
+            >
+              Community
+            </span>
+          )}
+          {item.is_private && (
+            <span className="text-[0.55rem] shrink-0" style={{ color: 'var(--text-muted)' }}>🔒</span>
           )}
         </div>
-        {community.description && (
+        {item.description && (
           <p className="text-xs line-clamp-1 mb-0.5" style={{ color: 'var(--text-muted)' }}>
-            {community.description}
+            {item.description}
           </p>
         )}
         <p className="text-[0.6rem] font-bold" style={{ color: 'var(--text-muted)' }}>
-          {community.member_count} {community.member_count === 1 ? 'member' : 'members'}
+          {item.member_count} {item.member_count === 1 ? 'member' : 'members'}
+          {isCommunity && subGroupCount > 0 && (
+            <> · {subGroupCount} {subGroupCount === 1 ? 'group' : 'groups'}</>
+          )}
         </p>
       </div>
       <div className="flex flex-col gap-1.5 shrink-0">
         {isMember ? (
           <>
             <button
-              onClick={onChat}
+              onClick={onPrimary}
               className="px-3 py-1.5 rounded-xl text-xs font-bold"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
             >
-              Chat
+              {isCommunity ? 'View →' : 'Chat'}
             </button>
             {!isOwner && (
               <button
@@ -105,134 +121,193 @@ function CommunityCard({
 
 export default function CommunityView() {
   const { userId, userProfile } = useStore();
-  const [view, setView] = useState<View>('list');
+
+  // Navigation
+  const [view, setView]       = useState<View>('list');
   const [commTab, setCommTab] = useState<CommTab>('groups');
-  const [communities, setCommunities] = useState<Community[]>([]);
+  const [chatFrom, setChatFrom] = useState<'list' | 'community-detail'>('list');
+
+  // All top-level items (communities + standalone groups)
+  const [items, setItems]               = useState<Community[]>([]);
   const [myMemberships, setMyMemberships] = useState<Set<string>>(new Set());
-  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
-  const [messages, setMessages] = useState<CommunityMessage[]>([]);
-  const [msgInput, setMsgInput] = useState('');
-  const [sending, setSending] = useState(false);
+  const [subGroupCounts, setSubGroupCounts] = useState<Record<string, number>>({});
+
+  // Chat
+  const [selectedItem, setSelectedItem] = useState<Community | null>(null);
+  const [messages, setMessages]         = useState<CommunityMessage[]>([]);
+  const [msgInput, setMsgInput]         = useState('');
+  const [sending, setSending]           = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Create form state
-  const [newName, setNewName] = useState('');
-  const [newDesc, setNewDesc] = useState('');
+  // Community detail
+  const [communityDetailOf, setCommunityDetailOf] = useState<Community | null>(null);
+  const [subGroups, setSubGroups]                 = useState<Community[]>([]);
+
+  // Create
+  const [createType, setCreateType]     = useState<CreateType>('community');
+  const [createParentId, setCreateParentId] = useState<string | null>(null);
+  const [showNewPicker, setShowNewPicker] = useState(false);
+  const [newName, setNewName]   = useState('');
+  const [newDesc, setNewDesc]   = useState('');
   const [newPrivate, setNewPrivate] = useState(false);
   const [newEmoji, setNewEmoji] = useState('🏘️');
   const [creating, setCreating] = useState(false);
 
-  // ── Load communities + memberships ────────────────────────────────────────
+  // ── Load top-level items ───────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) return;
+    loadItems();
+    loadMyMemberships();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-    // Load communities
+  async function loadItems() {
+    const { data } = await supabase
+      .from('communities')
+      .select('*')
+      .is('parent_community_id', null)
+      .order('created_at', { ascending: false });
+    if (!data) return;
+
+    const { data: memberData } = await supabase.from('community_members').select('community_id');
+    const countMap: Record<string, number> = {};
+    memberData?.forEach((m) => { countMap[m.community_id] = (countMap[m.community_id] ?? 0) + 1; });
+
+    const { data: subData } = await supabase
+      .from('communities')
+      .select('parent_community_id')
+      .not('parent_community_id', 'is', null);
+    const subCountMap: Record<string, number> = {};
+    subData?.forEach((s) => {
+      if (s.parent_community_id) {
+        subCountMap[s.parent_community_id] = (subCountMap[s.parent_community_id] ?? 0) + 1;
+      }
+    });
+
+    setItems(data.map((c) => ({ ...c, community_type: c.community_type ?? 'community', parent_community_id: c.parent_community_id ?? null, member_count: countMap[c.id] ?? 0 })));
+    setSubGroupCounts(subCountMap);
+  }
+
+  async function loadMyMemberships() {
+    const { data } = await supabase
+      .from('community_members')
+      .select('community_id')
+      .eq('user_id', userId!);
+    setMyMemberships(new Set(data?.map((m) => m.community_id) ?? []));
+  }
+
+  // ── Load sub-groups when community-detail opens ────────────────────────────
+  useEffect(() => {
+    if (view !== 'community-detail' || !communityDetailOf) return;
     supabase
       .from('communities')
       .select('*')
+      .eq('parent_community_id', communityDetailOf.id)
       .order('created_at', { ascending: false })
-      .then(async ({ data: commData }) => {
-        if (!commData) return;
-        // Get member counts
+      .then(async ({ data }) => {
+        if (!data || data.length === 0) { setSubGroups([]); return; }
+        const ids = data.map((g) => g.id);
         const { data: memberData } = await supabase
           .from('community_members')
-          .select('community_id');
+          .select('community_id')
+          .in('community_id', ids);
         const countMap: Record<string, number> = {};
-        memberData?.forEach((m) => {
-          countMap[m.community_id] = (countMap[m.community_id] ?? 0) + 1;
-        });
-        setCommunities(commData.map((c) => ({ ...c, member_count: countMap[c.id] ?? 0 })));
+        memberData?.forEach((m) => { countMap[m.community_id] = (countMap[m.community_id] ?? 0) + 1; });
+        setSubGroups(data.map((g) => ({
+          ...g,
+          community_type: g.community_type ?? 'group',
+          parent_community_id: g.parent_community_id ?? null,
+          member_count: countMap[g.id] ?? 0,
+        })));
       });
+  }, [communityDetailOf?.id, view]);
 
-    // Load my memberships
-    supabase
-      .from('community_members')
-      .select('community_id')
-      .eq('user_id', userId)
-      .then(({ data }) => {
-        setMyMemberships(new Set(data?.map((m) => m.community_id) ?? []));
-      });
-  }, [userId]);
-
-  // ── Load messages for selected community ──────────────────────────────────
+  // ── Messages ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!selectedCommunity) return;
+    if (!selectedItem) return;
     setMessages([]);
     supabase
       .from('community_messages')
       .select('*')
-      .eq('community_id', selectedCommunity.id)
+      .eq('community_id', selectedItem.id)
       .order('created_at', { ascending: true })
       .limit(100)
       .then(({ data }) => setMessages(data ?? []));
-  }, [selectedCommunity?.id]);
+  }, [selectedItem?.id]);
 
-  // ── Realtime messages ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!selectedCommunity) return;
+    if (!selectedItem) return;
     const ch = supabase
-      .channel(`community-${selectedCommunity.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'community_messages', filter: `community_id=eq.${selectedCommunity.id}` },
-        (payload) => setMessages((prev) => [...prev, payload.new as CommunityMessage])
-      )
+      .channel(`community-${selectedItem.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'community_messages',
+        filter: `community_id=eq.${selectedItem.id}`,
+      }, (payload) => setMessages((prev) => [...prev, payload.new as CommunityMessage]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [selectedCommunity?.id]);
+  }, [selectedItem?.id]);
 
-  // ── Auto-scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  async function joinCommunity(community: Community) {
+  async function joinItem(item: Community) {
     if (!userId) return;
     const { error } = await supabase.from('community_members').insert({
-      community_id: community.id,
-      user_id: userId,
-      role: 'member',
+      community_id: item.id, user_id: userId, role: 'member',
     });
     if (error) { toast.error('Failed to join'); return; }
-    setMyMemberships((prev) => new Set([...prev, community.id]));
-    setCommunities((prev) =>
-      prev.map((c) => c.id === community.id ? { ...c, member_count: c.member_count + 1 } : c)
-    );
-    toast.success(`Joined ${community.name}`);
+    setMyMemberships((prev) => new Set([...prev, item.id]));
+    setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: c.member_count + 1 } : c));
+    toast.success(`Joined ${item.name}`);
   }
 
-  async function leaveCommunity(community: Community) {
+  async function leaveItem(item: Community) {
     if (!userId) return;
     const { error } = await supabase
-      .from('community_members')
-      .delete()
-      .eq('community_id', community.id)
-      .eq('user_id', userId);
+      .from('community_members').delete()
+      .eq('community_id', item.id).eq('user_id', userId);
     if (error) { toast.error('Failed to leave'); return; }
-    setMyMemberships((prev) => { const s = new Set(prev); s.delete(community.id); return s; });
-    setCommunities((prev) =>
-      prev.map((c) => c.id === community.id ? { ...c, member_count: Math.max(0, c.member_count - 1) } : c)
-    );
-    if (selectedCommunity?.id === community.id) setView('list');
-    toast.success(`Left ${community.name}`);
+    setMyMemberships((prev) => { const s = new Set(prev); s.delete(item.id); return s; });
+    setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: Math.max(0, c.member_count - 1) } : c));
+    if (selectedItem?.id === item.id) setView('list');
+    toast.success(`Left ${item.name}`);
+  }
+
+  async function joinSubGroup(group: Community) {
+    if (!userId) return;
+    const { error } = await supabase.from('community_members').insert({
+      community_id: group.id, user_id: userId, role: 'member',
+    });
+    if (error) { toast.error('Failed to join'); return; }
+    setMyMemberships((prev) => new Set([...prev, group.id]));
+    setSubGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, member_count: g.member_count + 1 } : g));
+    toast.success(`Joined ${group.name}`);
+  }
+
+  async function leaveSubGroup(group: Community) {
+    if (!userId) return;
+    await supabase.from('community_members').delete()
+      .eq('community_id', group.id).eq('user_id', userId);
+    setMyMemberships((prev) => { const s = new Set(prev); s.delete(group.id); return s; });
+    setSubGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, member_count: Math.max(0, g.member_count - 1) } : g));
+    toast.success(`Left ${group.name}`);
   }
 
   async function sendMessage() {
-    if (!msgInput.trim() || !userId || !selectedCommunity || sending) return;
+    if (!msgInput.trim() || !userId || !selectedItem || sending) return;
     setSending(true);
     const { error } = await supabase.from('community_messages').insert({
-      community_id: selectedCommunity.id,
-      user_id: userId,
-      display_name: userProfile?.display_name ?? null,
-      content: msgInput.trim(),
+      community_id: selectedItem.id, user_id: userId,
+      display_name: userProfile?.display_name ?? null, content: msgInput.trim(),
     });
     setSending(false);
     if (!error) setMsgInput('');
   }
 
-  async function createCommunity() {
+  async function handleCreate() {
     if (!newName.trim() || !userId || creating) return;
     setCreating(true);
     const { data, error } = await supabase
@@ -243,58 +318,95 @@ export default function CommunityView() {
         is_private: newPrivate,
         owner_id: userId,
         avatar_emoji: newEmoji,
+        community_type: createType,
+        parent_community_id: createParentId,
       })
       .select()
       .single();
     if (error) { toast.error('Failed to create'); setCreating(false); return; }
 
-    // Auto-join as owner
     await supabase.from('community_members').insert({
-      community_id: data.id,
-      user_id: userId,
-      role: 'owner',
+      community_id: data.id, user_id: userId, role: 'owner',
     });
-
-    setCommunities((prev) => [{ ...data, member_count: 1 }, ...prev]);
     setMyMemberships((prev) => new Set([...prev, data.id]));
+
+    const newItem: Community = {
+      ...data,
+      community_type: createType,
+      parent_community_id: createParentId,
+      member_count: 1,
+    };
+
+    if (createParentId) {
+      setSubGroups((prev) => [newItem, ...prev]);
+      setSubGroupCounts((prev) => ({
+        ...prev,
+        [createParentId]: (prev[createParentId] ?? 0) + 1,
+      }));
+      toast.success('Group created!');
+      setView('community-detail');
+    } else {
+      setItems((prev) => [newItem, ...prev]);
+      toast.success(`${createType === 'community' ? 'Community' : 'Group'} created!`);
+      setView('list');
+    }
+
     setCreating(false);
     setNewName(''); setNewDesc(''); setNewPrivate(false); setNewEmoji('🏘️');
-    toast.success('Community created!');
-    setView('list');
+    setCreateParentId(null);
   }
 
-  function openChat(community: Community) {
-    setSelectedCommunity(community);
+  function openChat(item: Community, from: 'list' | 'community-detail') {
+    setSelectedItem(item);
+    setChatFrom(from);
     setView('chat');
   }
 
+  function openCommunityDetail(community: Community) {
+    setCommunityDetailOf(community);
+    setSubGroups([]);
+    setView('community-detail');
+  }
+
+  function startCreate(type: CreateType, parentId: string | null) {
+    setCreateType(type);
+    setCreateParentId(parentId);
+    setNewName('');
+    setNewDesc('');
+    setNewPrivate(false);
+    setNewEmoji(type === 'community' ? '🏘️' : '👥');
+    setShowNewPicker(false);
+    setView('create');
+  }
+
   // ── Chat view ──────────────────────────────────────────────────────────────
-  if (view === 'chat' && selectedCommunity) {
-    const isMember = myMemberships.has(selectedCommunity.id);
+
+  if (view === 'chat' && selectedItem) {
+    const isMember = myMemberships.has(selectedItem.id);
     return (
       <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        {/* Header */}
         <div
           className="shrink-0 flex items-center gap-3 px-4 py-3"
           style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
         >
           <button
-            onClick={() => setView('list')}
+            onClick={() => chatFrom === 'community-detail' ? setView('community-detail') : setView('list')}
             className="text-xl transition hover:opacity-60"
             style={{ color: 'var(--text-muted)' }}
           >
             ←
           </button>
-          <span className="text-2xl">{selectedCommunity.avatar_emoji}</span>
+          <span className="text-2xl">{selectedItem.avatar_emoji}</span>
           <div className="flex-1 min-w-0">
             <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-              {selectedCommunity.name}
+              {selectedItem.name}
             </p>
             <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-              {selectedCommunity.member_count} members
+              {selectedItem.member_count} members
+              {selectedItem.community_type === 'group' && communityDetailOf && ` · ${communityDetailOf.name}`}
             </p>
           </div>
-          {selectedCommunity.is_private && (
+          {selectedItem.is_private && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-bold"
               style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
@@ -304,17 +416,13 @@ export default function CommunityView() {
           )}
         </div>
 
-        {/* Stories row */}
-        <StoriesRow communityId={selectedCommunity.id} />
+        <StoriesRow communityId={selectedItem.id} />
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-3">
-              <span className="text-5xl">{selectedCommunity.avatar_emoji}</span>
-              <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
-                No messages yet
-              </p>
+              <span className="text-5xl">{selectedItem.avatar_emoji}</span>
+              <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No messages yet</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {isMember ? 'Start the conversation!' : 'Join to participate'}
               </p>
@@ -361,7 +469,6 @@ export default function CommunityView() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         {isMember ? (
           <div
             className="shrink-0 flex gap-2 px-4 py-3"
@@ -370,9 +477,7 @@ export default function CommunityView() {
             <input
               value={msgInput}
               onChange={(e) => setMsgInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
               placeholder="Message…"
               className="flex-1 text-sm rounded-2xl px-4 py-2.5 outline-none"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
@@ -392,7 +497,7 @@ export default function CommunityView() {
             style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
           >
             <button
-              onClick={() => joinCommunity(selectedCommunity)}
+              onClick={() => joinSubGroup(selectedItem)}
               className="w-full py-3 rounded-xl font-bold text-sm"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
             >
@@ -404,23 +509,167 @@ export default function CommunityView() {
     );
   }
 
+  // ── Community detail view ──────────────────────────────────────────────────
+
+  if (view === 'community-detail' && communityDetailOf) {
+    const isMember = myMemberships.has(communityDetailOf.id);
+    const isOwner  = communityDetailOf.owner_id === userId;
+
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        {/* Header */}
+        <div
+          className="shrink-0 flex items-center gap-3 px-4 py-3"
+          style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
+        >
+          <button
+            onClick={() => setView('list')}
+            className="text-xl transition hover:opacity-60"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            ←
+          </button>
+          <span className="text-2xl">{communityDetailOf.avatar_emoji}</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+              {communityDetailOf.name}
+            </p>
+            <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+              {communityDetailOf.member_count} members · {subGroups.length} {subGroups.length === 1 ? 'group' : 'groups'}
+            </p>
+          </div>
+          {isMember ? (
+            !isOwner && (
+              <button
+                onClick={() => leaveItem(communityDetailOf)}
+                className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
+                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+              >
+                Leave
+              </button>
+            )
+          ) : (
+            <button
+              onClick={() => joinItem(communityDetailOf)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
+            >
+              Join
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+          {communityDetailOf.description && (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {communityDetailOf.description}
+            </p>
+          )}
+
+          {/* Community general chat */}
+          {isMember && (
+            <button
+              onClick={() => openChat(communityDetailOf, 'community-detail')}
+              className="flex items-center justify-between px-4 py-3 rounded-2xl"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">{communityDetailOf.avatar_emoji}</span>
+                <div className="text-left">
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Community Chat</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>General discussion</p>
+                </div>
+              </div>
+              <span className="text-base" style={{ color: 'var(--text-muted)' }}>→</span>
+            </button>
+          )}
+
+          {/* Groups section */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                Groups
+              </p>
+              <button
+                onClick={() => startCreate('group', communityDetailOf.id)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
+              >
+                <Plus size={11} strokeWidth={2.5} />
+                Add a group
+              </button>
+            </div>
+
+            {subGroups.length === 0 ? (
+              <div
+                className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              >
+                <span className="text-3xl">👥</span>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No groups yet</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Add the first group to this community</p>
+                <button
+                  onClick={() => startCreate('group', communityDetailOf.id)}
+                  className="mt-1 px-4 py-2 rounded-xl text-xs font-bold"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                >
+                  + Add a Group
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {subGroups.map((group) => (
+                  <ItemCard
+                    key={group.id}
+                    item={group}
+                    isMember={myMemberships.has(group.id)}
+                    isOwner={group.owner_id === userId}
+                    onPrimary={() => openChat(group, 'community-detail')}
+                    onJoin={() => joinSubGroup(group)}
+                    onLeave={() => leaveSubGroup(group)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Create view ────────────────────────────────────────────────────────────
+
   if (view === 'create') {
+    const isGroup = createType === 'group';
     return (
       <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div
           className="shrink-0 flex items-center gap-3 px-4 py-3"
           style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
         >
-          <button onClick={() => setView('list')} className="text-xl hover:opacity-60 transition" style={{ color: 'var(--text-muted)' }}>
+          <button
+            onClick={() => setView(createParentId ? 'community-detail' : 'list')}
+            className="text-xl hover:opacity-60 transition"
+            style={{ color: 'var(--text-muted)' }}
+          >
             ←
           </button>
-          <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>New Community</h2>
+          <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
+            {isGroup ? 'New Group' : 'New Community'}
+          </h2>
+          {createParentId && communityDetailOf && (
+            <span
+              className="ml-auto text-[0.6rem] px-2 py-1 rounded-full font-bold"
+              style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}
+            >
+              in {communityDetailOf.name}
+            </span>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-[440px] mx-auto w-full px-4 py-6 flex flex-col gap-5">
-            {/* Emoji picker */}
+            {/* Emoji */}
             <div>
               <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
                 Icon
@@ -450,13 +699,9 @@ export default function CommunityView() {
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Night Runners Paris"
+                placeholder={isGroup ? 'e.g. Night Watch, Support Circle…' : 'e.g. Night Runners Paris'}
                 className="w-full text-sm rounded-xl px-4 py-3 outline-none"
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1.5px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
               />
             </div>
 
@@ -468,14 +713,10 @@ export default function CommunityView() {
               <textarea
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="What is this community about?"
+                placeholder={isGroup ? 'What is this group for?' : 'What is this community about?'}
                 rows={3}
                 className="w-full text-sm rounded-xl px-4 py-3 outline-none resize-none"
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1.5px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
               />
             </div>
 
@@ -489,7 +730,7 @@ export default function CommunityView() {
                 <span className="text-xl">{newPrivate ? '🔒' : '🌐'}</span>
                 <div className="text-left">
                   <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {newPrivate ? 'Private group' : 'Public group'}
+                    {newPrivate ? 'Private' : 'Public'}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     {newPrivate ? 'Invite-only, not discoverable' : 'Anyone can find and join'}
@@ -508,12 +749,14 @@ export default function CommunityView() {
             </button>
 
             <button
-              onClick={createCommunity}
+              onClick={handleCreate}
               disabled={!newName.trim() || creating}
               className="w-full py-4 rounded-xl font-bold text-sm transition disabled:opacity-40"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
             >
-              {creating ? 'Creating…' : `Create ${newPrivate ? '🔒 Private' : '🌐 Public'} Community`}
+              {creating
+                ? 'Creating…'
+                : `Create ${newPrivate ? '🔒 Private' : '🌐 Public'} ${isGroup ? 'Group' : 'Community'}`}
             </button>
           </div>
         </div>
@@ -522,10 +765,11 @@ export default function CommunityView() {
   }
 
   // ── List view ──────────────────────────────────────────────────────────────
-  const myCommunities = communities.filter((c) => myMemberships.has(c.id));
-  const discoverCommunities = communities.filter((c) => !myMemberships.has(c.id) && !c.is_private);
 
-  // ── Friends sub-tab ──────────────────────────────────────────────────────────
+  const myCommunities   = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'community');
+  const myGroups        = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'group');
+  const discoverItems   = items.filter((c) => !myMemberships.has(c.id) && !c.is_private);
+
   if (commTab === 'friends') {
     return (
       <div className="flex flex-col h-full">
@@ -545,13 +789,46 @@ export default function CommunityView() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Community</h2>
             {commTab === 'groups' && (
-              <button
-                onClick={() => setView('create')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-              >
-                + New
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowNewPicker(!showNewPicker)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                >
+                  + New
+                </button>
+                {showNewPicker && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowNewPicker(false)} />
+                    <div
+                      className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl overflow-hidden shadow-xl"
+                      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minWidth: '190px' }}
+                    >
+                      <button
+                        onClick={() => startCreate('community', null)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
+                      >
+                        <span className="text-lg">🏛️</span>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Community</p>
+                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Contains groups</p>
+                        </div>
+                      </button>
+                      <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />
+                      <button
+                        onClick={() => startCreate('group', null)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
+                      >
+                        <span className="text-lg">👥</span>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Group</p>
+                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Standalone chat group</p>
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
           {/* Segment switcher */}
@@ -560,7 +837,7 @@ export default function CommunityView() {
               <button
                 key={tab}
                 onClick={() => setCommTab(tab)}
-                className="flex-1 py-2.5 text-xs font-black transition capitalize"
+                className="flex-1 py-2.5 text-xs font-black transition"
                 style={{
                   color: commTab === tab ? 'var(--accent)' : 'var(--text-muted)',
                   borderBottom: commTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
@@ -573,24 +850,49 @@ export default function CommunityView() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div
+        className="flex-1 overflow-y-auto"
+        onClick={() => showNewPicker && setShowNewPicker(false)}
+      >
         <div className="max-w-[440px] mx-auto w-full px-4 py-4 flex flex-col gap-5">
 
-          {/* My groups */}
+          {/* Your Communities */}
           {myCommunities.length > 0 && (
+            <div>
+              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                Your Communities
+              </p>
+              <div className="flex flex-col gap-2">
+                {myCommunities.map((c) => (
+                  <ItemCard
+                    key={c.id}
+                    item={c}
+                    isMember
+                    isOwner={c.owner_id === userId}
+                    onPrimary={() => openCommunityDetail(c)}
+                    onLeave={() => leaveItem(c)}
+                    subGroupCount={subGroupCounts[c.id] ?? 0}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Your Groups */}
+          {myGroups.length > 0 && (
             <div>
               <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
                 Your Groups
               </p>
               <div className="flex flex-col gap-2">
-                {myCommunities.map((c) => (
-                  <CommunityCard
-                    key={c.id}
-                    community={c}
+                {myGroups.map((g) => (
+                  <ItemCard
+                    key={g.id}
+                    item={g}
                     isMember
-                    isOwner={c.owner_id === userId}
-                    onChat={() => openChat(c)}
-                    onLeave={() => leaveCommunity(c)}
+                    isOwner={g.owner_id === userId}
+                    onPrimary={() => openChat(g, 'list')}
+                    onLeave={() => leaveItem(g)}
                   />
                 ))}
               </div>
@@ -598,57 +900,58 @@ export default function CommunityView() {
           )}
 
           {/* Discover */}
-          <div>
-            <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-              Discover
-            </p>
-            {discoverCommunities.length === 0 ? (
-              <div
-                className="rounded-2xl p-6 flex flex-col items-center gap-3 text-center"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-              >
-                <span className="text-3xl">🌐</span>
-                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
-                  No public groups yet
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Be the first to create one
-                </p>
-              </div>
-            ) : (
+          {discoverItems.length > 0 && (
+            <div>
+              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                Discover
+              </p>
               <div className="flex flex-col gap-2">
-                {discoverCommunities.map((c) => (
-                  <CommunityCard
+                {discoverItems.map((c) => (
+                  <ItemCard
                     key={c.id}
-                    community={c}
+                    item={c}
                     isMember={false}
-                    onChat={() => openChat(c)}
-                    onJoin={() => joinCommunity(c)}
+                    onPrimary={() =>
+                      c.community_type === 'community'
+                        ? openCommunityDetail(c)
+                        : openChat(c, 'list')
+                    }
+                    onJoin={() => joinItem(c)}
+                    subGroupCount={subGroupCounts[c.id] ?? 0}
                   />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Empty state */}
-          {myCommunities.length === 0 && discoverCommunities.length === 0 && (
+          {myCommunities.length === 0 && myGroups.length === 0 && discoverItems.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 gap-4">
               <span className="text-5xl">💬</span>
               <div className="text-center">
                 <p className="text-lg font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-                  No communities yet
+                  Nothing here yet
                 </p>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  Create your own group or invite friends
+                  Create a community or a standalone group
                 </p>
               </div>
-              <button
-                onClick={() => setView('create')}
-                className="px-5 py-2.5 rounded-xl font-bold text-sm"
-                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-              >
-                Create a group
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => startCreate('community', null)}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                >
+                  🏛️ Community
+                </button>
+                <button
+                  onClick={() => startCreate('group', null)}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                >
+                  👥 Group
+                </button>
+              </div>
             </div>
           )}
         </div>

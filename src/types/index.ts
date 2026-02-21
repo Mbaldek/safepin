@@ -52,6 +52,8 @@ export type Community = {
   is_private: boolean;
   owner_id: string;
   avatar_emoji: string;
+  community_type: 'community' | 'group';
+  parent_community_id: string | null;
   created_at: string;
   member_count: number; // computed client-side
 };
