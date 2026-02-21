@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, BookOpen } from 'lucide-react';
 import { useStore, RouteOption } from '@/stores/useStore';
@@ -164,20 +164,22 @@ function DangerBadge({ score }: { score: number }) {
 
 export default function TripView({ onClose }: { onClose: () => void }) {
   const {
-    userProfile, userLocation, pins,
+    userProfile, userLocation, pins, userId,
     setActiveRoute, setPendingRoutes,
     isSharingLocation, setIsSharingLocation,
   } = useStore();
 
-  const [phase, setPhase]         = useState<Phase>('idle');
-  const [departure, setDeparture] = useState('');
-  const [destination, setDest]    = useState('');
-  const [mode, setMode]           = useState<Mode>('walk');
-  const [durationMs, setDuration] = useState(30 * 60_000);
-  const [options, setOptions]     = useState<RouteOption[]>([]);
-  const [trip, setTrip]           = useState<TripState | null>(null);
-  const [now, setNow]             = useState(Date.now());
-  const [error, setError]         = useState<string | null>(null);
+  const [phase, setPhase]                 = useState<Phase>('idle');
+  const [departure, setDeparture]         = useState('');
+  const [destination, setDest]           = useState('');
+  const [mode, setMode]                  = useState<Mode>('walk');
+  const [durationMs, setDuration]        = useState(30 * 60_000);
+  const [options, setOptions]            = useState<RouteOption[]>([]);
+  const [trip, setTrip]                  = useState<TripState | null>(null);
+  const [now, setNow]                    = useState(Date.now());
+  const [error, setError]               = useState<string | null>(null);
+  const [activeOpt, setActiveOpt]        = useState<RouteOption | null>(null);
+  const locationHistoryRef               = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // My saved routes
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
@@ -312,15 +314,50 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       expiresAt:   Date.now() + durationMs,
     };
     setTrip(t);
+    setActiveOpt(opt);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
     setActiveRoute({ coords: opt.coords, destination: destination.trim() });
     setPendingRoutes(null);
     setPhase('active');
+
+    // Append location history every 30s
+    if (locationHistoryRef.current) clearInterval(locationHistoryRef.current);
+    locationHistoryRef.current = setInterval(() => {
+      const store = useStore.getState();
+      const loc = store.userLocation;
+      const uid = store.userId;
+      if (!loc || !uid) return;
+      supabase.from('location_history').insert({ user_id: uid, lat: loc.lat, lng: loc.lng }).then(() => {});
+    }, 30_000);
+
     onClose(); // go to map to see the route
   }
 
-  function endTrip() {
+  async function endTrip() {
+    // Stop location history tracking
+    if (locationHistoryRef.current) {
+      clearInterval(locationHistoryRef.current);
+      locationHistoryRef.current = null;
+    }
+
+    // Save trip log
+    if (trip && userId && activeOpt) {
+      const durationS = Math.round((Date.now() - trip.startedAt) / 1000);
+      await supabase.from('trip_log').insert({
+        user_id:      userId,
+        from_label:   departure.trim() || null,
+        to_label:     trip.destination,
+        mode,
+        danger_score: activeOpt.dangerScore,
+        distance_m:   Math.round(activeOpt.distance),
+        duration_s:   durationS,
+        started_at:   new Date(trip.startedAt).toISOString(),
+        ended_at:     new Date().toISOString(),
+      });
+    }
+
     setTrip(null);
+    setActiveOpt(null);
     setPhase('idle');
     localStorage.removeItem(STORAGE_KEY);
     setActiveRoute(null);
@@ -720,6 +757,20 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
             </div>
+
+            {/* Smart Alerts indicator */}
+            {savedRoutes.length > 0 && (
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold"
+                style={{
+                  backgroundColor: 'rgba(99,102,241,0.08)',
+                  border: '1px solid rgba(99,102,241,0.2)',
+                  color: '#6366f1',
+                }}
+              >
+                🔔 Smart Alerts active — monitoring {savedRoutes.length} saved {savedRoutes.length === 1 ? 'route' : 'routes'}
+              </div>
+            )}
 
             {/* Share with Trusted Circle toggle */}
             <button

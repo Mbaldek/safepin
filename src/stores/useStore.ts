@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Pin, AppNotification } from '@/types';
+import { Pin, AppNotification, PlaceNote } from '@/types';
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
 
@@ -99,6 +99,13 @@ type Store = {
   setIsSharingLocation: (v: boolean) => void;
   watchedLocations: Record<string, WatchedLocation>;
   setWatchedLocation: (contactId: string, data: WatchedLocation | null) => void;
+
+  // Place Notes — long-press to annotate map
+  newPlaceNoteCoords: { lat: number; lng: number } | null;
+  setNewPlaceNoteCoords: (c: { lat: number; lng: number } | null) => void;
+  placeNotes: PlaceNote[];
+  setPlaceNotes: (notes: PlaceNote[]) => void;
+  addPlaceNote: (note: PlaceNote) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -168,4 +175,11 @@ export const useStore = create<Store>((set) => ({
       }
       return { watchedLocations: next };
     }),
+
+  // Place Notes
+  newPlaceNoteCoords: null,
+  setNewPlaceNoteCoords: (c) => set({ newPlaceNoteCoords: c }),
+  placeNotes: [],
+  setPlaceNotes: (notes) => set({ placeNotes: notes }),
+  addPlaceNote: (note) => set((state) => ({ placeNotes: [note, ...state.placeNotes] })),
 }));

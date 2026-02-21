@@ -127,6 +127,29 @@ export type CommunityStory = {
   created_at: string;
 };
 
+export type PlaceNote = {
+  id: string;
+  user_id: string;
+  lat: number;
+  lng: number;
+  note: string;
+  emoji: string;
+  created_at: string;
+};
+
+export type TripLog = {
+  id: string;
+  user_id: string;
+  from_label: string | null;
+  to_label: string;
+  mode: string;
+  danger_score: number;
+  distance_m: number;
+  duration_s: number;
+  started_at: string;
+  ended_at: string;
+};
+
 export type Profile = {
   id: string;
   name: string;

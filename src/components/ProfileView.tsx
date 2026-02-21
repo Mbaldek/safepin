@@ -5,11 +5,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY } from '@/types';
+import { CATEGORIES, SEVERITY, TripLog } from '@/types';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
 import TrustedCircleSection from '@/components/TrustedCircleSection';
+import { computeExpertiseTags } from '@/lib/expertise';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,12 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   // Impact stats (fetched once)
   const [confirmedVotes, setConfirmedVotes] = useState(0);
   const [commentsMade, setCommentsMade] = useState(0);
+  const [placeNotesCount, setPlaceNotesCount] = useState(0);
   const [impactLoaded, setImpactLoaded] = useState(false);
+
+  // Trip history
+  const [tripHistory, setTripHistory] = useState<TripLog[]>([]);
+  const [tripsLoaded, setTripsLoaded] = useState(false);
 
   useEffect(() => {
     setNameInput(userProfile?.display_name ?? '');
@@ -77,7 +83,7 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
     async function loadImpact() {
       const myPinIds = pins.filter((p) => p.user_id === userId).map((p) => p.id);
 
-      const [votesRes, commentsRes] = await Promise.all([
+      const [votesRes, commentsRes, notesRes] = await Promise.all([
         myPinIds.length > 0
           ? supabase
               .from('pin_votes')
@@ -89,15 +95,36 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
           .from('pin_comments')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId),
+        supabase
+          .from('place_notes')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId),
       ]);
 
       setConfirmedVotes((votesRes as { count: number | null }).count ?? 0);
       setCommentsMade((commentsRes as { count: number | null }).count ?? 0);
+      setPlaceNotesCount((notesRes as { count: number | null }).count ?? 0);
       setImpactLoaded(true);
     }
     loadImpact();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, pins.length]);
+
+  // Load trip history
+  useEffect(() => {
+    if (tripsLoaded) return;
+    supabase
+      .from('trip_log')
+      .select('*')
+      .eq('user_id', userId)
+      .order('ended_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        setTripHistory((data as TripLog[]) ?? []);
+        setTripsLoaded(true);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const displayName = userProfile?.display_name ?? null;
   const initial = (displayName?.[0] ?? userEmail[0] ?? '?').toUpperCase();
@@ -115,6 +142,16 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   const trustScore = computeScore(myReports.length, myAlerts.length, confirmedVotes, commentsMade);
   const level      = getLevel(trustScore);
   const progress   = level.next === Infinity ? 1 : (trustScore - level.min) / (level.next - level.min);
+
+  const expertiseTags = useMemo(() =>
+    computeExpertiseTags(
+      pins,
+      userId,
+      userProfile?.verification_status === 'approved',
+      level.label,
+    ),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [pins.length, userId, userProfile?.verification_status, level.label]);
 
   // Active pins (not resolved, not expired)
   const now = Date.now();
@@ -217,6 +254,25 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
             </p>
           )}
 
+          {/* Expertise tags */}
+          {expertiseTags.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {expertiseTags.map((tag) => (
+                <span
+                  key={tag.label}
+                  className="text-[0.6rem] font-black px-2.5 py-1 rounded-full"
+                  style={{
+                    backgroundColor: tag.color + '18',
+                    color: tag.color,
+                    border: `1px solid ${tag.color}40`,
+                  }}
+                >
+                  {tag.emoji} {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Verification badge */}
           {userProfile?.verification_status === 'approved' ? (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black"
@@ -271,10 +327,11 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
           </p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Reports made',      value: myReports.length,   emoji: '📋', color: '#6366f1' },
-              { label: 'Confirmed by others', value: confirmedVotes,   emoji: '👍', color: '#22c55e' },
-              { label: 'Active right now',  value: activePins.length,  emoji: '🔴', color: '#f43f5e' },
-              { label: 'Comments written',  value: commentsMade,       emoji: '💬', color: '#f59e0b' },
+              { label: 'Reports made',        value: myReports.length,   emoji: '📋', color: '#6366f1' },
+              { label: 'Confirmed by others', value: confirmedVotes,     emoji: '👍', color: '#22c55e' },
+              { label: 'Active right now',    value: activePins.length,  emoji: '🔴', color: '#f43f5e' },
+              { label: 'Comments written',    value: commentsMade,       emoji: '💬', color: '#f59e0b' },
+              { label: 'Place notes',         value: placeNotesCount,    emoji: '📌', color: '#8b5cf6' },
             ].map(({ label, value, emoji, color }) => (
               <div
                 key={label}
@@ -291,6 +348,50 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
 
         {/* ── Trusted Circle ────────────────────────────────────── */}
         <TrustedCircleSection userId={userId} />
+
+        {/* ── Trip History ──────────────────────────────────────── */}
+        {tripHistory.length > 0 && (
+          <div>
+            <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+              Trip History
+            </p>
+            <div className="flex flex-col gap-2">
+              {tripHistory.map((t) => {
+                const modeEmoji: Record<string, string> = { walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇' };
+                const distKm = t.distance_m >= 1000
+                  ? `${(t.distance_m / 1000).toFixed(1)} km`
+                  : `${t.distance_m} m`;
+                const durationMin = Math.round(t.duration_s / 60);
+                const dangerColor = t.danger_score === 0 ? '#22c55e' : t.danger_score <= 2 ? '#f59e0b' : '#ef4444';
+                return (
+                  <div
+                    key={t.id}
+                    className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xl shrink-0">{modeEmoji[t.mode] ?? '🗺️'}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                          {t.from_label ? `${t.from_label} → ` : ''}{t.to_label}
+                        </p>
+                        <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                          {distKm} · {durationMin} min · {new Date(t.ended_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0"
+                      style={{ backgroundColor: dangerColor + '18', color: dangerColor }}
+                    >
+                      {t.danger_score === 0 ? 'Clear' : `${t.danger_score} risk`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Recent Activity ───────────────────────────────────── */}
         <div>

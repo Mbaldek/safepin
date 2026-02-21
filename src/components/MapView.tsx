@@ -7,6 +7,8 @@ import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { SEVERITY, Pin } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { PlaceNote } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -18,6 +20,8 @@ const PENDING_LYRS = ['pending-line-0', 'pending-line-1', 'pending-line-2'];
 const WATCH_SRC    = 'watch-contacts-src';
 const WATCH_CIRCLE = 'watch-contacts-circle';
 const WATCH_LABEL  = 'watch-contacts-label';
+const NOTES_SRC    = 'place-notes-src';
+const NOTES_LYR    = 'place-notes-layer';
 
 function getPinOpacity(pin: Pin): number {
   const base = pin.last_confirmed_at
@@ -135,7 +139,9 @@ export default function MapView() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations } = useStore();
+  const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -173,6 +179,31 @@ export default function MapView() {
       const store = useStore.getState();
       if (store.activeSheet === 'report') {
         store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      }
+    });
+
+    // Long-press (600 ms) → open Place Note sheet
+    map.current.on('mousedown', (e) => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      longPressTimer.current = setTimeout(() => {
+        longPressTimer.current = null;
+        const store = useStore.getState();
+        if (store.activeSheet === 'none' && !store.newPlaceNoteCoords) {
+          store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        }
+      }, 600);
+    });
+    const cancelLong = () => {
+      if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    };
+    map.current.on('mouseup',   cancelLong);
+    map.current.on('mousemove', cancelLong);
+    map.current.on('touchend',  cancelLong);
+    // Also handle mobile long-press via contextmenu
+    map.current.on('contextmenu', (e) => {
+      const store = useStore.getState();
+      if (store.activeSheet === 'none' && !store.newPlaceNoteCoords) {
+        store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       }
     });
 
@@ -337,6 +368,93 @@ export default function MapView() {
       paint: { 'text-color': '#fff' },
     });
   }, [watchedLocations, mapReady, layersReady]);
+
+  // Load user's place notes into store
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('place_notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setPlaceNotes((data as PlaceNote[]) ?? []));
+  }, [userId, setPlaceNotes]);
+
+  // Render place note markers
+  useEffect(() => {
+    if (!map.current || !mapReady) return;
+
+    // Remove old note markers
+    noteMarkersRef.current.forEach((m) => m.remove());
+    noteMarkersRef.current = [];
+
+    for (const note of placeNotes) {
+      const el = document.createElement('div');
+      el.style.cssText =
+        'width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid #fff;' +
+        'box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;' +
+        'font-size:14px;cursor:default;';
+      el.textContent = note.emoji;
+      el.title = note.note;
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([note.lng, note.lat])
+        .addTo(map.current!);
+      noteMarkersRef.current.push(marker);
+    }
+  }, [placeNotes, mapReady]);
+
+  // Load and render personal location heatmap (Sprint 28)
+  useEffect(() => {
+    if (!userId || !mapReady || !layersReady) return;
+    const HEAT_SRC = 'location-history-src';
+    const HEAT_LYR = 'location-history-heat';
+
+    supabase
+      .from('location_history')
+      .select('lat, lng')
+      .eq('user_id', userId)
+      .limit(2000)
+      .then(({ data }) => {
+        const m = map.current;
+        if (!m || !data?.length) return;
+
+        const geojson: GeoJSON.FeatureCollection = {
+          type: 'FeatureCollection',
+          features: data.map((r) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [r.lng, r.lat] },
+            properties: {},
+          })),
+        };
+
+        if (m.getSource(HEAT_SRC)) {
+          (m.getSource(HEAT_SRC) as mapboxgl.GeoJSONSource).setData(geojson);
+        } else {
+          m.addSource(HEAT_SRC, { type: 'geojson', data: geojson });
+          m.addLayer({
+            id: HEAT_LYR,
+            type: 'heatmap',
+            source: HEAT_SRC,
+            maxzoom: 17,
+            paint: {
+              'heatmap-weight': 1,
+              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 17, 3],
+              'heatmap-color': [
+                'interpolate', ['linear'], ['heatmap-density'],
+                0,   'rgba(244,63,94,0)',
+                0.2, 'rgba(244,63,94,0.2)',
+                0.5, 'rgba(244,63,94,0.5)',
+                1,   'rgba(244,63,94,0.85)',
+              ],
+              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 17, 20],
+              'heatmap-opacity': 0.55,
+            },
+          }, 'clusters'); // render beneath pin clusters
+        }
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, mapReady, layersReady]);
 
   // Switch map style when theme changes — re-add cluster layers after style loads
   useEffect(() => {

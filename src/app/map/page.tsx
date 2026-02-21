@@ -26,6 +26,7 @@ import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
 import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
+import PlaceNoteSheet from '@/components/PlaceNoteSheet';
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -76,6 +77,7 @@ export default function MapPage() {
     setPendingRoutes,
     isSharingLocation, setWatchedLocation,
     userLocation, userProfile,
+    newPlaceNoteCoords, setNewPlaceNoteCoords,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -291,7 +293,7 @@ export default function MapPage() {
     return (
       <div className="h-dvh flex flex-col items-center justify-center gap-4"
         style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(244,63,94,0.3)] animate-pulse">
+        <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(244,63,94,0.3)] animate-pulse">
           🛡️
         </div>
         <div className="text-lg font-bold tracking-tight">
@@ -339,7 +341,7 @@ export default function MapPage() {
               <Bell size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
               {unreadCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  className="absolute -top-1 -right-1 min-w-3.75 h-3.75 rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
                   style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
                   {unreadCount}
@@ -386,7 +388,7 @@ export default function MapPage() {
           <>
             <button
               onClick={() => setShowCityContext(true)}
-              className="absolute bottom-[5.5rem] right-4 w-11 h-11 rounded-2xl flex items-center justify-center shadow-md z-[60] transition hover:scale-105 active:scale-95"
+              className="absolute bottom-22 right-4 w-11 h-11 rounded-2xl flex items-center justify-center shadow-md z-60 transition hover:scale-105 active:scale-95"
               style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
               title="City context"
             >
@@ -394,7 +396,7 @@ export default function MapPage() {
             </button>
             <button
               onClick={() => setActiveSheet('report')}
-              className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
             >
               +
             </button>
@@ -424,7 +426,7 @@ export default function MapPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="absolute left-3 right-3 z-[200]"
+            className="absolute left-3 right-3 z-200"
             style={{ top: '72px' }}
           >
             <SosBanner
@@ -458,13 +460,26 @@ export default function MapPage() {
         {activeSheet === 'detail' && <DetailSheet key="detail" />}
       </AnimatePresence>
 
+      {/* ── Place Note sheet — triggered by long-press on map ──────── */}
+      <AnimatePresence>
+        {newPlaceNoteCoords && userId && (
+          <PlaceNoteSheet
+            key="place-note"
+            coords={newPlaceNoteCoords}
+            userId={userId}
+            onClose={() => setNewPlaceNoteCoords(null)}
+            onSaved={() => setNewPlaceNoteCoords(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Bottom navigation ──────────────────────────────────────── */}
       <BottomNav />
 
       {/* ── City context overlay ───────────────────────────────────── */}
       <AnimatePresence>
         {showCityContext && (
-          <motion.div key="city-context" className="absolute inset-0 z-[300]"
+          <motion.div key="city-context" className="absolute inset-0 z-300"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}>
             <CityContextPanel onClose={() => setShowCityContext(false)} />
@@ -475,7 +490,7 @@ export default function MapPage() {
       {/* ── Notifications overlay ──────────────────────────────────── */}
       <AnimatePresence>
         {showNotifications && (
-          <motion.div key="notifications" className="absolute inset-0 z-[300]"
+          <motion.div key="notifications" className="absolute inset-0 z-300"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}>
             <NotificationsSheet onClose={() => setShowNotifications(false)} />
