@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
 import { toast } from 'sonner';
-import CommentsSection from './CommentsSection';
+import PinChat from './PinChat';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -41,6 +41,17 @@ function getExpiry(pin: Pin): string {
   const remaining = Math.max(0, 24 - (Date.now() - base) / 3_600_000);
   if (remaining < 1) return `${Math.round(remaining * 60)}min left`;
   return `${Math.round(remaining)}h left`;
+}
+
+function isPinExpired(pin: Pin): boolean {
+  if (pin.resolved_at) return true;
+  if (pin.is_emergency) {
+    return (Date.now() - new Date(pin.created_at).getTime()) / 3_600_000 >= 2;
+  }
+  const base = pin.last_confirmed_at
+    ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
+    : new Date(pin.created_at).getTime();
+  return (Date.now() - base) / 3_600_000 >= 24;
 }
 
 export default function DetailSheet() {
@@ -394,11 +405,12 @@ export default function DetailSheet() {
           {/* Divider */}
           <div className="mb-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
 
-          {/* Comments */}
-          <CommentsSection
+          {/* Pin Chat */}
+          <PinChat
             pinId={selectedPin.id}
             userId={userId}
             displayName={userProfile?.display_name ?? null}
+            isExpired={isPinExpired(selectedPin)}
           />
 
           {/* Close */}
