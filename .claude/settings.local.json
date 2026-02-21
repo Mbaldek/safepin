@@ -5,7 +5,9 @@
       "Bash(git push)",
       "Bash(npx tsc:*)",
       "Bash(git commit:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)"
     ]
   }
 }
