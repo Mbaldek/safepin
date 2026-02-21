@@ -199,10 +199,12 @@ export default function IncidentsView() {
           const ageH = (now - new Date(pin.created_at).getTime()) / 3_600_000;
           if (ageH >= 2) return false;
         }
-        // Regular pins expire after 24h
+        // Regular pins expire after 24h (reset by last confirmation)
         if (!pin.is_emergency) {
-          const ageH = (now - new Date(pin.created_at).getTime()) / 3_600_000;
-          if (ageH >= 24) return false;
+          const base = pin.last_confirmed_at
+            ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
+            : new Date(pin.created_at).getTime();
+          if ((now - base) / 3_600_000 >= 24) return false;
         }
         // Time filter
         const ageMs = now - new Date(pin.created_at).getTime();

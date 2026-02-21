@@ -12,8 +12,11 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 const SOURCE_ID = 'pins-source';
 
-function getPinOpacity(createdAt: string): number {
-  const ageH = (Date.now() - new Date(createdAt).getTime()) / 3_600_000;
+function getPinOpacity(pin: Pin): number {
+  const base = pin.last_confirmed_at
+    ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
+    : new Date(pin.created_at).getTime();
+  const ageH = (Date.now() - base) / 3_600_000;
   if (ageH >= 24) return 0;
   if (ageH >= 18) return 0.25;
   if (ageH >= 12) return 0.5;
@@ -30,7 +33,7 @@ function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
       properties: {
         id: pin.id,
         color: SEVERITY[pin.severity as keyof typeof SEVERITY]?.color ?? '#6b7490',
-        opacity: getPinOpacity(pin.created_at),
+        opacity: getPinOpacity(pin),
       },
     })),
   };
@@ -269,7 +272,7 @@ export default function MapView() {
     // ── Regular pins via GeoJSON clustering ───────────────────────────────────
     const regularPins = pins.filter((pin) => {
       if (pin.is_emergency) return false;
-      if (getPinOpacity(pin.created_at) === 0) return false;
+      if (getPinOpacity(pin) === 0) return false;
       if (activeFilter === 'all') return true;
       if (activeFilter === 'verified') return false;
       return pin.severity === activeFilter;

@@ -18,6 +18,7 @@ export type Pin = {
   media_urls: MediaItem[] | null;
   is_emergency: boolean;
   resolved_at: string | null;
+  last_confirmed_at: string | null;
   created_at: string;
 };
 

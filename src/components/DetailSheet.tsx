@@ -5,41 +5,62 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY, ENVIRONMENTS } from '@/types';
+import { CATEGORIES, SEVERITY, ENVIRONMENTS, Pin } from '@/types';
 import { toast } from 'sonner';
 import CommentsSection from './CommentsSection';
+
+type VoteRow = { user_id: string; vote_type: string; created_at: string };
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if (mins < 2) return 'Just now';
+  if (mins < 2) return 'just now';
   if (hours < 1) return `${mins}min ago`;
   if (days < 1) return `${hours}h ago`;
   return `${days}d ago`;
 }
 
+function maxDateStr(votes: VoteRow[]): string {
+  return votes.reduce((m, v) => (v.created_at > m ? v.created_at : m), votes[0].created_at);
+}
+
+function getExpiry(pin: Pin): string {
+  if (pin.is_emergency) {
+    const remaining = Math.max(0, 2 - (Date.now() - new Date(pin.created_at).getTime()) / 3_600_000);
+    if (remaining < 0.1) return 'expiring soon';
+    return `${Math.round(remaining * 60)}min left`;
+  }
+  const base = pin.last_confirmed_at
+    ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
+    : new Date(pin.created_at).getTime();
+  const remaining = Math.max(0, 24 - (Date.now() - base) / 3_600_000);
+  if (remaining < 1) return `${Math.round(remaining * 60)}min left`;
+  return `${Math.round(remaining)}h left`;
+}
+
 export default function DetailSheet() {
   const { selectedPin, setSelectedPin, setActiveSheet, userId, updatePin, userProfile } = useStore();
 
-  const [voteCount, setVoteCount] = useState(0);
-  const [hasVoted, setHasVoted] = useState(false);
+  const [confirms, setConfirms] = useState<VoteRow[]>([]);
+  const [denies, setDenies] = useState<VoteRow[]>([]);
+  const [myVote, setMyVote] = useState<VoteRow | null>(null);
   const [votingInFlight, setVotingInFlight] = useState(false);
   const [resolving, setResolving] = useState(false);
 
-  // Load votes whenever a pin is opened
   useEffect(() => {
     if (!selectedPin) return;
-    setVoteCount(0);
-    setHasVoted(false);
+    setConfirms([]); setDenies([]); setMyVote(null);
     supabase
       .from('pin_votes')
-      .select('user_id')
+      .select('user_id, vote_type, created_at')
       .eq('pin_id', selectedPin.id)
       .then(({ data }) => {
-        setVoteCount(data?.length ?? 0);
-        setHasVoted(!!data?.find((v) => v.user_id === userId));
+        const rows = (data ?? []) as VoteRow[];
+        setConfirms(rows.filter((v) => v.vote_type === 'confirm'));
+        setDenies(rows.filter((v) => v.vote_type === 'deny'));
+        setMyVote(rows.find((v) => v.user_id === userId) ?? null);
       });
   }, [selectedPin?.id, userId]);
 
@@ -50,12 +71,10 @@ export default function DetailSheet() {
   const env = selectedPin.environment
     ? ENVIRONMENTS[selectedPin.environment as keyof typeof ENVIRONMENTS]
     : null;
-
   const isOwner = !!userId && userId === selectedPin.user_id;
   const isResolved = !!selectedPin.resolved_at;
-
   const mediaItems =
-    selectedPin.media_urls && selectedPin.media_urls.length > 0
+    selectedPin.media_urls?.length
       ? selectedPin.media_urls
       : selectedPin.photo_url
         ? [{ url: selectedPin.photo_url, type: 'image' as const }]
@@ -66,17 +85,50 @@ export default function DetailSheet() {
     setActiveSheet('none');
   }
 
-  async function toggleVote() {
+  async function vote(type: 'confirm' | 'deny') {
     if (!userId || votingInFlight) return;
     setVotingInFlight(true);
-    if (hasVoted) {
-      await supabase.from('pin_votes').delete().eq('pin_id', selectedPin!.id).eq('user_id', userId);
-      setVoteCount((c) => Math.max(0, c - 1));
-      setHasVoted(false);
+
+    const isToggleOff = myVote?.vote_type === type;
+    const now = new Date().toISOString();
+    const pinId = selectedPin!.id;
+
+    if (isToggleOff) {
+      await supabase.from('pin_votes').delete().eq('pin_id', pinId).eq('user_id', userId);
+      setMyVote(null);
+      if (type === 'confirm') setConfirms((p) => p.filter((v) => v.user_id !== userId));
+      else setDenies((p) => p.filter((v) => v.user_id !== userId));
     } else {
-      await supabase.from('pin_votes').insert({ pin_id: selectedPin!.id, user_id: userId });
-      setVoteCount((c) => c + 1);
-      setHasVoted(true);
+      const { error } = await supabase.from('pin_votes').upsert(
+        { pin_id: pinId, user_id: userId, vote_type: type },
+        { onConflict: 'pin_id,user_id' }
+      );
+      if (!error) {
+        const newRow: VoteRow = { user_id: userId, vote_type: type, created_at: now };
+        const prevType = myVote?.vote_type;
+        setMyVote(newRow);
+
+        if (type === 'confirm') {
+          setConfirms((p) => [...p.filter((v) => v.user_id !== userId), newRow]);
+          if (prevType === 'deny') setDenies((p) => p.filter((v) => v.user_id !== userId));
+          // Reset expiry countdown
+          await supabase.from('pins').update({ last_confirmed_at: now }).eq('id', pinId);
+          updatePin({ ...selectedPin!, last_confirmed_at: now });
+        } else {
+          const newDenies = [...denies.filter((v) => v.user_id !== userId), newRow];
+          setDenies(newDenies);
+          if (prevType === 'confirm') setConfirms((p) => p.filter((v) => v.user_id !== userId));
+          // Auto-resolve after 3 denials
+          if (newDenies.length >= 3) {
+            await supabase.from('pins').update({ resolved_at: now }).eq('id', pinId);
+            updatePin({ ...selectedPin!, resolved_at: now });
+            toast.success('Pin removed — 3 users confirmed it has cleared');
+            setVotingInFlight(false);
+            handleClose();
+            return;
+          }
+        }
+      }
     }
     setVotingInFlight(false);
   }
@@ -85,15 +137,14 @@ export default function DetailSheet() {
     if (!isOwner || isResolved || resolving) return;
     setResolving(true);
     const now = new Date().toISOString();
-    const { error } = await supabase
-      .from('pins')
-      .update({ resolved_at: now })
-      .eq('id', selectedPin!.id);
+    const { error } = await supabase.from('pins').update({ resolved_at: now }).eq('id', selectedPin!.id);
     setResolving(false);
     if (error) { toast.error('Failed to resolve'); return; }
     updatePin({ ...selectedPin!, resolved_at: now });
     toast.success('Marked as resolved ✅');
   }
+
+  const myVoteType = myVote?.vote_type as 'confirm' | 'deny' | undefined;
 
   return (
     <>
@@ -143,7 +194,6 @@ export default function DetailSheet() {
             </span>
           </div>
 
-          {/* Environment badge */}
           {env && (
             <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold mb-3"
@@ -153,15 +203,10 @@ export default function DetailSheet() {
             </div>
           )}
 
-          {/* Description */}
-          <p
-            className="text-sm leading-relaxed mb-4"
-            style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}
-          >
+          <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>
             {selectedPin.description}
           </p>
 
-          {/* Meta */}
           <div className="flex gap-3 text-xs font-medium mb-4" style={{ color: 'var(--text-muted)' }}>
             <span>🕐 {timeAgo(selectedPin.created_at)}</span>
             {mediaItems.length > 0 && (
@@ -169,38 +214,21 @@ export default function DetailSheet() {
             )}
           </div>
 
-          {/* Media gallery */}
+          {/* Media */}
           {mediaItems.length > 0 && (
             <div className="flex flex-col gap-2 mb-4">
               {mediaItems.map((m, i) => {
-                if (m.type === 'image') {
-                  return (
-                    <img
-                      key={i}
-                      src={m.url}
-                      alt="Evidence"
-                      className="w-full h-44 object-cover rounded-xl"
-                      style={{ border: '1px solid var(--border)' }}
-                    />
-                  );
-                }
-                if (m.type === 'video') {
-                  return (
-                    <video
-                      key={i}
-                      src={m.url}
-                      controls
-                      className="w-full rounded-xl"
-                      style={{ border: '1px solid var(--border)', maxHeight: '180px' }}
-                    />
-                  );
-                }
+                if (m.type === 'image') return (
+                  <img key={i} src={m.url} alt="Evidence" className="w-full h-44 object-cover rounded-xl"
+                    style={{ border: '1px solid var(--border)' }} />
+                );
+                if (m.type === 'video') return (
+                  <video key={i} src={m.url} controls className="w-full rounded-xl"
+                    style={{ border: '1px solid var(--border)', maxHeight: '180px' }} />
+                );
                 return (
-                  <div
-                    key={i}
-                    className="rounded-xl p-3 flex items-center gap-3"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                  >
+                  <div key={i} className="rounded-xl p-3 flex items-center gap-3"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                     <span className="text-2xl">🎵</span>
                     <audio src={m.url} controls className="flex-1" style={{ height: '32px' }} />
                   </div>
@@ -209,47 +237,127 @@ export default function DetailSheet() {
             </div>
           )}
 
-          {/* ── Action row: Vote + Resolve ─────────────────────────── */}
-          <div className="flex gap-2 mb-5">
-            {/* Upvote */}
+          {/* ── Action row ────────────────────────────────────────────── */}
+          <div className="flex gap-2 mb-3">
+            {/* Confirm */}
             <button
-              onClick={toggleVote}
+              onClick={() => vote('confirm')}
               disabled={!userId || votingInFlight}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition flex-1 justify-center disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition flex-1 justify-center disabled:opacity-50"
               style={
-                hasVoted
-                  ? { backgroundColor: 'rgba(244,63,94,0.12)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }
+                myVoteType === 'confirm'
+                  ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.6)' }
                   : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
               }
             >
-              👍
-              <span>{voteCount > 0 ? ` ${voteCount}` : ''} Confirm</span>
+              👍 {confirms.length > 0 ? confirms.length : ''} Still there
             </button>
 
-            {/* Resolve */}
-            {isResolved ? (
+            {/* Deny / cleared */}
+            {!isResolved && (
+              <button
+                onClick={() => vote('deny')}
+                disabled={!userId || votingInFlight}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition flex-1 justify-center disabled:opacity-50"
+                style={
+                  myVoteType === 'deny'
+                    ? { backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1.5px solid rgba(245,158,11,0.6)' }
+                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                }
+              >
+                👁️ {denies.length > 0 ? `${denies.length}/3` : ''} Cleared?
+              </button>
+            )}
+
+            {/* Resolve (owner only) */}
+            {!isResolved && isOwner && (
+              <button
+                onClick={resolvePin}
+                disabled={resolving}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-40"
+                style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.4)' }}
+              >
+                ✅
+              </button>
+            )}
+            {isResolved && (
               <div
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold"
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold"
                 style={{ backgroundColor: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
               >
                 ✅ Resolved
               </div>
-            ) : (
-              <button
-                onClick={resolvePin}
-                disabled={!isOwner || resolving}
-                title={!isOwner ? 'Only the reporter can resolve this' : undefined}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={
-                  isOwner
-                    ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.5)' }
-                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                }
-              >
-                ✅ {resolving ? 'Resolving…' : 'Resolve'}
-              </button>
             )}
           </div>
+
+          {/* ── Status card ───────────────────────────────────────────── */}
+          {(confirms.length > 0 || denies.length > 0 || !selectedPin.is_emergency) && !isResolved && (
+            <div
+              className="rounded-xl p-3.5 mb-5 flex flex-col gap-2"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              {/* Confirms row */}
+              {confirms.length > 0 && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">👍</span>
+                    <span className="text-xs font-bold" style={{ color: '#10b981' }}>
+                      {confirms.length} {confirms.length === 1 ? 'person' : 'people'} confirmed it's still there
+                    </span>
+                  </div>
+                  <span className="text-[0.6rem] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>
+                    last {timeAgo(maxDateStr(confirms))}
+                  </span>
+                </div>
+              )}
+
+              {/* Denies row + progress bar */}
+              {denies.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">👁️</span>
+                      <span className="text-xs font-bold" style={{ color: '#f59e0b' }}>
+                        {denies.length}/3 say it has cleared
+                      </span>
+                    </div>
+                    <span className="text-[0.6rem] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>
+                      last {timeAgo(maxDateStr(denies))}
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${(denies.length / 3) * 100}%`, backgroundColor: '#f59e0b' }}
+                    />
+                  </div>
+                  {denies.length === 2 && (
+                    <p className="text-[0.6rem] mt-1" style={{ color: 'var(--text-muted)' }}>
+                      1 more clearing vote will remove this pin
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Expiry countdown */}
+              {!selectedPin.is_emergency && (
+                <div className="flex items-center gap-2 pt-1" style={{ borderTop: confirms.length + denies.length > 0 ? '1px solid var(--border)' : 'none' }}>
+                  <span className="text-sm">⏳</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {getExpiry(selectedPin)}
+                  </span>
+                  {selectedPin.last_confirmed_at && (
+                    <span
+                      className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }}
+                    >
+                      timer reset by confirm
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Divider */}
           <div className="mb-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
@@ -265,11 +373,7 @@ export default function DetailSheet() {
           <button
             onClick={handleClose}
             className="w-full font-bold rounded-xl py-3.5 text-sm transition hover:opacity-80 mt-5"
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-            }}
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
           >
             Close
           </button>
