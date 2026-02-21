@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Pin, AppNotification } from '@/types';
 
+export type WatchedLocation = { lat: number; lng: number; name: string | null };
+
 type Sheet = 'none' | 'report' | 'detail';
 type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'profile';
 
@@ -91,6 +93,12 @@ type Store = {
   notifications: AppNotification[];
   addNotification: (n: AppNotification) => void;
   markNotificationsRead: () => void;
+
+  // Walk With Me — location sharing
+  isSharingLocation: boolean;
+  setIsSharingLocation: (v: boolean) => void;
+  watchedLocations: Record<string, WatchedLocation>;
+  setWatchedLocation: (contactId: string, data: WatchedLocation | null) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -145,4 +153,19 @@ export const useStore = create<Store>((set) => ({
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, read: true })),
     })),
+
+  // Walk With Me
+  isSharingLocation: false,
+  setIsSharingLocation: (v) => set({ isSharingLocation: v }),
+  watchedLocations: {},
+  setWatchedLocation: (contactId, data) =>
+    set((state) => {
+      const next = { ...state.watchedLocations };
+      if (data === null) {
+        delete next[contactId];
+      } else {
+        next[contactId] = data;
+      }
+      return { watchedLocations: next };
+    }),
 }));

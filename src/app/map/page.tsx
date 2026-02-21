@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
@@ -74,6 +74,8 @@ export default function MapPage() {
     setUserProfile, setUserId, userId,
     addNotification, notifications,
     setPendingRoutes,
+    isSharingLocation, setWatchedLocation,
+    userLocation, userProfile,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -84,6 +86,82 @@ export default function MapPage() {
       setPendingRoutes(null);
     }
   }, [activeTab, setPendingRoutes]);
+
+  // ── Walk With Me — trusted contacts presence ──────────────────────────────
+  const [watchContacts, setWatchContacts] = useState<{ id: string; name: string | null }[]>([]);
+  const shareChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Load accepted trusted contacts when userId is available
+  useEffect(() => {
+    if (!userId) return;
+    async function loadTrusted() {
+      const { data } = await supabase
+        .from('trusted_contacts')
+        .select('user_id, contact_id')
+        .or(`user_id.eq.${userId},contact_id.eq.${userId}`)
+        .eq('status', 'accepted');
+      if (!data?.length) return;
+      const ids = data.map((r) => r.user_id === userId ? r.contact_id : r.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles').select('id, display_name').in('id', ids);
+      const nm: Record<string, string | null> = {};
+      for (const p of (profiles ?? [])) nm[p.id] = p.display_name;
+      setWatchContacts(ids.map((id) => ({ id, name: nm[id] ?? null })));
+    }
+    loadTrusted();
+  }, [userId]);
+
+  // Subscribe to each trusted contact's location presence channel
+  useEffect(() => {
+    if (!watchContacts.length) return;
+    const channels = watchContacts.map(({ id: cid, name }) => {
+      const ch = supabase.channel(`watch:${cid}`);
+      ch.on('presence', { event: 'sync' }, () => {
+        const state = ch.presenceState<{ lat: number; lng: number }>();
+        const entries = Object.values(state).flat();
+        if (entries.length > 0) {
+          setWatchedLocation(cid, { lat: entries[0].lat, lng: entries[0].lng, name });
+        } else {
+          setWatchedLocation(cid, null);
+        }
+      })
+      .on('presence', { event: 'leave' }, () => setWatchedLocation(cid, null))
+      .subscribe();
+      return ch;
+    });
+    return () => { channels.forEach((ch) => supabase.removeChannel(ch)); };
+  }, [watchContacts, setWatchedLocation]);
+
+  // Start / stop broadcasting own location when isSharingLocation changes
+  useEffect(() => {
+    if (!isSharingLocation || !userId) {
+      if (shareChannelRef.current) {
+        supabase.removeChannel(shareChannelRef.current);
+        shareChannelRef.current = null;
+      }
+      return;
+    }
+    const ch = supabase.channel(`watch:${userId}`);
+    ch.subscribe();
+    shareChannelRef.current = ch;
+    return () => {
+      if (shareChannelRef.current) {
+        supabase.removeChannel(shareChannelRef.current);
+        shareChannelRef.current = null;
+      }
+    };
+  }, [isSharingLocation, userId]);
+
+  // Re-broadcast location whenever it changes while sharing
+  useEffect(() => {
+    if (!isSharingLocation || !userLocation || !shareChannelRef.current) return;
+    shareChannelRef.current.track({
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+      name: userProfile?.display_name ?? null,
+    });
+  }, [isSharingLocation, userLocation, userProfile]);
+
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);

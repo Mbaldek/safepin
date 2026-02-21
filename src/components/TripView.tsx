@@ -4,9 +4,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Navigation, Check, X, Map, ArrowLeft } from 'lucide-react';
+import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, BookOpen } from 'lucide-react';
 import { useStore, RouteOption } from '@/stores/useStore';
-import { Pin } from '@/types';
+import { Pin, SavedRoute } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -164,6 +166,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const {
     userProfile, userLocation, pins,
     setActiveRoute, setPendingRoutes,
+    isSharingLocation, setIsSharingLocation,
   } = useStore();
 
   const [phase, setPhase]         = useState<Phase>('idle');
@@ -175,6 +178,21 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [trip, setTrip]           = useState<TripState | null>(null);
   const [now, setNow]             = useState(Date.now());
   const [error, setError]         = useState<string | null>(null);
+
+  // My saved routes
+  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
+  const [showRoutes, setShowRoutes]   = useState(false);
+
+  useEffect(() => {
+    if (!userProfile?.id) return;
+    supabase
+      .from('saved_routes')
+      .select('*')
+      .eq('user_id', userProfile.id)
+      .order('last_used_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => setSavedRoutes((data as SavedRoute[]) ?? []));
+  }, [userProfile?.id]);
 
   // Restore saved trip on mount
   useEffect(() => {
@@ -251,6 +269,42 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setPhase('selecting');
   }
 
+  async function saveRoute(opt: RouteOption) {
+    if (!userProfile?.id) return;
+    const name = destination.trim() || opt.label;
+    const { error } = await supabase.from('saved_routes').upsert(
+      {
+        user_id:          userProfile.id,
+        name,
+        from_label:       departure.trim() || null,
+        to_label:         destination.trim(),
+        mode,
+        coords:           opt.coords,
+        danger_score_last: opt.dangerScore,
+        trip_count:       1,
+        last_used_at:     new Date().toISOString(),
+      },
+      { onConflict: 'user_id,name' }
+    );
+    if (error) { toast.error('Could not save route'); return; }
+    toast.success('Route saved ✓');
+    // Refresh list
+    const { data } = await supabase
+      .from('saved_routes')
+      .select('*')
+      .eq('user_id', userProfile.id)
+      .order('last_used_at', { ascending: false })
+      .limit(10);
+    setSavedRoutes((data as SavedRoute[]) ?? []);
+  }
+
+  function loadSavedRoute(r: SavedRoute) {
+    setDeparture(r.from_label ?? '');
+    setDest(r.to_label);
+    setMode(r.mode as Mode);
+    setShowRoutes(false);
+  }
+
   function selectRoute(opt: RouteOption) {
     const t: TripState = {
       destination: destination.trim(),
@@ -272,6 +326,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setActiveRoute(null);
     setPendingRoutes(null);
     setOptions([]);
+    setIsSharingLocation(false);
   }
 
   function backToIdle() {
@@ -293,7 +348,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
-      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] flex flex-col overflow-hidden"
+      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201 flex flex-col overflow-hidden"
       style={{
         backgroundColor: 'var(--bg-secondary)',
         boxShadow: '0 -10px 40px var(--bg-overlay)',
@@ -400,13 +455,23 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                       {opt.dangerScore} risk {opt.dangerScore === 1 ? 'point' : 'points'} nearby
                     </p>
                   )}
-                  <button
-                    onClick={() => selectRoute(opt)}
-                    className="ml-auto px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
-                    style={{ backgroundColor: opt.color, color: '#fff' }}
-                  >
-                    Select
-                  </button>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <button
+                      onClick={() => saveRoute(opt)}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-80"
+                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                      title="Save route"
+                    >
+                      <BookmarkPlus size={14} style={{ color: 'var(--text-muted)' }} />
+                    </button>
+                    <button
+                      onClick={() => selectRoute(opt)}
+                      className="px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
+                      style={{ backgroundColor: opt.color, color: '#fff' }}
+                    >
+                      Select
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -448,6 +513,13 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     Stay safe{userProfile?.display_name ? `, ${userProfile.display_name}` : ''}
                   </p>
+                  {isSharingLocation && (
+                    <span className="inline-flex items-center gap-1 mt-1.5 text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
+                      <Radio size={9} strokeWidth={2.5} />
+                      Sharing with Trusted Circle
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -499,6 +571,57 @@ export default function TripView({ onClose }: { onClose: () => void }) {
         {/* ── Idle (form) ─────────────────────────────────────────────── */}
         {phase === 'idle' && (
           <div className="flex flex-col gap-4 pt-1">
+
+            {/* My Saved Routes */}
+            {savedRoutes.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowRoutes(!showRoutes)}
+                  className="flex items-center justify-between w-full mb-1.5"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen size={12} strokeWidth={2.5} style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                      My Routes ({savedRoutes.length})
+                    </p>
+                  </div>
+                  <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                    {showRoutes ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showRoutes && (
+                  <div className="flex flex-col gap-1.5">
+                    {savedRoutes.map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => loadSavedRoute(r)}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition active:scale-[0.98]"
+                        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                            {r.from_label ? `${r.from_label} → ` : ''}{r.to_label}
+                          </p>
+                          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                            {MODES.find((m) => m.id === r.mode)?.emoji ?? ''} {r.mode} · {r.trip_count}× used
+                          </p>
+                        </div>
+                        <span
+                          className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0 ml-2"
+                          style={{
+                            backgroundColor: r.danger_score_last === 0 ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+                            color: r.danger_score_last === 0 ? '#22c55e' : '#f59e0b',
+                          }}
+                        >
+                          {r.danger_score_last === 0 ? 'Clear' : `${r.danger_score_last} risk`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Error */}
             {error && (
               <div
@@ -597,6 +720,31 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
             </div>
+
+            {/* Share with Trusted Circle toggle */}
+            <button
+              onClick={() => setIsSharingLocation(!isSharingLocation)}
+              className="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-between px-4 transition"
+              style={{
+                backgroundColor: isSharingLocation ? 'rgba(99,102,241,0.10)' : 'var(--bg-card)',
+                border: isSharingLocation ? '1.5px solid #6366f1' : '1px solid var(--border)',
+                color: isSharingLocation ? '#6366f1' : 'var(--text-muted)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Radio size={14} strokeWidth={2.5} />
+                Share location with Trusted Circle
+              </div>
+              <div
+                className="w-9 h-5 rounded-full relative transition-colors"
+                style={{ backgroundColor: isSharingLocation ? '#6366f1' : 'var(--border)' }}
+              >
+                <div
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: isSharingLocation ? '18px' : '2px' }}
+                />
+              </div>
+            </button>
 
             <button
               onClick={findRoutes}

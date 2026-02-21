@@ -10,11 +10,14 @@ import { SEVERITY, Pin } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
-const SOURCE_ID   = 'pins-source';
-const ROUTE_SRC   = 'route-source';
-const ROUTE_LYR   = 'route-line';
+const SOURCE_ID    = 'pins-source';
+const ROUTE_SRC    = 'route-source';
+const ROUTE_LYR    = 'route-line';
 const PENDING_SRCS = ['pending-src-0', 'pending-src-1', 'pending-src-2'];
 const PENDING_LYRS = ['pending-line-0', 'pending-line-1', 'pending-line-2'];
+const WATCH_SRC    = 'watch-contacts-src';
+const WATCH_CIRCLE = 'watch-contacts-circle';
+const WATCH_LABEL  = 'watch-contacts-label';
 
 function getPinOpacity(pin: Pin): number {
   const base = pin.last_confirmed_at
@@ -132,7 +135,7 @@ export default function MapView() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -290,6 +293,50 @@ export default function MapView() {
       );
     }
   }, [pendingRoutes, mapReady, layersReady]);
+
+  // Draw / update watched contact dots (Walk With Me)
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    const features: GeoJSON.Feature[] = Object.entries(watchedLocations).map(([id, loc]) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [loc.lng, loc.lat] },
+      properties: { id, initial: (loc.name?.[0] ?? '?').toUpperCase() },
+    }));
+
+    const geojson: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features };
+
+    if (m.getSource(WATCH_SRC)) {
+      (m.getSource(WATCH_SRC) as mapboxgl.GeoJSONSource).setData(geojson);
+      return;
+    }
+
+    m.addSource(WATCH_SRC, { type: 'geojson', data: geojson });
+    m.addLayer({
+      id: WATCH_CIRCLE,
+      type: 'circle',
+      source: WATCH_SRC,
+      paint: {
+        'circle-radius': 18,
+        'circle-color': '#6366f1',
+        'circle-stroke-width': 2.5,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.92,
+      },
+    });
+    m.addLayer({
+      id: WATCH_LABEL,
+      type: 'symbol',
+      source: WATCH_SRC,
+      layout: {
+        'text-field': ['get', 'initial'],
+        'text-size': 13,
+        'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+      },
+      paint: { 'text-color': '#fff' },
+    });
+  }, [watchedLocations, mapReady, layersReady]);
 
   // Switch map style when theme changes — re-add cluster layers after style loads
   useEffect(() => {

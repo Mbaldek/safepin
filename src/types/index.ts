@@ -36,13 +36,36 @@ export type Comment = {
 
 export type AppNotification = {
   id: string;
-  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community';
+  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact';
   title: string;
   body: string | null;
   read: boolean;
   created_at: string;
   pin_id?: string;
   community_id?: string;
+};
+
+export type TrustedContact = {
+  id: string;
+  user_id: string;
+  contact_id: string;
+  nickname: string | null;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+};
+
+export type SavedRoute = {
+  id: string;
+  user_id: string;
+  name: string;
+  from_label: string | null;
+  to_label: string;
+  mode: string;
+  coords: [number, number][];
+  danger_score_last: number;
+  trip_count: number;
+  last_used_at: string;
+  created_at: string;
 };
 
 export type Community = {
