@@ -70,12 +70,20 @@ export default function MapPage() {
   const {
     setPins, addPin, updatePin,
     activeSheet, setActiveSheet,
-    activeTab,
+    activeTab, setActiveTab,
     setUserProfile, setUserId, userId,
     addNotification, notifications,
+    setPendingRoutes,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
+
+  // Clear pending route options whenever the user leaves the trip tab
+  useEffect(() => {
+    if (activeTab !== 'trip') {
+      setPendingRoutes(null);
+    }
+  }, [activeTab, setPendingRoutes]);
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -290,26 +298,36 @@ export default function MapPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── Map tab — kept mounted to preserve map position ───────── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' ? 'hidden' : 'flex flex-col'}`}>
+      {/* ── Map tab — visible for map AND trip tabs ────────────────── */}
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
-        {/* City context button */}
-        <button
-          onClick={() => setShowCityContext(true)}
-          className="absolute bottom-[5.5rem] right-4 w-11 h-11 rounded-2xl flex items-center justify-center shadow-md z-[60] transition hover:scale-105 active:scale-95"
-          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-          title="City context"
-        >
-          <Building2 size={18} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
-        </button>
-        <button
-          onClick={() => setActiveSheet('report')}
-          className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
-        >
-          +
-        </button>
+        {/* City context + report buttons — map tab only */}
+        {activeTab === 'map' && (
+          <>
+            <button
+              onClick={() => setShowCityContext(true)}
+              className="absolute bottom-[5.5rem] right-4 w-11 h-11 rounded-2xl flex items-center justify-center shadow-md z-[60] transition hover:scale-105 active:scale-95"
+              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+              title="City context"
+            >
+              <Building2 size={18} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+            </button>
+            <button
+              onClick={() => setActiveSheet('report')}
+              className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
+            >
+              +
+            </button>
+          </>
+        )}
+        {/* Trip sheet — overlays the map when on trip tab */}
+        <AnimatePresence>
+          {activeTab === 'trip' && (
+            <TripView key="trip-sheet" onClose={() => setActiveTab('map')} />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* SOS nearby banner */}
@@ -345,12 +363,6 @@ export default function MapPage() {
           <motion.div key="community" className="flex-1 min-h-0 overflow-hidden flex flex-col"
             variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
             <CommunityView />
-          </motion.div>
-        )}
-        {activeTab === 'trip' && (
-          <motion.div key="trip" className="flex-1 min-h-0 overflow-hidden flex flex-col"
-            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-            <TripView />
           </motion.div>
         )}
         {activeTab === 'profile' && userId && (

@@ -3,12 +3,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Navigation, Check, X, Map, ArrowLeft } from 'lucide-react';
 import { useStore, RouteOption } from '@/stores/useStore';
 import { Pin } from '@/types';
 
+const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+
 type Phase = 'idle' | 'searching' | 'selecting' | 'active';
-type Mode  = 'walk' | 'bike' | 'drive';
+type Mode  = 'walk' | 'bike' | 'drive' | 'transit';
 
 type TripState = {
   destination: string;
@@ -24,16 +27,18 @@ const DURATION_OPTIONS = [
   { label: '4 hr',   ms:  4 * 3_600_000 },
 ];
 
-const MODES: { id: Mode; emoji: string; label: string }[] = [
-  { id: 'walk',  emoji: '🚶', label: 'Walk'  },
-  { id: 'bike',  emoji: '🚴', label: 'Bike'  },
-  { id: 'drive', emoji: '🚗', label: 'Drive' },
+const MODES: { id: Mode; emoji: string; label: string; soon?: boolean }[] = [
+  { id: 'walk',    emoji: '🚶', label: 'Walk'    },
+  { id: 'bike',    emoji: '🚴', label: 'Bike'    },
+  { id: 'drive',   emoji: '🚗', label: 'Drive'   },
+  { id: 'transit', emoji: '🚇', label: 'Transit', soon: true },
 ];
 
 const OSRM_PROFILES: Record<Mode, string> = {
-  walk:  'foot',
-  bike:  'bike',
-  drive: 'driving',
+  walk:    'foot',
+  bike:    'bike',
+  drive:   'driving',
+  transit: 'foot', // proxy until transit data is integrated
 };
 
 const STORAGE_KEY = 'safepin_active_trip';
@@ -115,7 +120,6 @@ async function fetchRouteOptions(
     dangerScore: scoreDanger(r.geometry.coordinates as [number, number][], pins),
   }));
 
-  // Sort ascending by danger (safest first)
   scored.sort((a, b) => a.dangerScore - b.dangerScore);
 
   const n = Math.min(scored.length, 3);
@@ -146,7 +150,7 @@ function DangerBadge({ score }: { score: number }) {
                        ['Some risk', 'rgba(239,68,68,0.12)',  '#ef4444'];
   return (
     <span
-      className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
+      className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full shrink-0"
       style={{ backgroundColor: bg, color: fg }}
     >
       {label}
@@ -154,10 +158,12 @@ function DangerBadge({ score }: { score: number }) {
   );
 }
 
-export default function TripView() {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function TripView({ onClose }: { onClose: () => void }) {
   const {
     userProfile, userLocation, pins,
-    setActiveRoute, setActiveTab, setPendingRoutes,
+    setActiveRoute, setPendingRoutes,
   } = useStore();
 
   const [phase, setPhase]         = useState<Phase>('idle');
@@ -213,7 +219,6 @@ export default function TripView() {
     setError(null);
     setPhase('searching');
 
-    // Resolve departure coords
     let fromCoords: [number, number] | null = null;
     if (departure.trim()) {
       fromCoords = await geocodePlace(departure.trim(), userLocation ?? undefined);
@@ -257,7 +262,7 @@ export default function TripView() {
     setActiveRoute({ coords: opt.coords, destination: destination.trim() });
     setPendingRoutes(null);
     setPhase('active');
-    setActiveTab('map');
+    onClose(); // go to map to see the route
   }
 
   function endTrip() {
@@ -276,338 +281,340 @@ export default function TripView() {
     setError(null);
   }
 
-  // ── Active trip ─────────────────────────────────────────────────────────────
+  // ── Header title ──────────────────────────────────────────────────────────
 
-  if (phase === 'active' && trip) {
-    const remaining = Math.max(0, trip.expiresAt - now);
-    const progress  = 1 - remaining / (trip.expiresAt - trip.startedAt);
-    const critical  = remaining < 5 * 60_000;
+  const phaseTitle =
+    phase === 'idle'      ? 'Trip Planner' :
+    phase === 'searching' ? 'Finding routes…' :
+    phase === 'selecting' ? 'Choose Route' :
+                            'Active Trip';
 
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div
-          className="shrink-0 px-4 py-3"
-          style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-        >
-          <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Active Trip</h2>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Stay safe{userProfile?.display_name ? `, ${userProfile.display_name}` : ''}
-          </p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 gap-8">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="relative">
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(244,63,94,0.12)' }}
-              >
-                <Navigation size={36} style={{ color: 'var(--accent)' }} />
-              </div>
-              <span
-                className="absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 animate-pulse"
-                style={{ backgroundColor: '#22c55e', borderColor: 'var(--bg-primary)' }}
-              />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>
-                Heading to
-              </p>
-              <p className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
-                {trip.destination}
-              </p>
-              <button
-                onClick={() => setActiveTab('map')}
-                className="flex items-center gap-1 mx-auto mt-1.5 text-xs font-bold"
-                style={{ color: 'var(--accent)' }}
-              >
-                <Map size={11} strokeWidth={2.5} />
-                View on map
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center gap-2 w-full max-w-[280px]">
-            <div
-              className="text-5xl font-black tracking-tight"
-              style={{ color: critical ? '#ef4444' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
-            >
-              {formatCountdown(remaining)}
-            </div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>remaining</p>
-            <div
-              className="w-full h-2 rounded-full overflow-hidden mt-1"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${progress * 100}%`,
-                  backgroundColor: critical ? '#ef4444' : 'var(--accent)',
-                  transition: 'width 1s linear, background-color 0.5s',
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 w-full max-w-[280px]">
-            <button
-              onClick={endTrip}
-              className="w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#22c55e', color: '#fff', boxShadow: '0 8px 24px rgba(34,197,94,0.3)' }}
-            >
-              <Check size={20} strokeWidth={2.5} />
-              I&apos;m Safe
-            </button>
-            <button
-              onClick={endTrip}
-              className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            >
-              <X size={16} strokeWidth={2} />
-              Cancel Trip
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Searching ────────────────────────────────────────────────────────────────
-
-  if (phase === 'searching') {
-    return (
-      <div
-        className="flex flex-col h-full items-center justify-center gap-4"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
-      >
-        <div
-          className="w-12 h-12 border-4 rounded-full animate-spin"
-          style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
-        />
-        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Finding safe routes…</p>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Checking for nearby incidents</p>
-      </div>
-    );
-  }
-
-  // ── Route selection ──────────────────────────────────────────────────────────
-
-  if (phase === 'selecting') {
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        {/* Header */}
-        <div
-          className="shrink-0 px-4 py-3 flex items-center gap-3"
-          style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-        >
-          <button
-            onClick={backToIdle}
-            className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            <ArrowLeft size={16} style={{ color: 'var(--text-muted)' }} />
-          </button>
-          <div>
-            <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Choose Route</h2>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Shown on map · tap a route to start</p>
-          </div>
-        </div>
-
-        {/* Trip summary bar */}
-        <div
-          className="px-4 py-2.5 flex items-center gap-2 shrink-0"
-          style={{ backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}
-        >
-          <span className="text-sm">📍</span>
-          <div className="min-w-0 flex-1">
-            {departure.trim() && (
-              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                From: <span className="font-bold">{departure.trim()}</span>
-              </p>
-            )}
-            <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-              To: {destination.trim()}
-            </p>
-          </div>
-          <span
-            className="text-xs px-2 py-1 rounded-full font-bold shrink-0"
-            style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
-          >
-            {MODES.find((m) => m.id === mode)?.emoji} {mode}
-          </span>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-          {/* See on map button */}
-          <button
-            onClick={() => setActiveTab('map')}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1px solid var(--border)' }}
-          >
-            <Map size={14} strokeWidth={2.5} />
-            See all routes on map
-          </button>
-
-          {/* Route cards */}
-          {options.map((opt) => (
-            <div
-              key={opt.id}
-              className="rounded-2xl overflow-hidden"
-              style={{ border: `2px solid ${opt.color}33`, backgroundColor: 'var(--bg-card)' }}
-            >
-              {/* Colored header */}
-              <div
-                className="px-4 py-2 flex items-center justify-between"
-                style={{ backgroundColor: `${opt.color}18` }}
-              >
-                <span className="text-sm font-black" style={{ color: opt.color }}>{opt.label}</span>
-                <DangerBadge score={opt.dangerScore} />
-              </div>
-
-              {/* Stats + action */}
-              <div className="px-4 py-3 flex items-center gap-3">
-                <div className="flex flex-col min-w-0">
-                  <span className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
-                    {fmtDur(opt.duration)}
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>
-                </div>
-                {opt.dangerScore > 0 && (
-                  <p className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
-                    {opt.dangerScore} risk {opt.dangerScore === 1 ? 'point' : 'points'} nearby
-                  </p>
-                )}
-                <button
-                  onClick={() => selectRoute(opt)}
-                  className="ml-auto px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
-                  style={{ backgroundColor: opt.color, color: '#fff' }}
-                >
-                  Select
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Idle / create trip ───────────────────────────────────────────────────────
+  // ── Sheet ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <div
-        className="shrink-0 px-4 py-3"
-        style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-      >
-        <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Trip Planner</h2>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Find safe routes avoiding reported incidents
-        </p>
+    <motion.div
+      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] flex flex-col overflow-hidden"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        boxShadow: '0 -10px 40px var(--bg-overlay)',
+        maxHeight: '72dvh',
+      }}
+      initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+      transition={springTransition}
+    >
+      {/* Drag handle */}
+      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-2 shrink-0">
+        <div className="flex items-center gap-2">
+          {phase === 'selecting' && (
+            <button
+              onClick={backToIdle}
+              className="w-7 h-7 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <ArrowLeft size={14} style={{ color: 'var(--text-muted)' }} />
+            </button>
+          )}
+          <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+            {phaseTitle}
+          </h2>
+        </div>
+        {phase !== 'searching' && (
+          <button
+            onClick={onClose}
+            className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80"
+            style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+          >
+            ✕ Close
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto flex flex-col px-6 py-6 gap-5">
-        {/* Error */}
-        {error && (
-          <div
-            className="rounded-2xl px-4 py-3 text-sm font-bold"
-            style={{ backgroundColor: 'rgba(239,68,68,0.10)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
-          >
-            {error}
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-5 pb-8">
+
+        {/* ── Searching ───────────────────────────────────────────────── */}
+        {phase === 'searching' && (
+          <div className="flex flex-col items-center justify-center py-10 gap-4">
+            <div
+              className="w-10 h-10 border-4 rounded-full animate-spin"
+              style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
+            />
+            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Finding safe routes…</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Checking for nearby incidents</p>
           </div>
         )}
 
-        {/* Departure */}
-        <div>
-          <p className="text-[0.7rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Departure
-          </p>
-          <input
-            value={departure}
-            onChange={(e) => setDeparture(e.target.value)}
-            placeholder="My current location"
-            className="w-full text-sm rounded-xl px-4 py-3 outline-none"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
-          />
-        </div>
-
-        {/* Destination */}
-        <div>
-          <p className="text-[0.7rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Destination <span style={{ color: 'var(--accent)' }}>*</span>
-          </p>
-          <input
-            value={destination}
-            onChange={(e) => setDest(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') findRoutes(); }}
-            placeholder="e.g. Home, Gare du Nord, Café…"
-            className="w-full text-sm rounded-xl px-4 py-3 outline-none"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
-          />
-        </div>
-
-        {/* Mode */}
-        <div>
-          <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-            Transport
-          </p>
-          <div className="flex gap-2">
-            {MODES.map(({ id, emoji, label }) => (
-              <button
-                key={id}
-                onClick={() => setMode(id)}
-                className="flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl transition"
-                style={{
-                  backgroundColor: mode === id ? 'var(--accent)' : 'var(--bg-card)',
-                  border: mode === id ? '2px solid var(--accent)' : '1.5px solid var(--border)',
-                  color: mode === id ? '#fff' : 'var(--text-muted)',
-                }}
+        {/* ── Selecting ───────────────────────────────────────────────── */}
+        {phase === 'selecting' && (
+          <div className="flex flex-col gap-3 pt-1">
+            {/* Trip summary */}
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-xl"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <span className="text-sm">📍</span>
+              <div className="min-w-0 flex-1">
+                {departure.trim() && (
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                    From: <span className="font-bold">{departure.trim()}</span>
+                  </p>
+                )}
+                <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                  To: {destination.trim()}
+                </p>
+              </div>
+              <span
+                className="text-xs px-2 py-1 rounded-full font-bold shrink-0"
+                style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
               >
-                <span className="text-lg">{emoji}</span>
-                <span className="text-xs font-bold">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+                {MODES.find((m) => m.id === mode)?.emoji} {mode}
+              </span>
+            </div>
 
-        {/* Duration */}
-        <div>
-          <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-            Expected Duration
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {DURATION_OPTIONS.map(({ label, ms }) => (
-              <button
-                key={label}
-                onClick={() => setDuration(ms)}
-                className="px-3 py-1.5 rounded-full text-xs font-bold transition"
-                style={{
-                  backgroundColor: durationMs === ms ? 'var(--accent)' : 'var(--bg-card)',
-                  color:           durationMs === ms ? '#fff'          : 'var(--text-muted)',
-                  border:          durationMs === ms ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                }}
+            {/* Route cards */}
+            {options.map((opt) => (
+              <div
+                key={opt.id}
+                className="rounded-2xl overflow-hidden"
+                style={{ border: `2px solid ${opt.color}33`, backgroundColor: 'var(--bg-card)' }}
               >
-                {label}
-              </button>
+                <div
+                  className="px-4 py-2 flex items-center justify-between"
+                  style={{ backgroundColor: `${opt.color}18` }}
+                >
+                  <span className="text-sm font-black" style={{ color: opt.color }}>{opt.label}</span>
+                  <DangerBadge score={opt.dangerScore} />
+                </div>
+                <div className="px-4 py-3 flex items-center gap-3">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
+                      {fmtDur(opt.duration)}
+                    </span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>
+                  </div>
+                  {opt.dangerScore > 0 && (
+                    <p className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
+                      {opt.dangerScore} risk {opt.dangerScore === 1 ? 'point' : 'points'} nearby
+                    </p>
+                  )}
+                  <button
+                    onClick={() => selectRoute(opt)}
+                    className="ml-auto px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
+                    style={{ backgroundColor: opt.color, color: '#fff' }}
+                  >
+                    Select
+                  </button>
+                </div>
+              </div>
             ))}
-          </div>
-        </div>
 
-        <button
-          onClick={findRoutes}
-          disabled={!destination.trim()}
-          className="w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition disabled:opacity-40"
-          style={{
-            backgroundColor: 'var(--accent)',
-            color: '#fff',
-            boxShadow: '0 8px 24px rgba(244,63,94,0.25)',
-          }}
-        >
-          <Navigation size={18} strokeWidth={2.5} />
-          Find Safe Routes
-        </button>
+            {/* See on map hint */}
+            <p className="text-center text-xs pb-1" style={{ color: 'var(--text-muted)' }}>
+              Routes are visible on the map behind this sheet
+            </p>
+          </div>
+        )}
+
+        {/* ── Active trip ─────────────────────────────────────────────── */}
+        {phase === 'active' && trip && (() => {
+          const remaining = Math.max(0, trip.expiresAt - now);
+          const progress  = 1 - remaining / (trip.expiresAt - trip.startedAt);
+          const critical  = remaining < 5 * 60_000;
+          return (
+            <div className="flex flex-col items-center gap-6 pt-2 pb-2">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="relative">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: 'rgba(244,63,94,0.12)' }}
+                  >
+                    <Navigation size={28} style={{ color: 'var(--accent)' }} />
+                  </div>
+                  <span
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 animate-pulse"
+                    style={{ backgroundColor: '#22c55e', borderColor: 'var(--bg-secondary)' }}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Heading to
+                  </p>
+                  <p className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
+                    {trip.destination}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Stay safe{userProfile?.display_name ? `, ${userProfile.display_name}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-2 w-full">
+                <div
+                  className="text-4xl font-black tracking-tight"
+                  style={{ color: critical ? '#ef4444' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {formatCountdown(remaining)}
+                </div>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>remaining</p>
+                <div
+                  className="w-full h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${progress * 100}%`,
+                      backgroundColor: critical ? '#ef4444' : 'var(--accent)',
+                      transition: 'width 1s linear, background-color 0.5s',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 w-full">
+                <button
+                  onClick={endTrip}
+                  className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#22c55e', color: '#fff', boxShadow: '0 6px 20px rgba(34,197,94,0.3)' }}
+                >
+                  <Check size={18} strokeWidth={2.5} />
+                  I&apos;m Safe
+                </button>
+                <button
+                  onClick={endTrip}
+                  className="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  <X size={14} strokeWidth={2} />
+                  Cancel Trip
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Idle (form) ─────────────────────────────────────────────── */}
+        {phase === 'idle' && (
+          <div className="flex flex-col gap-4 pt-1">
+            {/* Error */}
+            {error && (
+              <div
+                className="rounded-xl px-4 py-2.5 text-sm font-bold"
+                style={{ backgroundColor: 'rgba(239,68,68,0.10)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Departure */}
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Departure
+              </p>
+              <input
+                value={departure}
+                onChange={(e) => setDeparture(e.target.value)}
+                placeholder="My current location"
+                className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </div>
+
+            {/* Destination */}
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Destination <span style={{ color: 'var(--accent)' }}>*</span>
+              </p>
+              <input
+                value={destination}
+                onChange={(e) => setDest(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') findRoutes(); }}
+                placeholder="e.g. Home, Gare du Nord, Café…"
+                className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </div>
+
+            {/* Mode — 4-button grid */}
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+                Transport
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {MODES.map(({ id, emoji, label, soon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setMode(id)}
+                    className="flex flex-col items-center gap-1 py-2.5 rounded-2xl relative transition"
+                    style={{
+                      backgroundColor: mode === id ? 'var(--accent)' : 'var(--bg-card)',
+                      border: mode === id ? '2px solid var(--accent)' : '1.5px solid var(--border)',
+                      color: mode === id ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    <span className="text-base leading-none">{emoji}</span>
+                    <span className="text-[0.6rem] font-bold leading-none">{label}</span>
+                    {soon && (
+                      <span
+                        className="absolute -top-1.5 -right-1.5 text-[0.45rem] font-black px-1 py-0.5 rounded-full uppercase tracking-wide"
+                        style={{ backgroundColor: '#6366f1', color: '#fff' }}
+                      >
+                        Soon
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {mode === 'transit' && (
+                <p className="text-[0.6rem] mt-1.5 text-center" style={{ color: 'var(--text-muted)' }}>
+                  🚇 Transit routing coming soon · showing walking route as proxy
+                </p>
+              )}
+            </div>
+
+            {/* Duration */}
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Expected Duration
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {DURATION_OPTIONS.map(({ label, ms }) => (
+                  <button
+                    key={label}
+                    onClick={() => setDuration(ms)}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold transition"
+                    style={{
+                      backgroundColor: durationMs === ms ? 'var(--accent)' : 'var(--bg-card)',
+                      color:           durationMs === ms ? '#fff'          : 'var(--text-muted)',
+                      border:          durationMs === ms ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={findRoutes}
+              disabled={!destination.trim()}
+              className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition disabled:opacity-40"
+              style={{
+                backgroundColor: 'var(--accent)',
+                color: '#fff',
+                boxShadow: '0 6px 20px rgba(244,63,94,0.25)',
+              }}
+            >
+              <Map size={16} strokeWidth={2.5} />
+              Find Safe Routes
+            </button>
+          </div>
+        )}
+
       </div>
-    </div>
+    </motion.div>
   );
 }
