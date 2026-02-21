@@ -127,7 +127,7 @@ export default function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const { pins, activeFilter, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -273,16 +273,25 @@ export default function MapView() {
     const regularPins = pins.filter((pin) => {
       if (pin.is_emergency) return false;
       if (getPinOpacity(pin) === 0) return false;
-      if (activeFilter === 'all') return true;
-      if (activeFilter === 'verified') return false;
-      return pin.severity === activeFilter;
+      // Severity
+      if (mapFilters.severity !== 'all' && pin.severity !== mapFilters.severity) return false;
+      // Age
+      const ageMs = Date.now() - new Date(pin.created_at).getTime();
+      if (mapFilters.age === '1h'    && ageMs > 3_600_000)      return false;
+      if (mapFilters.age === '6h'    && ageMs > 6 * 3_600_000)  return false;
+      if (mapFilters.age === 'today' && ageMs > 24 * 3_600_000) return false;
+      // Urban context
+      if (mapFilters.urban !== 'all' && pin.urban_context !== mapFilters.urban) return false;
+      // Confirmed only
+      if (mapFilters.confirmedOnly && !pin.last_confirmed_at) return false;
+      return true;
     });
 
     const source = map.current.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
       source.setData(buildGeoJSON(regularPins));
     }
-  }, [pins, activeFilter, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
+  }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
   return <div ref={mapContainer} className="w-full h-full" />;
 }

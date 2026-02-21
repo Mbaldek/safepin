@@ -4,6 +4,20 @@ import { Pin, AppNotification } from '@/types';
 type Sheet = 'none' | 'report' | 'detail';
 type Tab = 'map' | 'incidents' | 'community' | 'messages' | 'profile';
 
+export type MapFilters = {
+  severity: string;        // 'all' | 'low' | 'med' | 'high'
+  age: string;             // 'all' | '1h' | '6h' | 'today'
+  urban: string;           // 'all' | keyof URBAN_CONTEXTS
+  confirmedOnly: boolean;
+};
+
+const DEFAULT_MAP_FILTERS: MapFilters = {
+  severity: 'all',
+  age: 'all',
+  urban: 'all',
+  confirmedOnly: false,
+};
+
 type Store = {
   // Auth
   userId: string | null;
@@ -15,9 +29,9 @@ type Store = {
   addPin: (pin: Pin) => void;
   updatePin: (pin: Pin) => void;
 
-  // Filters
-  activeFilter: string;
-  setActiveFilter: (filter: string) => void;
+  // Map filters
+  mapFilters: MapFilters;
+  setMapFilters: (f: MapFilters) => void;
 
   // Sheets
   activeSheet: Sheet;
@@ -72,9 +86,9 @@ export const useStore = create<Store>((set) => ({
   addPin: (pin) => set((state) => ({ pins: [...state.pins, pin] })),
   updatePin: (pin) => set((state) => ({ pins: state.pins.map((p) => p.id === pin.id ? pin : p) })),
 
-  // Filters
-  activeFilter: 'all',
-  setActiveFilter: (filter) => set({ activeFilter: filter }),
+  // Map filters
+  mapFilters: DEFAULT_MAP_FILTERS,
+  setMapFilters: (f) => set({ mapFilters: f }),
 
   // Sheets
   activeSheet: 'none',
