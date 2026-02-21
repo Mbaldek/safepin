@@ -1,34 +1,36 @@
 // src/components/VerificationView.tsx
-// ID + face verification using Persona (withpersona.com)
-// Env vars required: PERSONA_API_KEY, PERSONA_TEMPLATE_ID, NEXT_PUBLIC_PERSONA_ENV
+// ID + face verification using Onfido (onfido.com) — EU region, supports French IDs
+// Env vars: ONFIDO_API_TOKEN, NEXT_PUBLIC_ONFIDO_REGION=eu, ONFIDO_WEBHOOK_TOKEN
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 
-// Persona CDN types
+// Onfido CDN SDK types (loaded at runtime)
 declare global {
   interface Window {
-    Persona?: {
-      Client: new (config: PersonaConfig) => PersonaClient;
+    Onfido?: {
+      init: (config: OnfidoConfig) => OnfidoInstance;
     };
   }
 }
-interface PersonaConfig {
-  inquiryId: string;
-  sessionToken: string;
-  environment?: string;
-  onReady?: () => void;
-  onComplete?: (data: { inquiryId: string; status: string }) => void;
-  onCancel?: () => void;
-  onError?: (err: { message: string }) => void;
+interface OnfidoConfig {
+  token: string;
+  useModal?: boolean;
+  isModalOpen?: boolean;
+  region?: string;
+  onComplete?: (data: Record<string, unknown>) => void;
+  onError?: (err: { message: string; type: string }) => void;
+  onUserExit?: (code: string) => void;
+  onModalRequestClose?: () => void;
+  steps?: (string | { type: string; options?: Record<string, unknown> })[];
 }
-interface PersonaClient {
-  open: () => void;
-  cancel: () => void;
+interface OnfidoInstance {
+  tearDown: () => void;
+  setOptions: (opts: Partial<OnfidoConfig>) => void;
 }
 
 type VerifStatus = 'unverified' | 'pending' | 'approved' | 'declined';
@@ -40,22 +42,36 @@ const STATUS_CONFIG: Record<VerifStatus, { emoji: string; label: string; color: 
   declined:   { emoji: '❌', label: 'Declined — try again',  color: '#ef4444',            bg: 'rgba(239,68,68,0.1)'  },
 };
 
+const ONFIDO_CSS = 'https://sdk.onfido.com/v14/onfido.min.css';
+const ONFIDO_JS  = 'https://sdk.onfido.com/v14/onfido.min.js';
+
 export default function VerificationView({ onClose }: { onClose: () => void }) {
   const { userId, userProfile, setUserProfile } = useStore();
-  const [phase, setPhase] = useState<'idle' | 'loading' | 'widget' | 'done'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'loading' | 'active' | 'done'>('idle');
   const currentStatus: VerifStatus = (userProfile?.verification_status as VerifStatus) ?? 'unverified';
   const [displayStatus, setDisplayStatus] = useState<VerifStatus>(currentStatus);
+  const onfidoRef = useRef<OnfidoInstance | null>(null);
 
-  // Keep in sync if profile updates
   useEffect(() => {
     setDisplayStatus((userProfile?.verification_status as VerifStatus) ?? 'unverified');
   }, [userProfile?.verification_status]);
 
-  async function loadPersonaSDK(): Promise<boolean> {
-    if (window.Persona) return true;
+  // Cleanup Onfido on unmount
+  useEffect(() => {
+    return () => { onfidoRef.current?.tearDown(); };
+  }, []);
+
+  async function loadOnfidoSDK(): Promise<boolean> {
+    if (window.Onfido) return true;
     return new Promise((resolve) => {
+      if (!document.querySelector(`link[href="${ONFIDO_CSS}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = ONFIDO_CSS;
+        document.head.appendChild(link);
+      }
       const script = document.createElement('script');
-      script.src = 'https://cdn.withpersona.com/dist/persona-v4.js';
+      script.src = ONFIDO_JS;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.head.appendChild(script);
@@ -67,49 +83,75 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
     setPhase('loading');
 
     try {
-      // 1. Create inquiry server-side
+      // Step 1: create applicant + get SDK token from our server
       const res = await fetch('/api/verify/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? 'Failed to start verification');
+        throw new Error((err as { error?: string }).error ?? 'Failed to start verification');
+      }
+      const { sdkToken, applicantId } = await res.json() as { sdkToken: string; applicantId: string };
+
+      // Step 2: load Onfido JS SDK from CDN
+      const loaded = await loadOnfidoSDK();
+      if (!loaded || !window.Onfido) {
+        throw new Error('Onfido SDK failed to load. Check your internet connection.');
       }
 
-      const { inquiryId, sessionToken } = await res.json();
+      setPhase('active');
 
-      // 2. Load Persona SDK
-      const sdkLoaded = await loadPersonaSDK();
-
-      if (!sdkLoaded || !window.Persona) {
-        // Fallback: open Persona in new tab
-        const env = process.env.NEXT_PUBLIC_PERSONA_ENV ?? 'sandbox';
-        const url = `https://withpersona.com/verify?inquiry-id=${inquiryId}&session-token=${sessionToken}&environment=${env}`;
-        window.open(url, '_blank');
-        setPhase('done');
-        await markPending(userId, inquiryId);
-        return;
-      }
-
-      // 3. Open Persona inline widget
-      setPhase('widget');
-      const client = new window.Persona.Client({
-        inquiryId,
-        sessionToken,
-        environment: process.env.NEXT_PUBLIC_PERSONA_ENV ?? 'sandbox',
-        onReady: () => client.open(),
-        onComplete: async ({ inquiryId: id }) => {
-          await markPending(userId, id);
+      // Step 3: open Onfido modal
+      onfidoRef.current = window.Onfido.init({
+        token: sdkToken,
+        useModal: true,
+        isModalOpen: true,
+        region: (process.env.NEXT_PUBLIC_ONFIDO_REGION ?? 'EU').toUpperCase(),
+        steps: [
+          'welcome',
+          {
+            type: 'document',
+            options: {
+              documentTypes: {
+                national_identity_card: { country: 'FRA' },
+                passport: true,
+                driving_licence: { country: 'FRA' },
+              },
+            },
+          },
+          { type: 'face', options: { requestedVariant: 'standard' } },
+          'complete',
+        ],
+        onComplete: async () => {
+          onfidoRef.current?.tearDown();
+          // Step 4: trigger check creation server-side
+          await fetch('/api/verify/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, applicantId }),
+          });
+          // Optimistically update local state
           setDisplayStatus('pending');
+          if (userProfile) {
+            setUserProfile({ ...userProfile, verification_status: 'pending', verification_id: applicantId });
+          }
+          await supabase.from('profiles')
+            .update({ verification_status: 'pending', verification_id: applicantId })
+            .eq('id', userId);
           setPhase('done');
         },
-        onCancel: () => {
+        onUserExit: () => {
+          onfidoRef.current?.tearDown();
+          setPhase('idle');
+        },
+        onModalRequestClose: () => {
+          onfidoRef.current?.setOptions({ isModalOpen: false });
           setPhase('idle');
         },
         onError: (err) => {
+          onfidoRef.current?.tearDown();
           toast.error(err?.message ?? 'Verification error');
           setPhase('idle');
         },
@@ -117,16 +159,6 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Verification unavailable');
       setPhase('idle');
-    }
-  }
-
-  async function markPending(uid: string, inquiryId: string) {
-    await supabase.from('profiles').update({
-      verification_status: 'pending',
-      verification_id: inquiryId,
-    }).eq('id', uid);
-    if (userProfile) {
-      setUserProfile({ ...userProfile, verification_status: 'pending', verification_id: inquiryId });
     }
   }
 
@@ -152,39 +184,45 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
         <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
           Identity Verification
         </h2>
+        <div
+          className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+          style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
+        >
+          Powered by Onfido
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[440px] mx-auto w-full px-5 py-8 flex flex-col gap-6">
 
-          {/* Current status */}
+          {/* Status card */}
           <div
             className="flex items-center gap-3 p-4 rounded-2xl"
-            style={{ backgroundColor: cfg.bg, border: `1.5px solid ${cfg.color}22` }}
+            style={{ backgroundColor: cfg.bg, border: `1.5px solid ${cfg.color}44` }}
           >
             <span className="text-3xl">{cfg.emoji}</span>
             <div>
               <p className="font-black text-sm" style={{ color: cfg.color }}>{cfg.label}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {displayStatus === 'unverified' && 'Verify once to unlock a trusted badge across the app'}
-                {displayStatus === 'pending' && 'Our partner Persona is reviewing your documents (usually <24h)'}
-                {displayStatus === 'approved' && 'Your identity has been confirmed. Trusted badge is active.'}
-                {displayStatus === 'declined' && 'Please try again with a valid government-issued ID and clear selfie.'}
+                {displayStatus === 'unverified' && 'Verify once — earn a trusted badge visible to all SafePin users'}
+                {displayStatus === 'pending'    && 'Onfido is reviewing your documents. Usually takes a few minutes.'}
+                {displayStatus === 'approved'   && 'Your identity has been confirmed. Trusted badge is active.'}
+                {displayStatus === 'declined'   && 'Please try again with a valid ID and ensure your face is clearly visible.'}
               </p>
             </div>
           </div>
 
-          {/* What you'll need — only show if not approved */}
-          {displayStatus !== 'approved' && (
+          {/* Requirements */}
+          {displayStatus !== 'approved' && displayStatus !== 'pending' && (
             <div>
               <p className="text-[0.7rem] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>
                 What you'll need
               </p>
               <div className="flex flex-col gap-2.5">
                 {[
-                  { emoji: '🪪', title: 'Government-issued photo ID', sub: 'Passport, national ID, or driver\'s license' },
-                  { emoji: '🤳', title: 'A selfie',                   sub: 'Face clearly visible, good lighting' },
-                  { emoji: '⏱️', title: '~2 minutes',                 sub: 'The process is quick and secure' },
+                  { emoji: '🪪', title: 'Government-issued photo ID', sub: "Carte nationale d'identité, passport, or permis de conduire" },
+                  { emoji: '🤳', title: 'A selfie',                   sub: 'Face clearly visible, good lighting, no glasses' },
+                  { emoji: '⏱️', title: '~2 minutes',                 sub: 'Quick guided flow — fully secure' },
                 ].map(({ emoji, title, sub }) => (
                   <div
                     key={title}
@@ -211,15 +249,15 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               Verification is handled by{' '}
               <a
-                href="https://withpersona.com"
+                href="https://onfido.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold underline underline-offset-2"
                 style={{ color: 'var(--accent)' }}
               >
-                Persona
+                Onfido
               </a>
-              , an industry-standard KYC provider. Your ID documents are processed by Persona and never stored on SafePin servers.
+              {' '}— GDPR-compliant, EU data hosting. Your ID is processed by Onfido and never stored on SafePin servers. Onfido is ISO 27001 certified and used by major French fintechs (Alan, Lydia, etc).
             </p>
           </div>
 
@@ -227,24 +265,24 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
           {(displayStatus === 'unverified' || displayStatus === 'declined') && (
             <button
               onClick={startVerification}
-              disabled={phase === 'loading' || phase === 'widget'}
+              disabled={phase === 'loading' || phase === 'active'}
               className="w-full py-4 rounded-2xl font-black text-base transition active:scale-[0.98] disabled:opacity-50"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
             >
-              {phase === 'loading' ? 'Starting…' : phase === 'widget' ? 'Verification in progress…' : '🪪 Start verification'}
+              {phase === 'loading' ? 'Preparing…' : phase === 'active' ? 'Verification in progress…' : '🪪 Start verification'}
             </button>
           )}
 
           {displayStatus === 'pending' && (
             <div
-              className="text-center py-4 rounded-2xl"
+              className="text-center py-5 rounded-2xl"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
-                ⏳ Your verification is being reviewed
+                ⏳ Documents submitted — under review
               </p>
               <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                You'll see a badge on your profile once approved
+                You'll see a badge on your profile once Onfido approves.
               </p>
             </div>
           )}

@@ -1,6 +1,12 @@
 // src/app/api/verify/webhook/route.ts
-// Receives Persona webhook events and updates profiles.verification_status
-// Required env: SUPABASE_SERVICE_ROLE_KEY, PERSONA_WEBHOOK_SECRET (optional but recommended)
+// Receives Onfido webhooks (check.completed) and updates profile verification status.
+// Required env vars:
+//   SUPABASE_SERVICE_ROLE_KEY
+//   ONFIDO_WEBHOOK_TOKEN — from Onfido dashboard → Webhooks → token
+//
+// Register in Onfido dashboard → Webhooks:
+//   URL: https://your-app.vercel.app/api/verify/webhook
+//   Events: check.completed
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -11,16 +17,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-function verifyPersonaSignature(rawBody: string, signature: string | null, secret: string): boolean {
-  if (!signature || !secret) return true; // skip if not configured
+function verifySignature(rawBody: string, signature: string | null, token: string): boolean {
+  if (!token) return true; // skip verification if token not configured
+  if (!signature) return false;
+  const expected = crypto.createHmac('sha256', token).update(rawBody).digest('hex');
   try {
-    // Persona signature format: "t=timestamp,v1=hash"
-    const parts = Object.fromEntries(signature.split(',').map((p) => p.split('=')));
-    const expectedSig = crypto
-      .createHmac('sha256', secret)
-      .update(`${parts.t}.${rawBody}`)
-      .digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(parts.v1 ?? '', 'hex'), Buffer.from(expectedSig, 'hex'));
+    return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
     return false;
   }
@@ -28,10 +30,10 @@ function verifyPersonaSignature(rawBody: string, signature: string | null, secre
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-  const sig = req.headers.get('persona-signature');
-  const secret = process.env.PERSONA_WEBHOOK_SECRET ?? '';
+  const sig = req.headers.get('x-sha2-signature');
+  const webhookToken = process.env.ONFIDO_WEBHOOK_TOKEN ?? '';
 
-  if (secret && !verifyPersonaSignature(rawBody, sig, secret)) {
+  if (webhookToken && !verifySignature(rawBody, sig, webhookToken)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
@@ -42,44 +44,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // Persona sends events under body.data.attributes (camelCase or kebab-case depending on config)
-  const attributes = (body.data as Record<string, unknown>)?.attributes as Record<string, unknown> | undefined;
-  const inquiryId  = (body.data as Record<string, unknown>)?.id as string | undefined;
-  const referenceId = attributes?.referenceId ?? attributes?.['reference-id'] as string | undefined;
-  const status = attributes?.status as string | undefined;
-  const eventName = (body as Record<string, unknown>).name as string | undefined;
+  const payload = body.payload as Record<string, unknown> | undefined;
+  const resourceType = payload?.resource_type as string | undefined;
+  const action = payload?.action as string | undefined;
+  const obj = payload?.object as Record<string, unknown> | undefined;
 
-  if (!referenceId) {
-    // Nothing to update
+  if (resourceType !== 'check' || action !== 'check.completed') {
     return NextResponse.json({ ok: true });
   }
 
-  // Map Persona status → our verification_status
-  let newStatus: 'pending' | 'approved' | 'declined' | null = null;
+  const applicantId = obj?.applicant_id as string | undefined;
+  const result = obj?.result as string | undefined; // "clear" | "consider"
 
-  if (status === 'approved' || eventName === 'inquiry.approved') {
-    newStatus = 'approved';
-  } else if (status === 'declined' || eventName === 'inquiry.declined') {
-    newStatus = 'declined';
-  } else if (status === 'completed' || eventName === 'inquiry.completed') {
-    // Completed means submitted; awaiting manual/automated review
-    newStatus = 'pending';
+  if (!applicantId) {
+    return NextResponse.json({ ok: true });
   }
 
-  if (newStatus) {
-    const { error } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        verification_status: newStatus,
-        verified: newStatus === 'approved',
-        ...(inquiryId ? { verification_id: inquiryId } : {}),
-      })
-      .eq('id', referenceId);
+  // Find user by the applicant_id stored during /api/verify/start
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('verification_id', applicantId)
+    .single();
 
-    if (error) {
-      console.error('[verify/webhook] Supabase update error:', error);
-      return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
-    }
+  if (!profile) {
+    console.warn('[verify/webhook] No profile found for applicant_id:', applicantId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // "clear" = all reports passed → approved
+  // "consider" = one or more reports flagged → declined
+  const newStatus = result === 'clear' ? 'approved' : 'declined';
+
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({
+      verification_status: newStatus,
+      verified: newStatus === 'approved',
+    })
+    .eq('id', profile.id);
+
+  if (error) {
+    console.error('[verify/webhook] DB error:', error);
+    return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
