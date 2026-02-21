@@ -13,6 +13,7 @@ import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
 import ThemeToggle from '@/components/ThemeToggle';
+import AddressSearch from '@/components/AddressSearch';
 
 export default function MapPage() {
   const router = useRouter();
@@ -84,23 +85,28 @@ export default function MapPage() {
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 z-50" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-        <div className="text-lg font-bold tracking-tight">
-          <span style={{ color: 'var(--accent)' }}>Safe</span>
-          <span style={{ color: 'var(--text-primary)' }}>Pin</span>
+      <div className="z-50" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+        <div className="flex items-center justify-between px-4 pt-2.5 pb-2">
+          <div className="text-lg font-bold tracking-tight">
+            <span style={{ color: 'var(--accent)' }}>Safe</span>
+            <span style={{ color: 'var(--text-primary)' }}>Pin</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.replace('/login');
+              }}
+              className="text-xs hover:opacity-80 transition"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Sign out
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.replace('/login');
-            }}
-            className="text-xs hover:opacity-80 transition"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Sign out
-          </button>
+        <div className="px-3 pb-2.5">
+          <AddressSearch />
         </div>
       </div>
 

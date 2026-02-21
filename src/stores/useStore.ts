@@ -15,6 +15,8 @@ type Store = {
   setSelectedPin: (pin: Pin | null) => void;
   newPinCoords: { lat: number; lng: number } | null;
   setNewPinCoords: (coords: { lat: number; lng: number } | null) => void;
+  mapFlyTo: { lat: number; lng: number; zoom: number } | null;
+  setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -29,4 +31,6 @@ export const useStore = create<Store>((set) => ({
   setSelectedPin: (pin) => set({ selectedPin: pin }),
   newPinCoords: null,
   setNewPinCoords: (coords) => set({ newPinCoords: coords }),
+  mapFlyTo: null,
+  setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
 }));

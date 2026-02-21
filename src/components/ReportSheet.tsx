@@ -2,20 +2,40 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY } from '@/types';
 import { toast } from 'sonner';
 
 export default function ReportSheet({ userId }: { userId: string | null }) {
-  const { setActiveSheet, addPin, newPinCoords, setNewPinCoords } = useStore();
+  const { setActiveSheet, newPinCoords, setNewPinCoords } = useStore();
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [showCoords, setShowCoords] = useState(false);
+  const [accessInfo, setAccessInfo] = useState('');
+
+  useEffect(() => {
+    if (!newPinCoords) {
+      setAddress(null);
+      return;
+    }
+    setAddressLoading(true);
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${newPinCoords.lng},${newPinCoords.lat}.json?access_token=${token}&types=address,poi&limit=1&language=fr,en`
+    )
+      .then((r) => r.json())
+      .then((data) => setAddress(data.features?.[0]?.place_name || null))
+      .catch(() => setAddress(null))
+      .finally(() => setAddressLoading(false));
+  }, [newPinCoords]);
 
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -51,7 +71,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
       photo_url = urlData.publicUrl;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('pins')
       .insert({
         user_id: userId,
@@ -59,7 +79,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
         lng: newPinCoords.lng,
         category,
         severity,
-        description: description || 'No description.',
+        description: [description, accessInfo ? `Access: ${accessInfo}` : ''].filter(Boolean).join('\n') || 'No description.',
         photo_url,
       })
       .select()
@@ -105,11 +125,53 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
               ✕ Close
             </button>
           </div>
-          <p className="text-xs font-medium mb-5" style={{ color: 'var(--text-muted)' }}>
-            {newPinCoords
-              ? `📍 ${newPinCoords.lat.toFixed(4)}°N, ${newPinCoords.lng.toFixed(4)}°E`
-              : '👆 Tap the map above to set location'}
-          </p>
+          {/* Location status */}
+          {newPinCoords ? (
+            <div
+              className="mb-5 rounded-xl p-3"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <div className="flex items-start gap-2 mb-2">
+                <span className="text-base leading-tight mt-0.5 font-bold" style={{ color: 'var(--safe)' }}>✓</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-wider mb-0.5" style={{ color: 'var(--safe)' }}>
+                    Location confirmed
+                  </p>
+                  <p className="text-sm leading-snug break-words" style={{ color: 'var(--text-primary)' }}>
+                    {addressLoading ? '⏳ Fetching address…' : address ?? '📍 Address not found'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCoords(!showCoords)}
+                className="text-[0.65rem] font-bold transition hover:opacity-70"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {showCoords ? '▲ Hide coordinates' : '▼ Show coordinates'}
+              </button>
+              {showCoords && (
+                <p className="text-[0.65rem] mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>
+                  {newPinCoords.lat.toFixed(6)}°N, {newPinCoords.lng.toFixed(6)}°E
+                </p>
+              )}
+              <input
+                type="text"
+                value={accessInfo}
+                onChange={(e) => setAccessInfo(e.target.value)}
+                placeholder="Access details (optional) — e.g. alley behind the park, gate #3…"
+                className="w-full mt-2.5 text-xs rounded-lg px-2.5 py-2 outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </div>
+          ) : (
+            <p className="text-xs font-medium mb-5" style={{ color: 'var(--text-muted)' }}>
+              👆 Tap the map above to set location
+            </p>
+          )}
 
           {/* Category grid */}
           <div className="grid grid-cols-3 gap-2 mb-5">

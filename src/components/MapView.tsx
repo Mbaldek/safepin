@@ -14,7 +14,7 @@ export default function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const { pins, activeFilter, setSelectedPin, setActiveSheet, setNewPinCoords } = useStore();
+  const { pins, activeFilter, setSelectedPin, setActiveSheet, setNewPinCoords, mapFlyTo, setMapFlyTo } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
 
@@ -63,6 +63,13 @@ export default function MapView() {
     };
   }, []);
 
+  // Fly to address search result
+  useEffect(() => {
+    if (!mapFlyTo || !map.current) return;
+    map.current.flyTo({ center: [mapFlyTo.lng, mapFlyTo.lat], zoom: mapFlyTo.zoom });
+    setMapFlyTo(null);
+  }, [mapFlyTo, setMapFlyTo]);
+
   // Switch map style when theme changes
   useEffect(() => {
     if (!map.current) return;
@@ -77,7 +84,17 @@ export default function MapView() {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
+    function getPinOpacity(createdAt: string): number {
+      const ageH = (Date.now() - new Date(createdAt).getTime()) / 3_600_000;
+      if (ageH >= 24) return 0;
+      if (ageH >= 18) return 0.25;
+      if (ageH >= 12) return 0.5;
+      if (ageH >= 6) return 0.75;
+      return 1;
+    }
+
     const filtered = pins.filter((pin) => {
+      if (getPinOpacity(pin.created_at) === 0) return false;
       if (activeFilter === 'all') return true;
       if (activeFilter === 'verified') return false;
       return pin.severity === activeFilter;
@@ -98,6 +115,7 @@ export default function MapView() {
       dot.style.backgroundColor = color;
       dot.style.border = theme === 'dark' ? '3px solid rgba(255,255,255,0.9)' : '3px solid rgba(0,0,0,0.15)';
       dot.style.boxShadow = `0 2px 8px ${color}66`;
+      dot.style.opacity = String(getPinOpacity(pin.created_at));
       dot.style.transition = 'box-shadow 0.15s';
 
       wrapper.onmouseenter = () => {
