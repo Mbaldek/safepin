@@ -38,8 +38,22 @@ type Store = {
   setActiveTab: (tab: Tab) => void;
 
   // Profile
-  userProfile: { id: string; display_name: string | null; created_at: string } | null;
-  setUserProfile: (p: { id: string; display_name: string | null; created_at: string } | null) => void;
+  userProfile: {
+    id: string;
+    display_name: string | null;
+    created_at: string;
+    verified?: boolean;
+    verification_status?: 'unverified' | 'pending' | 'approved' | 'declined' | null;
+    verification_id?: string | null;
+  } | null;
+  setUserProfile: (p: {
+    id: string;
+    display_name: string | null;
+    created_at: string;
+    verified?: boolean;
+    verification_status?: 'unverified' | 'pending' | 'approved' | 'declined' | null;
+    verification_id?: string | null;
+  } | null) => void;
 
   // Notifications
   notifications: AppNotification[];

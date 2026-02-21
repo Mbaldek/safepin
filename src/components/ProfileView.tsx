@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY } from '@/types';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import VerificationView from '@/components/VerificationView';
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -30,6 +31,7 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const didSaveRef = useRef(false);
 
@@ -161,6 +163,31 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
               Member since {joinedDate(userProfile.created_at)}
             </p>
           )}
+
+          {/* Verification badge / CTA */}
+          {userProfile?.verification_status === 'approved' ? (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black"
+              style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.3)' }}
+            >
+              ✅ Verified identity
+            </div>
+          ) : userProfile?.verification_status === 'pending' ? (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+              style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1.5px solid rgba(245,158,11,0.3)' }}
+            >
+              ⏳ Verification under review
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowVerification(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition hover:opacity-80"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}
+            >
+              🪪 Verify your identity
+            </button>
+          )}
         </div>
 
         {/* ── Stats ─────────────────────────────────────────────── */}
@@ -248,6 +275,11 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
 
         <div className="pb-4" />
       </div>
+
+      {/* Verification overlay */}
+      {showVerification && (
+        <VerificationView onClose={() => setShowVerification(false)} />
+      )}
     </div>
   );
 }
