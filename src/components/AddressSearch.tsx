@@ -11,7 +11,7 @@ type Suggestion = {
   center: [number, number]; // [lng, lat]
 };
 
-export default function AddressSearch() {
+export default function AddressSearch({ autoFocus }: { autoFocus?: boolean }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -64,6 +64,7 @@ export default function AddressSearch() {
           placeholder="Search an address…"
           className="flex-1 bg-transparent text-sm outline-none"
           style={{ color: 'var(--text-primary)' }}
+          autoFocus={autoFocus}
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
         />

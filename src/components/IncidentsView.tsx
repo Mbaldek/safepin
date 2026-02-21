@@ -35,12 +35,21 @@ function timeAgo(dateStr: string) {
 // ─── Filter types ─────────────────────────────────────────────────────────────
 
 type TimeFilter = 'all' | '1h' | '6h' | 'today';
+type RadiusFilter = 'all' | '500m' | '1km' | '2km' | '5km';
 
 const TIME_FILTERS: { id: TimeFilter; label: string }[] = [
   { id: 'all',   label: 'All' },
   { id: '1h',    label: '< 1h' },
   { id: '6h',    label: '< 6h' },
   { id: 'today', label: 'Today' },
+];
+
+const RADIUS_FILTERS: { id: RadiusFilter; label: string; meters: number }[] = [
+  { id: 'all',  label: 'Any',  meters: Infinity },
+  { id: '500m', label: '500m', meters: 500      },
+  { id: '1km',  label: '1km',  meters: 1_000    },
+  { id: '2km',  label: '2km',  meters: 2_000    },
+  { id: '5km',  label: '5km',  meters: 5_000    },
 ];
 
 // ─── Incident card ────────────────────────────────────────────────────────────
@@ -186,6 +195,7 @@ export default function IncidentsView() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [emergencyOnly, setEmergencyOnly] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [radiusFilter, setRadiusFilter] = useState<RadiusFilter>('all');
 
   const now = Date.now();
 
@@ -215,6 +225,11 @@ export default function IncidentsView() {
         if (emergencyOnly && !pin.is_emergency) return false;
         // Severity filter (not applied to emergency pins)
         if (severityFilter !== 'all' && !pin.is_emergency && pin.severity !== severityFilter) return false;
+        // Radius filter (only applied when user location is known)
+        if (radiusFilter !== 'all' && userLocation) {
+          const maxM = RADIUS_FILTERS.find((r) => r.id === radiusFilter)!.meters;
+          if (distanceM(userLocation, { lat: pin.lat, lng: pin.lng }) > maxM) return false;
+        }
         return true;
       })
       .sort((a, b) => {
@@ -224,7 +239,7 @@ export default function IncidentsView() {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pins, timeFilter, emergencyOnly, severityFilter]);
+  }, [pins, timeFilter, emergencyOnly, severityFilter, radiusFilter, userLocation]);
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -265,7 +280,7 @@ export default function IncidentsView() {
         </div>
 
         {/* Time filter chips */}
-        <div className="flex gap-2 mb-2.5">
+        <div className="flex gap-2 mb-2">
           {TIME_FILTERS.map(({ id, label }) => (
             <button
               key={id}
@@ -280,6 +295,32 @@ export default function IncidentsView() {
               {label}
             </button>
           ))}
+        </div>
+
+        {/* Radius filter chips */}
+        <div className="flex gap-2 mb-2.5 items-center">
+          <span className="text-[0.6rem] font-black tracking-widest uppercase shrink-0" style={{ color: 'var(--text-muted)' }}>
+            Radius
+          </span>
+          {RADIUS_FILTERS.map(({ id, label }) => {
+            const disabled = id !== 'all' && !userLocation;
+            return (
+              <button
+                key={id}
+                onClick={() => !disabled && setRadiusFilter(id)}
+                className="px-3 py-1 rounded-full text-[0.65rem] font-bold transition"
+                style={
+                  disabled
+                    ? { backgroundColor: 'var(--bg-card)', color: 'var(--text-placeholder)', border: '1px solid var(--border)', opacity: 0.5, cursor: 'default' }
+                    : radiusFilter === id
+                      ? { backgroundColor: 'var(--blue)', color: '#fff' }
+                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                }
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Severity chips */}
@@ -331,14 +372,14 @@ export default function IncidentsView() {
                 No incidents found
               </p>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                {timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all'
+                {timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all' || radiusFilter !== 'all'
                   ? 'Try widening your filters'
                   : 'All clear in your area'}
               </p>
             </div>
-            {(timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all') && (
+            {(timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all' || radiusFilter !== 'all') && (
               <button
-                onClick={() => { setTimeFilter('all'); setEmergencyOnly(false); setSeverityFilter('all'); }}
+                onClick={() => { setTimeFilter('all'); setEmergencyOnly(false); setSeverityFilter('all'); setRadiusFilter('all'); }}
                 className="px-4 py-2 rounded-xl text-sm font-bold transition hover:opacity-80"
                 style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
               >

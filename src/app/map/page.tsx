@@ -9,7 +9,7 @@ import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell } from 'lucide-react';
+import { Bell, Search, Settings, X } from 'lucide-react';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
@@ -77,6 +77,7 @@ export default function MapPage() {
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -226,6 +227,19 @@ export default function MapPage() {
             <span style={{ color: 'var(--text-primary)' }}>Pin</span>
           </div>
           <div className="flex items-center gap-2">
+            {/* Search icon — map tab only */}
+            {activeTab === 'map' && (
+              <button
+                onClick={() => setShowSearch((v) => !v)}
+                className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
+                style={{ backgroundColor: showSearch ? 'var(--accent)' : 'var(--bg-card)' }}
+              >
+                {showSearch
+                  ? <X size={15} strokeWidth={2.2} style={{ color: '#fff' }} />
+                  : <Search size={15} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                }
+              </button>
+            )}
             {/* Notification bell */}
             <button
               onClick={() => setShowNotifications(true)}
@@ -243,13 +257,33 @@ export default function MapPage() {
               )}
             </button>
             <ThemeToggle />
+            {/* Settings icon — placeholder */}
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
+              style={{ backgroundColor: 'var(--bg-card)' }}
+              onClick={() => toast('Settings coming soon')}
+            >
+              <Settings size={15} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+            </button>
           </div>
         </div>
-        {activeTab === 'map' && (
-          <div className="px-3 pb-2.5">
-            <AddressSearch />
-          </div>
-        )}
+        {/* Search panel — slides in below header on map tab */}
+        <AnimatePresence>
+          {activeTab === 'map' && showSearch && (
+            <motion.div
+              key="search-panel"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300, mass: 0.6 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="px-3 pb-2.5">
+                <AddressSearch autoFocus />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Map tab — kept mounted to preserve map position ───────── */}
