@@ -1,6 +1,6 @@
 // src/components/VerificationView.tsx
-// ID + face verification using Onfido (onfido.com) — EU region, supports French IDs
-// Env vars: ONFIDO_API_TOKEN, NEXT_PUBLIC_ONFIDO_REGION=eu, ONFIDO_WEBHOOK_TOKEN
+// ID + face verification using Veriff (veriff.com) — EU-native, supports French IDs
+// Env vars: VERIFF_API_KEY, VERIFF_SECRET_KEY
 
 'use client';
 
@@ -9,28 +9,16 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 
-// Onfido CDN SDK types (loaded at runtime)
+// Veriff incontext SDK types (loaded at runtime from CDN)
 declare global {
   interface Window {
-    Onfido?: {
-      init: (config: OnfidoConfig) => OnfidoInstance;
+    veriffSDK?: {
+      createVeriffFrame: (opts: {
+        url: string;
+        onEvent?: (msg: { action: string }) => void;
+      }) => void;
     };
   }
-}
-interface OnfidoConfig {
-  token: string;
-  useModal?: boolean;
-  isModalOpen?: boolean;
-  region?: string;
-  onComplete?: (data: Record<string, unknown>) => void;
-  onError?: (err: { message: string; type: string }) => void;
-  onUserExit?: (code: string) => void;
-  onModalRequestClose?: () => void;
-  steps?: (string | { type: string; options?: Record<string, unknown> })[];
-}
-interface OnfidoInstance {
-  tearDown: () => void;
-  setOptions: (opts: Partial<OnfidoConfig>) => void;
 }
 
 type VerifStatus = 'unverified' | 'pending' | 'approved' | 'declined';
@@ -42,36 +30,23 @@ const STATUS_CONFIG: Record<VerifStatus, { emoji: string; label: string; color: 
   declined:   { emoji: '❌', label: 'Declined — try again',  color: '#ef4444',            bg: 'rgba(239,68,68,0.1)'  },
 };
 
-const ONFIDO_CSS = 'https://sdk.onfido.com/v14/onfido.min.css';
-const ONFIDO_JS  = 'https://sdk.onfido.com/v14/onfido.min.js';
+const VERIFF_CDN = 'https://cdn.veriff.me/incontext/js/v1/veriff.js';
 
 export default function VerificationView({ onClose }: { onClose: () => void }) {
   const { userId, userProfile, setUserProfile } = useStore();
   const [phase, setPhase] = useState<'idle' | 'loading' | 'active' | 'done'>('idle');
   const currentStatus: VerifStatus = (userProfile?.verification_status as VerifStatus) ?? 'unverified';
   const [displayStatus, setDisplayStatus] = useState<VerifStatus>(currentStatus);
-  const onfidoRef = useRef<OnfidoInstance | null>(null);
 
   useEffect(() => {
     setDisplayStatus((userProfile?.verification_status as VerifStatus) ?? 'unverified');
   }, [userProfile?.verification_status]);
 
-  // Cleanup Onfido on unmount
-  useEffect(() => {
-    return () => { onfidoRef.current?.tearDown(); };
-  }, []);
-
-  async function loadOnfidoSDK(): Promise<boolean> {
-    if (window.Onfido) return true;
+  async function loadVeriffSDK(): Promise<boolean> {
+    if (window.veriffSDK) return true;
     return new Promise((resolve) => {
-      if (!document.querySelector(`link[href="${ONFIDO_CSS}"]`)) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = ONFIDO_CSS;
-        document.head.appendChild(link);
-      }
       const script = document.createElement('script');
-      script.src = ONFIDO_JS;
+      script.src = VERIFF_CDN;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.head.appendChild(script);
@@ -83,7 +58,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
     setPhase('loading');
 
     try {
-      // Step 1: create applicant + get SDK token from our server
+      // Step 1: create session server-side (userId stored as vendorData)
       const res = await fetch('/api/verify/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,69 +66,35 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error ?? 'Failed to start verification');
+        throw new Error((err as { error?: string }).error ?? 'Failed to create verification session');
       }
-      const { sdkToken, applicantId } = await res.json() as { sdkToken: string; applicantId: string };
+      const { sessionUrl } = await res.json() as { sessionUrl: string };
 
-      // Step 2: load Onfido JS SDK from CDN
-      const loaded = await loadOnfidoSDK();
-      if (!loaded || !window.Onfido) {
-        throw new Error('Onfido SDK failed to load. Check your internet connection.');
+      // Step 2: load Veriff incontext SDK from CDN
+      const loaded = await loadVeriffSDK();
+      if (!loaded || !window.veriffSDK) {
+        throw new Error('Veriff SDK failed to load');
       }
 
       setPhase('active');
 
-      // Step 3: open Onfido modal
-      onfidoRef.current = window.Onfido.init({
-        token: sdkToken,
-        useModal: true,
-        isModalOpen: true,
-        region: (process.env.NEXT_PUBLIC_ONFIDO_REGION ?? 'EU').toUpperCase(),
-        steps: [
-          'welcome',
-          {
-            type: 'document',
-            options: {
-              documentTypes: {
-                national_identity_card: { country: 'FRA' },
-                passport: true,
-                driving_licence: { country: 'FRA' },
-              },
-            },
-          },
-          { type: 'face', options: { requestedVariant: 'standard' } },
-          'complete',
-        ],
-        onComplete: async () => {
-          onfidoRef.current?.tearDown();
-          // Step 4: trigger check creation server-side
-          await fetch('/api/verify/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, applicantId }),
-          });
-          // Optimistically update local state
-          setDisplayStatus('pending');
-          if (userProfile) {
-            setUserProfile({ ...userProfile, verification_status: 'pending', verification_id: applicantId });
+      // Step 3: open Veriff frame
+      window.veriffSDK.createVeriffFrame({
+        url: sessionUrl,
+        onEvent: async (msg) => {
+          if (msg.action === 'FINISHED') {
+            // User completed the flow — mark as pending until webhook arrives
+            setDisplayStatus('pending');
+            if (userProfile) {
+              setUserProfile({ ...userProfile, verification_status: 'pending' });
+            }
+            await supabase.from('profiles')
+              .update({ verification_status: 'pending' })
+              .eq('id', userId);
+            setPhase('done');
+          } else if (msg.action === 'CANCELED') {
+            setPhase('idle');
           }
-          await supabase.from('profiles')
-            .update({ verification_status: 'pending', verification_id: applicantId })
-            .eq('id', userId);
-          setPhase('done');
-        },
-        onUserExit: () => {
-          onfidoRef.current?.tearDown();
-          setPhase('idle');
-        },
-        onModalRequestClose: () => {
-          onfidoRef.current?.setOptions({ isModalOpen: false });
-          setPhase('idle');
-        },
-        onError: (err) => {
-          onfidoRef.current?.tearDown();
-          toast.error(err?.message ?? 'Verification error');
-          setPhase('idle');
         },
       });
     } catch (e) {
@@ -188,7 +129,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
           className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
           style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
         >
-          Powered by Onfido
+          Powered by Veriff
         </div>
       </div>
 
@@ -205,9 +146,9 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
               <p className="font-black text-sm" style={{ color: cfg.color }}>{cfg.label}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 {displayStatus === 'unverified' && 'Verify once — earn a trusted badge visible to all SafePin users'}
-                {displayStatus === 'pending'    && 'Onfido is reviewing your documents. Usually takes a few minutes.'}
+                {displayStatus === 'pending'    && 'Veriff is reviewing your documents. Usually takes a few minutes.'}
                 {displayStatus === 'approved'   && 'Your identity has been confirmed. Trusted badge is active.'}
-                {displayStatus === 'declined'   && 'Please try again with a valid ID and ensure your face is clearly visible.'}
+                {displayStatus === 'declined'   && 'Please try again with a clear, valid ID and good lighting.'}
               </p>
             </div>
           </div>
@@ -249,15 +190,15 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               Verification is handled by{' '}
               <a
-                href="https://onfido.com"
+                href="https://veriff.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold underline underline-offset-2"
                 style={{ color: 'var(--accent)' }}
               >
-                Onfido
+                Veriff
               </a>
-              {' '}— GDPR-compliant, EU data hosting. Your ID is processed by Onfido and never stored on SafePin servers. Onfido is ISO 27001 certified and used by major French fintechs (Alan, Lydia, etc).
+              {' '}— Estonian company, EU data hosting, GDPR-compliant. Your ID is processed by Veriff and never stored on SafePin servers.
             </p>
           </div>
 
@@ -282,7 +223,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
                 ⏳ Documents submitted — under review
               </p>
               <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                You'll see a badge on your profile once Onfido approves.
+                You'll see a badge on your profile once Veriff approves.
               </p>
             </div>
           )}

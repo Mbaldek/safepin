@@ -1,12 +1,12 @@
 // src/app/api/verify/webhook/route.ts
-// Receives Onfido webhooks (check.completed) and updates profile verification status.
+// Receives Veriff decision webhooks and updates profile verification status.
 // Required env vars:
 //   SUPABASE_SERVICE_ROLE_KEY
-//   ONFIDO_WEBHOOK_TOKEN — from Onfido dashboard → Webhooks → token
+//   VERIFF_SECRET_KEY  — from Veriff dashboard (used for HMAC-SHA256 signature)
 //
-// Register in Onfido dashboard → Webhooks:
+// Register in Veriff dashboard → Integrations → Webhooks:
 //   URL: https://your-app.vercel.app/api/verify/webhook
-//   Events: check.completed
+//   Events: verification.accepted, verification.declined, verification.resubmission_requested
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -17,10 +17,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-function verifySignature(rawBody: string, signature: string | null, token: string): boolean {
-  if (!token) return true; // skip verification if token not configured
+function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
+  if (!secret) return true;
   if (!signature) return false;
-  const expected = crypto.createHmac('sha256', token).update(rawBody).digest('hex');
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   try {
     return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
@@ -30,10 +30,10 @@ function verifySignature(rawBody: string, signature: string | null, token: strin
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-  const sig = req.headers.get('x-sha2-signature');
-  const webhookToken = process.env.ONFIDO_WEBHOOK_TOKEN ?? '';
+  const sig = req.headers.get('x-hmac-signature');
+  const secret = process.env.VERIFF_SECRET_KEY ?? '';
 
-  if (webhookToken && !verifySignature(rawBody, sig, webhookToken)) {
+  if (secret && !verifySignature(rawBody, sig, secret)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
@@ -44,49 +44,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const payload = body.payload as Record<string, unknown> | undefined;
-  const resourceType = payload?.resource_type as string | undefined;
-  const action = payload?.action as string | undefined;
-  const obj = payload?.object as Record<string, unknown> | undefined;
+  const verification = body.verification as Record<string, unknown> | undefined;
+  const status     = verification?.status as string | undefined;   // "approved" | "declined" | "resubmission_requested"
+  const vendorData = verification?.vendorData as string | undefined; // userId we passed at session creation
 
-  if (resourceType !== 'check' || action !== 'check.completed') {
+  if (!vendorData || !status) {
     return NextResponse.json({ ok: true });
   }
 
-  const applicantId = obj?.applicant_id as string | undefined;
-  const result = obj?.result as string | undefined; // "clear" | "consider"
+  let newStatus: 'approved' | 'declined' | 'pending' | null = null;
 
-  if (!applicantId) {
-    return NextResponse.json({ ok: true });
+  if (status === 'approved') {
+    newStatus = 'approved';
+  } else if (status === 'declined') {
+    newStatus = 'declined';
+  } else if (status === 'resubmission_requested') {
+    // User needs to re-do the flow — reset to unverified so they can retry
+    newStatus = 'declined';
   }
 
-  // Find user by the applicant_id stored during /api/verify/start
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('id')
-    .eq('verification_id', applicantId)
-    .single();
+  if (newStatus) {
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        verification_status: newStatus,
+        verified: newStatus === 'approved',
+      })
+      .eq('id', vendorData);
 
-  if (!profile) {
-    console.warn('[verify/webhook] No profile found for applicant_id:', applicantId);
-    return NextResponse.json({ ok: true });
-  }
-
-  // "clear" = all reports passed → approved
-  // "consider" = one or more reports flagged → declined
-  const newStatus = result === 'clear' ? 'approved' : 'declined';
-
-  const { error } = await supabaseAdmin
-    .from('profiles')
-    .update({
-      verification_status: newStatus,
-      verified: newStatus === 'approved',
-    })
-    .eq('id', profile.id);
-
-  if (error) {
-    console.error('[verify/webhook] DB error:', error);
-    return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
+    if (error) {
+      console.error('[verify/webhook] DB error:', error);
+      return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });
