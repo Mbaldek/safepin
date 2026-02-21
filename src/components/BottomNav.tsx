@@ -3,12 +3,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Map, AlertTriangle, Users, MessageSquare, User } from 'lucide-react';
+import { Map, AlertTriangle, Users, MessageSquare, User, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 
 type Tab = 'map' | 'incidents' | 'community' | 'messages' | 'profile';
 
-const TABS: { id: Tab; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }> }[] = [
+const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
   { id: 'map',       label: 'Map',       Icon: Map           },
   { id: 'incidents', label: 'Incidents', Icon: AlertTriangle  },
   { id: 'community', label: 'Community', Icon: Users          },
