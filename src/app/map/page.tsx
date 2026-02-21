@@ -12,6 +12,7 @@ import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function MapPage() {
   const router = useRouter();
@@ -19,7 +20,6 @@ export default function MapPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
@@ -31,7 +31,6 @@ export default function MapPage() {
     });
   }, [router]);
 
-  // Load pins from database
   useEffect(() => {
     async function loadPins() {
       const { data, error } = await supabase
@@ -49,7 +48,6 @@ export default function MapPage() {
     loadPins();
   }, [setPins]);
 
-  // Subscribe to new pins in real-time
   useEffect(() => {
     const channel = supabase
       .channel('pins-realtime')
@@ -68,18 +66,17 @@ export default function MapPage() {
     };
   }, [addPin]);
 
-  // Loading screen
   if (loading) {
     return (
-      <div className="h-dvh flex flex-col items-center justify-center bg-[#0a0c10] gap-4">
+      <div className="h-dvh flex flex-col items-center justify-center gap-4" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(244,63,94,0.3)] animate-pulse">
           🛡️
         </div>
         <div className="text-lg font-bold tracking-tight">
-          <span className="text-[#f43f5e]">Safe</span>
-          <span className="text-white">Pin</span>
+          <span style={{ color: 'var(--accent)' }}>Safe</span>
+          <span style={{ color: 'var(--text-primary)' }}>Pin</span>
         </div>
-        <div className="w-6 h-6 border-2 border-[#f43f5e] border-t-transparent rounded-full animate-spin mt-2" />
+        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mt-2" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
       </div>
     );
   }
@@ -87,19 +84,24 @@ export default function MapPage() {
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-[#12151c] border-b border-[rgba(255,255,255,0.06)] z-50">
+      <div className="flex items-center justify-between px-4 py-2.5 z-50" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
         <div className="text-lg font-bold tracking-tight">
-          <span className="text-[#f43f5e]">Safe</span>Pin
+          <span style={{ color: 'var(--accent)' }}>Safe</span>
+          <span style={{ color: 'var(--text-primary)' }}>Pin</span>
         </div>
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.replace('/login');
-          }}
-          className="text-xs text-[#6b7490] hover:text-white transition"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.replace('/login');
+            }}
+            className="text-xs hover:opacity-80 transition"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
       {/* Map + overlays */}
@@ -115,7 +117,6 @@ export default function MapPage() {
           +
         </button>
 
-        {/* Sheets */}
         {activeSheet === 'report' && <ReportSheet userId={userId} />}
         {activeSheet === 'detail' && <DetailSheet />}
       </div>

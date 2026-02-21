@@ -5,6 +5,7 @@
 import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { SEVERITY } from '@/types';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
@@ -13,7 +14,8 @@ export default function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const { pins, activeFilter, setSelectedPin, setActiveSheet, setNewPinCoords, activeSheet } = useStore();
+  const { pins, activeFilter, setSelectedPin, setActiveSheet, setNewPinCoords } = useStore();
+  const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
 
   // Initialize map
@@ -22,12 +24,11 @@ export default function MapView() {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [2.3522, 48.8566], // Paris default
+      style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+      center: [2.3522, 48.8566],
       zoom: 13,
     });
 
-    // Try to get user's real location
     navigator.geolocation?.getCurrentPosition(
       (pos) => {
         map.current?.flyTo({
@@ -39,7 +40,6 @@ export default function MapView() {
       { enableHighAccuracy: true }
     );
 
-    // Add user location dot
     map.current.addControl(
       new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
@@ -48,7 +48,6 @@ export default function MapView() {
       })
     );
 
-    // Click on map to set pin location (when report sheet is open)
     map.current.on('click', (e) => {
       const store = useStore.getState();
       if (store.activeSheet === 'report') {
@@ -64,38 +63,40 @@ export default function MapView() {
     };
   }, []);
 
+  // Switch map style when theme changes
+  useEffect(() => {
+    if (!map.current) return;
+    const style = theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
+    map.current.setStyle(style);
+  }, [theme]);
+
   // Render pin markers
   useEffect(() => {
     if (!map.current || !mapReady) return;
 
-    // Clear old markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Filter pins
     const filtered = pins.filter((pin) => {
       if (activeFilter === 'all') return true;
       if (activeFilter === 'verified') return false;
       return pin.severity === activeFilter;
     });
 
-    // Add new markers
     filtered.forEach((pin) => {
       const color = SEVERITY[pin.severity as keyof typeof SEVERITY]?.color || '#6b7490';
 
-      // Create a wrapper div with fixed size for stable positioning
       const wrapper = document.createElement('div');
       wrapper.style.width = '28px';
       wrapper.style.height = '28px';
       wrapper.style.cursor = 'pointer';
 
-      // Inner dot that can scale without affecting marker position
       const dot = document.createElement('div');
       dot.style.width = '100%';
       dot.style.height = '100%';
       dot.style.borderRadius = '50%';
       dot.style.backgroundColor = color;
-      dot.style.border = '3px solid rgba(255,255,255,0.9)';
+      dot.style.border = theme === 'dark' ? '3px solid rgba(255,255,255,0.9)' : '3px solid rgba(0,0,0,0.15)';
       dot.style.boxShadow = `0 2px 8px ${color}66`;
       dot.style.transition = 'box-shadow 0.15s';
 
@@ -120,7 +121,7 @@ export default function MapView() {
 
       markersRef.current.push(marker);
     });
-  }, [pins, activeFilter, mapReady, setSelectedPin, setActiveSheet]);
+  }, [pins, activeFilter, mapReady, setSelectedPin, setActiveSheet, theme]);
 
   return <div ref={mapContainer} className="w-full h-full" />;
 }

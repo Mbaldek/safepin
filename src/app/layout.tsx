@@ -3,6 +3,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import './globals.css';
+import ThemeProvider from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'SafePin',
@@ -29,16 +30,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-[#0a0c10] text-white min-h-dvh overscroll-none touch-manipulation">
-        {children}
+    <html lang="en" data-theme="dark">
+      <body className="min-h-dvh overscroll-none touch-manipulation">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
         <Toaster
           position="top-center"
           toastOptions={{
             style: {
-              background: '#12151c',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: '#eef0f6',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
               fontFamily: 'Plus Jakarta Sans, sans-serif',
               fontWeight: 600,
             },

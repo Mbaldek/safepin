@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY } from '@/types';
@@ -16,38 +16,6 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
-  const [addressLoading, setAddressLoading] = useState(false);
-  const [showCoords, setShowCoords] = useState(false);
-
-  // Reverse geocode when coordinates change
-  useEffect(() => {
-    if (!newPinCoords) {
-      setAddress(null);
-      return;
-    }
-
-    async function reverseGeocode() {
-      setAddressLoading(true);
-      try {
-        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${newPinCoords!.lng},${newPinCoords!.lat}.json?access_token=${token}&types=address,poi&limit=1&language=fr,en`
-        );
-        const data = await res.json();
-        if (data.features && data.features.length > 0) {
-          setAddress(data.features[0].place_name);
-        } else {
-          setAddress('Address not found');
-        }
-      } catch {
-        setAddress('Could not fetch address');
-      }
-      setAddressLoading(false);
-    }
-
-    reverseGeocode();
-  }, [newPinCoords]);
 
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -115,12 +83,10 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
     setNewPinCoords(null);
   }
 
-  const locationSet = !!newPinCoords;
-
   return (
     <>
       <div
-        className="absolute bottom-0 left-0 right-0 rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto animate-slide-up"
+        className="absolute bottom-0 left-0 right-0 rounded-t-3xl z-[201] max-h-[55dvh] overflow-y-auto animate-slide-up"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           boxShadow: '0 -10px 40px var(--bg-overlay)',
@@ -129,8 +95,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
 
         <div className="p-5 pb-10">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Report a situation</h2>
             <button
               onClick={handleClose}
@@ -140,50 +105,11 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
               ✕ Close
             </button>
           </div>
-
-          {/* Location status */}
-          <div
-            className="rounded-xl p-3 mb-5 transition-all"
-            style={{
-              backgroundColor: locationSet ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-card)',
-              border: locationSet ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              {locationSet ? (
-                <span className="w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center text-white text-xs font-bold">✓</span>
-              ) : (
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ backgroundColor: 'var(--border)' }}>📍</span>
-              )}
-              <span className="text-xs font-bold" style={{ color: locationSet ? '#10b981' : 'var(--text-muted)' }}>
-                {locationSet ? 'Location set' : 'Tap the map above to set location'}
-              </span>
-            </div>
-
-            {locationSet && (
-              <>
-                {/* Address */}
-                <p className="text-sm font-medium ml-7" style={{ color: 'var(--text-primary)' }}>
-                  {addressLoading ? 'Finding address...' : address || 'Address not found'}
-                </p>
-
-                {/* Toggle coordinates */}
-                <button
-                  onClick={() => setShowCoords(!showCoords)}
-                  className="ml-7 mt-1 text-[0.65rem] font-bold transition hover:opacity-80"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {showCoords ? '▾ Hide coordinates' : '▸ Show coordinates'}
-                </button>
-
-                {showCoords && newPinCoords && (
-                  <p className="ml-7 mt-1 text-[0.65rem] font-mono" style={{ color: 'var(--text-muted)' }}>
-                    {newPinCoords.lat.toFixed(6)}°N, {newPinCoords.lng.toFixed(6)}°E
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+          <p className="text-xs font-medium mb-5" style={{ color: 'var(--text-muted)' }}>
+            {newPinCoords
+              ? `📍 ${newPinCoords.lat.toFixed(4)}°N, ${newPinCoords.lng.toFixed(4)}°E`
+              : '👆 Tap the map above to set location'}
+          </p>
 
           {/* Category grid */}
           <div className="grid grid-cols-3 gap-2 mb-5">
