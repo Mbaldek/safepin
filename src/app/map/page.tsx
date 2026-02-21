@@ -299,7 +299,7 @@ export default function MapPage() {
       </div>
 
       {/* ── Map tab — visible for map AND trip tabs ────────────────── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' ? 'hidden' : 'flex flex-col'}`}>
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
@@ -328,6 +328,13 @@ export default function MapPage() {
             <TripView key="trip-sheet" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
+
+        {/* Incidents sheet — overlays the map when on incidents tab */}
+        <AnimatePresence>
+          {activeTab === 'incidents' && (
+            <IncidentsView key="incidents-sheet" onClose={() => setActiveTab('map')} />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* SOS nearby banner */}
@@ -353,12 +360,6 @@ export default function MapPage() {
 
       {/* ── Non-map tabs — fade in/out with AnimatePresence ────────── */}
       <AnimatePresence mode="wait">
-        {activeTab === 'incidents' && (
-          <motion.div key="incidents" className="flex-1 min-h-0 overflow-hidden flex flex-col"
-            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-            <IncidentsView />
-          </motion.div>
-        )}
         {activeTab === 'community' && (
           <motion.div key="community" className="flex-1 min-h-0 overflow-hidden flex flex-col"
             variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>

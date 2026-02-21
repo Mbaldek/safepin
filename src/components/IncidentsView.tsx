@@ -3,8 +3,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, Pin } from '@/types';
+
+const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -190,7 +193,7 @@ function PinCard({ pin, dist }: { pin: Pin; dist: number | null }) {
 
 // ─── Main view ────────────────────────────────────────────────────────────────
 
-export default function IncidentsView() {
+export default function IncidentsView({ onClose }: { onClose: () => void }) {
   const { pins, userLocation } = useStore();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [emergencyOnly, setEmergencyOnly] = useState(false);
@@ -242,18 +245,29 @@ export default function IncidentsView() {
   }, [pins, timeFilter, emergencyOnly, severityFilter, radiusFilter, userLocation]);
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <motion.div
+      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201 flex flex-col overflow-hidden"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        boxShadow: '0 -10px 40px var(--bg-overlay)',
+        maxHeight: '78dvh',
+      }}
+      initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+      transition={springTransition}
+    >
+      {/* Drag handle */}
+      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
 
       {/* ── Sticky header ─────────────────────────────────────────── */}
       <div
-        className="shrink-0 px-4 pt-4 pb-3"
-        style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
+        className="shrink-0 px-4 pt-3 pb-3"
+        style={{ borderBottom: '1px solid var(--border)' }}
       >
-      <div className="max-w-[440px] mx-auto w-full">
+      <div className="w-full">
         {/* Title row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
               Nearby Incidents
             </h2>
             {filtered.length > 0 && (
@@ -265,6 +279,7 @@ export default function IncidentsView() {
               </span>
             )}
           </div>
+          <div className="flex items-center gap-2">
           {/* Emergency only toggle */}
           <button
             onClick={() => setEmergencyOnly(!emergencyOnly)}
@@ -277,6 +292,14 @@ export default function IncidentsView() {
           >
             🆘 Emergency
           </button>
+          <button
+            onClick={onClose}
+            className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80"
+            style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+          >
+            ✕
+          </button>
+          </div>
         </div>
 
         {/* Time filter chips */}
@@ -357,8 +380,8 @@ export default function IncidentsView() {
       </div>
 
       {/* ── List ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto py-3">
-      <div className="max-w-[440px] mx-auto w-full px-4 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto py-3 pb-8">
+      <div className="w-full px-4 flex flex-col gap-3">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
             <div
@@ -397,6 +420,6 @@ export default function IncidentsView() {
         )}
       </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
