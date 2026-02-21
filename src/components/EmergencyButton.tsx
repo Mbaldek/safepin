@@ -245,7 +245,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       {phase === 'countdown' && (
         <div
           className="absolute inset-0 z-[400] flex flex-col items-center justify-center"
-          style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
+          style={{ backgroundColor: 'var(--bg-primary)' }}
         >
           <div
             className="font-black leading-none mb-4 animate-pulse"
@@ -253,16 +253,19 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           >
             {count}
           </div>
-          <p className="text-white text-xl font-bold mb-1">Alerting nearby users…</p>
-          <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+            Alerting nearby users…
+          </p>
+          <p className="text-sm mb-10" style={{ color: 'var(--text-muted)' }}>
             Your location will be shared
           </p>
           <button
             onClick={cancel}
-            className="px-10 py-4 rounded-2xl text-white font-bold text-lg border-2 transition hover:opacity-80"
+            className="px-10 py-4 rounded-2xl font-bold text-lg border-2 transition hover:opacity-80"
             style={{
-              borderColor: 'rgba(255,255,255,0.35)',
-              backgroundColor: 'rgba(255,255,255,0.12)',
+              borderColor: 'var(--border)',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)',
             }}
           >
             CANCEL
