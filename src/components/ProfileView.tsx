@@ -29,7 +29,9 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   const { pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet } = useStore();
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const didSaveRef = useRef(false);
 
   useEffect(() => {
     setNameInput(userProfile?.display_name ?? '');
@@ -55,11 +57,16 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   const recentPins  = myPins.slice(0, 5);
 
   async function saveName() {
+    if (didSaveRef.current || saving) return;
     const trimmed = nameInput.trim();
     if (!trimmed) { setEditing(false); return; }
+    didSaveRef.current = true;
+    setSaving(true);
     const { error } = await supabase
       .from('profiles')
       .upsert({ id: userId, display_name: trimmed });
+    setSaving(false);
+    didSaveRef.current = false;
     if (error) { toast.error('Failed to save name'); return; }
     setUserProfile({
       id: userId,
@@ -68,6 +75,17 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
     });
     setEditing(false);
     toast.success('Name updated');
+  }
+
+  function startEditing() {
+    didSaveRef.current = false;
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    didSaveRef.current = true; // prevent blur from saving
+    setNameInput(userProfile?.display_name ?? '');
+    setEditing(false);
   }
 
   async function handleSignOut() {
@@ -91,25 +109,41 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
 
           {/* Editable display name */}
           {editing ? (
-            <div className="flex items-center gap-2 w-full max-w-[220px]">
+            <div className="flex flex-col items-center gap-2 w-full max-w-[260px]">
               <input
                 ref={inputRef}
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditing(false); }}
-                onBlur={saveName}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } if (e.key === 'Escape') cancelEdit(); }}
                 placeholder="Your name…"
-                className="flex-1 text-center text-lg font-bold outline-none rounded-xl px-3 py-1.5"
+                className="w-full text-center text-lg font-bold outline-none rounded-xl px-3 py-1.5"
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   border: '1.5px solid var(--accent)',
                   color: 'var(--text-primary)',
                 }}
               />
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={cancelEdit}
+                  className="flex-1 py-1.5 rounded-xl text-sm font-bold transition hover:opacity-80"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveName}
+                  disabled={saving}
+                  className="flex-1 py-1.5 rounded-xl text-sm font-bold transition hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
             </div>
           ) : (
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="flex items-center gap-1.5 group"
             >
               <span className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
