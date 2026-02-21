@@ -67,7 +67,7 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
       .upsert({ id: userId, display_name: trimmed });
     setSaving(false);
     didSaveRef.current = false;
-    if (error) { toast.error('Failed to save name'); return; }
+    if (error) { console.error('[ProfileView] upsert error:', error); toast.error(`Save failed: ${error.message}`); return; }
     setUserProfile({
       id: userId,
       display_name: trimmed,
