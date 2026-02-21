@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY, ENVIRONMENTS, MediaItem } from '@/types';
+import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
 import { toast } from 'sonner';
 
 type LocalMedia = {
@@ -25,6 +25,9 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<string | null>(null);
+  const [urbanContext, setUrbanContext] = useState<string | null>(null);
+  const [urbanContextCustom, setUrbanContextCustom] = useState('');
+  const [isMoving, setIsMoving] = useState(false);
   const [description, setDescription] = useState('');
   const [mediaFiles, setMediaFiles] = useState<LocalMedia[]>([]);
   const [loading, setLoading] = useState(false);
@@ -114,6 +117,9 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
         category,
         severity,
         environment: environment || null,
+        urban_context: urbanContext || null,
+        urban_context_custom: urbanContext === 'other' && urbanContextCustom.trim() ? urbanContextCustom.trim() : null,
+        is_moving: isMoving,
         description: [description, accessInfo ? `Access: ${accessInfo}` : ''].filter(Boolean).join('\n') || 'No description.',
         photo_url: firstImage?.url ?? null,
         media_urls: uploaded.length > 0 ? uploaded : null,
@@ -264,6 +270,68 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                 {emoji} {label}
               </button>
             ))}
+          </div>
+
+          {/* Urban context */}
+          <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            Location type (optional)
+          </label>
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
+            {Object.entries(URBAN_CONTEXTS).map(([key, { label, emoji }]) => (
+              <button
+                key={key}
+                onClick={() => setUrbanContext(urbanContext === key ? null : key)}
+                className="rounded-xl py-2 px-1 text-center border transition"
+                style={{
+                  borderColor: urbanContext === key ? 'var(--accent)' : 'var(--border)',
+                  backgroundColor: urbanContext === key ? 'var(--accent-glow)' : 'var(--bg-card)',
+                }}
+              >
+                <span className="text-base block mb-0.5">{emoji}</span>
+                <span
+                  className="text-[0.6rem] font-bold leading-tight block"
+                  style={{ color: urbanContext === key ? 'var(--accent)' : 'var(--text-muted)' }}
+                >
+                  {label}
+                </span>
+              </button>
+            ))}
+          </div>
+          {urbanContext === 'other' && (
+            <input
+              type="text"
+              value={urbanContextCustom}
+              onChange={(e) => setUrbanContextCustom(e.target.value)}
+              placeholder="Specify location…"
+              className="w-full text-xs rounded-xl px-3 py-2 outline-none mb-3"
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--accent)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          )}
+
+          {/* Moving toggle */}
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <p className="text-[0.7rem] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                In motion?
+              </p>
+              <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Were you moving (bus, car, bike…)?
+              </p>
+            </div>
+            <button
+              onClick={() => setIsMoving(!isMoving)}
+              className="relative inline-flex items-center h-6 w-11 rounded-full transition-colors shrink-0"
+              style={{ backgroundColor: isMoving ? 'var(--accent)' : 'var(--border)' }}
+            >
+              <span
+                className="inline-block h-4 w-4 rounded-full bg-white shadow transition-transform"
+                style={{ transform: isMoving ? 'translateX(1.375rem)' : 'translateX(0.25rem)' }}
+              />
+            </button>
           </div>
 
           {/* Description */}

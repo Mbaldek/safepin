@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY, ENVIRONMENTS, Pin } from '@/types';
+import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
 import { toast } from 'sonner';
 import CommentsSection from './CommentsSection';
 
@@ -70,6 +70,9 @@ export default function DetailSheet() {
   const sev = SEVERITY[selectedPin.severity as keyof typeof SEVERITY];
   const env = selectedPin.environment
     ? ENVIRONMENTS[selectedPin.environment as keyof typeof ENVIRONMENTS]
+    : null;
+  const urban = selectedPin.urban_context
+    ? URBAN_CONTEXTS[selectedPin.urban_context as keyof typeof URBAN_CONTEXTS]
     : null;
   const isOwner = !!userId && userId === selectedPin.user_id;
   const isResolved = !!selectedPin.resolved_at;
@@ -194,12 +197,34 @@ export default function DetailSheet() {
             </span>
           </div>
 
-          {env && (
-            <div
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold mb-3"
-              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            >
-              {env.emoji} {env.label}
+          {(env || urban || selectedPin.is_moving) && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {env && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  {env.emoji} {env.label}
+                </div>
+              )}
+              {urban && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  {urban.emoji} {selectedPin.urban_context === 'other' && selectedPin.urban_context_custom
+                    ? selectedPin.urban_context_custom
+                    : urban.label}
+                </div>
+              )}
+              {selectedPin.is_moving && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  🚶‍♂️ In motion
+                </div>
+              )}
             </div>
           )}
 

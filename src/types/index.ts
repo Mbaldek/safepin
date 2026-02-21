@@ -15,6 +15,9 @@ export type Pin = {
   description: string;
   photo_url: string | null;
   environment: string | null;
+  urban_context: string | null;
+  urban_context_custom: string | null;
+  is_moving: boolean | null;
   media_urls: MediaItem[] | null;
   is_emergency: boolean;
   resolved_at: string | null;
@@ -127,4 +130,16 @@ export const SEVERITY = {
   low: { label: 'Mild',     emoji: '😟', color: '#10b981' },
   med: { label: 'Moderate', emoji: '⚠️', color: '#f59e0b' },
   high: { label: 'Danger',  emoji: '🚨', color: '#f43f5e' },
+} as const;
+
+export const URBAN_CONTEXTS = {
+  street:     { label: 'Street',          emoji: '🛣️' },
+  parking:    { label: 'Parking',         emoji: '🅿️' },
+  store:      { label: 'Store / Mall',    emoji: '🏪' },
+  metro:      { label: 'Metro',           emoji: '🚇' },
+  bus:        { label: 'Bus stop',        emoji: '🚌' },
+  park:       { label: 'Park',            emoji: '🌳' },
+  restaurant: { label: 'Restaurant / Bar', emoji: '🍽️' },
+  building:   { label: 'Building',        emoji: '🏢' },
+  other:      { label: 'Other',           emoji: '📍' },
 } as const;
