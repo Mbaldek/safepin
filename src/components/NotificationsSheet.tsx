@@ -3,7 +3,10 @@
 'use client';
 
 import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
+
+const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -35,14 +38,18 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
 
   return (
     <>
-      <div
+      <motion.div
         className="absolute inset-0 z-[200]"
         style={{ backgroundColor: 'var(--bg-overlay)' }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         onClick={onClose}
       />
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[72dvh] overflow-y-auto animate-slide-up"
+      <motion.div
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[72dvh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={springTransition}
       >
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
         <div className="p-5 pb-10">
@@ -111,7 +118,7 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
             Close
           </button>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

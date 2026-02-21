@@ -2,24 +2,26 @@
 
 'use client';
 
+import { motion } from 'framer-motion';
+import { Map, AlertTriangle, Users, MessageSquare, User } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 
-const TABS = [
-  { id: 'map',        label: 'Map',        icon: '🗺️',  live: true  },
-  { id: 'incidents',  label: 'Incidents',  icon: '📋',  live: true  },
-  { id: 'community',  label: 'Community',  icon: '💬',  live: true  },
-  { id: 'messages',   label: 'Messages',   icon: '✉️',   live: true  },
-  { id: 'profile',    label: 'Profile',    icon: '👤',  live: true  },
-] as const;
+type Tab = 'map' | 'incidents' | 'community' | 'messages' | 'profile';
+
+const TABS: { id: Tab; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }> }[] = [
+  { id: 'map',       label: 'Map',       Icon: Map           },
+  { id: 'incidents', label: 'Incidents', Icon: AlertTriangle  },
+  { id: 'community', label: 'Community', Icon: Users          },
+  { id: 'messages',  label: 'Messages',  Icon: MessageSquare  },
+  { id: 'profile',   label: 'Profile',   Icon: User           },
+];
 
 export default function BottomNav() {
   const { activeTab, setActiveTab, pins } = useStore();
 
-  // Count active (unresolved, <2h) emergency pins for badge
   const emergencyCount = pins.filter((p) => {
     if (!p.is_emergency || p.resolved_at) return false;
-    const ageH = (Date.now() - new Date(p.created_at).getTime()) / 3_600_000;
-    return ageH < 2;
+    return (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2;
   }).length;
 
   return (
@@ -28,64 +30,56 @@ export default function BottomNav() {
       style={{
         backgroundColor: 'var(--bg-secondary)',
         borderTop: '1px solid var(--border)',
-        height: '60px',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        height: '64px',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      {TABS.map(({ id, label, icon, live }) => {
+      {TABS.map(({ id, label, Icon }) => {
         const isActive = activeTab === id;
         const badge = id === 'incidents' && emergencyCount > 0 ? emergencyCount : 0;
 
         return (
           <button
             key={id}
-            onClick={() => live && setActiveTab(id as typeof activeTab)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-opacity"
-            style={{ opacity: live ? 1 : 0.4 }}
+            onClick={() => setActiveTab(id)}
+            className="flex-1 flex flex-col items-center justify-center gap-1 relative"
           >
+            {/* Pill background — shared layoutId so it slides between tabs */}
+            {isActive && (
+              <motion.div
+                layoutId="nav-pill"
+                className="absolute inset-x-2 inset-y-1 rounded-2xl"
+                style={{ backgroundColor: 'var(--accent)', opacity: 0.12 }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              />
+            )}
+
             {/* Badge */}
             {badge > 0 && (
               <span
-                className="absolute top-1.5 right-[calc(50%-16px)] min-w-[16px] h-4 rounded-full text-[0.55rem] font-black flex items-center justify-center px-1"
-                style={{ backgroundColor: '#ef4444', color: '#fff', lineHeight: 1 }}
+                className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1 z-10"
+                style={{ backgroundColor: '#ef4444', color: '#fff' }}
               >
                 {badge}
               </span>
             )}
 
             {/* Icon */}
-            <span
-              className="text-xl leading-none transition-transform"
-              style={{ transform: isActive ? 'translateY(-1px)' : 'none' }}
-            >
-              {icon}
-            </span>
+            <Icon
+              size={20}
+              strokeWidth={isActive ? 2.2 : 1.8}
+              style={{ color: isActive ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.15s' }}
+            />
 
             {/* Label */}
             <span
-              className="text-[0.6rem] font-bold tracking-wide"
-              style={{ color: isActive ? 'var(--accent)' : 'var(--text-muted)' }}
+              className="text-[0.58rem] font-bold tracking-wide leading-none"
+              style={{ color: isActive ? 'var(--accent)' : 'var(--text-muted)', transition: 'color 0.15s' }}
             >
-              {live ? label : label}
+              {label}
             </span>
-
-            {/* Active indicator dot */}
-            {isActive && (
-              <span
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full"
-                style={{ backgroundColor: 'var(--accent)' }}
-              />
-            )}
-
-            {/* Soon chip for placeholder tabs */}
-            {!live && (
-              <span
-                className="absolute top-1 right-[calc(50%-22px)] text-[0.45rem] font-black px-1 rounded"
-                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-              >
-                SOON
-              </span>
-            )}
           </button>
         );
       })}

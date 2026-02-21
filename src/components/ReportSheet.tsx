@@ -3,10 +3,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
 import { toast } from 'sonner';
+
+const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
 type LocalMedia = {
   file: File;
@@ -147,12 +150,14 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
   return (
     <>
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto animate-slide-up"
+      <motion.div
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           boxShadow: '0 -10px 40px var(--bg-overlay)',
         }}
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={springTransition}
       >
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
 
@@ -446,7 +451,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             {loading ? 'Submitting…' : 'Submit report'}
           </button>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Bell } from 'lucide-react';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
@@ -22,6 +24,13 @@ import CommunityView from '@/components/CommunityView';
 import MessagesView from '@/components/MessagesView';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
+
+const tabVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit:    { opacity: 0 },
+} as const;
+const tabTransition = { duration: 0.18, ease: 'easeOut' } as const;
 
 // ─── Push helpers ─────────────────────────────────────────────────────────────
 
@@ -216,31 +225,24 @@ export default function MapPage() {
             <span style={{ color: 'var(--accent)' }}>Safe</span>
             <span style={{ color: 'var(--text-primary)' }}>Pin</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Notification bell */}
             <button
               onClick={() => setShowNotifications(true)}
               className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
               style={{ backgroundColor: 'var(--bg-card)' }}
             >
-              <span className="text-base leading-none">🔔</span>
+              <Bell size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
               {unreadCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full text-[0.55rem] font-black flex items-center justify-center px-1"
-                  style={{ backgroundColor: '#ef4444', color: '#fff', lineHeight: 1 }}
+                  className="absolute -top-1 -right-1 min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
                   {unreadCount}
                 </span>
               )}
             </button>
             <ThemeToggle />
-            <button
-              onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}
-              className="text-xs hover:opacity-80 transition"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Sign out
-            </button>
           </div>
         </div>
         {activeTab === 'map' && (
@@ -261,49 +263,55 @@ export default function MapPage() {
         >
           +
         </button>
-        {activeSheet === 'report' && <ReportSheet userId={userId} />}
-        {activeSheet === 'detail' && <DetailSheet />}
       </div>
 
-      {/* ── Incidents tab ──────────────────────────────────────────── */}
-      {activeTab === 'incidents' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <IncidentsView />
-          {activeSheet === 'detail' && <DetailSheet />}
-        </div>
-      )}
+      {/* ── Non-map tabs — fade in/out with AnimatePresence ────────── */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'incidents' && (
+          <motion.div key="incidents" className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
+            <IncidentsView />
+          </motion.div>
+        )}
+        {activeTab === 'community' && (
+          <motion.div key="community" className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
+            <CommunityView />
+          </motion.div>
+        )}
+        {activeTab === 'messages' && (
+          <motion.div key="messages" className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
+            <MessagesView />
+          </motion.div>
+        )}
+        {activeTab === 'profile' && userId && (
+          <motion.div key="profile" className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
+            <ProfileView userId={userId} userEmail={userEmail} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ── Community tab ──────────────────────────────────────────── */}
-      {activeTab === 'community' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <CommunityView />
-        </div>
-      )}
-
-      {/* ── Profile tab ────────────────────────────────────────────── */}
-      {activeTab === 'profile' && userId && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <ProfileView userId={userId} userEmail={userEmail} />
-          {activeSheet === 'detail' && <DetailSheet />}
-        </div>
-      )}
-
-      {/* ── Messages tab ───────────────────────────────────────────── */}
-      {activeTab === 'messages' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-          <MessagesView />
-        </div>
-      )}
+      {/* ── Sheets (top-level so they render over any tab) ─────────── */}
+      <AnimatePresence>
+        {activeSheet === 'report' && <ReportSheet key="report" userId={userId} />}
+        {activeSheet === 'detail' && <DetailSheet key="detail" />}
+      </AnimatePresence>
 
       {/* ── Bottom navigation ──────────────────────────────────────── */}
       <BottomNav />
 
       {/* ── Notifications overlay ──────────────────────────────────── */}
-      {showNotifications && (
-        <div className="absolute inset-0 z-[300]">
-          <NotificationsSheet onClose={() => setShowNotifications(false)} />
-        </div>
-      )}
+      <AnimatePresence>
+        {showNotifications && (
+          <motion.div key="notifications" className="absolute inset-0 z-[300]"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}>
+            <NotificationsSheet onClose={() => setShowNotifications(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Onboarding overlay (first launch only) ─────────────────── */}
       {!loading && !onboardingDone && (
