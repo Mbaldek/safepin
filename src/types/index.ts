@@ -1,5 +1,10 @@
 // src/types/index.ts
 
+export type MediaItem = {
+  url: string;
+  type: 'image' | 'video' | 'audio';
+};
+
 export type Pin = {
   id: string;
   user_id: string;
@@ -9,6 +14,8 @@ export type Pin = {
   severity: 'low' | 'med' | 'high';
   description: string;
   photo_url: string | null;
+  environment: string | null;
+  media_urls: MediaItem[] | null;
   created_at: string;
 };
 
@@ -25,6 +32,15 @@ export const CATEGORIES = {
   aggression: { label: 'Aggression', emoji: '⚡' },
   drunk: { label: 'Intoxicated', emoji: '🍺' },
   other: { label: 'Other', emoji: '⚠️' },
+} as const;
+
+export const ENVIRONMENTS = {
+  foot:    { label: 'On foot',  emoji: '🚶' },
+  metro:   { label: 'Transit',  emoji: '🚇' },
+  bus:     { label: 'Bus',      emoji: '🚌' },
+  cycling: { label: 'Cycling',  emoji: '🚲' },
+  car:     { label: 'Vehicle',  emoji: '🚗' },
+  indoor:  { label: 'Indoor',   emoji: '🏠' },
 } as const;
 
 export const SEVERITY = {

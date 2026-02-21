@@ -2,24 +2,37 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY } from '@/types';
+import { CATEGORIES, SEVERITY, ENVIRONMENTS, MediaItem } from '@/types';
 import { toast } from 'sonner';
+
+type LocalMedia = {
+  file: File;
+  preview: string;
+  type: 'image' | 'video' | 'audio';
+};
+
+function detectType(file: File): 'image' | 'video' | 'audio' {
+  if (file.type.startsWith('image')) return 'image';
+  if (file.type.startsWith('video')) return 'video';
+  return 'audio';
+}
 
 export default function ReportSheet({ userId }: { userId: string | null }) {
   const { setActiveSheet, newPinCoords, setNewPinCoords } = useStore();
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
+  const [environment, setEnvironment] = useState<string | null>(null);
   const [description, setDescription] = useState('');
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<LocalMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [addressLoading, setAddressLoading] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
   const [accessInfo, setAccessInfo] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!newPinCoords) {
@@ -37,11 +50,21 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
       .finally(() => setAddressLoading(false));
   }, [newPinCoords]);
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
+  function handleMediaAdd(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - mediaFiles.length;
+    if (remaining <= 0) { toast.error('Max 5 media files'); return; }
+    const toAdd = files.slice(0, remaining).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      type: detectType(file),
+    }));
+    setMediaFiles((prev) => [...prev, ...toAdd]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function removeMedia(index: number) {
+    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit() {
@@ -52,24 +75,24 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
     setLoading(true);
 
-    let photo_url: string | null = null;
-    if (photo) {
-      const fileName = `${userId}/${Date.now()}-${photo.name}`;
+    // Upload all media files
+    const uploaded: MediaItem[] = [];
+    for (const media of mediaFiles) {
+      const fileName = `${userId}/${Date.now()}-${media.file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('pin-photos')
-        .upload(fileName, photo);
-
+        .upload(fileName, media.file);
       if (uploadError) {
-        toast.error('Photo upload failed: ' + uploadError.message);
+        toast.error(`Upload failed: ${media.file.name}`);
         setLoading(false);
         return;
       }
-
-      const { data: urlData } = supabase.storage
-        .from('pin-photos')
-        .getPublicUrl(fileName);
-      photo_url = urlData.publicUrl;
+      const { data: urlData } = supabase.storage.from('pin-photos').getPublicUrl(fileName);
+      uploaded.push({ url: urlData.publicUrl, type: media.type });
     }
+
+    // Keep photo_url for backward compat (first image)
+    const firstImage = uploaded.find((m) => m.type === 'image');
 
     const { error } = await supabase
       .from('pins')
@@ -79,8 +102,10 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
         lng: newPinCoords.lng,
         category,
         severity,
+        environment: environment || null,
         description: [description, accessInfo ? `Access: ${accessInfo}` : ''].filter(Boolean).join('\n') || 'No description.',
-        photo_url,
+        photo_url: firstImage?.url ?? null,
+        media_urls: uploaded.length > 0 ? uploaded : null,
       })
       .select()
       .single();
@@ -106,7 +131,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   return (
     <>
       <div
-        className="absolute bottom-0 left-0 right-0 rounded-t-3xl z-[201] max-h-[55dvh] overflow-y-auto animate-slide-up"
+        className="absolute bottom-0 left-0 right-0 rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto animate-slide-up"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           boxShadow: '0 -10px 40px var(--bg-overlay)',
@@ -125,6 +150,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
               ✕ Close
             </button>
           </div>
+
           {/* Location status */}
           {newPinCoords ? (
             <div
@@ -137,7 +163,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                   <p className="text-[0.65rem] font-bold uppercase tracking-wider mb-0.5" style={{ color: 'var(--safe)' }}>
                     Location confirmed
                   </p>
-                  <p className="text-sm leading-snug break-words" style={{ color: 'var(--text-primary)' }}>
+                  <p className="text-sm leading-snug" style={{ color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                     {addressLoading ? '⏳ Fetching address…' : address ?? '📍 Address not found'}
                   </p>
                 </div>
@@ -196,6 +222,27 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             ))}
           </div>
 
+          {/* Environment (optional) */}
+          <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            Context (optional)
+          </label>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5 no-scrollbar">
+            {Object.entries(ENVIRONMENTS).map(([key, { label, emoji }]) => (
+              <button
+                key={key}
+                onClick={() => setEnvironment(environment === key ? null : key)}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition whitespace-nowrap"
+                style={
+                  environment === key
+                    ? { borderColor: 'var(--accent)', color: 'var(--accent)', backgroundColor: 'var(--accent-glow)' }
+                    : { borderColor: 'var(--border)', color: 'var(--text-muted)', backgroundColor: 'transparent' }
+                }
+              >
+                {emoji} {label}
+              </button>
+            ))}
+          </div>
+
           {/* Description */}
           <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
             Describe what happened
@@ -213,24 +260,69 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             }}
           />
 
-          {/* Photo upload */}
-          <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Photo evidence (optional)
-          </label>
-          <label
-            className="block border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition mb-4"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            {photoPreview ? (
-              <img src={photoPreview} alt="Preview" className="w-full h-24 object-cover rounded-lg" />
-            ) : (
-              <>
-                <span className="text-2xl block mb-1">📎</span>
-                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Tap to attach photo</span>
-              </>
-            )}
-            <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
-          </label>
+          {/* Multi-media upload */}
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[0.7rem] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Media (optional)
+            </label>
+            <span className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>{mediaFiles.length}/5</span>
+          </div>
+
+          {mediaFiles.length > 0 && (
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {mediaFiles.map((m, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0"
+                  style={{ border: '1px solid var(--border)' }}>
+                  {m.type === 'image' && (
+                    <img src={m.preview} alt="" className="w-full h-full object-cover" />
+                  )}
+                  {m.type === 'video' && (
+                    <video src={m.preview} className="w-full h-full object-cover" muted />
+                  )}
+                  {m.type === 'audio' && (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1"
+                      style={{ backgroundColor: 'var(--bg-card)' }}>
+                      <span className="text-2xl">🎵</span>
+                      <span className="text-[0.6rem] font-bold" style={{ color: 'var(--text-muted)' }}>
+                        {m.file.name.slice(0, 8)}…
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => removeMedia(i)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-[0.6rem] font-bold"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                  >
+                    ✕
+                  </button>
+                  <div className="absolute bottom-1 left-1 text-[0.55rem] px-1 rounded font-bold"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff' }}>
+                    {m.type === 'image' ? '📷' : m.type === 'video' ? '🎬' : '🎵'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {mediaFiles.length < 5 && (
+            <label
+              className="flex items-center gap-2 border-2 border-dashed rounded-xl p-3 cursor-pointer transition mb-4"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <span className="text-xl">📎</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                Add photo, video or audio…
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,audio/*"
+                multiple
+                onChange={handleMediaAdd}
+                className="hidden"
+              />
+            </label>
+          )}
 
           {/* Severity */}
           <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -260,7 +352,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             className="w-full bg-gradient-to-r from-[#f43f5e] to-[#e11d48] text-white font-bold rounded-xl py-4 text-sm shadow-lg disabled:opacity-50 transition"
             style={{ boxShadow: '0 8px 24px var(--accent-glow)' }}
           >
-            {loading ? 'Submitting...' : 'Submit report'}
+            {loading ? 'Submitting…' : 'Submit report'}
           </button>
         </div>
       </div>

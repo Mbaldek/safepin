@@ -3,7 +3,7 @@
 'use client';
 
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY } from '@/types';
+import { CATEGORIES, SEVERITY, ENVIRONMENTS } from '@/types';
 
 export default function DetailSheet() {
   const { selectedPin, setSelectedPin, setActiveSheet } = useStore();
@@ -12,6 +12,9 @@ export default function DetailSheet() {
 
   const cat = CATEGORIES[selectedPin.category as keyof typeof CATEGORIES];
   const sev = SEVERITY[selectedPin.severity as keyof typeof SEVERITY];
+  const env = selectedPin.environment
+    ? ENVIRONMENTS[selectedPin.environment as keyof typeof ENVIRONMENTS]
+    : null;
 
   function handleClose() {
     setSelectedPin(null);
@@ -28,6 +31,13 @@ export default function DetailSheet() {
     if (days < 1) return `${hours}h ago`;
     return `${days}d ago`;
   }
+
+  // Collect all media: prefer media_urls array, fall back to legacy photo_url
+  const mediaItems = selectedPin.media_urls && selectedPin.media_urls.length > 0
+    ? selectedPin.media_urls
+    : selectedPin.photo_url
+      ? [{ url: selectedPin.photo_url, type: 'image' as const }]
+      : [];
 
   return (
     <>
@@ -54,6 +64,14 @@ export default function DetailSheet() {
             </span>
           </div>
 
+          {/* Environment badge */}
+          {env && (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold mb-3"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+              {env.emoji} {env.label}
+            </div>
+          )}
+
           {/* Description */}
           <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-muted)' }}>
             {selectedPin.description}
@@ -62,17 +80,47 @@ export default function DetailSheet() {
           {/* Meta */}
           <div className="flex gap-3 text-xs font-medium mb-4" style={{ color: 'var(--text-muted)' }}>
             <span>🕐 {timeAgo(selectedPin.created_at)}</span>
-            {selectedPin.photo_url && <span>📎 1 photo</span>}
+            {mediaItems.length > 0 && (
+              <span>📎 {mediaItems.length} {mediaItems.length === 1 ? 'file' : 'files'}</span>
+            )}
           </div>
 
-          {/* Photo */}
-          {selectedPin.photo_url && (
-            <img
-              src={selectedPin.photo_url}
-              alt="Evidence"
-              className="w-full h-40 object-cover rounded-xl mb-4"
-              style={{ border: '1px solid var(--border)' }}
-            />
+          {/* Media gallery */}
+          {mediaItems.length > 0 && (
+            <div className="flex flex-col gap-2 mb-4">
+              {mediaItems.map((m, i) => {
+                if (m.type === 'image') {
+                  return (
+                    <img
+                      key={i}
+                      src={m.url}
+                      alt="Evidence"
+                      className="w-full h-44 object-cover rounded-xl"
+                      style={{ border: '1px solid var(--border)' }}
+                    />
+                  );
+                }
+                if (m.type === 'video') {
+                  return (
+                    <video
+                      key={i}
+                      src={m.url}
+                      controls
+                      className="w-full rounded-xl"
+                      style={{ border: '1px solid var(--border)', maxHeight: '180px' }}
+                    />
+                  );
+                }
+                // audio
+                return (
+                  <div key={i} className="rounded-xl p-3 flex items-center gap-3"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <span className="text-2xl">🎵</span>
+                    <audio src={m.url} controls className="flex-1" style={{ height: '32px' }} />
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {/* Close */}
