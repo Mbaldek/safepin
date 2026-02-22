@@ -24,6 +24,7 @@ export type Pin = {
   last_confirmed_at: string | null;
   flag_count?: number;
   hidden_at?: string | null;
+  is_simulated?: boolean;
   created_at: string;
 };
 
@@ -67,6 +68,9 @@ export type SavedRoute = {
   danger_score_last: number;
   trip_count: number;
   last_used_at: string;
+  is_public?: boolean;
+  upvote_count?: number;
+  share_token?: string | null;
   created_at: string;
 };
 
@@ -284,6 +288,7 @@ export type Profile = {
   id: string;
   name: string;
   is_shadow_banned?: boolean;
+  is_simulated?: boolean;
   created_at: string;
 };
 
@@ -304,6 +309,82 @@ export type EmergencySession = {
   display_name: string | null;
   location_trail: { lat: number; lng: number; ts: string }[];
   resolved_at: string | null;
+  created_at: string;
+};
+
+// S44: Confirm & Thank
+export type PinThank = {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+// S45: Walk With Me
+export type WalkSession = {
+  id: string;
+  creator_id: string;
+  companion_id: string | null;
+  status: 'waiting' | 'active' | 'completed' | 'cancelled';
+  invite_code: string | null;
+  destination: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  next_checkin_at: string | null;
+  created_at: string;
+};
+
+// S47: Shared Safe Routes
+export type RouteUpvote = {
+  id: string;
+  route_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+// S48: Guardian Challenges
+export type Challenge = {
+  id: string;
+  title: string;
+  emoji: string;
+  description: string | null;
+  challenge_type: 'votes' | 'reports' | 'routes' | 'comments' | 'communities' | 'streak';
+  target_value: number;
+  reward_points: number;
+  week_start: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type UserChallenge = {
+  id: string;
+  user_id: string;
+  challenge_id: string;
+  progress: number;
+  completed_at: string | null;
+  created_at: string;
+};
+
+// S50: SOS Responder
+export type SosResponder = {
+  id: string;
+  pin_id: string;
+  responder_id: string;
+  status: 'on_way' | 'arrived' | 'left';
+  lat: number | null;
+  lng: number | null;
+  created_at: string;
+};
+
+// S51: Audio Check-in
+export type AudioCheckin = {
+  id: string;
+  user_id: string;
+  session_type: 'emergency' | 'trip' | 'walk';
+  session_id: string | null;
+  audio_url: string;
+  duration_s: number | null;
+  transcript: string | null;
   created_at: string;
 };
 

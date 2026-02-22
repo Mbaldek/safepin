@@ -37,6 +37,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
 import MapContextCard from '@/components/MapContextCard';
 import InstallPrompt from '@/components/InstallPrompt';
+import WalkWithMePanel from '@/components/WalkWithMePanel';
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -194,6 +195,7 @@ export default function MapPage() {
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [showWalkWithMe, setShowWalkWithMe] = useState(false);
   const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 
@@ -227,19 +229,23 @@ export default function MapPage() {
     });
   }, [router, setUserProfile, setUserId]);
 
-  // Load pins (exclude hidden pins unless the user owns them)
+  // Load pins (exclude hidden pins unless the user owns them; filter simulated by default)
+  const { showSimulated } = useStore();
   useEffect(() => {
     async function loadPins() {
-      const { data, error } = await supabase
+      let query = supabase
         .from('pins')
         .select('*')
-        .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
-        .order('created_at', { ascending: false });
+        .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`);
+      if (!showSimulated) {
+        query = query.or('is_simulated.is.null,is_simulated.eq.false');
+      }
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) { toast.error('Failed to load pins'); return; }
       setPins((data as Pin[]) || []);
     }
     loadPins();
-  }, [setPins, userId]);
+  }, [setPins, userId, showSimulated]);
 
   // Deep link: ?pin=UUID → fly to pin and open detail sheet
   useEffect(() => {
@@ -614,10 +620,10 @@ export default function MapPage() {
                 </span>
               )}
             </button>
-            {/* Report button — bottom right */}
+            {/* Report button — stacked above SOS on the right */}
             <button
               onClick={() => setActiveSheet('report')}
-              className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute bottom-22 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
             >
               +
             </button>
@@ -707,6 +713,17 @@ export default function MapPage() {
             key="place-note-popup"
             note={selectedPlaceNote}
             onClose={() => setSelectedPlaceNote(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Walk With Me panel ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {showWalkWithMe && userId && (
+          <WalkWithMePanel
+            key="walk-with-me"
+            userId={userId}
+            onClose={() => setShowWalkWithMe(false)}
           />
         )}
       </AnimatePresence>

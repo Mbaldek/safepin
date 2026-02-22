@@ -169,6 +169,10 @@ type Store = {
   showSafeSpaces: boolean;
   setShowSafeSpaces: (v: boolean) => void;
 
+  // Simulation toggle (admin-only, default hidden)
+  showSimulated: boolean;
+  setShowSimulated: (v: boolean) => void;
+
   // Deep-link into My KOVA sub-tab (e.g. from Settings → Profile)
   myKovaInitialTab: string | null;
   setMyKovaInitialTab: (tab: string | null) => void;
@@ -341,6 +345,10 @@ export const useStore = create<Store>((set) => ({
   setSafeSpaces: (spaces) => set({ safeSpaces: spaces }),
   showSafeSpaces: false,
   setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
+
+  // Simulation toggle
+  showSimulated: false,
+  setShowSimulated: (v) => set({ showSimulated: v }),
 
   // My KOVA deep-link
   myKovaInitialTab: null,

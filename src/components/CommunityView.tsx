@@ -12,9 +12,10 @@ import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import StoriesRow from '@/components/StoriesRow';
 import FriendsView from '@/components/FriendsView';
+import NeighborhoodFeed from '@/components/NeighborhoodFeed';
 
 type View = 'list' | 'community-detail' | 'chat' | 'create';
-type CommTab = 'groups' | 'friends';
+type CommTab = 'groups' | 'neighborhoods' | 'friends';
 type CreateType = 'community' | 'group';
 
 const EMOJI_OPTIONS = ['🏘️', '🏙️', '🌳', '🛡️', '🔒', '🌍', '🎯', '💡', '🎭', '⚡', '🌐', '🏃', '🚴', '🌙', '🎪'];
@@ -792,6 +793,13 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
         );
       })()}
 
+      {/* ── NEIGHBORHOODS VIEW ─────────────────────────────────────────── */}
+      {view === 'list' && commTab === 'neighborhoods' && (
+        <div className="flex flex-col flex-1 overflow-hidden p-4">
+          <NeighborhoodFeed />
+        </div>
+      )}
+
       {/* ── FRIENDS VIEW ──────────────────────────────────────────────── */}
       {view === 'list' && commTab === 'friends' && (
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -856,7 +864,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               </div>
               {/* Segment switcher */}
               <div className="flex">
-                {(['groups', 'friends'] as const).map((tab) => (
+                {(['groups', 'neighborhoods', 'friends'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setCommTab(tab)}
@@ -866,7 +874,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                       borderBottom: commTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
                     }}
                   >
-                    {tab === 'groups' ? 'Groups' : 'Friends'}
+                    {tab === 'groups' ? 'Groups' : tab === 'neighborhoods' ? 'Nearby' : 'Friends'}
                   </button>
                 ))}
               </div>

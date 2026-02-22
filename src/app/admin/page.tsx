@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
@@ -1147,18 +1147,221 @@ function AnalyticsTab() {
   );
 }
 
+// ─── Tab 8 — Simulation ──────────────────────────────────────────────────────
+
+function SimulationTab() {
+  const [loading, setLoading] = useState(false);
+  const [simActive, setSimActive] = useState(false);
+  const [userCount, setUserCount] = useState(200);
+  const [pinCount, setPinCount] = useState(500);
+  const [interval, setIntervalMs] = useState(30000);
+  const [stats, setStats] = useState({ simUsers: 0, simPins: 0 });
+  const [tickLog, setTickLog] = useState<string[]>([]);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load stats + current state
+  const loadStats = useCallback(async () => {
+    const [usersRes, pinsRes, paramRes] = await Promise.all([
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
+      supabase.from('pins').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
+      supabase.from('admin_params').select('value').eq('key', 'simulation_active').single(),
+    ]);
+    setStats({ simUsers: usersRes.count ?? 0, simPins: pinsRes.count ?? 0 });
+    setSimActive(paramRes.data?.value === 'true');
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  // Seed Paris
+  async function handleSeed() {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error('Not authenticated'); return; }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/seed-paris`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ userCount, pinCount }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      toast.success(`Seeded ${data.users_created} users + ${data.pins_created} pins`);
+      loadStats();
+    } catch (err) {
+      toast.error(`Seed failed: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Toggle simulation active
+  async function toggleSimulation() {
+    const newVal = !simActive;
+    await supabase.from('admin_params').update({ value: String(newVal) }).eq('key', 'simulation_active');
+    setSimActive(newVal);
+    toast.success(newVal ? 'Simulation started' : 'Simulation stopped');
+    if (!newVal && tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+  }
+
+  // Tick — call simulate-activity edge function
+  const tick = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/simulate-activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'tick' }),
+      });
+      const data = await res.json();
+      if (data.actions?.length) {
+        setTickLog((prev) => [`${new Date().toLocaleTimeString()} — ${data.actions.join(', ')}`, ...prev.slice(0, 49)]);
+        loadStats();
+      }
+    } catch { /* ignore tick failures */ }
+  }, [loadStats]);
+
+  // Start/stop tick interval
+  useEffect(() => {
+    if (simActive) {
+      tick(); // immediate first tick
+      tickRef.current = setInterval(tick, interval);
+    } else if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+  }, [simActive, interval, tick]);
+
+  // Cleanup all simulated data
+  async function handleCleanup() {
+    if (!confirm(`Delete ALL simulated data?\n${stats.simUsers} users + ${stats.simPins} pins will be removed.`)) return;
+    setLoading(true);
+    try {
+      // Delete pins first (FK), then profiles
+      await supabase.from('pins').delete().eq('is_simulated', true);
+      await supabase.from('profiles').delete().eq('is_simulated', true);
+      toast.success('All simulated data deleted');
+      loadStats();
+    } catch {
+      toast.error('Cleanup failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const intervalOptions = [
+    { label: '10s', value: 10000 },
+    { label: '30s', value: 30000 },
+    { label: '1min', value: 60000 },
+    { label: '5min', value: 300000 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Status */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500 mb-1">Status</p>
+          <p className={`text-lg font-black ${simActive ? 'text-green-600' : 'text-gray-400'}`}>
+            {simActive ? '● Active' : '○ Inactive'}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500 mb-1">Simulated Users</p>
+          <p className="text-2xl font-black text-amber-600">{stats.simUsers}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500 mb-1">Simulated Pins</p>
+          <p className="text-2xl font-black text-amber-600">{stats.simPins}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500 mb-1">Tick Interval</p>
+          <p className="text-2xl font-black text-gray-700">{interval / 1000}s</p>
+        </div>
+      </div>
+
+      {/* Seed Data */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-gray-700 mb-4">Seed Paris with Fake Data</h3>
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Users</label>
+            <input type="number" value={userCount} onChange={(e) => setUserCount(Number(e.target.value))}
+              className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Pins</label>
+            <input type="number" value={pinCount} onChange={(e) => setPinCount(Number(e.target.value))}
+              className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+          </div>
+          <button onClick={handleSeed} disabled={loading}
+            className="px-5 py-2.5 bg-amber-500 text-white font-bold text-sm rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors">
+            {loading ? 'Seeding...' : 'Seed Paris'}
+          </button>
+        </div>
+      </div>
+
+      {/* Live Simulation */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-gray-700 mb-4">Live Simulation</h3>
+        <div className="flex flex-wrap items-center gap-4">
+          <button onClick={toggleSimulation}
+            className={`px-5 py-2.5 font-bold text-sm rounded-lg transition-colors ${simActive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'}`}>
+            {simActive ? 'Stop Simulation' : 'Start Simulation'}
+          </button>
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            {intervalOptions.map((opt) => (
+              <button key={opt.value} onClick={() => setIntervalMs(opt.value)}
+                className={`px-3 py-2 text-xs font-medium transition-colors ${interval === opt.value ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tick log */}
+        {tickLog.length > 0 && (
+          <div className="mt-4 max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3 border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 mb-2">Activity Log</p>
+            {tickLog.map((entry, i) => (
+              <p key={i} className="text-xs text-gray-600 font-mono">{entry}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cleanup */}
+      <div className="bg-white rounded-xl border border-red-200 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-red-700 mb-2">Danger Zone</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          Delete all simulated users ({stats.simUsers}) and pins ({stats.simPins}). This cannot be undone.
+        </p>
+        <button onClick={handleCleanup} disabled={loading || (stats.simUsers === 0 && stats.simPins === 0)}
+          className="px-5 py-2.5 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
+          {loading ? 'Deleting...' : 'Delete All Simulated Data'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live';
+type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation';
 
 const TABS: { id: AdminTab; label: string; emoji: string }[] = [
-  { id: 'overview',   label: 'Overview',   emoji: '📊' },
-  { id: 'analytics',  label: 'Analytics',  emoji: '📈' },
-  { id: 'pins',       label: 'Pins',       emoji: '📍' },
-  { id: 'users',      label: 'Users',      emoji: '👥' },
-  { id: 'reports',    label: 'Reports',    emoji: '🚩' },
-  { id: 'params',     label: 'Parameters', emoji: '⚙️' },
-  { id: 'live',       label: 'Live',       emoji: '📡' },
+  { id: 'overview',    label: 'Overview',    emoji: '📊' },
+  { id: 'analytics',   label: 'Analytics',   emoji: '📈' },
+  { id: 'pins',        label: 'Pins',        emoji: '📍' },
+  { id: 'users',       label: 'Users',       emoji: '👥' },
+  { id: 'reports',     label: 'Reports',     emoji: '🚩' },
+  { id: 'params',      label: 'Parameters',  emoji: '⚙️' },
+  { id: 'live',        label: 'Live',        emoji: '📡' },
+  { id: 'simulation',  label: 'Simulation',  emoji: '🤖' },
 ];
 
 export default function AdminPage() {
@@ -1213,6 +1416,7 @@ export default function AdminPage() {
         {activeTab === 'reports'    && <ReportsTab />}
         {activeTab === 'params'     && <ParametersTab />}
         {activeTab === 'live'       && <LiveTab />}
+        {activeTab === 'simulation' && <SimulationTab />}
       </main>
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">KOVA v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:kovaapp@pm.me" className="hover:text-gray-600">kovaapp@pm.me</a></p>

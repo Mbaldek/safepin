@@ -368,7 +368,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       <button
         onClick={phase === 'idle' ? handleTap : undefined}
         disabled={phase === 'active'}
-        className={`absolute bottom-6 left-4 w-14 h-14 rounded-full flex items-center justify-center text-2xl z-50 transition ${
+        className={`absolute bottom-6 right-4 w-14 h-14 rounded-full flex items-center justify-center text-2xl z-50 transition ${
           phase === 'idle' ? 'emergency-btn-pulse' : 'opacity-50'
         }`}
         style={{ backgroundColor: '#ef4444', color: 'white' }}

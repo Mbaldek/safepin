@@ -408,7 +408,7 @@ export default function MapView() {
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -1085,7 +1085,7 @@ export default function MapView() {
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* ── Map controls (right side, above bottom nav) ─────────────── */}
-      <div className="absolute right-3 bottom-22 z-50 flex flex-col items-end gap-2">
+      <div className="absolute left-3 bottom-22 z-50 flex flex-col items-start gap-2">
 
         {/* Layer panel popover */}
         <AnimatePresence>
@@ -1114,6 +1114,9 @@ export default function MapView() {
               onScoresToggle={() => setShowScores((v) => !v)}
               showSafeSpaces={showSafeSpaces}
               onSafeSpacesToggle={() => setShowSafeSpaces(!showSafeSpaces)}
+              isAdmin={!!(userProfile as Record<string, unknown>)?.is_admin}
+              showSimulated={showSimulated}
+              onSimulatedToggle={() => setShowSimulated(!showSimulated)}
               onClose={() => setShowLayerPanel(false)}
             />
           )}

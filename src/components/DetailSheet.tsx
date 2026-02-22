@@ -16,6 +16,8 @@ import PinStoriesRow from './PinStoriesRow';
 import LiveBroadcaster from './LiveBroadcaster';
 import LiveViewer from './LiveViewer';
 import FlagReportModal from './FlagReportModal';
+import SosBroadcastPanel from './SosBroadcastPanel';
+import AudioCheckinButton from './AudioCheckinButton';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -79,6 +81,8 @@ export default function DetailSheet() {
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatCount, setChatCount] = useState(0);
   const [showFlagModal, setShowFlagModal] = useState(false);
+  const [hasThanked, setHasThanked] = useState(false);
+  const [thanksCount, setThanksCount] = useState(0);
 
   useEffect(() => {
     if (!selectedPin) return;
@@ -94,6 +98,12 @@ export default function DetailSheet() {
         setDenies(rows.filter((v) => v.vote_type === 'deny'));
         setMyVote(rows.find((v) => v.user_id === userId) ?? null);
       });
+    // Load thanks count + check if user thanked
+    setHasThanked(false); setThanksCount(0);
+    supabase.from('pin_thanks').select('user_id').eq('pin_id', selectedPin.id).then(({ data }) => {
+      setThanksCount(data?.length ?? 0);
+      setHasThanked(data?.some((r) => r.user_id === userId) ?? false);
+    });
   }, [selectedPin?.id, userId]);
 
   if (!selectedPin) return null;
@@ -120,6 +130,20 @@ export default function DetailSheet() {
   function handleClose() {
     setSelectedPin(null);
     setActiveSheet('none');
+  }
+
+  async function thankReporter() {
+    if (!userId || !selectedPin || hasThanked || isOwner) return;
+    const { error } = await supabase.from('pin_thanks').insert({ pin_id: selectedPin.id, user_id: userId });
+    if (!error) {
+      setHasThanked(true);
+      setThanksCount((c) => c + 1);
+      // Increment reporter's thanks_received counter (fire-and-forget)
+      supabase.from('profiles').select('thanks_received').eq('id', selectedPin.user_id).single().then(({ data }) => {
+        if (data) supabase.from('profiles').update({ thanks_received: (data.thanks_received ?? 0) + 1 }).eq('id', selectedPin.user_id).then(() => {});
+      });
+      toast.success('Thanks sent!');
+    }
   }
 
   async function vote(type: 'confirm' | 'deny') {
@@ -475,7 +499,40 @@ export default function DetailSheet() {
                 ✅ {t('resolved')}
               </div>
             )}
+
+            {/* Thank reporter (not own pin) */}
+            {!isOwner && userId && (
+              <button
+                onClick={thankReporter}
+                disabled={hasThanked}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-60"
+                style={
+                  hasThanked
+                    ? { backgroundColor: 'rgba(236,72,153,0.12)', color: '#ec4899', border: '1.5px solid rgba(236,72,153,0.5)' }
+                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                }
+              >
+                🙏 {thanksCount > 0 ? thanksCount : ''}
+              </button>
+            )}
           </div>
+
+          {/* ── SOS Broadcast (S50) + Audio Check-in (S51) — emergency pins only ── */}
+          {selectedPin.is_emergency && !isResolved && (
+            <div className="mb-3 space-y-2">
+              <SosBroadcastPanel
+                pinId={selectedPin.id}
+                pinLat={selectedPin.lat}
+                pinLng={selectedPin.lng}
+                onClose={() => {}}
+              />
+              {userId && (
+                <div className="flex justify-center">
+                  <AudioCheckinButton userId={userId} sessionType="emergency" sessionId={selectedPin.id} />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Status card ───────────────────────────────────────────── */}
           {(confirms.length > 0 || denies.length > 0 || !selectedPin.is_emergency) && !isResolved && (

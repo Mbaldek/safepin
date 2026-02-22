@@ -22,6 +22,8 @@ import TrustedCircleSection from '@/components/TrustedCircleSection';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
 import LocationHistoryViewer from '@/components/LocationHistoryViewer';
+import ChallengesSection from '@/components/ChallengesSection';
+import ReferralSection from '@/components/ReferralSection';
 import TrendSparkline from '@/components/TrendSparkline';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -630,6 +632,14 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 </div>
 
                 <TrustedCircleSection userId={userId} />
+
+                {/* Weekly Challenges — S48 */}
+                <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <ChallengesSection userId={userId} />
+                </div>
+
+                {/* Referral — S49 */}
+                <ReferralSection userId={userId} />
               </motion.div>
             )}
 

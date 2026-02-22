@@ -33,6 +33,9 @@ type Props = {
   showSafeSpaces: boolean;
   onSafeSpacesToggle: () => void;
   onClose: () => void;
+  isAdmin?: boolean;
+  showSimulated?: boolean;
+  onSimulatedToggle?: () => void;
 };
 
 const STYLES: { id: MapStyle; label: string; emoji: string }[] = [
@@ -161,6 +164,19 @@ export default function LayerPanel(props: Props) {
         <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" />
         <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" />
       </div>
+
+      {/* Admin — Simulated data toggle */}
+      {props.isAdmin && props.onSimulatedToggle && (
+        <>
+          <div className="h-px mt-2 mb-2" style={{ backgroundColor: 'var(--border)' }} />
+          <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: '#f59e0b' }}>
+            Admin
+          </p>
+          <div className="flex flex-col gap-0.5">
+            <Toggle on={!!props.showSimulated} onToggle={props.onSimulatedToggle} label="Simulated" color="#f59e0b" emoji="🤖" />
+          </div>
+        </>
+      )}
     </motion.div>
   );
 }

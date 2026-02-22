@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2, Plus, Check, X } from 'lucide-react';
+import { Trash2, Plus, Check, X, Share2, ThumbsUp } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { PlaceNote, SavedRoute } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -74,11 +74,30 @@ export default function SavedPanel({
   const [rMode, setRMode]               = useState<Mode>('walk');
   const [rSaving, setRSaving]           = useState(false);
 
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
   const favPlaces   = placeNotes.filter((n) => favPlaceIds.includes(n.id));
   const sortedRoutes = [
     ...savedRoutes.filter((r) => favRouteIds.has(r.id)),
     ...savedRoutes.filter((r) => !favRouteIds.has(r.id)),
   ];
+
+  async function toggleShareRoute(route: SavedRoute) {
+    if (!userId) return;
+    setSharingId(route.id);
+    const newPublic = !route.is_public;
+    const token = newPublic ? crypto.randomUUID().slice(0, 8) : null;
+    const { error } = await supabase
+      .from('saved_routes')
+      .update({ is_public: newPublic, share_token: token })
+      .eq('id', route.id)
+      .eq('user_id', userId);
+    setSharingId(null);
+    if (error) { toast.error('Failed to update sharing'); return; }
+    route.is_public = newPublic;
+    route.share_token = token;
+    toast.success(newPublic ? 'Route shared publicly' : 'Route set to private');
+  }
 
   // ── Submit add-place ──────────────────────────────────────────────────────
   async function submitPlace() {
@@ -391,13 +410,32 @@ export default function SavedPanel({
                       {r.danger_score_last === 0 ? 'Clear' : `${r.danger_score_last} risk`}
                     </span>
                   </button>
-                  <button
-                    onClick={() => onDeleteRoute(r.id)}
-                    className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mr-1.5 transition hover:opacity-70"
-                    style={{ backgroundColor: 'rgba(239,68,68,0.10)' }}
-                  >
-                    <Trash2 size={12} style={{ color: '#ef4444' }} />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0 mr-1.5">
+                    {r.is_public && (
+                      <span className="text-[0.55rem] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                        style={{ backgroundColor: 'rgba(99,102,241,0.10)', color: '#6366f1' }}>
+                        <ThumbsUp size={9} /> {r.upvote_count ?? 0}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => toggleShareRoute(r)}
+                      disabled={sharingId === r.id}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-70"
+                      style={{
+                        backgroundColor: r.is_public ? 'rgba(34,197,94,0.10)' : 'var(--bg-secondary)',
+                      }}
+                      title={r.is_public ? 'Shared publicly' : 'Share route'}
+                    >
+                      <Share2 size={12} style={{ color: r.is_public ? '#22c55e' : 'var(--text-muted)' }} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteRoute(r.id)}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-70"
+                      style={{ backgroundColor: 'rgba(239,68,68,0.10)' }}
+                    >
+                      <Trash2 size={12} style={{ color: '#ef4444' }} />
+                    </button>
+                  </div>
                 </div>
               );
             })}
