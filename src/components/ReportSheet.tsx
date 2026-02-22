@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { X, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
@@ -24,7 +25,7 @@ function detectType(file: File): 'image' | 'video' | 'audio' {
 }
 
 export default function ReportSheet({ userId }: { userId: string | null }) {
-  const { setActiveSheet, newPinCoords, setNewPinCoords } = useStore();
+  const { setActiveSheet, newPinCoords, setNewPinCoords, addPin } = useStore();
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
     // Keep photo_url for backward compat (first image)
     const firstImage = uploaded.find((m) => m.type === 'image');
 
-    const { error } = await supabase
+    const { data: newPin, error } = await supabase
       .from('pins')
       .insert({
         user_id: userId,
@@ -136,6 +137,9 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
       setLoading(false);
       return;
     }
+
+    // Immediately add to store so the map updates without waiting for realtime
+    if (newPin) addPin(newPin as import('@/types').Pin);
 
     toast.success('Report submitted!');
     setActiveSheet('none');
@@ -163,13 +167,24 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
         <div className="p-5 pb-10">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Report a situation</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleClose}
+                className="p-1.5 rounded-full transition active:opacity-60"
+                style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)' }}
+                aria-label="Back to map"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Report a situation</h2>
+            </div>
             <button
               onClick={handleClose}
-              className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80"
-              style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+              className="p-1.5 rounded-full transition active:opacity-60"
+              style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)' }}
+              aria-label="Close"
             >
-              ✕ Close
+              <X size={18} />
             </button>
           </div>
 

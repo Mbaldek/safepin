@@ -76,7 +76,9 @@ export default function ProfileView({ userId, userEmail, onClose }: { userId: st
   const [saving, setSaving] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const didSaveRef = useRef(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Panel state
   const [panelTab, setPanelTab] = useState<PanelTab>('stats');
@@ -191,6 +193,24 @@ export default function ProfileView({ userId, userEmail, onClose }: { userId: st
   function startEditing() { didSaveRef.current = false; setEditing(true); }
   function cancelEdit()   { didSaveRef.current = true; setNameInput(userProfile?.display_name ?? ''); setEditing(false); }
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const path = `${userId}/avatar.${ext}`;
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+    if (upErr) { toast.error('Upload failed'); setAvatarUploading(false); return; }
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+    const avatar_url = urlData.publicUrl + '?t=' + Date.now();
+    const { error: dbErr } = await supabase.from('profiles').update({ avatar_url }).eq('id', userId);
+    if (dbErr) { toast.error('Failed to save photo'); setAvatarUploading(false); return; }
+    setUserProfile({ ...(userProfile ?? { id: userId, display_name: null, created_at: new Date().toISOString() }), avatar_url });
+    toast.success('Profile photo updated');
+    setAvatarUploading(false);
+    e.target.value = '';
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.replace('/login');
@@ -257,19 +277,52 @@ export default function ProfileView({ userId, userEmail, onClose }: { userId: st
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
       >
-        <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+        {/* Header bar with close button */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
+          <div className="w-9 h-1 rounded-full mx-auto" style={{ backgroundColor: 'var(--border)' }} />
+        </div>
+        <div className="flex items-center justify-between px-4 pb-2 shrink-0">
+          <span className="text-base font-black" style={{ color: 'var(--text-primary)' }}>My Profile</span>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full transition active:opacity-60"
+            style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)' }}
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
         <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-      <div className="max-w-110 mx-auto w-full px-4 py-4 flex flex-col gap-5">
+      <div className="max-w-110 mx-auto w-full px-4 py-2 flex flex-col gap-5">
 
         {/* ── Avatar + name ─────────────────────────────────────── */}
         <div className="flex flex-col items-center gap-3 pt-2">
           <div className="relative">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg"
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-3xl font-black text-white shadow-lg relative group"
               style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)', boxShadow: '0 8px 24px rgba(244,63,94,0.35)' }}
+              title="Change profile photo"
             >
-              {initial}
-            </div>
+              {userProfile?.avatar_url ? (
+                <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : avatarUploading ? (
+                <span className="text-sm animate-pulse">⏳</span>
+              ) : (
+                initial
+              )}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">
+                <span className="text-xs font-bold text-white">📷</span>
+              </div>
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
             <div
               className="absolute -bottom-1 -right-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.55rem] font-black border-2"
               style={{ backgroundColor: level.color + '18', color: level.color, borderColor: 'var(--bg-primary)' }}

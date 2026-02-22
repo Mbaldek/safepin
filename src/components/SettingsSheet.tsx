@@ -3,11 +3,11 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_NOTIF_SETTINGS } from '@/types';
 
@@ -107,6 +107,8 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin';
+
 export default function SettingsSheet({ onClose }: Props) {
   const { userId, userProfile, notifSettings, setNotifSettings, setActiveSheet } = useStore();
   const router = useRouter();
@@ -114,6 +116,7 @@ export default function SettingsSheet({ onClose }: Props) {
   const [crashReports, setCrashReports] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [section, setSection] = useState<Section | null>(null);
 
   const RADIUS_OPTIONS = [
     { label: '500 m', value: 500 },
@@ -156,34 +159,50 @@ export default function SettingsSheet({ onClose }: Props) {
       >
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
 
-        <div className="px-5 pt-4 pb-12">
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+        {/* ── Fixed header ──────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-5 pt-3 pb-3">
+          {section ? (
+            <button
+              onClick={() => setSection(null)}
+              className="flex items-center gap-1.5 text-sm font-bold transition active:opacity-60"
+              style={{ color: 'var(--accent)' }}
+            >
+              <ChevronLeft size={16} />
+              Settings
+            </button>
+          ) : (
             <div>
               <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Settings</h2>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {userProfile?.display_name ?? 'Your account'}
-              </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-xs px-3 py-1.5 rounded-full font-bold"
-              style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            >
-              ✕
-            </button>
-          </div>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full transition active:opacity-60"
+            style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(92dvh - 80px)' }}>
+        <div className="px-5 pt-2 pb-12">
+
+          <AnimatePresence mode="wait">
+          {!section ? (
+            /* ── Level 1: Category menu ────────────────────────────── */
+            <motion.div key="menu" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.15 }}>
 
           {/* ── My Profile link ──────────────────────────────────────── */}
           <button
             onClick={() => { setActiveSheet('profile'); onClose(); }}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-6 transition active:opacity-70"
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-5 transition active:opacity-70"
             style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-black text-white shrink-0"
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0"
               style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}>
-              {(userProfile?.display_name?.[0] ?? '?').toUpperCase()}
+              {userProfile?.avatar_url
+                ? <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                : (userProfile?.display_name?.[0] ?? '?').toUpperCase()}
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>
@@ -194,7 +213,36 @@ export default function SettingsSheet({ onClose }: Props) {
             <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
           </button>
 
-          {/* ── Account ─────────────────────────────────────────────── */}
+          {/* ── Level 1 menu ─────────────────────────────────────────── */}
+          <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            {([
+              { id: 'account',       label: 'Account',              subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
+              { id: 'notifications', label: 'Notifications',        subtitle: 'Alerts, radius, quiet hours',                        icon: <Bell size={16} /> },
+              { id: 'privacy',       label: 'Privacy & Data',       subtitle: 'Analytics, GDPR, delete account',                    icon: <Database size={16} /> },
+              { id: 'billing',       label: 'Subscription',         subtitle: 'Free plan · SafePin Pro coming soon',                icon: <CreditCard size={16} /> },
+              { id: 'legal',         label: 'Legal',                subtitle: 'Privacy policy, ToS, GDPR',                         icon: <FileText size={16} /> },
+              { id: 'security',      label: 'Security',             subtitle: '2FA, sessions, sign out',                           icon: <Shield size={16} /> },
+              { id: 'admin',         label: 'Admin — Tower Control', subtitle: 'Moderation & parameters',                           icon: <LayoutDashboard size={16} /> },
+            ] as { id: Section; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
+              <button
+                key={id}
+                onClick={() => setSection(id)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <span style={{ color: 'var(--accent)' }}>{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                </div>
+                <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+
+            </motion.div>
+          ) : section === 'account' ? (
+            <motion.div key="account" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           <Section title="Account" icon={<User size={13} />}>
             <Row
               label="Display name"
@@ -224,7 +272,10 @@ export default function SettingsSheet({ onClose }: Props) {
               }}
             />
           </Section>
+            </motion.div>
 
+          ) : section === 'billing' ? (
+            <motion.div key="billing" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           {/* ── Subscription & Billing ───────────────────────────────── */}
           <Section title="Subscription & Billing" icon={<CreditCard size={13} />}>
             <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -276,7 +327,10 @@ export default function SettingsSheet({ onClose }: Props) {
               chevron={false}
             />
           </Section>
+            </motion.div>
 
+          ) : section === 'privacy' ? (
+            <motion.div key="privacy" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           {/* ── Data & Privacy ───────────────────────────────────────── */}
           <Section title="Data & Privacy" icon={<Database size={13} />}>
             <ToggleRow
@@ -315,7 +369,10 @@ export default function SettingsSheet({ onClose }: Props) {
               value={confirmDelete ? 'Tap again to confirm' : undefined}
             />
           </Section>
+            </motion.div>
 
+          ) : section === 'legal' ? (
+            <motion.div key="legal" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           {/* ── Legal & Conformity ──────────────────────────────────── */}
           <Section title="Legal & Conformity" icon={<FileText size={13} />}>
             <Row
@@ -347,7 +404,10 @@ export default function SettingsSheet({ onClose }: Props) {
               </p>
             </div>
           </Section>
+            </motion.div>
 
+          ) : section === 'notifications' ? (
+            <motion.div key="notifications" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           {/* ── Notifications ────────────────────────────────────────── */}
           <Section title="Notifications" icon={<Bell size={13} />}>
             {/* Proximity radius */}
@@ -396,22 +456,50 @@ export default function SettingsSheet({ onClose }: Props) {
             />
             <ToggleRow
               label="Quiet hours"
-              subtitle={`${notifSettings?.quiet_start ?? '22:00'} – ${notifSettings?.quiet_end ?? '07:00'} · SOS always active`}
+              subtitle="Silence non-emergency alerts during set hours. SOS always active."
               value={notifSettings?.quiet_hours_enabled ?? false}
               onChange={(v) => patchNotif({ quiet_hours_enabled: v })}
             />
+            {(notifSettings?.quiet_hours_enabled) && (
+              <div className="px-4 py-3.5 flex items-center gap-4" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="flex-1">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-placeholder)' }}>From</p>
+                  <input
+                    type="time"
+                    value={notifSettings?.quiet_start ?? '22:00'}
+                    onChange={(e) => patchNotif({ quiet_start: e.target.value })}
+                    className="w-full rounded-xl px-3 py-2 text-sm font-bold outline-none"
+                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-placeholder)' }}>To</p>
+                  <input
+                    type="time"
+                    value={notifSettings?.quiet_end ?? '07:00'}
+                    onChange={(e) => patchNotif({ quiet_end: e.target.value })}
+                    className="w-full rounded-xl px-3 py-2 text-sm font-bold outline-none"
+                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+            )}
           </Section>
+            </motion.div>
 
-          {/* ── Admin ────────────────────────────────────────────────── */}
-          <Section title="Admin" icon={<LayoutDashboard size={13} />}>
+          ) : section === 'admin' ? (
+            <motion.div key="admin" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
+          <Section title="Admin — Tower Control" icon={<LayoutDashboard size={13} />}>
             <Row
-              label="Tower Control"
+              label="Open Tower Control"
               badge="Admin only"
               onPress={() => { router.push('/admin'); onClose(); }}
             />
           </Section>
+            </motion.div>
 
-          {/* Security section */}
+          ) : section === 'security' ? (
+            <motion.div key="security" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           <Section title="Security" icon={<Shield size={13} />}>
             <Row
               label="Two-factor authentication"
@@ -435,7 +523,12 @@ export default function SettingsSheet({ onClose }: Props) {
               chevron={false}
             />
           </Section>
+            </motion.div>
 
+          ) : null}
+          </AnimatePresence>
+
+        </div>
         </div>
       </motion.div>
     </>

@@ -78,6 +78,7 @@ type Store = {
   userProfile: {
     id: string;
     display_name: string | null;
+    avatar_url?: string | null;
     created_at: string;
     verified?: boolean;
     verification_status?: 'unverified' | 'pending' | 'approved' | 'declined' | null;
@@ -86,6 +87,7 @@ type Store = {
   setUserProfile: (p: {
     id: string;
     display_name: string | null;
+    avatar_url?: string | null;
     created_at: string;
     verified?: boolean;
     verification_status?: 'unverified' | 'pending' | 'approved' | 'declined' | null;
@@ -157,7 +159,9 @@ export const useStore = create<Store>((set) => ({
   // Pins
   pins: [],
   setPins: (pins) => set({ pins }),
-  addPin: (pin) => set((state) => ({ pins: [...state.pins, pin] })),
+  addPin: (pin) => set((state) => ({
+    pins: state.pins.some((p) => p.id === pin.id) ? state.pins : [pin, ...state.pins],
+  })),
   updatePin: (pin) => set((state) => ({ pins: state.pins.map((p) => p.id === pin.id ? pin : p) })),
 
   // Map filters
