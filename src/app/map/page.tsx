@@ -388,14 +388,7 @@ export default function MapPage() {
         {/* City context + report buttons — map tab only */}
         {activeTab === 'map' && (
           <>
-            <button
-              onClick={() => setShowCityContext(true)}
-              className="absolute bottom-22 right-4 w-11 h-11 rounded-2xl flex items-center justify-center shadow-md z-60 transition hover:scale-105 active:scale-95"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-              title="City context"
-            >
-              <Building2 size={18} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
-            </button>
+            {/* City context button — hidden, to be removed later */}
             <button
               onClick={() => setActiveSheet('report')}
               className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"

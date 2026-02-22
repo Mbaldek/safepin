@@ -50,13 +50,28 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
   async function save() {
     if (!name.trim() && !note.trim()) return;
     setSaving(true);
-    const { data, error } = await supabase
+    let result = await supabase
       .from('place_notes')
-      .insert({ user_id: userId, lat: coords.lat, lng: coords.lng, name: name.trim() || null, note: note.trim(), emoji })
+      .insert({ user_id: userId, lat: coords.lat, lng: coords.lng, name: name.trim() || null, note: note.trim() || name.trim(), emoji })
       .select()
       .single();
+
+    // Fallback: if the `name` column doesn't exist yet (migration not run), retry without it
+    if (result.error && result.error.message?.toLowerCase().includes('name')) {
+      result = await supabase
+        .from('place_notes')
+        .insert({ user_id: userId, lat: coords.lat, lng: coords.lng, note: note.trim() || name.trim(), emoji })
+        .select()
+        .single();
+    }
+
+    const { data, error } = result;
     setSaving(false);
-    if (error) { toast.error('Could not save note'); return; }
+    if (error) {
+      console.error('[PlaceNote save error]', error);
+      toast.error(error.message ?? 'Could not save note');
+      return;
+    }
     addPlaceNote(data as PlaceNote);
     if (isFavorite) toggleFavPlace((data as PlaceNote).id);
     toast.success(isFavorite ? 'Note saved & added to favorites ⭐' : 'Note saved 📌');
