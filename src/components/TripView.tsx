@@ -4,7 +4,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, BookOpen } from 'lucide-react';
+import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, Star } from 'lucide-react';
+import SavedPanel from '@/components/SavedPanel';
 import { useStore, RouteOption } from '@/stores/useStore';
 import { Pin, SavedRoute } from '@/types';
 import AutocompleteInput from '@/components/AutocompleteInput';
@@ -243,8 +244,9 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     userProfile, userLocation, pins, userId,
     setActiveRoute, setPendingRoutes,
     isSharingLocation, setIsSharingLocation,
-    placeNotes,
+    placeNotes, favPlaceIds,
     tripPrefill, setTripPrefill,
+    setActiveTab,
   } = useStore();
 
   const [phase, setPhase]                 = useState<Phase>('idle');
@@ -263,7 +265,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   // My saved routes
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
-  const [showRoutes, setShowRoutes]   = useState(false);
+  const [showSaved, setShowSaved]     = useState(false);
 
   // Favourite routes — persisted in localStorage
   const FAV_KEY = 'safepin_fav_routes';
@@ -428,7 +430,13 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setDest(r.to_label);
     setDestCoords(r.coords?.[(r.coords?.length ?? 1) - 1] as [number, number] | null ?? null);
     setMode(r.mode as Mode);
-    setShowRoutes(false);
+    setShowSaved(false);
+  }
+
+  async function deleteRoute(id: string) {
+    await supabase.from('saved_routes').delete().eq('id', id);
+    setSavedRoutes((prev) => prev.filter((r) => r.id !== id));
+    setFavIds((prev) => { const next = new Set(prev); next.delete(id); try { localStorage.setItem(FAV_KEY, JSON.stringify([...next])); } catch { /* noop */ } return next; });
   }
 
   function selectRoute(opt: RouteOption) {
@@ -500,7 +508,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   // ── Header title ──────────────────────────────────────────────────────────
 
   const phaseTitle =
-    phase === 'idle'      ? 'Trip Planner' :
+    phase === 'idle'      ? (showSaved ? 'My Favorites' : 'Trip Planner') :
     phase === 'searching' ? 'Finding routes…' :
     phase === 'selecting' ? 'Choose Route' :
                             'Active Trip';
@@ -524,9 +532,9 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-3 pb-2 shrink-0">
         <div className="flex items-center gap-2">
-          {phase === 'selecting' && (
+          {(phase === 'selecting' || (phase === 'idle' && showSaved)) && (
             <button
-              onClick={backToIdle}
+              onClick={() => { if (showSaved) setShowSaved(false); else backToIdle(); }}
               className="w-7 h-7 rounded-xl flex items-center justify-center"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
@@ -739,78 +747,52 @@ export default function TripView({ onClose }: { onClose: () => void }) {
           );
         })()}
 
+        {/* ── Idle (saved panel) ──────────────────────────────────────── */}
+        {phase === 'idle' && showSaved && (
+          <div className="flex flex-col pt-1" style={{ minHeight: 0, flex: 1 }}>
+            <SavedPanel
+              savedRoutes={savedRoutes}
+              favRouteIds={favIds}
+              onToggleFavRoute={toggleFav}
+              onLoadPlace={(note, as) => {
+                const label = note.name || `${note.emoji} ${note.note.slice(0, 30)}`;
+                const coords: [number, number] = [note.lng, note.lat];
+                if (as === 'from') { setDeparture(label); setDepartureCoords(coords); }
+                else               { setDest(label);      setDestCoords(coords); }
+                setShowSaved(false);
+              }}
+              onLoadRoute={loadSavedRoute}
+              onDeleteRoute={deleteRoute}
+              onAddPlace={() => { onClose(); setActiveTab('map'); }}
+            />
+          </div>
+        )}
+
         {/* ── Idle (form) ─────────────────────────────────────────────── */}
-        {phase === 'idle' && (
+        {phase === 'idle' && !showSaved && (
           <div className="flex flex-col gap-4 pt-1">
 
-            {/* My Saved Routes */}
-            {savedRoutes.length > 0 && (
-              <div>
-                <button
-                  onClick={() => setShowRoutes(!showRoutes)}
-                  className="flex items-center justify-between w-full mb-1.5"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <BookOpen size={12} strokeWidth={2.5} style={{ color: 'var(--text-muted)' }} />
-                    <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                      My Routes ({savedRoutes.length}){favIds.size > 0 ? ` · ${favIds.size} ⭐` : ''}
-                    </p>
-                  </div>
-                  <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                    {showRoutes ? '▲' : '▼'}
+            {/* My Favorites shortcut */}
+            <button
+              onClick={() => setShowSaved(true)}
+              className="flex items-center justify-between w-full px-4 py-2.5 rounded-2xl transition"
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Star size={14} strokeWidth={2.5} style={{ color: '#f59e0b' }} />
+                <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>My Favorites</span>
+                {(favPlaceIds.length > 0 || savedRoutes.length > 0) && (
+                  <span className="text-[0.6rem] px-2 py-0.5 rounded-full font-bold"
+                    style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                    {favPlaceIds.length} place{favPlaceIds.length !== 1 ? 's' : ''} · {savedRoutes.length} route{savedRoutes.length !== 1 ? 's' : ''}
                   </span>
-                </button>
-                {showRoutes && (
-                  <div className="flex flex-col gap-1.5">
-                    {sortedRoutes.map((r) => {
-                      const isFav = favIds.has(r.id);
-                      return (
-                        <div
-                          key={r.id}
-                          className="flex items-center gap-1 rounded-xl overflow-hidden"
-                          style={{
-                            backgroundColor: 'var(--bg-card)',
-                            border: isFav ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid var(--border)',
-                          }}
-                        >
-                          {/* Fav toggle */}
-                          <button
-                            onClick={() => toggleFav(r.id)}
-                            className="shrink-0 w-9 flex items-center justify-center self-stretch transition hover:opacity-70"
-                            title={isFav ? 'Remove from favourites' : 'Add to favourites'}
-                          >
-                            <span className="text-base">{isFav ? '⭐' : '☆'}</span>
-                          </button>
-                          {/* Route info */}
-                          <button
-                            onClick={() => loadSavedRoute(r)}
-                            className="flex-1 flex items-center justify-between py-2.5 pr-3 text-left transition active:scale-[0.98] min-w-0"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                                {r.from_label ? `${r.from_label} → ` : ''}{r.to_label}
-                              </p>
-                              <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                {MODES.find((m) => m.id === r.mode)?.emoji ?? ''} {r.mode} · {r.trip_count}× used
-                              </p>
-                            </div>
-                            <span
-                              className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0 ml-2"
-                              style={{
-                                backgroundColor: r.danger_score_last === 0 ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                                color: r.danger_score_last === 0 ? '#22c55e' : '#f59e0b',
-                              }}
-                            >
-                              {r.danger_score_last === 0 ? 'Clear' : `${r.danger_score_last} risk`}
-                            </span>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
                 )}
               </div>
-            )}
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>›</span>
+            </button>
 
             {/* Error */}
             {error && (
@@ -833,9 +815,9 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 placeholder="My current location"
                 localSections={[{
                   title: 'My Places',
-                  items: placeNotes.map((n) => ({
-                    label: ('name' in n && n.name) ? String(n.name) : `${n.emoji} ${n.note.slice(0, 30)}`,
-                    sublabel: ('name' in n && n.name) ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
+                  items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
+                    label: n.name ?? `${n.emoji} ${n.note.slice(0, 30)}`,
+                    sublabel: n.name ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
                     coords: [n.lng, n.lat] as [number, number],
                     icon: n.emoji,
                   })),
@@ -855,9 +837,9 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 localSections={[
                   {
                     title: 'My Places',
-                    items: placeNotes.map((n) => ({
-                      label: ('name' in n && n.name) ? String(n.name) : `${n.emoji} ${n.note.slice(0, 30)}`,
-                      sublabel: ('name' in n && n.name) ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
+                    items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
+                      label: n.name ?? `${n.emoji} ${n.note.slice(0, 30)}`,
+                      sublabel: n.name ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
                       coords: [n.lng, n.lat] as [number, number],
                       icon: n.emoji,
                     })),

@@ -141,7 +141,7 @@ export default function MapView() {
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -392,7 +392,7 @@ export default function MapView() {
 
     for (const note of placeNotes) {
       const el = document.createElement('div');
-      const isFavorite = Boolean(note.name);
+      const isFavorite = favPlaceIds.includes(note.id);
       el.style.cssText = isFavorite
         ? 'width:32px;height:32px;border-radius:50%;background:#f59e0b;border:2.5px solid #fff;' +
           'box-shadow:0 2px 10px rgba(245,158,11,0.45);display:flex;align-items:center;justify-content:center;' +
@@ -412,7 +412,7 @@ export default function MapView() {
         .addTo(map.current!);
       noteMarkersRef.current.push(marker);
     }
-  }, [placeNotes, mapReady]);
+  }, [placeNotes, favPlaceIds, mapReady]);
 
   // Load and render personal location heatmap (Sprint 28)
   useEffect(() => {

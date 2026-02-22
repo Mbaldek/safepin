@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
@@ -21,11 +21,31 @@ type Props = {
 };
 
 export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Props) {
-  const { addPlaceNote } = useStore();
-  const [name, setName]   = useState('');
-  const [note, setNote]   = useState('');
-  const [emoji, setEmoji] = useState('📌');
-  const [saving, setSaving] = useState(false);
+  const { addPlaceNote, toggleFavPlace } = useStore();
+  const [name, setName]         = useState('');
+  const [note, setNote]         = useState('');
+  const [emoji, setEmoji]       = useState('📌');
+  const [saving, setSaving]     = useState(false);
+  const [isFavorite, setFav]    = useState(false);
+  const [address, setAddress]   = useState<string | null>(null);
+  const [addrLoading, setAddrLoading] = useState(true);
+
+  // Reverse geocode coords → human-readable address
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json` +
+      `?access_token=${token}&types=address,place&language=fr,en&limit=1`,
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        const label = d.features?.[0]?.place_name as string | undefined;
+        if (label) setAddress(label);
+      })
+      .catch(() => {})
+      .finally(() => setAddrLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function save() {
     if (!name.trim() && !note.trim()) return;
@@ -37,8 +57,9 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
       .single();
     setSaving(false);
     if (error) { toast.error('Could not save note'); return; }
-    toast.success('Note saved 📌');
     addPlaceNote(data as PlaceNote);
+    if (isFavorite) toggleFavPlace((data as PlaceNote).id);
+    toast.success(isFavorite ? 'Note saved & added to favorites ⭐' : 'Note saved 📌');
     onSaved();
     onClose();
   }
@@ -76,9 +97,11 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
             </button>
           </div>
 
-          {/* Location hint */}
+          {/* Address / location hint */}
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+            📍 {addrLoading
+              ? 'Fetching address…'
+              : address ?? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`}
           </p>
 
           {/* Name (optional) */}
@@ -135,6 +158,23 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
               }}
             />
           </div>
+
+          {/* Favorite toggle */}
+          <button
+            onClick={() => setFav((v) => !v)}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition text-sm font-bold"
+            style={{
+              backgroundColor: isFavorite ? 'rgba(245,158,11,0.10)' : 'var(--bg-card)',
+              border: isFavorite ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid var(--border)',
+              color: isFavorite ? '#f59e0b' : 'var(--text-muted)',
+            }}
+          >
+            <span className="text-base">{isFavorite ? '⭐' : '☆'}</span>
+            <span>{isFavorite ? 'Added to Favorites' : 'Add to Favorites'}</span>
+            <span className="ml-auto text-xs" style={{ color: 'var(--text-placeholder)' }}>
+              {isFavorite ? 'Accessible in Trip Planner' : 'Quickly reuse in trips'}
+            </span>
+          </button>
 
           {/* Save */}
           <button

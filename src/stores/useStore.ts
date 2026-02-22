@@ -110,6 +110,11 @@ type Store = {
   selectedPlaceNote: PlaceNote | null;
   setSelectedPlaceNote: (note: PlaceNote | null) => void;
 
+  // Place note favorites — persisted in localStorage
+  favPlaceIds: string[];
+  toggleFavPlace: (id: string) => void;
+  deletePlaceNote: (id: string) => void;
+
   // Trip prefill — set by map popup to pre-fill trip planner fields
   tripPrefill: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null;
   setTripPrefill: (p: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null) => void;
@@ -191,6 +196,28 @@ export const useStore = create<Store>((set) => ({
   addPlaceNote: (note) => set((state) => ({ placeNotes: [note, ...state.placeNotes] })),
   selectedPlaceNote: null,
   setSelectedPlaceNote: (note) => set({ selectedPlaceNote: note }),
+
+  // Place note favorites
+  favPlaceIds: typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem('safepin_fav_places') ?? '[]') as string[]; } catch { return []; } })()
+    : [],
+  toggleFavPlace: (id) =>
+    set((state) => {
+      const has = state.favPlaceIds.includes(id);
+      const next = has ? state.favPlaceIds.filter((x) => x !== id) : [...state.favPlaceIds, id];
+      try { localStorage.setItem('safepin_fav_places', JSON.stringify(next)); } catch { /* noop */ }
+      return { favPlaceIds: next };
+    }),
+  deletePlaceNote: (id) =>
+    set((state) => {
+      const next = state.favPlaceIds.filter((x) => x !== id);
+      try { localStorage.setItem('safepin_fav_places', JSON.stringify(next)); } catch { /* noop */ }
+      return {
+        placeNotes: state.placeNotes.filter((n) => n.id !== id),
+        favPlaceIds: next,
+      };
+    }),
+
   tripPrefill: null,
   setTripPrefill: (p) => set({ tripPrefill: p }),
 }));
