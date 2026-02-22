@@ -339,9 +339,16 @@ export default function MapPage() {
       <div className="shrink-0 z-50"
         style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between px-4 pt-2.5 pb-2">
-          <div className="text-lg font-bold tracking-tight">
-            <span style={{ color: 'var(--accent)' }}>Safe</span>
-            <span style={{ color: 'var(--text-primary)' }}>Pin</span>
+          <div className="flex items-center gap-1.5">
+            {/* KOVA shield mark */}
+            <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.15" />
+              <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.8" fill="none" />
+              <text x="16" y="21" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">K</text>
+            </svg>
+            <span className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+              KO<span style={{ color: 'var(--accent)' }}>V</span>A
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {/* Search icon — map tab only */}

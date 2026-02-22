@@ -9,7 +9,10 @@
       "Bash(git tag:*)",
       "Bash(git push:*)",
       "Bash(npm install:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(npx --yes sharp-cli:*)",
+      "Bash(node -e:*)",
+      "Bash(npx next build:*)"
     ]
   }
 }
