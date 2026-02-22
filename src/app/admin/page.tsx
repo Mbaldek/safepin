@@ -194,6 +194,8 @@ function PinsTab() {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [userNames, setUserNames] = useState<Record<string, string | null>>({});
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const PAGE_SIZE = 20;
 
   const load = useCallback(async () => {
@@ -210,8 +212,18 @@ function PinsTab() {
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
       if (error) throw error;
-      setPins((data as Pin[]) ?? []);
+      const rows = (data as Pin[]) ?? [];
+      setPins(rows);
       setTotal(count ?? 0);
+
+      // Resolve user names for this page
+      const uids = [...new Set(rows.map((p) => p.user_id).filter(Boolean))] as string[];
+      if (uids.length) {
+        const { data: profiles } = await supabase.from('profiles').select('id, display_name').in('id', uids);
+        const nm: Record<string, string | null> = {};
+        for (const p of (profiles ?? [])) nm[p.id] = p.display_name;
+        setUserNames((prev) => ({ ...prev, ...nm }));
+      }
     } catch {
       toast.error('Failed to load pins');
     } finally {
@@ -262,6 +274,7 @@ function PinsTab() {
 
   return (
     <div className="space-y-4">
+      {detailUserId && <UserDetailPanel userId={detailUserId} onClose={() => setDetailUserId(null)} />}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-gray-900">Pins ({total})</h2>
         <div className="flex items-center gap-2">
@@ -292,6 +305,7 @@ function PinsTab() {
                 <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   <th className="px-4 py-3"><input type="checkbox" checked={selected.size === pins.length && pins.length > 0} onChange={toggleAll} className="rounded" /></th>
                   <th className="px-4 py-3">ID</th>
+                  <th className="px-4 py-3">User</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Severity</th>
                   <th className="px-4 py-3">Emergency</th>
@@ -305,6 +319,7 @@ function PinsTab() {
                   <tr key={pin.id} className={`hover:bg-gray-50 transition-colors ${selected.has(pin.id) ? 'bg-blue-50' : ''}`}>
                     <td className="px-4 py-3"><input type="checkbox" checked={selected.has(pin.id)} onChange={() => toggleSelect(pin.id)} className="rounded" /></td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-400">{shortId(pin.id)}</td>
+                    <td className="px-4 py-3"><UserChip userId={pin.user_id} name={userNames[pin.user_id ?? '']} onSelect={setDetailUserId} /></td>
                     <td className="px-4 py-3 font-medium text-gray-800">{pin.category}</td>
                     <td className="px-4 py-3"><Badge color={severityColor(pin.severity)}>{pin.severity}</Badge></td>
                     <td className="px-4 py-3">{pin.is_emergency ? <Badge color="bg-red-100 text-red-700">Yes</Badge> : <span className="text-gray-400">—</span>}</td>
@@ -342,6 +357,7 @@ function PinsTab() {
 function UsersTab() {
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -378,6 +394,7 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
+      {detailUserId && <UserDetailPanel userId={detailUserId} onClose={() => setDetailUserId(null)} />}
       <h2 className="text-lg font-semibold text-gray-900">Users ({users.length})</h2>
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? <Spinner /> : (
@@ -397,7 +414,7 @@ function UsersTab() {
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-gray-400">{shortId(u.id)}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{u.display_name ?? '—'}</td>
+                    <td className="px-4 py-3"><UserChip userId={u.id} name={u.display_name} onSelect={setDetailUserId} /></td>
                     <td className="px-4 py-3 text-gray-500">{fmt(u.created_at)}</td>
                     <td className="px-4 py-3">{u.verification_status ? <Badge color="bg-green-100 text-green-700">{u.verification_status}</Badge> : <span className="text-gray-400">—</span>}</td>
                     <td className="px-4 py-3">{u.is_admin ? <Badge color="bg-purple-100 text-purple-700">Admin</Badge> : <span className="text-gray-400">—</span>}</td>
@@ -428,13 +445,24 @@ function UsersTab() {
 function ReportsTab() {
   const [reports, setReports] = useState<UserReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userNames, setUserNames] = useState<Record<string, string | null>>({});
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.from('user_reports').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      setReports((data as UserReport[]) ?? []);
+      const rows = (data as UserReport[]) ?? [];
+      setReports(rows);
+      // Resolve reporter names
+      const uids = [...new Set(rows.map((r) => r.reporter_id).filter(Boolean))];
+      if (uids.length) {
+        const { data: profiles } = await supabase.from('profiles').select('id, display_name').in('id', uids);
+        const nm: Record<string, string | null> = {};
+        for (const p of (profiles ?? [])) nm[p.id] = p.display_name;
+        setUserNames(nm);
+      }
     } catch {
       toast.error('Failed to load reports');
     } finally {
@@ -465,6 +493,7 @@ function ReportsTab() {
 
   return (
     <div className="space-y-4">
+      {detailUserId && <UserDetailPanel userId={detailUserId} onClose={() => setDetailUserId(null)} />}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Reports ({reports.length})</h2>
         <div className="flex gap-3 text-xs text-gray-500">
@@ -491,7 +520,7 @@ function ReportsTab() {
               <tbody className="divide-y divide-gray-100">
                 {reports.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-gray-400">{shortId(r.reporter_id)}</td>
+                    <td className="px-4 py-3"><UserChip userId={r.reporter_id} name={userNames[r.reporter_id]} onSelect={setDetailUserId} /></td>
                     <td className="px-4 py-3"><Badge color="bg-gray-100 text-gray-600">{r.target_type}</Badge></td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-400">{shortId(r.target_id)}</td>
                     <td className="px-4 py-3 text-gray-700 max-w-xs truncate" title={r.reason}>{r.reason}</td>
@@ -716,17 +745,380 @@ function LiveTab() {
   );
 }
 
+// ─── Shared: SVG Bar Chart ────────────────────────────────────────────────────
+
+type ChartPoint = { label: string; value: number };
+
+function MiniBarChart({ data, color = '#6366f1', height = 80 }: { data: ChartPoint[]; color?: string; height?: number }) {
+  if (!data.length) return null;
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const W = 600; const H = height;
+  const bw = Math.max(1, Math.floor(W / data.length) - 2);
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="overflow-visible">
+      {data.map((d, i) => {
+        const bh = Math.max(1, (d.value / max) * H);
+        return (
+          <g key={i}>
+            <rect x={i * (W / data.length) + 1} y={H - bh} width={bw} height={bh} fill={color} rx={2} opacity={0.85} />
+            {d.value > 0 && i % Math.ceil(data.length / 8) === 0 && (
+              <text x={i * (W / data.length) + bw / 2} y={H - bh - 3} textAnchor="middle" fontSize={18} fill="#6b7280">{d.value}</text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ChartCard({ title, subtitle, data, color }: { title: string; subtitle?: string; data: ChartPoint[]; color?: string }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-700">{title}</p>
+          {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+        </div>
+        <span className="text-xl font-black text-gray-900">{total.toLocaleString()}</span>
+      </div>
+      <div className="h-20">
+        <MiniBarChart data={data} color={color} height={80} />
+      </div>
+      <div className="flex items-center justify-between mt-2 text-[0.65rem] text-gray-400">
+        <span>{data[0]?.label ?? ''}</span>
+        <span>{data[data.length - 1]?.label ?? ''}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared: User Chip + Detail Panel ────────────────────────────────────────
+
+function UserChip({ userId, name, onSelect }: { userId?: string | null; name?: string | null; onSelect?: (id: string) => void }) {
+  if (!userId) return <span className="text-gray-400 text-xs">—</span>;
+  return (
+    <button
+      onClick={() => onSelect?.(userId)}
+      className="group flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+      title={userId}
+    >
+      <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[0.55rem] font-black text-blue-700 group-hover:bg-blue-200 transition-colors">
+        {(name?.[0] ?? '?').toUpperCase()}
+      </span>
+      <span className="hover:underline">{name ?? shortId(userId)}</span>
+    </button>
+  );
+}
+
+type UserDetail = {
+  id: string;
+  display_name: string | null;
+  created_at: string;
+  verification_status: string | null;
+  is_admin: boolean | null;
+  avatar_url?: string | null;
+};
+
+function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const [user, setUser]       = useState<UserDetail | null>(null);
+  const [pins, setUserPins]   = useState<Pin[]>([]);
+  const [stats, setStats]     = useState({ pinCount: 0, voteCount: 0, commentCount: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const [profileRes, pinsRes, votesRes, commentsRes] = await Promise.all([
+        supabase.from('profiles').select('id, display_name, created_at, verification_status, is_admin, avatar_url').eq('id', userId).single(),
+        supabase.from('pins').select('id, category, severity, is_emergency, resolved_at, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+        supabase.from('pin_votes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('pin_comments').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      ]);
+      setUser((profileRes.data as UserDetail) ?? null);
+      setUserPins((pinsRes.data as Pin[]) ?? []);
+      setStats({
+        pinCount:     pinsRes.data?.length ?? 0,
+        voteCount:    (votesRes as { count: number | null }).count ?? 0,
+        commentCount: (commentsRes as { count: number | null }).count ?? 0,
+      });
+      setLoading(false);
+    })();
+  }, [userId]);
+
+  async function handleToggleAdmin() {
+    if (!user) return;
+    await supabase.from('profiles').update({ is_admin: !user.is_admin }).eq('id', userId);
+    setUser((u) => u ? { ...u, is_admin: !u.is_admin } : u);
+    toast.success('Admin status updated');
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-linear-to-r from-gray-900 to-gray-700 px-6 py-5 text-white">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-black overflow-hidden">
+                {user?.avatar_url
+                  ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                  : (user?.display_name?.[0] ?? '?').toUpperCase()}
+              </div>
+              <div>
+                <p className="font-black text-base leading-tight">{user?.display_name ?? 'Unnamed user'}</p>
+                <p className="text-xs text-white/60 mt-0.5 font-mono">{userId}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-white/60 hover:text-white text-xl leading-none">✕</button>
+          </div>
+          <div className="flex gap-3 mt-4">
+            {[
+              { label: 'Pins',     value: stats.pinCount     },
+              { label: 'Votes',    value: stats.voteCount    },
+              { label: 'Comments', value: stats.commentCount },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-center">
+                <p className="text-lg font-black">{value}</p>
+                <p className="text-[0.6rem] text-white/60 uppercase tracking-wide">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        {loading ? <Spinner /> : (
+          <div className="px-6 py-4 space-y-4">
+            {/* Meta */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-0.5">Joined</p>
+                <p className="font-semibold text-gray-800">{user?.created_at ? fmt(user.created_at) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-0.5">Verification</p>
+                <p className="font-semibold text-gray-800">{user?.verification_status ?? 'None'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-0.5">Role</p>
+                {user?.is_admin
+                  ? <Badge color="bg-purple-100 text-purple-700">Admin</Badge>
+                  : <Badge color="bg-gray-100 text-gray-500">User</Badge>}
+              </div>
+            </div>
+
+            {/* Recent pins */}
+            {pins.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent pins</p>
+                <div className="space-y-1.5">
+                  {pins.map((pin) => (
+                    <div key={pin.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+                      <Badge color={severityColor(pin.severity)}>{pin.severity}</Badge>
+                      <span className="font-medium text-gray-700">{pin.category}</span>
+                      <span className="ml-auto text-gray-400">{fmt(pin.created_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button
+                onClick={handleToggleAdmin}
+                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${user?.is_admin ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                {user?.is_admin ? 'Revoke admin' : 'Grant admin'}
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm('Delete this user profile?')) return;
+                  await supabase.from('profiles').delete().eq('id', userId);
+                  toast.success('Profile deleted');
+                  onClose();
+                }}
+                className="flex-1 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+              >
+                Delete profile
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab 7 — Analytics ────────────────────────────────────────────────────────
+
+function groupByDay(rows: { created_at: string }[], days = 30): ChartPoint[] {
+  const counts: Record<string, number> = {};
+  const now = Date.now();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    counts[key] = 0;
+  }
+  for (const r of rows) {
+    const key = r.created_at.slice(0, 10);
+    if (key in counts) counts[key] = (counts[key] || 0) + 1;
+  }
+  return Object.entries(counts).map(([day, value]) => ({
+    label: day.slice(5), // MM-DD
+    value,
+  }));
+}
+
+function distinctUsers(rows: { created_at: string; user_id?: string | null }[]): Set<string> {
+  const s = new Set<string>();
+  for (const r of rows) { if (r.user_id) s.add(r.user_id); }
+  return s;
+}
+
+function filterByRange(rows: { created_at: string }[], from: Date, to: Date) {
+  return rows.filter((r) => {
+    const t = new Date(r.created_at).getTime();
+    return t >= from.getTime() && t < to.getTime();
+  });
+}
+
+function AnalyticsTab() {
+  const [loading, setLoading] = useState(true);
+
+  // raw data
+  const [allProfiles, setAllProfiles] = useState<{ id: string; created_at: string }[]>([]);
+  const [allPins, setAllPins] = useState<{ user_id: string | null; created_at: string; resolved_at: string | null }[]>([]);
+  const [allVotes, setAllVotes] = useState<{ user_id: string | null; created_at: string }[]>([]);
+  const [allComments, setAllComments] = useState<{ user_id: string | null; created_at: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [profilesRes, pinsRes, votesRes, commentsRes] = await Promise.all([
+        supabase.from('profiles').select('id, created_at').gte('created_at', cutoff),
+        supabase.from('pins').select('user_id, created_at, resolved_at').gte('created_at', cutoff),
+        supabase.from('pin_votes').select('user_id, created_at').gte('created_at', cutoff),
+        supabase.from('pin_comments').select('user_id, created_at').gte('created_at', cutoff),
+      ]);
+      setAllProfiles((profilesRes.data as { id: string; created_at: string }[]) ?? []);
+      setAllPins((pinsRes.data as { user_id: string | null; created_at: string; resolved_at: string | null }[]) ?? []);
+      setAllVotes((votesRes.data as { user_id: string | null; created_at: string }[]) ?? []);
+      setAllComments((commentsRes.data as { user_id: string | null; created_at: string }[]) ?? []);
+      setLoading(false);
+    })();
+  }, []);
+
+  // Date ranges
+  const todayStart     = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+  const weekStart      = new Date(todayStart.getTime() - 6 * 86400000);
+  const monthStart     = new Date(todayStart); monthStart.setDate(1);
+  const tomorrow       = new Date(todayStart.getTime() + 86400000);
+
+  // Active users (combined: pins + votes + comments)
+  function activeUsers(from: Date, to: Date) {
+    const allActivity = [...allPins, ...allVotes, ...allComments];
+    return distinctUsers(filterByRange(allActivity, from, to)).size;
+  }
+
+  const dauToday     = activeUsers(todayStart, tomorrow);
+  const dauYesterday = activeUsers(yesterdayStart, todayStart);
+  const wau          = activeUsers(weekStart, tomorrow);
+  const mau          = activeUsers(monthStart, tomorrow);
+
+  // New users
+  const newToday = filterByRange(allProfiles, todayStart, tomorrow).length;
+  const newMonth = filterByRange(allProfiles, monthStart, tomorrow).length;
+
+  // Pins
+  const pinsToday = filterByRange(allPins, todayStart, tomorrow).length;
+  const pinsWeek  = filterByRange(allPins, weekStart, tomorrow).length;
+
+  // Engagement
+  const resolvedPins  = allPins.filter((p) => p.resolved_at).length;
+  const resolutionRate = allPins.length > 0 ? Math.round((resolvedPins / allPins.length) * 100) : 0;
+  const engagementRate = allPins.length > 0
+    ? ((allVotes.length + allComments.length) / allPins.length).toFixed(1)
+    : '0';
+
+  // Retention: users active this week who joined >7 days ago
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const oldUserIds = new Set(allProfiles.filter((p) => p.created_at < sevenDaysAgo).map((p) => p.id));
+  const returnedThisWeek = [...distinctUsers(filterByRange([...allPins, ...allVotes, ...allComments], weekStart, tomorrow))].filter((id) => oldUserIds.has(id)).length;
+
+  // Chart data
+  const newUsersChart = groupByDay(allProfiles);
+  const pinsChart     = groupByDay(allPins);
+  const votesChart    = groupByDay(allVotes);
+  const commentsChart = groupByDay(allComments);
+
+  // DAU chart (unique active user count per day)
+  const dauChart: ChartPoint[] = (() => {
+    const pts: ChartPoint[] = [];
+    const now = Date.now();
+    for (let i = 29; i >= 0; i--) {
+      const from = new Date(now - i * 86400000); from.setHours(0, 0, 0, 0);
+      const to   = new Date(from.getTime() + 86400000);
+      pts.push({ label: from.toISOString().slice(5, 10), value: activeUsers(from, to) });
+    }
+    return pts;
+  })();
+
+  const kpiRows = [
+    { label: 'DAU Today',      value: dauToday,      color: 'text-indigo-700', sub: `${dauYesterday} yesterday` },
+    { label: 'WAU',            value: wau,            color: 'text-blue-700',   sub: 'last 7 days' },
+    { label: 'MAU',            value: mau,            color: 'text-cyan-700',   sub: 'this month' },
+    { label: 'New users today',value: newToday,       color: 'text-emerald-700',sub: `${newMonth} this month` },
+    { label: 'Pins today',     value: pinsToday,      color: 'text-orange-700', sub: `${pinsWeek} this week` },
+    { label: 'Resolution rate',value: `${resolutionRate}%`, color: 'text-green-700', sub: 'resolved / total' },
+    { label: 'Avg engagement', value: engagementRate, color: 'text-purple-700', sub: 'votes+comments / pin' },
+    { label: 'Retention (7d)', value: returnedThisWeek, color: 'text-rose-700', sub: 'old users re-active' },
+  ];
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-6">
+      {/* KPI grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {kpiRows.map(({ label, value, color, sub }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+            <p className={`text-2xl font-black ${color}`}>{value}</p>
+            <p className="text-[0.6rem] text-gray-400 mt-0.5">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Daily Active Users"  subtitle="30-day trend"        data={dauChart}     color="#6366f1" />
+        <ChartCard title="New Users / day"     subtitle="Signups last 30 days" data={newUsersChart} color="#10b981" />
+        <ChartCard title="Pins created / day"  subtitle="Content volume"       data={pinsChart}    color="#f59e0b" />
+        <ChartCard title="Votes / day"         subtitle="Community engagement"  data={votesChart}   color="#3b82f6" />
+        <ChartCard title="Comments / day"      subtitle="Discussion activity"   data={commentsChart} color="#8b5cf6" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type AdminTab = 'overview' | 'pins' | 'users' | 'reports' | 'params' | 'live';
+type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live';
 
 const TABS: { id: AdminTab; label: string; emoji: string }[] = [
-  { id: 'overview', label: 'Overview',   emoji: '📊' },
-  { id: 'pins',     label: 'Pins',       emoji: '📍' },
-  { id: 'users',    label: 'Users',      emoji: '👥' },
-  { id: 'reports',  label: 'Reports',    emoji: '🚩' },
-  { id: 'params',   label: 'Parameters', emoji: '⚙️' },
-  { id: 'live',     label: 'Live',       emoji: '📡' },
+  { id: 'overview',   label: 'Overview',   emoji: '📊' },
+  { id: 'analytics',  label: 'Analytics',  emoji: '📈' },
+  { id: 'pins',       label: 'Pins',       emoji: '📍' },
+  { id: 'users',      label: 'Users',      emoji: '👥' },
+  { id: 'reports',    label: 'Reports',    emoji: '🚩' },
+  { id: 'params',     label: 'Parameters', emoji: '⚙️' },
+  { id: 'live',       label: 'Live',       emoji: '📡' },
 ];
 
 export default function AdminPage() {
@@ -774,12 +1166,13 @@ export default function AdminPage() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'pins'     && <PinsTab />}
-        {activeTab === 'users'    && <UsersTab />}
-        {activeTab === 'reports'  && <ReportsTab />}
-        {activeTab === 'params'   && <ParametersTab />}
-        {activeTab === 'live'     && <LiveTab />}
+        {activeTab === 'overview'   && <OverviewTab />}
+        {activeTab === 'analytics'  && <AnalyticsTab />}
+        {activeTab === 'pins'       && <PinsTab />}
+        {activeTab === 'users'      && <UsersTab />}
+        {activeTab === 'reports'    && <ReportsTab />}
+        {activeTab === 'params'     && <ParametersTab />}
+        {activeTab === 'live'       && <LiveTab />}
       </main>
     </div>
   );
