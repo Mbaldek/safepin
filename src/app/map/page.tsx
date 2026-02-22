@@ -9,10 +9,10 @@ import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, Building2 } from 'lucide-react';
+import { Bell, Search, Menu, X, List } from 'lucide-react';
 import SettingsSheet from '@/components/SettingsSheet';
-import DashboardView from '@/components/DashboardView';
 import MapView from '@/components/MapView';
+import MyKovaView from '@/components/MyKovaView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
@@ -21,7 +21,6 @@ import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
 import IncidentsView from '@/components/IncidentsView';
-import ProfileView from '@/components/ProfileView';
 import CommunityView from '@/components/CommunityView';
 import TripView from '@/components/TripView';
 import NotificationsSheet from '@/components/NotificationsSheet';
@@ -72,7 +71,7 @@ async function registerPush(userId: string) {
 export default function MapPage() {
   const router = useRouter();
   const {
-    setPins, addPin, updatePin,
+    pins, setPins, addPin, updatePin,
     activeSheet, setActiveSheet,
     activeTab, setActiveTab,
     setUserProfile, setUserId, userId,
@@ -83,6 +82,7 @@ export default function MapPage() {
     newPlaceNoteCoords, setNewPlaceNoteCoords,
     selectedPlaceNote, setSelectedPlaceNote,
     setLiveSessions, addLiveSession, updateLiveSession,
+    showIncidentsList, setShowIncidentsList,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -93,6 +93,13 @@ export default function MapPage() {
       setPendingRoutes(null);
     }
   }, [activeTab, setPendingRoutes]);
+
+  // Auto-close incidents list when leaving the map tab
+  useEffect(() => {
+    if (activeTab !== 'map') {
+      setShowIncidentsList(false);
+    }
+  }, [activeTab, setShowIncidentsList]);
 
   // ── Walk With Me — trusted contacts presence ──────────────────────────────
   const [watchContacts, setWatchContacts] = useState<{ id: string; name: string | null }[]>([]);
@@ -321,9 +328,8 @@ export default function MapPage() {
         <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(244,63,94,0.3)] animate-pulse">
           🛡️
         </div>
-        <div className="text-lg font-bold tracking-tight">
-          <span style={{ color: 'var(--accent)' }}>Safe</span>
-          <span style={{ color: 'var(--text-primary)' }}>Pin</span>
+        <div className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+          KO<span style={{ color: 'var(--accent)' }}>V</span>A
         </div>
         <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mt-2"
           style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
@@ -410,15 +416,36 @@ export default function MapPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── Map tab — visible for map, trip, incidents, community AND dashboard tabs ── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' && activeTab !== 'community' && activeTab !== 'dashboard' ? 'hidden' : 'flex flex-col'}`}>
+      {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'community' && activeTab !== 'mykova' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
-        {/* City context + report buttons — map tab only */}
+        {/* Report + incidents list toggle — map tab only */}
         {activeTab === 'map' && (
           <>
-            {/* City context button — hidden, to be removed later */}
+            {/* Incidents list toggle — bottom left */}
+            <button
+              onClick={() => setShowIncidentsList(!showIncidentsList)}
+              className="absolute bottom-6 left-4 w-11 h-11 rounded-full flex items-center justify-center shadow-lg z-50 hover:scale-105 active:scale-95 transition"
+              style={{
+                backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 85%, transparent)',
+                border: showIncidentsList ? 'none' : '1px solid var(--border)',
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              <List size={18} strokeWidth={2.2} style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }} />
+              {/* Emergency badge */}
+              {!showIncidentsList && pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                >
+                  {pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length}
+                </span>
+              )}
+            </button>
+            {/* Report button — bottom right */}
             <button
               onClick={() => setActiveSheet('report')}
               className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
@@ -434,10 +461,10 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Incidents sheet — overlays the map when on incidents tab */}
+        {/* Incidents list overlay — triggered by list button on map */}
         <AnimatePresence>
-          {activeTab === 'incidents' && (
-            <IncidentsView key="incidents-sheet" onClose={() => setActiveTab('map')} />
+          {showIncidentsList && activeTab === 'map' && (
+            <IncidentsView key="incidents-sheet" onClose={() => setShowIncidentsList(false)} />
           )}
         </AnimatePresence>
 
@@ -448,22 +475,15 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Profile sheet — triggered from settings burger or dashboard */}
+        {/* My KOVA — merged dashboard + profile */}
         <AnimatePresence>
-          {activeSheet === 'profile' && userId && (
-            <ProfileView
-              key="profile-sheet"
+          {activeTab === 'mykova' && userId && (
+            <MyKovaView
+              key="mykova-sheet"
               userId={userId}
               userEmail={userEmail}
-              onClose={() => setActiveSheet('none')}
+              onClose={() => setActiveTab('map')}
             />
-          )}
-        </AnimatePresence>
-
-        {/* Dashboard sheet — overlays the map when on dashboard tab */}
-        <AnimatePresence>
-          {activeTab === 'dashboard' && (
-            <DashboardView key="dashboard-sheet" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
       </div>

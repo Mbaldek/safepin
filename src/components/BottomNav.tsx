@@ -3,17 +3,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Map, AlertTriangle, Users, Navigation, LayoutDashboard, type LucideIcon } from 'lucide-react';
+import { Map, Navigation, Users, Shield, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 
-type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'dashboard';
+type Tab = 'map' | 'trip' | 'community' | 'mykova';
 
 const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
-  { id: 'map',       label: 'Map',       Icon: Map               },
-  { id: 'incidents', label: 'Incidents', Icon: AlertTriangle      },
-  { id: 'community', label: 'Community', Icon: Users              },
-  { id: 'trip',      label: 'Trip',      Icon: Navigation         },
-  { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard    },
+  { id: 'map',       label: 'Map',       Icon: Map        },
+  { id: 'trip',      label: 'Trip',      Icon: Navigation },
+  { id: 'community', label: 'Community', Icon: Users      },
+  { id: 'mykova',    label: 'My KOVA',   Icon: Shield     },
 ];
 
 export default function BottomNav() {
@@ -38,7 +37,7 @@ export default function BottomNav() {
     >
       {TABS.map(({ id, label, Icon }) => {
         const isActive = activeTab === id;
-        const badge = id === 'incidents' && emergencyCount > 0 ? emergencyCount : 0;
+        const badge = id === 'map' && emergencyCount > 0 ? emergencyCount : 0;
 
         return (
           <button

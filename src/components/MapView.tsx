@@ -320,7 +320,7 @@ export default function MapView() {
       longPressTimer.current = setTimeout(() => {
         longPressTimer.current = null;
         const store = useStore.getState();
-        const blockedTab = store.activeTab === 'trip' || store.activeTab === 'incidents' || store.activeTab === 'community';
+        const blockedTab = store.activeTab === 'trip' || store.activeTab === 'mykova' || store.activeTab === 'community' || store.showIncidentsList;
         if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
           store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         }
@@ -335,7 +335,7 @@ export default function MapView() {
     // Also handle mobile long-press via contextmenu
     map.current.on('contextmenu', (e) => {
       const store = useStore.getState();
-      const blockedTab = store.activeTab === 'trip' || store.activeTab === 'incidents' || store.activeTab === 'community';
+      const blockedTab = store.activeTab === 'trip' || store.activeTab === 'mykova' || store.activeTab === 'community' || store.showIncidentsList;
       if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
         store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       }

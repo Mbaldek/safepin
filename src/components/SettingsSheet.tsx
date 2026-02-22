@@ -110,7 +110,7 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin';
 
 export default function SettingsSheet({ onClose }: Props) {
-  const { userId, userProfile, notifSettings, setNotifSettings, setActiveSheet } = useStore();
+  const { userId, userProfile, notifSettings, setNotifSettings, setActiveTab, setMyKovaInitialTab } = useStore();
   const router = useRouter();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [crashReports, setCrashReports] = useState(true);
@@ -223,7 +223,7 @@ export default function SettingsSheet({ onClose }: Props) {
 
           {/* ── My Profile link ──────────────────────────────────────── */}
           <button
-            onClick={() => { setActiveSheet('profile'); onClose(); }}
+            onClick={() => { setMyKovaInitialTab('profile'); setActiveTab('mykova'); onClose(); }}
             className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-5 transition active:opacity-70"
             style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
           >

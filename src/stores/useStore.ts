@@ -3,8 +3,8 @@ import { Pin, AppNotification, PlaceNote, LiveSession, NotifSettings, DEFAULT_NO
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
 
-type Sheet = 'none' | 'report' | 'detail' | 'profile';
-type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'dashboard';
+type Sheet = 'none' | 'report' | 'detail';
+type Tab = 'map' | 'trip' | 'community' | 'mykova';
 
 export type RouteOption = {
   id: string;
@@ -149,6 +149,14 @@ type Store = {
   // Achieved milestones (Sprint 16) — locally cached to avoid re-notifying
   achievedMilestones: string[];
   addAchievedMilestone: (key: string) => void;
+
+  // Incidents list overlay on map
+  showIncidentsList: boolean;
+  setShowIncidentsList: (v: boolean) => void;
+
+  // Deep-link into My KOVA sub-tab (e.g. from Settings → Profile)
+  myKovaInitialTab: string | null;
+  setMyKovaInitialTab: (tab: string | null) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -282,4 +290,12 @@ export const useStore = create<Store>((set) => ({
       saveLS('kova_milestones', next);
       return { achievedMilestones: next };
     }),
+
+  // Incidents list overlay
+  showIncidentsList: false,
+  setShowIncidentsList: (v) => set({ showIncidentsList: v }),
+
+  // My KOVA deep-link
+  myKovaInitialTab: null,
+  setMyKovaInitialTab: (tab) => set({ myKovaInitialTab: tab }),
 }));

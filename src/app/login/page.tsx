@@ -74,9 +74,8 @@ export default function LoginPage() {
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg" style={{ boxShadow: '0 8px 24px var(--accent-glow)' }}>
           🛡️
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          <span style={{ color: 'var(--accent)' }}>Safe</span>
-          <span style={{ color: 'var(--text-primary)' }}>Pin</span>
+        <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+          KO<span style={{ color: 'var(--accent)' }}>V</span>A
         </h1>
         <p className="text-sm mt-2 max-w-[260px]" style={{ color: 'var(--text-muted)' }}>
           A safer world, mapped by women — for women.

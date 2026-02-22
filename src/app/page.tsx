@@ -21,9 +21,8 @@ export default function Home() {
   // Loading state while checking auth
   return (
     <div className="min-h-dvh flex items-center justify-center">
-      <div className="text-[#f43f5e] text-2xl font-bold animate-pulse">
-        <span className="text-[#f43f5e]">Safe</span>
-        <span className="text-white">Pin</span>
+      <div className="text-2xl font-extrabold tracking-tight animate-pulse" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+        KO<span style={{ color: 'var(--accent)' }}>V</span>A
       </div>
     </div>
   );
