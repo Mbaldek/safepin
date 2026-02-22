@@ -7,7 +7,7 @@ import { useState } from 'react';
 const STEPS = [
   {
     emoji: '🛡️',
-    title: 'Welcome to SafePin',
+    title: 'Welcome to KOVA',
     body: 'Your community safety network. Report incidents, stay informed, and look out for each other — all in real time.',
     cta: 'Get started',
   },
@@ -31,7 +31,7 @@ const STEPS = [
   },
 ] as const;
 
-const STORAGE_KEY = 'safepin_onboarding_done';
+const STORAGE_KEY = 'kova_onboarding_done';
 
 export function useOnboardingDone(): [boolean, () => void] {
   const [done, setDone] = useState(() => {

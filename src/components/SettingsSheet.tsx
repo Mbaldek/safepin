@@ -2,14 +2,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { DEFAULT_NOTIF_SETTINGS } from '@/types';
+import { DEFAULT_NOTIF_SETTINGS, type Subscription, type Invoice } from '@/types';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -117,6 +117,35 @@ export default function SettingsSheet({ onClose }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [section, setSection] = useState<Section | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+
+  useEffect(() => {
+    if (section !== 'billing' || !userId) return;
+    setBillingLoading(true);
+    Promise.all([
+      supabase.from('subscriptions').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
+      supabase.from('pro_waitlist').select('id').eq('user_id', userId).maybeSingle(),
+    ]).then(([subRes, invRes, wlRes]) => {
+      setSubscription(subRes.data ?? null);
+      setInvoices(invRes.data ?? []);
+      setWaitlistJoined(!!wlRes.data);
+      setBillingLoading(false);
+    });
+  }, [section, userId]);
+
+  async function handleJoinWaitlist() {
+    if (!userId) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { toast('No email found on your account'); return; }
+    const { error } = await supabase.from('pro_waitlist').upsert({ user_id: userId, email: user.email }, { onConflict: 'email' });
+    if (error) { toast.error('Could not join waitlist'); return; }
+    setWaitlistJoined(true);
+    toast.success('You\'re on the waitlist! We\'ll notify you when KOVA Pro launches.');
+  }
 
   const RADIUS_OPTIONS = [
     { label: '500 m', value: 500 },
@@ -219,7 +248,7 @@ export default function SettingsSheet({ onClose }: Props) {
               { id: 'account',       label: 'Account',              subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
               { id: 'notifications', label: 'Notifications',        subtitle: 'Alerts, radius, quiet hours',                        icon: <Bell size={16} /> },
               { id: 'privacy',       label: 'Privacy & Data',       subtitle: 'Analytics, GDPR, delete account',                    icon: <Database size={16} /> },
-              { id: 'billing',       label: 'Subscription',         subtitle: 'Free plan · SafePin Pro coming soon',                icon: <CreditCard size={16} /> },
+              { id: 'billing',       label: 'Subscription',         subtitle: 'Free plan · KOVA Pro coming soon',                icon: <CreditCard size={16} /> },
               { id: 'legal',         label: 'Legal',                subtitle: 'Privacy policy, ToS, GDPR',                         icon: <FileText size={16} /> },
               { id: 'security',      label: 'Security',             subtitle: '2FA, sessions, sign out',                           icon: <Shield size={16} /> },
               { id: 'admin',         label: 'Admin — Tower Control', subtitle: 'Moderation & parameters',                           icon: <LayoutDashboard size={16} /> },
@@ -277,55 +306,162 @@ export default function SettingsSheet({ onClose }: Props) {
           ) : section === 'billing' ? (
             <motion.div key="billing" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
           {/* ── Subscription & Billing ───────────────────────────────── */}
-          <Section title="Subscription & Billing" icon={<CreditCard size={13} />}>
-            <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Current plan</p>
-                <span
-                  className="text-[0.6rem] font-black px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }}
-                >
-                  Free
-                </span>
-              </div>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                You have access to all core features at no cost.
-              </p>
-            </div>
+          <Section title="Current Plan" icon={<CreditCard size={13} />}>
+            {billingLoading ? (
+              <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>Loading…</div>
+            ) : (
+              <>
+                {/* Plan status */}
+                <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      {subscription?.plan === 'pro' || subscription?.plan === 'pro_annual'
+                        ? <Crown size={14} style={{ color: '#f59e0b' }} />
+                        : <CheckCircle2 size={14} style={{ color: '#10b981' }} />
+                      }
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {subscription?.plan === 'pro' ? 'KOVA Pro'
+                          : subscription?.plan === 'pro_annual' ? 'KOVA Pro Annual'
+                          : 'Free'}
+                      </p>
+                    </div>
+                    <span
+                      className="text-[0.6rem] font-black px-2 py-0.5 rounded-full"
+                      style={
+                        subscription?.status === 'active' || !subscription
+                          ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
+                          : subscription.status === 'past_due'
+                          ? { backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }
+                          : { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' }
+                      }
+                    >
+                      {subscription?.status ?? 'Active'}
+                    </span>
+                  </div>
+                  {subscription?.current_period_end ? (
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {subscription.cancel_at_period_end ? 'Cancels' : 'Renews'} on{' '}
+                      {new Date(subscription.current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  ) : (
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      All core features included at no cost.
+                    </p>
+                  )}
+                </div>
 
-            {/* Pro teaser */}
-            <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <Crown size={14} style={{ color: '#f59e0b' }} />
-                <p className="text-sm font-black" style={{ color: '#f59e0b' }}>SafePin Pro</p>
-                <span
-                  className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
-                >
-                  Coming soon
-                </span>
-              </div>
-              <ul className="flex flex-col gap-1">
-                {[
-                  'Unlimited saved routes & places',
-                  'Advanced trip analytics',
-                  'Priority alert notifications',
-                  'Extended pin history (90 days)',
-                  'Export your safety data',
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                    <span style={{ color: '#f59e0b' }}>✦</span> {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                {/* Manage subscription (Stripe portal — coming soon) */}
+                {subscription && subscription.plan !== 'free' && (
+                  <div className="px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <button
+                      disabled
+                      className="w-full text-center text-xs font-semibold py-2 rounded-xl opacity-40"
+                      style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                    >
+                      Manage subscription — coming soon
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </Section>
 
-            <Row
-              label="Invoices & receipts"
-              badge="Coming soon"
-              disabled
-              chevron={false}
-            />
+          {/* KOVA Pro upgrade card */}
+          {(!subscription || subscription.plan === 'free') && (
+            <Section title="Upgrade" icon={<Crown size={13} />}>
+              <div className="px-4 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown size={15} style={{ color: '#f59e0b' }} />
+                  <p className="text-sm font-black" style={{ color: '#f59e0b' }}>KOVA Pro</p>
+                  <span
+                    className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
+                  >
+                    Coming soon
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-1.5 mb-4">
+                  {[
+                    'Unlimited saved routes & places',
+                    'Advanced trip analytics',
+                    'Priority alert notifications',
+                    'Extended pin history (90 days)',
+                    'Export your safety data',
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <span style={{ color: '#f59e0b' }}>✦</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={waitlistJoined ? undefined : handleJoinWaitlist}
+                  disabled={waitlistJoined}
+                  className="w-full py-2.5 rounded-xl text-xs font-black transition-opacity"
+                  style={
+                    waitlistJoined
+                      ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
+                      : { backgroundColor: '#f59e0b', color: '#000' }
+                  }
+                >
+                  {waitlistJoined ? '✓ You\'re on the waitlist' : 'Join the waitlist'}
+                </button>
+              </div>
+            </Section>
+          )}
+
+          {/* Invoices */}
+          <Section title="Invoices & Receipts" icon={<Receipt size={13} />}>
+            {billingLoading ? (
+              <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>Loading…</div>
+            ) : invoices.length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <Clock size={22} className="mx-auto mb-2 opacity-30" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No invoices yet.</p>
+                <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Invoices will appear here once you subscribe to KOVA Pro.
+                </p>
+              </div>
+            ) : (
+              invoices.map((inv) => (
+                <div key={inv.id} className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {inv.description ?? 'KOVA subscription'}
+                    </p>
+                    <p className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>
+                      {new Date(inv.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {(inv.amount_cents / 100).toFixed(2)} {inv.currency.toUpperCase()}
+                    </span>
+                    {inv.invoice_pdf_url ? (
+                      <a
+                        href={inv.invoice_pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[0.65rem] font-semibold"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        PDF
+                      </a>
+                    ) : (
+                      <span
+                        className="text-[0.6rem] font-black px-1.5 py-0.5 rounded-full"
+                        style={
+                          inv.status === 'paid'
+                            ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
+                            : { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' }
+                        }
+                      >
+                        {inv.status}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </Section>
             </motion.div>
 
@@ -335,7 +471,7 @@ export default function SettingsSheet({ onClose }: Props) {
           <Section title="Data & Privacy" icon={<Database size={13} />}>
             <ToggleRow
               label="Usage analytics"
-              subtitle="Help us improve SafePin with anonymous usage data"
+              subtitle="Help us improve KOVA with anonymous usage data"
               value={analyticsEnabled}
               onChange={setAnalyticsEnabled}
             />
@@ -358,7 +494,7 @@ export default function SettingsSheet({ onClose }: Props) {
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                 You have the right to access, rectify, and erase your personal data. You may also
                 object to or restrict its processing, and request data portability. To exercise
-                these rights, contact us at <span style={{ color: 'var(--accent)' }}>privacy@safepin.app</span>.
+                these rights, contact us at <span style={{ color: 'var(--accent)' }}>kovaapp@pm.me</span>.
               </p>
             </div>
             <Row
@@ -395,12 +531,15 @@ export default function SettingsSheet({ onClose }: Props) {
             />
             <div className="px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                SafePin complies with the EU General Data Protection Regulation (GDPR / RGPD) and
+                KOVA complies with the EU General Data Protection Regulation (GDPR / RGPD) and
                 the French Loi Informatique et Libertés. Data is stored in the EU. No data is sold
                 to third parties.
               </p>
-              <p className="text-[0.6rem] mt-2" style={{ color: 'var(--text-muted)' }}>
-                SafePin v1.0 · © {new Date().getFullYear()} SafePin SAS
+              <p className="text-[0.6rem] mt-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                KOVA v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
+              </p>
+              <p className="text-[0.6rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>
               </p>
             </div>
           </Section>

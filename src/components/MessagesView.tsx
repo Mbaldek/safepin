@@ -248,10 +248,10 @@ export default function MessagesView() {
 
   // ── Invite helpers ────────────────────────────────────────────────────────
   async function shareInvite() {
-    const url = typeof window !== 'undefined' ? window.location.origin : 'https://safepin.app';
-    const text = `Join me on SafePin — a community safety app. ${url}`;
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://kovaapp.io';
+    const text = `Join me on KOVA — a community safety app. ${url}`;
     if (navigator.share) {
-      await navigator.share({ title: 'SafePin', text, url }).catch(() => {});
+      await navigator.share({ title: 'KOVA', text, url }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(text);
       toast.success('Invite link copied!');
@@ -266,8 +266,8 @@ export default function MessagesView() {
       if (!contacts?.length) return;
       const emails = contacts.flatMap((c: { email?: string[] }) => c.email ?? []).filter(Boolean);
       if (!emails.length) { toast('No email addresses found in selected contacts'); return; }
-      const subject = encodeURIComponent('Join me on SafePin');
-      const body = encodeURIComponent(`Hey! I'm using SafePin, a community safety app. Join me: ${window.location.origin}`);
+      const subject = encodeURIComponent('Join me on KOVA');
+      const body = encodeURIComponent(`Hey! I'm using KOVA, a community safety app. Join me: ${window.location.origin}`);
       window.open(`mailto:${emails.join(',')}?subject=${subject}&body=${body}`);
     } catch { /* denied */ }
   }
@@ -425,8 +425,8 @@ export default function MessagesView() {
                 onClick={() => {
                   const email = prompt('Enter email address to invite:');
                   if (!email) return;
-                  const subject = encodeURIComponent('Join me on SafePin');
-                  const body = encodeURIComponent(`Hey! Join me on SafePin: ${window.location.origin}`);
+                  const subject = encodeURIComponent('Join me on KOVA');
+                  const body = encodeURIComponent(`Hey! Join me on KOVA: ${window.location.origin}`);
                   window.open(`mailto:${email}?subject=${subject}&body=${body}`);
                 }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold"

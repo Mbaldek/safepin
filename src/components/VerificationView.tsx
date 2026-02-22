@@ -145,7 +145,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
             <div>
               <p className="font-black text-sm" style={{ color: cfg.color }}>{cfg.label}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {displayStatus === 'unverified' && 'Verify once — earn a trusted badge visible to all SafePin users'}
+                {displayStatus === 'unverified' && 'Verify once — earn a trusted badge visible to all KOVA users'}
                 {displayStatus === 'pending'    && 'Veriff is reviewing your documents. Usually takes a few minutes.'}
                 {displayStatus === 'approved'   && 'Your identity has been confirmed. Trusted badge is active.'}
                 {displayStatus === 'declined'   && 'Please try again with a clear, valid ID and good lighting.'}
@@ -198,7 +198,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
               >
                 Veriff
               </a>
-              {' '}— Estonian company, EU data hosting, GDPR-compliant. Your ID is processed by Veriff and never stored on SafePin servers.
+              {' '}— Estonian company, EU data hosting, GDPR-compliant. Your ID is processed by Veriff and never stored on KOVA servers.
             </p>
           </div>
 

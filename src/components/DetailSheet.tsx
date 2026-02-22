@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, BellOff, Radio } from 'lucide-react';
+import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
@@ -71,10 +71,13 @@ export default function DetailSheet() {
   const [resolving, setResolving] = useState(false);
   const [showBroadcaster, setShowBroadcaster] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
+  const [chatExpanded, setChatExpanded] = useState(false);
+  const [chatCount, setChatCount] = useState(0);
 
   useEffect(() => {
     if (!selectedPin) return;
     setConfirms([]); setDenies([]); setMyVote(null);
+    setChatExpanded(false); setChatCount(0);
     supabase
       .from('pin_votes')
       .select('user_id, vote_type, created_at')
@@ -499,14 +502,34 @@ export default function DetailSheet() {
           <PinStoriesRow pinId={selectedPin.id} />
 
           {/* Divider */}
-          <div className="mt-5 mb-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
+          <div className="mt-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
 
-          {/* Pin Chat */}
+          {/* ── Collapsible Chat ─────────────────────────────────────── */}
+          {/* Toggle header — always visible */}
+          <button
+            onClick={() => setChatExpanded((v) => !v)}
+            className="w-full flex items-center justify-between py-3 transition-opacity hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} />
+              <span className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                Messages{chatCount > 0 ? ` · ${chatCount}` : ''}
+              </span>
+            </div>
+            {chatExpanded
+              ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
+              : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+            }
+          </button>
+
+          {/* Always mounted: loads message count in background even when collapsed */}
           <PinChat
             pinId={selectedPin.id}
             userId={userId}
             displayName={userProfile?.display_name ?? null}
             isExpired={isPinExpired(selectedPin)}
+            collapsed={!chatExpanded}
+            onCountChange={setChatCount}
           />
 
           {/* Close */}

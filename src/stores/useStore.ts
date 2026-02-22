@@ -228,18 +228,18 @@ export const useStore = create<Store>((set) => ({
   setSelectedPlaceNote: (note) => set({ selectedPlaceNote: note }),
 
   // Place note favorites
-  favPlaceIds: loadLS<string[]>('safepin_fav_places', []),
+  favPlaceIds: loadLS<string[]>('kova_fav_places', []),
   toggleFavPlace: (id) =>
     set((state) => {
       const has = state.favPlaceIds.includes(id);
       const next = has ? state.favPlaceIds.filter((x) => x !== id) : [...state.favPlaceIds, id];
-      saveLS('safepin_fav_places', next);
+      saveLS('kova_fav_places', next);
       return { favPlaceIds: next };
     }),
   deletePlaceNote: (id) =>
     set((state) => {
       const next = state.favPlaceIds.filter((x) => x !== id);
-      saveLS('safepin_fav_places', next);
+      saveLS('kova_fav_places', next);
       return { placeNotes: state.placeNotes.filter((n) => n.id !== id), favPlaceIds: next };
     }),
 
@@ -248,12 +248,12 @@ export const useStore = create<Store>((set) => ({
   setTripPrefill: (p) => set({ tripPrefill: p }),
 
   // Followed pins
-  followedPinIds: loadLS<string[]>('safepin_followed_pins', []),
+  followedPinIds: loadLS<string[]>('kova_followed_pins', []),
   toggleFollowPin: (id) =>
     set((state) => {
       const has = state.followedPinIds.includes(id);
       const next = has ? state.followedPinIds.filter((x) => x !== id) : [...state.followedPinIds, id];
-      saveLS('safepin_followed_pins', next);
+      saveLS('kova_followed_pins', next);
       return { followedPinIds: next };
     }),
 
@@ -267,19 +267,19 @@ export const useStore = create<Store>((set) => ({
     set((state) => ({ liveSessions: state.liveSessions.map((s) => s.id === session.id ? session : s) })),
 
   // Notification settings
-  notifSettings: loadLS<NotifSettings>('safepin_notif_settings', DEFAULT_NOTIF_SETTINGS),
+  notifSettings: loadLS<NotifSettings>('kova_notif_settings', DEFAULT_NOTIF_SETTINGS),
   setNotifSettings: (s) => {
-    saveLS('safepin_notif_settings', s);
+    saveLS('kova_notif_settings', s);
     set({ notifSettings: s });
   },
 
   // Achieved milestones
-  achievedMilestones: loadLS<string[]>('safepin_milestones', []),
+  achievedMilestones: loadLS<string[]>('kova_milestones', []),
   addAchievedMilestone: (key) =>
     set((state) => {
       if (state.achievedMilestones.includes(key)) return {};
       const next = [...state.achievedMilestones, key];
-      saveLS('safepin_milestones', next);
+      saveLS('kova_milestones', next);
       return { achievedMilestones: next };
     }),
 }));

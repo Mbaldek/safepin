@@ -3,8 +3,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Tower Control — SafePin Admin',
-  description: 'SafePin administrative dashboard',
+  title: 'Tower Control — KOVA Admin',
+  description: 'KOVA administrative dashboard',
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

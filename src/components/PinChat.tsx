@@ -21,16 +21,22 @@ export default function PinChat({
   userId,
   displayName,
   isExpired,
+  collapsed = false,
+  onCountChange,
 }: {
   pinId: string;
   userId: string | null;
   displayName: string | null;
   isExpired: boolean;
+  collapsed?: boolean;
+  onCountChange?: (n: number) => void;
 }) {
   const [messages, setMessages] = useState<Comment[]>([]);
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const onCountChangeRef = useRef(onCountChange);
+  onCountChangeRef.current = onCountChange;
 
   // Initial load
   useEffect(() => {
@@ -39,7 +45,11 @@ export default function PinChat({
       .select('*')
       .eq('pin_id', pinId)
       .order('created_at', { ascending: true })
-      .then(({ data }) => setMessages(data ?? []));
+      .then(({ data }) => {
+        const rows = data ?? [];
+        setMessages(rows);
+        onCountChangeRef.current?.(rows.length);
+      });
   }, [pinId]);
 
   // Realtime new messages
@@ -49,16 +59,20 @@ export default function PinChat({
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'pin_comments', filter: `pin_id=eq.${pinId}` },
-        (payload) => setMessages((prev) => [...prev, payload.new as Comment])
+        (payload) => setMessages((prev) => {
+          const next = [...prev, payload.new as Comment];
+          onCountChangeRef.current?.(next.length);
+          return next;
+        })
       )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [pinId]);
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message only when visible
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!collapsed) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, collapsed]);
 
   async function send() {
     if (!input.trim() || !userId || submitting || isExpired) return;
@@ -73,21 +87,10 @@ export default function PinChat({
     if (!error) setInput('');
   }
 
+  if (collapsed) return null;
+
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-          Pin Chat {messages.length > 0 && `· ${messages.length}`}
-        </p>
-        <span
-          className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
-          style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-        >
-          ⏳ expires with pin
-        </span>
-      </div>
-
       {/* Message bubbles */}
       <div className="flex flex-col gap-1.5 mb-3 max-h-[260px] overflow-y-auto no-scrollbar">
         {messages.length === 0 ? (

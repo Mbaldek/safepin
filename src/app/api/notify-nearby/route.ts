@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   const body  = pin.is_emergency ? 'Someone nearby triggered a safety alert' : `A new ${pin.severity} severity report was added near you`;
 
   const vapidDetails = {
-    subject: 'mailto:admin@safepin.app',
+    subject: 'mailto:kovaapp@pm.me',
     publicKey:  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
     privateKey: process.env.VAPID_PRIVATE_KEY!,
   };

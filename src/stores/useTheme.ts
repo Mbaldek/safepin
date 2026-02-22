@@ -8,12 +8,12 @@ type ThemeStore = {
 };
 
 export const useTheme = create<ThemeStore>((set) => ({
-  theme: (typeof window !== 'undefined' && localStorage.getItem('safepin-theme') === 'light') ? 'light' : 'dark',
+  theme: (typeof window !== 'undefined' && localStorage.getItem('kova-theme') === 'light') ? 'light' : 'dark',
   toggleTheme: () =>
     set((state) => {
       const next = state.theme === 'dark' ? 'light' : 'dark';
       if (typeof window !== 'undefined') {
-        localStorage.setItem('safepin-theme', next);
+        localStorage.setItem('kova-theme', next);
       }
       return { theme: next };
     }),

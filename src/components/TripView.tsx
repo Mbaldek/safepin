@@ -45,7 +45,7 @@ const OSRM_PROFILES: Record<Mode, string> = {
   transit: 'foot', // proxy until transit data is integrated
 };
 
-const STORAGE_KEY = 'safepin_active_trip';
+const STORAGE_KEY = 'kova_active_trip';
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return '0:00';
@@ -268,7 +268,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [showSaved, setShowSaved]     = useState(false);
 
   // Favourite routes — persisted in localStorage
-  const FAV_KEY = 'safepin_fav_routes';
+  const FAV_KEY = 'kova_fav_routes';
   const [favIds, setFavIds] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(FAV_KEY);

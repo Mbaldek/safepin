@@ -6,12 +6,12 @@ import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'SafePin',
+  title: 'KOVA',
   description: 'A safer world, mapped by women — for women.',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'SafePin',
+    title: 'KOVA',
   },
 };
 
