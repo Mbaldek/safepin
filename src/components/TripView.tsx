@@ -4,13 +4,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, Star } from 'lucide-react';
+import { Navigation, Check, X, Map, ArrowLeft, Radio, BookmarkPlus, Star, Shield } from 'lucide-react';
 import SavedPanel from '@/components/SavedPanel';
 import { useStore, RouteOption } from '@/stores/useStore';
 import { Pin, SavedRoute } from '@/types';
 import AutocompleteInput from '@/components/AutocompleteInput';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -69,13 +70,17 @@ function fmtDist(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
 }
 
-function scoreDanger(coords: [number, number][], pins: Pin[]): number {
+function scoreDanger(coords: [number, number][], pins: Pin[], nightOnly = false): number {
   const step = Math.max(1, Math.floor(coords.length / 20));
   let score = 0;
   for (let i = 0; i < coords.length; i += step) {
     const [lng, lat] = coords[i];
     for (const pin of pins) {
       if (pin.resolved_at) continue;
+      if (nightOnly) {
+        const h = new Date(pin.created_at).getHours();
+        if (h >= 6 && h < 22) continue; // skip non-night pins
+      }
       const dx = (pin.lng - lng) * 111_320 * Math.cos((lat * Math.PI) / 180);
       const dy = (pin.lat - lat) * 110_540;
       if (Math.sqrt(dx * dx + dy * dy) < 200) score += pin.is_emergency ? 3 : 1;
@@ -167,6 +172,7 @@ async function fetchRouteOptions(
   to: [number, number],
   mode: Mode,
   pins: Pin[],
+  nightOnly = false,
 ): Promise<RouteOption[]> {
   const profile = OSRM_PROFILES[mode];
 
@@ -174,7 +180,7 @@ async function fetchRouteOptions(
   const raw = await osrmRoutes([from, to], profile);
   if (raw.length === 0) return [];
 
-  const scored = raw.map((r) => ({ ...r, dangerScore: scoreDanger(r.coords, pins), rerouted: false }));
+  const scored = raw.map((r) => ({ ...r, dangerScore: scoreDanger(r.coords, pins, nightOnly), rerouted: false }));
   scored.sort((a, b) => a.dangerScore - b.dangerScore);
   const best = scored[0];
 
@@ -187,7 +193,7 @@ async function fetchRouteOptions(
         const reroutedRaw = await osrmRoutes([from, bypass, to], profile);
         if (reroutedRaw.length > 0) {
           const rerouted = reroutedRaw[0];
-          const reroutedScore = scoreDanger(rerouted.coords, pins);
+          const reroutedScore = scoreDanger(rerouted.coords, pins, nightOnly);
           // Accept if: score improved AND duration penalty ≤ 50%
           const durationPenalty = rerouted.duration / best.duration;
           if (reroutedScore < best.dangerScore && durationPenalty <= 1.5) {
@@ -248,6 +254,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     tripPrefill, setTripPrefill,
     setActiveTab,
   } = useStore();
+  const t = useTranslations('trip');
 
   const [phase, setPhase]                 = useState<Phase>('idle');
   const [departure, setDeparture]         = useState('');
@@ -261,6 +268,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [now, setNow]                    = useState(Date.now());
   const [error, setError]               = useState<string | null>(null);
   const [activeOpt, setActiveOpt]        = useState<RouteOption | null>(null);
+  const [nightOnly, setNightOnly]        = useState(false);
   const locationHistoryRef               = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // My saved routes
@@ -383,7 +391,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    const opts = await fetchRouteOptions(fromCoords, toCoords, mode, pins).catch(() => []);
+    const opts = await fetchRouteOptions(fromCoords, toCoords, mode, pins, nightOnly).catch(() => []);
     if (opts.length === 0) {
       setError('No routes found. Try a different destination or transport mode.');
       setPhase('idle');
@@ -440,14 +448,14 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   }
 
   function selectRoute(opt: RouteOption) {
-    const t: TripState = {
+    const tripState: TripState = {
       destination: destination.trim(),
       startedAt:   Date.now(),
       expiresAt:   Date.now() + durationMs,
     };
-    setTrip(t);
+    setTrip(tripState);
     setActiveOpt(opt);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tripState));
     setActiveRoute({ coords: opt.coords, destination: destination.trim() });
     setPendingRoutes(null);
     setPhase('active');
@@ -508,8 +516,8 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   // ── Header title ──────────────────────────────────────────────────────────
 
   const phaseTitle =
-    phase === 'idle'      ? (showSaved ? 'My Favorites' : 'Trip Planner') :
-    phase === 'searching' ? 'Finding routes…' :
+    phase === 'idle'      ? (showSaved ? 'My Favorites' : t('title')) :
+    phase === 'searching' ? t('searching') :
     phase === 'selecting' ? 'Choose Route' :
                             'Active Trip';
 
@@ -566,7 +574,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               className="w-10 h-10 border-4 rounded-full animate-spin"
               style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
             />
-            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Finding safe routes…</p>
+            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('searching')}</p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Checking for nearby incidents</p>
           </div>
         )}
@@ -616,7 +624,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                         className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
                         style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}
                       >
-                        ↺ Rerouted
+                        {'↺ ' + t('rerouted')}
                       </span>
                     )}
                   </div>
@@ -732,7 +740,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                   style={{ backgroundColor: '#22c55e', color: '#fff', boxShadow: '0 6px 20px rgba(34,197,94,0.3)' }}
                 >
                   <Check size={18} strokeWidth={2.5} />
-                  I&apos;m Safe
+                  {t('endTrip')}
                 </button>
                 <button
                   onClick={endTrip}
@@ -740,7 +748,33 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                   style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                 >
                   <X size={14} strokeWidth={2} />
-                  Cancel Trip
+                  {t('cancelTrip')}
+                </button>
+                <button
+                  onClick={() => {
+                    const store = useStore.getState();
+                    store.setShowSafeSpaces(true);
+                    const loc = store.userLocation;
+                    if (!loc || store.safeSpaces.length === 0) {
+                      toast(t('navigateToSafe'));
+                      onClose();
+                      return;
+                    }
+                    // Find nearest safe space
+                    let best = store.safeSpaces[0];
+                    let bestDist = Infinity;
+                    for (const sp of store.safeSpaces) {
+                      const d = haversineM([loc.lng, loc.lat], [sp.lng, sp.lat]);
+                      if (d < bestDist) { bestDist = d; best = sp; }
+                    }
+                    toast(`${best.name} — ${fmtDist(bestDist)} away`);
+                    onClose();
+                  }}
+                  className="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2"
+                  style={{ backgroundColor: 'rgba(16,185,129,0.10)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}
+                >
+                  <Shield size={14} strokeWidth={2} />
+                  {t('navigateToSafe')}
                 </button>
               </div>
             </div>
@@ -811,12 +845,12 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             {/* Departure */}
             <div>
               <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                Departure
+                {t('departure')}
               </p>
               <AutocompleteInput
                 value={departure}
                 onChange={(text, coords) => { setDeparture(text); setDepartureCoords(coords ?? null); }}
-                placeholder="My current location"
+                placeholder={t('yourLocation')}
                 localSections={[{
                   title: 'My Places',
                   items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
@@ -832,7 +866,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             {/* Destination */}
             <div>
               <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                Destination <span style={{ color: 'var(--accent)' }}>*</span>
+                {t('destination')} <span style={{ color: 'var(--accent)' }}>*</span>
               </p>
               <AutocompleteInput
                 value={destination}
@@ -900,10 +934,35 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               )}
             </div>
 
+            {/* Plan for tonight toggle */}
+            <button
+              onClick={() => setNightOnly(!nightOnly)}
+              className="w-full py-2.5 rounded-2xl font-bold text-xs flex items-center justify-between px-4 transition"
+              style={{
+                backgroundColor: nightOnly ? 'rgba(99,102,241,0.10)' : 'var(--bg-card)',
+                border: nightOnly ? '1.5px solid #6366f1' : '1px solid var(--border)',
+                color: nightOnly ? '#6366f1' : 'var(--text-muted)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🌙</span>
+                {t('planForNight')}
+              </div>
+              <div
+                className="w-9 h-5 rounded-full relative transition-colors"
+                style={{ backgroundColor: nightOnly ? '#6366f1' : 'var(--border)' }}
+              >
+                <div
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: nightOnly ? '18px' : '2px' }}
+                />
+              </div>
+            </button>
+
             {/* Duration */}
             <div>
               <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                Expected Duration
+                {t('duration')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {DURATION_OPTIONS.map(({ label, ms }) => (
@@ -973,7 +1032,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               }}
             >
               <Map size={16} strokeWidth={2.5} />
-              Find Safe Routes
+              {t('searchRoutes')}
             </button>
           </div>
         )}

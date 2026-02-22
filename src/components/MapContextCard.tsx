@@ -2,11 +2,12 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
+import { computeTrend } from '@/components/TrendSparkline';
 
 type CardType = 'high_activity' | 'calm' | 'active_trip' | null;
 
@@ -55,6 +56,15 @@ export default function MapContextCard() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [userLocation, pins, activeRoute, dismissed]);
 
+  // Compute trend (7d vs previous 7d) near user
+  const trend = userLocation ? computeTrend(pins, userLocation, 500) : 'flat';
+  const trendMeta: Record<string, { arrow: string; label: string; color: string }> = {
+    up:   { arrow: '↑', label: 'Rising',  color: '#ef4444' },
+    down: { arrow: '↓', label: 'Falling', color: '#22c55e' },
+    flat: { arrow: '→', label: 'Stable',  color: 'var(--text-muted)' },
+  };
+  const tm = trendMeta[trend];
+
   if (dismissed || !cardType) return null;
 
   const cards: Record<NonNullable<CardType>, { emoji: string; title: string; subtitle: string; color: string }> = {
@@ -96,7 +106,14 @@ export default function MapContextCard() {
       >
         <span className="text-lg shrink-0">{card.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{card.title}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{card.title}</p>
+            {cardType !== 'active_trip' && (
+              <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${tm.color}18`, color: tm.color }}>
+                {tm.arrow} {tm.label}
+              </span>
+            )}
+          </div>
           <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{card.subtitle}</p>
         </div>
         <button onClick={() => setDismissed(true)} className="p-1 rounded-full shrink-0" style={{ backgroundColor: 'var(--bg-secondary)' }}>

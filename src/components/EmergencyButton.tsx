@@ -6,11 +6,28 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 type Phase = 'idle' | 'countdown' | 'active';
 
 // Minimum distance (metres) before a new trail pin is created
 const TRAIL_MIN_DIST_M = 30;
+
+// Dispatch SOS to trusted contacts via Edge Function
+async function dispatchToContacts(action: string, userId: string, pinId: string, lat: number, lng: number, displayName: string | null, sessionId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/emergency-dispatch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action, user_id: userId, pin_id: pinId, lat, lng, display_name: displayName, session_id: sessionId }),
+    });
+  } catch { /* Non-critical — don't block SOS flow */ }
+}
 // Minimum time (ms) between two trail pins
 const TRAIL_MIN_TIME_MS = 45_000;
 
@@ -31,6 +48,7 @@ function distanceMeters(
 
 export default function EmergencyButton({ userId }: { userId: string | null }) {
   const { userLocation, setUserLocation } = useStore();
+  const t = useTranslations('emergency');
   const [phase, setPhase] = useState<Phase>('idle');
   const [count, setCount] = useState(5);
 
@@ -41,6 +59,8 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
   const emergencyPinIdsRef = useRef<string[]>([]);
   const lastPinLocRef = useRef<{ lat: number; lng: number } | null>(null);
   const lastPinTimeRef = useRef<number>(0);
+  const dispatchSessionRef = useRef<string | null>(null);
+  const escalationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep locationRef in sync with store (cached from map load)
   useEffect(() => {
@@ -152,6 +172,22 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
     lastPinLocRef.current = loc;
     lastPinTimeRef.current = Date.now();
 
+    // Dispatch to trusted contacts
+    const sessionId = crypto.randomUUID();
+    dispatchSessionRef.current = sessionId;
+    const displayName = useStore.getState().userProfile?.display_name ?? null;
+    dispatchToContacts('dispatch', userId, data.id, loc.lat, loc.lng, displayName, sessionId);
+
+    // Escalation: re-dispatch after 15min if not resolved
+    escalationTimerRef.current = setTimeout(() => {
+      if (emergencyPinIdsRef.current.length > 0) {
+        dispatchToContacts('escalate', userId, data.id, loc.lat, loc.lng, displayName, sessionId);
+      }
+    }, 15 * 60 * 1000);
+
+    // Auto-show safe spaces on map during emergency
+    useStore.getState().setShowSafeSpaces(true);
+
     // Geocode and patch the description (async, won't block UI)
     geocodeAndPatchPin(data.id, loc);
 
@@ -210,16 +246,29 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         .in('id', ids);
     }
 
+    // Notify trusted contacts that we're safe
+    if (userId && ids.length > 0 && dispatchSessionRef.current) {
+      const displayName = useStore.getState().userProfile?.display_name ?? null;
+      dispatchToContacts('resolve', userId, ids[0], 0, 0, displayName, dispatchSessionRef.current);
+    }
+
+    // Clear escalation timer
+    if (escalationTimerRef.current) {
+      clearTimeout(escalationTimerRef.current);
+      escalationTimerRef.current = null;
+    }
+
     emergencyPinIdsRef.current = [];
     lastPinLocRef.current = null;
+    dispatchSessionRef.current = null;
     navigator.vibrate?.([100]);
     setPhase('idle');
-    toast.success("✅ Alert resolved — glad you're safe!");
+    toast.success(`✅ ${t('resolved')}`);
   }
 
   // ─── Tap the button ──────────────────────────────────────────────────────────
   function handleTap() {
-    if (!userId) { toast.error('Sign in first'); return; }
+    if (!userId) { toast.error(t('signInFirst')); return; }
 
     if (locationRef.current) {
       startCountdown();
@@ -234,7 +283,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         setUserLocation(loc);
         startCountdown();
       },
-      () => { toast.error('Location required for emergency alert'); },
+      () => { toast.error(t('locationRequired')); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   }
@@ -254,18 +303,18 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
             {count}
           </div>
           <p className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
-            Alerting nearby users…
+            {t('alerting')}
           </p>
           <p className="text-sm mb-10" style={{ color: 'var(--text-muted)' }}>
-            Your location will be shared
+            {t('locationShared')}
           </p>
           {/* Emergency quick-dials */}
           <div className="flex gap-3 mb-6">
             {[
-              { label: 'SAMU', num: '15' },
-              { label: 'Police', num: '17' },
-              { label: 'Pompiers', num: '18' },
-              { label: 'EU', num: '112' },
+              { label: t('numbers.samu'), num: '15' },
+              { label: t('numbers.police'), num: '17' },
+              { label: t('numbers.fire'), num: '18' },
+              { label: t('numbers.eu'), num: '112' },
             ].map(({ label, num }) => (
               <a
                 key={num}
@@ -288,7 +337,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
               color: 'var(--text-primary)',
             }}
           >
-            CANCEL
+            {t('cancelCountdown')}
           </button>
         </div>
       )}
@@ -300,9 +349,9 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           style={{ backgroundColor: '#ef4444' }}
         >
           <div>
-            <p className="text-white font-bold text-sm">🆘 Alert active</p>
+            <p className="text-white font-bold text-sm">🆘 {t('alertActive')}</p>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>
-              Location updating · others nearby notified
+              {t('locationUpdating')}
             </p>
           </div>
           <button
@@ -310,7 +359,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
             className="px-3 py-1.5 rounded-full bg-white font-bold text-xs transition hover:opacity-90 flex-shrink-0"
             style={{ color: '#ef4444' }}
           >
-            ✅ I'm safe
+            ✅ {t('imSafe')}
           </button>
         </div>
       )}

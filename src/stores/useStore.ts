@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Pin, AppNotification, PlaceNote, LiveSession, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
+import { Pin, AppNotification, PlaceNote, LiveSession, SafeSpace, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
@@ -18,12 +18,15 @@ export type RouteOption = {
   rerouted?: boolean;
 };
 
+export type TimeOfDay = 'all' | 'morning' | 'afternoon' | 'evening' | 'night';
+
 export type MapFilters = {
   severity: string;
   age: string;
   urban: string;
   confirmedOnly: boolean;
   liveOnly: boolean;
+  timeOfDay: TimeOfDay;
 };
 
 const DEFAULT_MAP_FILTERS: MapFilters = {
@@ -32,6 +35,7 @@ const DEFAULT_MAP_FILTERS: MapFilters = {
   urban: 'all',
   confirmedOnly: false,
   liveOnly: false,
+  timeOfDay: 'all',
 };
 
 function loadLS<T>(key: string, fallback: T): T {
@@ -151,9 +155,19 @@ type Store = {
   achievedMilestones: string[];
   addAchievedMilestone: (key: string) => void;
 
+  // Offline queue count
+  offlineQueueCount: number;
+  setOfflineQueueCount: (n: number) => void;
+
   // Incidents list overlay on map
   showIncidentsList: boolean;
   setShowIncidentsList: (v: boolean) => void;
+
+  // Safe Spaces (Sprint 40)
+  safeSpaces: SafeSpace[];
+  setSafeSpaces: (spaces: SafeSpace[]) => void;
+  showSafeSpaces: boolean;
+  setShowSafeSpaces: (v: boolean) => void;
 
   // Deep-link into My KOVA sub-tab (e.g. from Settings → Profile)
   myKovaInitialTab: string | null;
@@ -314,9 +328,19 @@ export const useStore = create<Store>((set) => ({
       return { achievedMilestones: next };
     }),
 
+  // Offline queue count
+  offlineQueueCount: 0,
+  setOfflineQueueCount: (n) => set({ offlineQueueCount: n }),
+
   // Incidents list overlay
   showIncidentsList: false,
   setShowIncidentsList: (v) => set({ showIncidentsList: v }),
+
+  // Safe Spaces
+  safeSpaces: [],
+  setSafeSpaces: (spaces) => set({ safeSpaces: spaces }),
+  showSafeSpaces: false,
+  setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
 
   // My KOVA deep-link
   myKovaInitialTab: null,

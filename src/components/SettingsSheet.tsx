@@ -4,12 +4,14 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_NOTIF_SETTINGS, type Subscription, type Invoice } from '@/types';
+import { useTranslations, useLocale } from 'next-intl';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -109,9 +111,14 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 
 type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin';
 
+const LOCALE_LABELS: Record<string, string> = { en: 'English', fr: 'Français' };
+
 export default function SettingsSheet({ onClose }: Props) {
   const { userId, userProfile, notifSettings, setNotifSettings, setActiveTab, setMyKovaInitialTab } = useStore();
   const router = useRouter();
+  const t = useTranslations('settings');
+  const focusTrapRef = useFocusTrap(true, onClose);
+  const locale = useLocale();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [crashReports, setCrashReports] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -200,6 +207,10 @@ export default function SettingsSheet({ onClose }: Props) {
 
       {/* Sheet */}
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[92dvh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -216,11 +227,11 @@ export default function SettingsSheet({ onClose }: Props) {
               style={{ color: 'var(--accent)' }}
             >
               <ChevronLeft size={16} />
-              Settings
+              {t('title')}
             </button>
           ) : (
             <div>
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Settings</h2>
+              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
             </div>
           )}
           <button
@@ -260,6 +271,33 @@ export default function SettingsSheet({ onClose }: Props) {
             </div>
             <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
           </button>
+
+          {/* ── Language picker ───────────────────────────────────────── */}
+          <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <Globe size={16} style={{ color: 'var(--accent)' }} />
+              <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{t('language')}</span>
+              <div className="flex gap-1.5">
+                {(['en', 'fr'] as const).map((loc) => (
+                  <button
+                    key={loc}
+                    onClick={() => {
+                      document.cookie = `NEXT_LOCALE=${loc};path=/;max-age=31536000`;
+                      window.location.reload();
+                    }}
+                    className="px-3 py-1 rounded-full text-xs font-bold transition"
+                    style={
+                      locale === loc
+                        ? { backgroundColor: 'var(--accent)', color: '#fff' }
+                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                    }
+                  >
+                    {LOCALE_LABELS[loc]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* ── Level 1 menu ─────────────────────────────────────────── */}
           <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>

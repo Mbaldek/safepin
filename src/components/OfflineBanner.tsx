@@ -5,8 +5,13 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useStore } from '@/stores/useStore';
+import { getCount } from '@/lib/offlineQueue';
 
 export default function OfflineBanner() {
+  const t = useTranslations('offline');
+  const { offlineQueueCount, setOfflineQueueCount } = useStore();
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
@@ -20,6 +25,25 @@ export default function OfflineBanner() {
       window.removeEventListener('online', goOn);
     };
   }, []);
+
+  // Refresh queue count when going offline
+  useEffect(() => {
+    if (offline) {
+      getCount().then(setOfflineQueueCount).catch(() => {});
+    }
+  }, [offline, setOfflineQueueCount]);
+
+  // Listen for SW sync-complete messages
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    function onMessage(event: MessageEvent) {
+      if (event.data?.type === 'KOVA_SYNC_COMPLETE') {
+        getCount().then(setOfflineQueueCount).catch(() => {});
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [setOfflineQueueCount]);
 
   return (
     <AnimatePresence>
@@ -38,7 +62,10 @@ export default function OfflineBanner() {
           }}
         >
           <WifiOff size={14} strokeWidth={2.5} color="#fff" />
-          <span className="text-xs font-bold text-white">You're offline — data may be outdated</span>
+          <span className="text-xs font-bold text-white">
+            {t('banner')}
+            {offlineQueueCount > 0 && ` · ${t('pendingReports', { count: offlineQueueCount })}`}
+          </span>
         </motion.div>
       )}
     </AnimatePresence>

@@ -2,6 +2,8 @@
 
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
 
@@ -36,17 +38,24 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" data-theme="light">
+    <html lang={locale} data-theme="light">
       <body className="min-h-dvh overscroll-none touch-manipulation">
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <a href="#main-content" className="skip-link">Skip to map</a>
+        <a href="#bottom-nav" className="skip-link" style={{ left: '140px' }}>Skip to navigation</a>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </NextIntlClientProvider>
         <Toaster
           position="top-center"
           toastOptions={{

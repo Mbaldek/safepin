@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
@@ -44,6 +45,7 @@ function ItemCard({
   onLeave?: () => void;
   subGroupCount?: number;
 }) {
+  const t = useTranslations('community');
   const isCommunity = item.community_type === 'community';
   return (
     <div
@@ -79,7 +81,7 @@ function ItemCard({
           </p>
         )}
         <p className="text-[0.6rem] font-bold" style={{ color: 'var(--text-muted)' }}>
-          {item.member_count} {item.member_count === 1 ? 'member' : 'members'}
+          {t('members', { count: item.member_count })}
           {isCommunity && subGroupCount > 0 && (
             <> · {subGroupCount} {subGroupCount === 1 ? 'group' : 'groups'}</>
           )}
@@ -101,7 +103,7 @@ function ItemCard({
                 className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
                 style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
               >
-                Leave
+                {t('leave')}
               </button>
             )}
           </>
@@ -111,7 +113,7 @@ function ItemCard({
             className="px-3 py-1.5 rounded-xl text-xs font-bold"
             style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
           >
-            Join
+            {t('join')}
           </button>
         )}
       </div>
@@ -122,6 +124,7 @@ function ItemCard({
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function CommunityView({ onClose }: { onClose: () => void }) {
+  const t = useTranslations('community');
   const { userId, userProfile } = useStore();
 
   // Navigation
@@ -434,7 +437,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   {selectedItem.name}
                 </p>
                 <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                  {selectedItem.member_count} members
+                  {t('members', { count: selectedItem.member_count })}
                   {selectedItem.community_type === 'group' && communityDetailOf && ` · ${communityDetailOf.name}`}
                 </p>
               </div>
@@ -455,7 +458,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full gap-3">
                   <span className="text-5xl">{selectedItem.avatar_emoji}</span>
-                  <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No messages yet</p>
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{t('noMessages')}</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     {isMember ? 'Start the conversation!' : 'Join to participate'}
                   </p>
@@ -511,7 +514,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   value={msgInput}
                   onChange={(e) => setMsgInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder="Message…"
+                  placeholder={t('typePlaceholder')}
                   className="flex-1 text-sm rounded-2xl px-4 py-2.5 outline-none"
                   style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                 />
@@ -565,7 +568,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   {communityDetailOf.name}
                 </p>
                 <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                  {communityDetailOf.member_count} members · {subGroups.length} {subGroups.length === 1 ? 'group' : 'groups'}
+                  {t('members', { count: communityDetailOf.member_count })} · {subGroups.length} {subGroups.length === 1 ? 'group' : 'groups'}
                 </p>
               </div>
               {isMember ? (
@@ -575,7 +578,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                     className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
                     style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                   >
-                    Leave
+                    {t('leave')}
                   </button>
                 )
               ) : (
@@ -584,7 +587,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   className="px-3 py-1.5 rounded-xl text-xs font-bold"
                   style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
                 >
-                  Join
+                  {t('join')}
                 </button>
               )}
               <CloseBtn />
@@ -806,7 +809,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
           >
             <div className="max-w-110 mx-auto w-full">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>Community</h2>
+                <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <button

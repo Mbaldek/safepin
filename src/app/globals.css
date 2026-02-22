@@ -37,7 +37,7 @@
   --bg-overlay: rgba(0, 0, 0, 0.25);
   --text-primary: #0a0c10;
   --text-secondary: #1a1d28;
-  --text-muted: #6b7490;
+  --text-muted: #596280;
   --text-placeholder: #9ca3af;
   --border: rgba(0, 0, 0, 0.08);
   --border-hover: rgba(0, 0, 0, 0.15);
@@ -92,4 +92,47 @@ body {
 }
 .emergency-btn-pulse {
   animation: emergency-btn-glow 2s ease-in-out infinite;
+}
+
+/* ===== Accessibility ===== */
+
+/* Focus-visible ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reset for mouse/pointer focus */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip link — hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  z-index: 9999;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+/* Reduced motion — disable all animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

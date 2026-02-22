@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Rss, Star, BarChart2, User, ChevronRight, ChevronDown, ChevronUp,
@@ -21,6 +22,7 @@ import TrustedCircleSection from '@/components/TrustedCircleSection';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
 import LocationHistoryViewer from '@/components/LocationHistoryViewer';
+import TrendSparkline from '@/components/TrendSparkline';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -150,6 +152,8 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     notifications, setTripPrefill, setActiveTab,
     myKovaInitialTab, setMyKovaInitialTab,
   } = useStore();
+
+  const t = useTranslations('mykova');
 
   // ─── Sub-tab state ──────────────────────────────────────────────────────
   const [activeSubTab, setActiveSubTab] = useState<MyKovaTab>('stats');
@@ -384,10 +388,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   // ─── Render ────────────────────────────────────────────────────────────
 
   const SUB_TABS: { id: MyKovaTab; label: string; Icon: React.ElementType }[] = [
-    { id: 'feed',      label: 'Feed',      Icon: Rss      },
-    { id: 'favorites', label: 'Favorites', Icon: Star     },
-    { id: 'stats',     label: 'Stats',     Icon: BarChart2 },
-    { id: 'profile',   label: 'Profile',   Icon: User     },
+    { id: 'feed',      label: t('feed'),      Icon: Rss      },
+    { id: 'favorites', label: t('favorites'), Icon: Star     },
+    { id: 'stats',     label: t('stats'),     Icon: BarChart2 },
+    { id: 'profile',   label: t('profile'),   Icon: User     },
   ];
 
   return (
@@ -415,7 +419,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
         {/* Title */}
         <div className="px-5 pt-1 pb-3 shrink-0">
-          <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>My KOVA</h2>
+          <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
         </div>
 
         {/* Sub-tab selector */}
@@ -450,7 +454,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {activeSubTab === 'feed' && (
               <motion.div key="feed" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-3">
                 {followedPins.length === 0 && feedNotifs.length === 0 ? (
-                  <EmptyState emoji="📡" title="Nothing here yet" body="Follow pins on the map to see their activity here" ctaLabel="Browse the map" onCta={() => setActiveTab('map')} />
+                  <EmptyState emoji="📡" title="Nothing here yet" body="Follow pins on the map to see their activity here" ctaLabel={t('browseMap')} onCta={() => setActiveTab('map')} />
                 ) : (
                   <>
                     {feedNotifs.length > 0 && (
@@ -518,7 +522,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {activeSubTab === 'favorites' && (
               <motion.div key="favorites" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4">
                 {favPlaces.length === 0 && savedRoutes.length === 0 && !routesLoading ? (
-                  <EmptyState emoji="⭐" title="No favorites yet" body="Star places on the map or save routes from the Trip planner" ctaLabel="Explore places" onCta={() => setActiveTab('map')} />
+                  <EmptyState emoji="⭐" title="No favorites yet" body="Star places on the map or save routes from the Trip planner" ctaLabel={t('explorePlaces')} onCta={() => setActiveTab('map')} />
                 ) : (
                   <>
                     {favPlaces.length > 0 && (
@@ -585,6 +589,15 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, progress * 100)}%`, backgroundColor: level.color }} />
                   </div>
+                </div>
+
+                {/* Weekly activity sparkline */}
+                <div className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div>
+                    <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>7-day activity</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{myPins.length} total pins</p>
+                  </div>
+                  <TrendSparkline pins={myPins} />
                 </div>
 
                 {/* Impact grid */}
@@ -715,7 +728,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
                 >
                   <span className="text-sm">📍</span>
-                  <span className="flex-1 text-xs font-bold text-left" style={{ color: 'var(--text-primary)' }}>Location History</span>
+                  <span className="flex-1 text-xs font-bold text-left" style={{ color: 'var(--text-primary)' }}>{t('locationHistory')}</span>
                   <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
                 </button>
 
@@ -759,7 +772,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                               className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
                               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                             >
-                              Report an incident
+                              {t('reportIncident')}
                             </button>
                           )}
                         </div>
@@ -875,27 +888,27 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                             className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
                             style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                           >
-                            Plan your first trip
+                            {t('planFirstTrip')}
                           </button>
                         </div>
-                      ) : tripHistory.map((t) => {
-                        const dangerColor = t.danger_score === 0 ? '#22c55e' : t.danger_score <= 2 ? '#f59e0b' : '#ef4444';
+                      ) : tripHistory.map((trip) => {
+                        const dangerColor = trip.danger_score === 0 ? '#22c55e' : trip.danger_score <= 2 ? '#f59e0b' : '#ef4444';
                         return (
-                          <div key={t.id} className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3" style={card}>
+                          <div key={trip.id} className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3" style={card}>
                             <div className="flex items-center gap-3 min-w-0">
-                              <span className="text-xl shrink-0">{MODE_EMOJI[t.mode] ?? '🗺️'}</span>
+                              <span className="text-xl shrink-0">{MODE_EMOJI[trip.mode] ?? '🗺️'}</span>
                               <div className="min-w-0">
                                 <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                                  {t.from_label ? `${t.from_label} → ` : ''}{t.to_label}
+                                  {trip.from_label ? `${trip.from_label} → ` : ''}{trip.to_label}
                                 </p>
                                 <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                  {fmtDist(t.distance_m)} · {fmtDur(t.duration_s)} · {new Date(t.ended_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                                  {fmtDist(trip.distance_m)} · {fmtDur(trip.duration_s)} · {new Date(trip.ended_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
                                 </p>
                               </div>
                             </div>
                             <span className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0"
                               style={{ backgroundColor: dangerColor + '18', color: dangerColor }}>
-                              {t.danger_score === 0 ? 'Clear' : `${t.danger_score} risk`}
+                              {trip.danger_score === 0 ? 'Clear' : `${trip.danger_score} risk`}
                             </span>
                           </div>
                         );

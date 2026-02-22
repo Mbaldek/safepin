@@ -2,11 +2,13 @@
 
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 import { SlidersHorizontal } from 'lucide-react';
 import { useStore, type MapFilters } from '@/stores/useStore';
 import { SEVERITY, URBAN_CONTEXTS } from '@/types';
+import { useTranslations } from 'next-intl';
 
 const AGE_OPTIONS = [
   { id: 'all',   label: 'Any'   },
@@ -17,7 +19,15 @@ const AGE_OPTIONS = [
 
 const springConfig = { type: 'spring', damping: 32, stiffness: 300, mass: 0.8 } as const;
 
-const DEFAULT: MapFilters = { severity: 'all', age: 'all', urban: 'all', confirmedOnly: false, liveOnly: false };
+const TIME_OPTIONS = [
+  { id: 'all'       as const, key: 'anyTime'    as const },
+  { id: 'morning'   as const, key: 'morning'    as const },
+  { id: 'afternoon' as const, key: 'afternoon'  as const },
+  { id: 'evening'   as const, key: 'evening'    as const },
+  { id: 'night'     as const, key: 'night'      as const },
+];
+
+const DEFAULT: MapFilters = { severity: 'all', age: 'all', urban: 'all', confirmedOnly: false, liveOnly: false, timeOfDay: 'all' };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -69,12 +79,16 @@ function Chip({
 export default function FilterBar() {
   const { mapFilters, setMapFilters } = useStore();
   const [open, setOpen] = useState(false);
+  const t = useTranslations('filters');
+  const closePanel = useCallback(() => setOpen(false), []);
+  const focusTrapRef = useFocusTrap(open, closePanel);
 
   const activeCount = [
     mapFilters.severity !== 'all',
     mapFilters.age !== 'all',
     mapFilters.urban !== 'all',
     mapFilters.confirmedOnly,
+    mapFilters.timeOfDay !== 'all',
   ].filter(Boolean).length;
 
   function patch(partial: Partial<MapFilters>) {
@@ -86,6 +100,7 @@ export default function FilterBar() {
       {/* ── Filter icon button ─────────────────────────────────────── */}
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-label="Map filters"
         className="absolute top-3 left-3 z-[60] w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95"
         style={{
           backgroundColor: open || activeCount > 0
@@ -126,6 +141,10 @@ export default function FilterBar() {
 
             {/* Filter panel */}
             <motion.div
+              ref={focusTrapRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Map filters"
               className="sheet-motion absolute top-0 left-0 bottom-0 z-56 rounded-r-3xl overflow-y-auto w-[82%] max-w-75"
               style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
@@ -135,7 +154,7 @@ export default function FilterBar() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
-                    Map Filters
+                    {t('title')}
                   </h3>
                   {activeCount > 0 && (
                     <button
@@ -143,13 +162,13 @@ export default function FilterBar() {
                       className="text-xs font-bold transition hover:opacity-70"
                       style={{ color: 'var(--accent)' }}
                     >
-                      Clear all
+                      {t('clearAll')}
                     </button>
                   )}
                 </div>
 
                 {/* Severity */}
-                <Section label="Severity">
+                <Section label={t('severity')}>
                   <ChipRow>
                     <Chip active={mapFilters.severity === 'all'} onClick={() => patch({ severity: 'all' })}>
                       All
@@ -168,7 +187,7 @@ export default function FilterBar() {
                 </Section>
 
                 {/* Age */}
-                <Section label="Age">
+                <Section label={t('age')}>
                   <ChipRow>
                     {AGE_OPTIONS.map(({ id, label }) => (
                       <Chip key={id} active={mapFilters.age === id} onClick={() => patch({ age: id })}>
@@ -179,7 +198,7 @@ export default function FilterBar() {
                 </Section>
 
                 {/* Urban context */}
-                <Section label="Location type">
+                <Section label={t('locationType')}>
                   <ChipRow wrap>
                     <Chip active={mapFilters.urban === 'all'} onClick={() => patch({ urban: 'all' })}>
                       Any
@@ -196,6 +215,17 @@ export default function FilterBar() {
                   </ChipRow>
                 </Section>
 
+                {/* Time of day */}
+                <Section label={t('timeOfDay')}>
+                  <ChipRow wrap>
+                    {TIME_OPTIONS.map(({ id, key }) => (
+                      <Chip key={id} active={mapFilters.timeOfDay === id} onClick={() => patch({ timeOfDay: id })}>
+                        {t(key)}
+                      </Chip>
+                    ))}
+                  </ChipRow>
+                </Section>
+
                 {/* Confirmed only */}
                 <Section>
                   <button
@@ -205,10 +235,10 @@ export default function FilterBar() {
                   >
                     <div className="text-left">
                       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                        Confirmed only
+                        {t('confirmedOnly')}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        Show pins verified by other users
+                        {t('confirmedDesc')}
                       </p>
                     </div>
                     {/* iOS-style toggle */}

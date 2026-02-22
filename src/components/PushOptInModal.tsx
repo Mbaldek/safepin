@@ -3,6 +3,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 const LS_KEY = 'kova_push_dismissed';
 
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export default function PushOptInModal({ onEnable, onDismiss }: Props) {
+  const focusTrapRef = useFocusTrap(true, onDismiss);
   return (
     <>
       <motion.div
@@ -33,6 +35,10 @@ export default function PushOptInModal({ onEnable, onDismiss }: Props) {
         onClick={onDismiss}
       />
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Enable notifications"
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[501] w-[88%] max-w-[360px] rounded-3xl p-6"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         initial={{ opacity: 0, scale: 0.9, y: 20 }}

@@ -3,9 +3,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Flag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { AnimatePresence } from 'framer-motion';
 import { Comment } from '@/types';
+import FlagReportModal from './FlagReportModal';
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -34,6 +36,7 @@ export default function PinChat({
   const [messages, setMessages] = useState<Comment[]>([]);
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [flagTarget, setFlagTarget] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const onCountChangeRef = useRef(onCountChange);
   onCountChangeRef.current = onCountChange;
@@ -91,6 +94,16 @@ export default function PinChat({
 
   return (
     <div>
+      <AnimatePresence>
+        {flagTarget && (
+          <FlagReportModal
+            key="chat-flag"
+            targetType="message"
+            targetId={flagTarget}
+            onClose={() => setFlagTarget(null)}
+          />
+        )}
+      </AnimatePresence>
       {/* Message bubbles */}
       <div className="flex flex-col gap-1.5 mb-3 max-h-[260px] overflow-y-auto no-scrollbar">
         {messages.length === 0 ? (
@@ -106,7 +119,7 @@ export default function PinChat({
           messages.map((msg) => {
             const isMe = msg.user_id === userId;
             return (
-              <div key={msg.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+              <div key={msg.id} className={`group flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
                 {/* Sender name (others only) */}
                 {!isMe && (
                   <span className="text-[0.6rem] font-bold ml-2" style={{ color: 'var(--text-muted)' }}>
@@ -133,10 +146,21 @@ export default function PinChat({
                 >
                   {msg.content}
                 </div>
-                {/* Timestamp */}
-                <span className="text-[0.55rem] mx-2" style={{ color: 'var(--text-muted)' }}>
-                  {timeAgo(msg.created_at)}
-                </span>
+                {/* Timestamp + flag */}
+                <div className={`flex items-center gap-1.5 mx-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>
+                    {timeAgo(msg.created_at)}
+                  </span>
+                  {!isMe && userId && (
+                    <button
+                      onClick={() => setFlagTarget(msg.id)}
+                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition p-0.5"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <Flag size={10} />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })

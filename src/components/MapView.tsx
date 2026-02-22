@@ -36,6 +36,9 @@ const POI_CIRCLE = 'paris-poi-circle';
 const POI_LABEL  = 'paris-poi-label';
 const HEAT_SRC = 'location-history-src';
 const HEAT_LYR = 'location-history-heat';
+const SAFE_SRC = 'safe-spaces-src';
+const SAFE_CIRCLE = 'safe-spaces-circle';
+const SAFE_LABEL = 'safe-spaces-label';
 
 const STYLE_URLS: Record<string, string> = {
   streets: 'mapbox://styles/mapbox/streets-v12',
@@ -405,7 +408,7 @@ export default function MapView() {
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -855,6 +858,14 @@ export default function MapView() {
       if (mapFilters.urban !== 'all' && pin.urban_context !== mapFilters.urban) return false;
       // Confirmed only
       if (mapFilters.confirmedOnly && !pin.last_confirmed_at) return false;
+      // Time of day
+      if (mapFilters.timeOfDay !== 'all') {
+        const h = new Date(pin.created_at).getHours();
+        if (mapFilters.timeOfDay === 'morning'   && (h < 6  || h >= 12)) return false;
+        if (mapFilters.timeOfDay === 'afternoon'  && (h < 12 || h >= 18)) return false;
+        if (mapFilters.timeOfDay === 'evening'    && (h < 18 || h >= 22)) return false;
+        if (mapFilters.timeOfDay === 'night'      && (h >= 6 && h < 22))  return false;
+      }
       return true;
     });
 
@@ -975,7 +986,7 @@ export default function MapView() {
       south: bounds.getSouth(),
       east: bounds.getEast(),
       west: bounds.getWest(),
-    });
+    }, mapFilters.timeOfDay);
 
     if (m.getSource(SCORE_SRC)) {
       (m.getSource(SCORE_SRC) as mapboxgl.GeoJSONSource).setData(geojson as GeoJSON.FeatureCollection);
@@ -992,7 +1003,80 @@ export default function MapView() {
         },
       });
     }
-  }, [showScores, mapReady, pins]);
+  }, [showScores, mapReady, pins, mapFilters.timeOfDay]);
+
+  // Toggle safe spaces layer
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    if (!showSafeSpaces) {
+      if (m.getLayer(SAFE_LABEL))  m.removeLayer(SAFE_LABEL);
+      if (m.getLayer(SAFE_CIRCLE)) m.removeLayer(SAFE_CIRCLE);
+      if (m.getSource(SAFE_SRC))   m.removeSource(SAFE_SRC);
+      return;
+    }
+
+    // Fetch safe spaces if not already loaded
+    if (safeSpaces.length === 0) {
+      supabase
+        .from('safe_spaces')
+        .select('*')
+        .order('upvotes', { ascending: false })
+        .limit(500)
+        .then(({ data }) => {
+          if (data) setSafeSpaces(data as import('@/types').SafeSpace[]);
+        });
+      return; // will re-trigger when safeSpaces updates
+    }
+
+    const geojson: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: safeSpaces.map((s) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
+        properties: { id: s.id, name: s.name, kind: s.type },
+      })),
+    };
+
+    if (m.getSource(SAFE_SRC)) {
+      (m.getSource(SAFE_SRC) as mapboxgl.GeoJSONSource).setData(geojson);
+      return;
+    }
+
+    m.addSource(SAFE_SRC, { type: 'geojson', data: geojson });
+    m.addLayer({
+      id: SAFE_CIRCLE,
+      type: 'circle',
+      source: SAFE_SRC,
+      paint: {
+        'circle-radius': 7,
+        'circle-color': '#22c55e',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.9,
+      },
+    });
+    m.addLayer({
+      id: SAFE_LABEL,
+      type: 'symbol',
+      source: SAFE_SRC,
+      minzoom: 14,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-size': 10,
+        'text-offset': [0, 1.4],
+        'text-anchor': 'top',
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
+      },
+      paint: {
+        'text-color': '#22c55e',
+        'text-halo-color': '#fff',
+        'text-halo-width': 1.5,
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSafeSpaces, safeSpaces, mapReady, layersReady]);
 
   // ── UI ───────────────────────────────────────────────────────────────────
 
@@ -1028,6 +1112,8 @@ export default function MapView() {
               onHeatmapToggle={() => setShowHeatmap((v) => !v)}
               showScores={showScores}
               onScoresToggle={() => setShowScores((v) => !v)}
+              showSafeSpaces={showSafeSpaces}
+              onSafeSpacesToggle={() => setShowSafeSpaces(!showSafeSpaces)}
               onClose={() => setShowLayerPanel(false)}
             />
           )}

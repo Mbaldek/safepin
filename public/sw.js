@@ -93,6 +93,118 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// ── Background Sync: flush offline pin queue ─────────────────────────────────
+
+const OFFLINE_DB = 'kova_offline';
+const OFFLINE_STORE = 'pending_pins';
+
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(OFFLINE_DB, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(OFFLINE_STORE)) {
+        req.result.createObjectStore(OFFLINE_STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbGetAll(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE, 'readonly');
+    const req = tx.objectStore(OFFLINE_STORE).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbDelete(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE, 'readwrite');
+    tx.objectStore(OFFLINE_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function syncPendingPins() {
+  const db = await openOfflineDB();
+  const pending = await idbGetAll(db);
+  if (pending.length === 0) return;
+
+  const SUPABASE_URL = '@@SUPABASE_URL@@'; // Replaced at runtime by env
+  let synced = 0;
+
+  for (const pin of pending) {
+    try {
+      // Upload media blobs first
+      const mediaUrls = [];
+      for (const media of (pin.media_blobs || [])) {
+        const fileName = `${pin.user_id}/${Date.now()}-${media.name}`;
+        const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/pin-photos/${fileName}`, {
+          method: 'POST',
+          headers: { 'Content-Type': media.type },
+          body: media.blob,
+        });
+        if (uploadRes.ok) {
+          mediaUrls.push({
+            url: `${SUPABASE_URL}/storage/v1/object/public/pin-photos/${fileName}`,
+            type: media.type.startsWith('image') ? 'image' : media.type.startsWith('video') ? 'video' : 'audio',
+          });
+        }
+      }
+
+      // Insert pin via REST
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/pins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': '@@SUPABASE_ANON_KEY@@',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({
+          user_id: pin.user_id,
+          lat: pin.lat,
+          lng: pin.lng,
+          category: pin.category,
+          severity: pin.severity,
+          environment: pin.environment,
+          urban_context: pin.urban_context,
+          urban_context_custom: pin.urban_context_custom,
+          is_moving: pin.is_moving,
+          description: pin.description,
+          photo_url: mediaUrls.find((m) => m.type === 'image')?.url ?? null,
+          media_urls: mediaUrls.length > 0 ? mediaUrls : null,
+        }),
+      });
+
+      if (res.ok) {
+        await idbDelete(db, pin.id);
+        synced++;
+      }
+    } catch {
+      // Network still down — stop and let next sync attempt handle it
+      break;
+    }
+  }
+
+  // Notify all clients
+  if (synced > 0) {
+    const allClients = await clients.matchAll({ type: 'window' });
+    for (const client of allClients) {
+      client.postMessage({ type: 'KOVA_SYNC_COMPLETE', synced });
+    }
+  }
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'kova-sync-pins') {
+    event.waitUntil(syncPendingPins());
+  }
+});
+
 // ── Push notifications ───────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {

@@ -4,6 +4,8 @@
 
 import { motion } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 
 type MapStyle = 'streets' | 'light' | 'dark';
 
@@ -28,6 +30,8 @@ type Props = {
   onHeatmapToggle: () => void;
   showScores: boolean;
   onScoresToggle: () => void;
+  showSafeSpaces: boolean;
+  onSafeSpacesToggle: () => void;
   onClose: () => void;
 };
 
@@ -71,8 +75,14 @@ function Toggle({ on, loading, onToggle, label, color, emoji }: {
 }
 
 export default function LayerPanel(props: Props) {
+  const t = useTranslations('layers');
+  const focusTrapRef = useFocusTrap(true, props.onClose);
   return (
     <motion.div
+      ref={focusTrapRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Map layers"
       className="rounded-2xl p-3 w-[210px]"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--bg-primary) 92%, transparent)',
@@ -118,12 +128,12 @@ export default function LayerPanel(props: Props) {
 
       {/* Safety POIs */}
       <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
-        Safety
+        {t('safetyPOI')}
       </p>
       <div className="flex flex-col gap-0.5 mb-2">
-        <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label="Pharmacies" color="#10b981" emoji="💊" />
-        <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label="Hospitals" color="#ef4444" emoji="🏥" />
-        <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading}   label="Police"     color="#3b82f6" emoji="🚔" />
+        <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label={t('pharmacies')} color="#10b981" emoji="💊" />
+        <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label={t('hospitals')} color="#ef4444" emoji="🏥" />
+        <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading}   label={t('police')}     color="#3b82f6" emoji="🚔" />
       </div>
 
       {/* Divider */}
@@ -131,12 +141,12 @@ export default function LayerPanel(props: Props) {
 
       {/* Transport */}
       <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
-        Transport
+        {t('transport')}
       </p>
       <div className="flex flex-col gap-0.5 mb-2">
-        <Toggle on={props.showMetro} onToggle={props.onMetroToggle} loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label="Metro" color="#3b82f6" emoji="🚇" />
-        <Toggle on={props.showRER}   onToggle={props.onRERToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label="RER"   color="#8b5cf6" emoji="🚆" />
-        <Toggle on={props.showBus}   onToggle={props.onBusToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label="Bus"   color="#f59e0b" emoji="🚌" />
+        <Toggle on={props.showMetro} onToggle={props.onMetroToggle} loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label={t('metro')} color="#3b82f6" emoji="🚇" />
+        <Toggle on={props.showRER}   onToggle={props.onRERToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label={t('rer')}   color="#8b5cf6" emoji="🚆" />
+        <Toggle on={props.showBus}   onToggle={props.onBusToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label={t('bus')}   color="#f59e0b" emoji="🚌" />
       </div>
 
       {/* Divider */}
@@ -144,11 +154,12 @@ export default function LayerPanel(props: Props) {
 
       {/* Data */}
       <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
-        Data
+        {t('data')}
       </p>
       <div className="flex flex-col gap-0.5">
-        <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label="My heatmap" color="#f43f5e" emoji="🔥" />
-        <Toggle on={props.showScores} onToggle={props.onScoresToggle} label="Safety scores" color="#6366f1" emoji="🗺️" />
+        <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color="#f43f5e" emoji="🔥" />
+        <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" />
+        <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" />
       </div>
     </motion.div>
   );

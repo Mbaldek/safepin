@@ -5,12 +5,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const LS_DISMISSED = 'kova_install_dismissed';
 const LS_SESSION_COUNT = 'kova_session_count';
 const MIN_SESSIONS = 3;
 
 export default function InstallPrompt() {
+  const t = useTranslations('install');
   const [show, setShow] = useState(false);
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
 
@@ -70,13 +72,13 @@ export default function InstallPrompt() {
             <Download size={16} style={{ color: '#fff' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Add KOVA to home screen</p>
-            <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Quick access, offline support</p>
+            <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{t('addToHome')}</p>
+            <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('quickAccess')}</p>
           </div>
           <button onClick={handleInstall}
             className="px-3 py-1.5 rounded-xl text-[0.65rem] font-black shrink-0 transition hover:opacity-90"
             style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
-            Install
+            {t('install')}
           </button>
           <button onClick={handleDismiss} className="p-1 shrink-0">
             <X size={12} style={{ color: 'var(--text-muted)' }} />

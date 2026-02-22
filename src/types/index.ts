@@ -22,6 +22,8 @@ export type Pin = {
   is_emergency: boolean;
   resolved_at: string | null;
   last_confirmed_at: string | null;
+  flag_count?: number;
+  hidden_at?: string | null;
   created_at: string;
 };
 
@@ -190,7 +192,7 @@ export type UserReport = {
   reporter_id: string;
   target_type: 'pin' | 'user' | 'message' | 'story';
   target_id: string;
-  reason: string;
+  reason: 'spam' | 'false_report' | 'offensive' | 'duplicate';
   status: 'pending' | 'reviewed' | 'resolved';
   created_at: string;
 };
@@ -234,6 +236,26 @@ export type AdminParam = {
   updated_at: string;
 };
 
+export type SafeSpace = {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  type: 'pharmacy' | 'hospital' | 'police' | 'cafe' | 'shelter';
+  source: 'overpass' | 'user';
+  verified: boolean;
+  upvotes: number;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type SafeSpaceVote = {
+  id: string;
+  safe_space_id: string;
+  user_id: string;
+  created_at: string;
+};
+
 export type PlaceNote = {
   id: string;
   user_id: string;
@@ -261,6 +283,27 @@ export type TripLog = {
 export type Profile = {
   id: string;
   name: string;
+  is_shadow_banned?: boolean;
+  created_at: string;
+};
+
+export type EmergencyDispatch = {
+  id: string;
+  user_id: string;
+  pin_id: string;
+  contacts_notified: string[];
+  sms_sent: boolean;
+  resolved_at: string | null;
+  created_at: string;
+};
+
+export type EmergencySession = {
+  id: string;
+  user_id: string;
+  pin_id: string;
+  display_name: string | null;
+  location_trail: { lat: number; lng: number; ts: string }[];
+  resolved_at: string | null;
   created_at: string;
 };
 

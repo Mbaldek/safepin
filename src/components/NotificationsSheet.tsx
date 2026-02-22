@@ -4,9 +4,11 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { MapPin } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { AppNotification } from '@/types';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
@@ -32,6 +34,8 @@ const TYPE_META: Record<string, { icon: string; color: string }> = {
 
 export default function NotificationsSheet({ onClose }: { onClose: () => void }) {
   const { notifications, markNotificationsRead, setActiveTab, userId, addNotification } = useStore();
+  const t = useTranslations('notifications');
+  const focusTrapRef = useFocusTrap(true, onClose);
   const [hydrated, setHydrated] = useState(false);
 
   // Hydrate from DB on first open if Zustand array is empty
@@ -75,6 +79,10 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
         onClick={onClose}
       />
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Notifications"
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[72dvh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -83,17 +91,17 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
         <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
         <div className="p-5 pb-10">
           <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>
-            Notifications
+            {t('title')}
           </h3>
 
           {sorted.length === 0 ? (
             <div className="flex flex-col items-center py-14 gap-3">
               <span className="text-4xl">🔔</span>
               <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
-                No notifications yet
+                {t('empty')}
               </p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                You'll see emergency alerts, comments, and votes here
+                {t('emptyDesc')}
               </p>
               <button
                 onClick={() => { setActiveTab('map'); onClose(); }}
@@ -101,7 +109,7 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
                 style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               >
                 <MapPin size={13} />
-                Go to map
+                {t('goToMap')}
               </button>
             </div>
           ) : (
@@ -152,7 +160,7 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
               color: 'var(--text-primary)',
             }}
           >
-            Close
+            {t('close')}
           </button>
         </div>
       </motion.div>

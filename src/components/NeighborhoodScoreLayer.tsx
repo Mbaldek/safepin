@@ -16,7 +16,18 @@ type GridCell = {
   score: number; // 0-100 (higher = more dangerous)
 };
 
-function computeGrid(pins: Pin[], bounds: { north: number; south: number; east: number; west: number }): GridCell[] {
+type TimeBracket = 'all' | 'morning' | 'afternoon' | 'evening' | 'night';
+
+function matchesTimeBracket(pin: Pin, bracket: TimeBracket): boolean {
+  if (bracket === 'all') return true;
+  const h = new Date(pin.created_at).getHours();
+  if (bracket === 'morning')   return h >= 6  && h < 12;
+  if (bracket === 'afternoon') return h >= 12 && h < 18;
+  if (bracket === 'evening')   return h >= 18 && h < 22;
+  /* night */ return h >= 22 || h < 6;
+}
+
+function computeGrid(pins: Pin[], bounds: { north: number; south: number; east: number; west: number }, timeBracket: TimeBracket = 'all'): GridCell[] {
   const cells: GridCell[] = [];
   const now = Date.now();
 
@@ -24,6 +35,7 @@ function computeGrid(pins: Pin[], bounds: { north: number; south: number; east: 
     for (let lng = bounds.west; lng < bounds.east; lng += CELL_SIZE_DEG) {
       let rawScore = 0;
       for (const pin of pins) {
+        if (!matchesTimeBracket(pin, timeBracket)) continue;
         if (pin.lat >= lat && pin.lat < lat + CELL_SIZE_DEG && pin.lng >= lng && pin.lng < lng + CELL_SIZE_DEG) {
           const ageMs = now - new Date(pin.created_at).getTime();
           const ageDays = ageMs / (24 * 3600_000);
@@ -51,8 +63,8 @@ function scoreToColor(score: number): string {
  * It needs to be called from MapView where the map instance is available.
  * For simplicity, we export a helper function that MapView calls.
  */
-export function buildScoreGeoJSON(pins: Pin[], bounds: { north: number; south: number; east: number; west: number }) {
-  const cells = computeGrid(pins, bounds);
+export function buildScoreGeoJSON(pins: Pin[], bounds: { north: number; south: number; east: number; west: number }, timeBracket: TimeBracket = 'all') {
+  const cells = computeGrid(pins, bounds, timeBracket);
   return {
     type: 'FeatureCollection' as const,
     features: cells.map((cell) => ({

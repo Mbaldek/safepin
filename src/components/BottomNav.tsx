@@ -5,18 +5,20 @@
 import { motion } from 'framer-motion';
 import { Map, Navigation, Users, Shield, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import { useTranslations } from 'next-intl';
 
 type Tab = 'map' | 'trip' | 'community' | 'mykova';
 
-const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
-  { id: 'map',       label: 'Map',       Icon: Map        },
-  { id: 'trip',      label: 'Trip',      Icon: Navigation },
-  { id: 'community', label: 'Community', Icon: Users      },
-  { id: 'mykova',    label: 'My KOVA',   Icon: Shield     },
+const TAB_KEYS: { id: Tab; key: 'map' | 'trip' | 'community' | 'myKova'; Icon: LucideIcon }[] = [
+  { id: 'map',       key: 'map',       Icon: Map        },
+  { id: 'trip',      key: 'trip',      Icon: Navigation },
+  { id: 'community', key: 'community', Icon: Users      },
+  { id: 'mykova',    key: 'myKova',    Icon: Shield     },
 ];
 
 export default function BottomNav() {
-  const { activeTab, setActiveTab, pins } = useStore();
+  const { activeTab, setActiveTab, pins, offlineQueueCount } = useStore();
+  const t = useTranslations('nav');
 
   const emergencyCount = pins.filter((p) => {
     if (!p.is_emergency || p.resolved_at) return false;
@@ -24,7 +26,9 @@ export default function BottomNav() {
   }).length;
 
   return (
-    <div
+    <nav
+      id="bottom-nav"
+      aria-label="Main navigation"
       className="shrink-0 flex items-stretch"
       style={{
         backgroundColor: 'var(--bg-secondary)',
@@ -35,14 +39,18 @@ export default function BottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      {TABS.map(({ id, label, Icon }) => {
+      {TAB_KEYS.map(({ id, key, Icon }) => {
         const isActive = activeTab === id;
+        const label = t(key);
         const badge = id === 'map' && emergencyCount > 0 ? emergencyCount : 0;
+        const offlineBadge = id === 'map' && offlineQueueCount > 0;
 
         return (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
+            aria-label={label}
+            aria-current={isActive ? 'page' : undefined}
             className="flex-1 flex flex-col items-center justify-center gap-1 relative"
           >
             {/* Pill background — shared layoutId so it slides between tabs */}
@@ -64,6 +72,14 @@ export default function BottomNav() {
                 {badge}
               </span>
             )}
+            {!badge && offlineBadge && (
+              <span
+                className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1 z-10"
+                style={{ backgroundColor: '#f59e0b', color: '#fff' }}
+              >
+                {offlineQueueCount}
+              </span>
+            )}
 
             {/* Icon */}
             <Icon
@@ -82,6 +98,6 @@ export default function BottomNav() {
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }

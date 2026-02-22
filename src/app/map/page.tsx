@@ -227,18 +227,19 @@ export default function MapPage() {
     });
   }, [router, setUserProfile, setUserId]);
 
-  // Load pins
+  // Load pins (exclude hidden pins unless the user owns them)
   useEffect(() => {
     async function loadPins() {
       const { data, error } = await supabase
         .from('pins')
         .select('*')
+        .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
         .order('created_at', { ascending: false });
       if (error) { toast.error('Failed to load pins'); return; }
       setPins((data as Pin[]) || []);
     }
     loadPins();
-  }, [setPins]);
+  }, [setPins, userId]);
 
   // Deep link: ?pin=UUID → fly to pin and open detail sheet
   useEffect(() => {
@@ -280,6 +281,29 @@ export default function MapPage() {
     }, 2000);
     return () => clearTimeout(timer);
   }, [userId, loading, onboardingDone]);
+
+  // Listen for SW sync-complete messages → refresh pins + queue count
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    function onMessage(event: MessageEvent) {
+      if (event.data?.type === 'KOVA_SYNC_COMPLETE') {
+        toast.success(`Synced ${event.data.synced} offline report${event.data.synced > 1 ? 's' : ''}`);
+        // Refresh pins from server
+        supabase
+          .from('pins')
+          .select('*')
+          .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
+          .order('created_at', { ascending: false })
+          .then(({ data }) => { if (data) setPins(data as Pin[]); });
+        // Reset offline queue count
+        import('@/lib/offlineQueue').then(({ getCount }) =>
+          getCount().then((n) => useStore.getState().setOfflineQueueCount(n))
+        );
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [userId, setPins]);
 
   // App badge — update unread count on home screen icon
   useEffect(() => {
@@ -468,7 +492,7 @@ export default function MapPage() {
 
   // ── App layout ────────────────────────────────────────────────────────────
   return (
-    <div className="h-dvh flex flex-col overflow-hidden">
+    <div id="main-content" role="main" className="h-dvh flex flex-col overflow-hidden">
 
       {/* ── Top bar (always visible) ───────────────────────────────── */}
       <div className="shrink-0 z-50"
@@ -490,6 +514,7 @@ export default function MapPage() {
             {activeTab === 'map' && (
               <button
                 onClick={() => setShowSearch((v) => !v)}
+                aria-label={showSearch ? 'Close search' : 'Search location'}
                 className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
                 style={{ backgroundColor: showSearch ? 'var(--accent)' : 'var(--bg-card)' }}
               >
@@ -502,12 +527,14 @@ export default function MapPage() {
             {/* Notification bell */}
             <button
               onClick={() => setShowNotifications(true)}
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
               className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
               style={{ backgroundColor: 'var(--bg-card)' }}
             >
               <Bell size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
               {unreadCount > 0 && (
                 <span
+                  aria-hidden="true"
                   className="absolute -top-1 -right-1 min-w-3.75 h-3.75 rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
                   style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
@@ -518,6 +545,7 @@ export default function MapPage() {
             <ThemeToggle />
             {/* Settings / burger menu */}
             <button
+              aria-label="Settings"
               className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
               style={{ backgroundColor: showSettings ? 'var(--accent)' : 'var(--bg-card)' }}
               onClick={() => setShowSettings((v) => !v)}
@@ -564,6 +592,7 @@ export default function MapPage() {
             {/* Incidents list toggle — top left pill */}
             <button
               onClick={() => setShowIncidentsList(!showIncidentsList)}
+              aria-label={showIncidentsList ? 'Hide incidents list' : 'Show incidents list'}
               className="absolute top-3 left-3 h-9 px-3 rounded-xl flex items-center gap-2 shadow-lg z-50 hover:scale-105 active:scale-95 transition"
               style={{
                 backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',

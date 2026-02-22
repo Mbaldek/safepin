@@ -4,11 +4,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 import { X, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
+import { enqueue, getCount } from '@/lib/offlineQueue';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -25,7 +28,9 @@ function detectType(file: File): 'image' | 'video' | 'audio' {
 }
 
 export default function ReportSheet({ userId }: { userId: string | null }) {
-  const { setActiveSheet, newPinCoords, setNewPinCoords, addPin } = useStore();
+  const { setActiveSheet, newPinCoords, setNewPinCoords, addPin, setOfflineQueueCount } = useStore();
+  const t = useTranslations('report');
+  const focusTrapRef = useFocusTrap(true, handleClose);
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<string | null>(null);
@@ -93,6 +98,43 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
     setLoading(true);
 
+    // ── Offline: queue and register background sync ─────────────────────
+    if (!navigator.onLine) {
+      const mediaBlobs = await Promise.all(
+        mediaFiles.map(async (m) => ({
+          name: m.file.name,
+          type: m.file.type,
+          blob: m.file as Blob,
+        }))
+      );
+      await enqueue({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        lat: newPinCoords.lat,
+        lng: newPinCoords.lng,
+        category,
+        severity,
+        environment: environment || null,
+        urban_context: urbanContext || null,
+        urban_context_custom: urbanContext === 'other' && urbanContextCustom.trim() ? urbanContextCustom.trim() : null,
+        is_moving: isMoving,
+        description: [description, accessInfo ? `Access: ${accessInfo}` : ''].filter(Boolean).join('\n') || 'No description.',
+        media_blobs: mediaBlobs,
+        created_at: new Date().toISOString(),
+      });
+      const count = await getCount();
+      setOfflineQueueCount(count);
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        const reg = await navigator.serviceWorker.ready;
+        await (reg as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync.register('kova-sync-pins');
+      }
+      toast.success(t('queued'));
+      setActiveSheet('none');
+      setNewPinCoords(null);
+      setLoading(false);
+      return;
+    }
+
     // Upload all media files
     const uploaded: MediaItem[] = [];
     for (const media of mediaFiles) {
@@ -141,7 +183,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
     // Immediately add to store so the map updates without waiting for realtime
     if (newPin) addPin(newPin as import('@/types').Pin);
 
-    toast.success('Report submitted!');
+    toast.success(t('success'));
     setActiveSheet('none');
     setNewPinCoords(null);
     setLoading(false);
@@ -155,6 +197,10 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   return (
     <>
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Report incident"
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[60dvh] overflow-y-auto"
         style={{
           backgroundColor: 'var(--bg-secondary)',
@@ -176,7 +222,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
               >
                 <ArrowLeft size={18} />
               </button>
-              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Report a situation</h2>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
             </div>
             <button
               onClick={handleClose}
@@ -273,7 +319,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
           {/* Environment (optional) */}
           <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Context (optional)
+            {t('environment')}
           </label>
           <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5 no-scrollbar">
             {Object.entries(ENVIRONMENTS).map(([key, { label, emoji }]) => (
@@ -294,7 +340,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
           {/* Urban context */}
           <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Location type (optional)
+            {t('urbanContext')}
           </label>
           <div className="grid grid-cols-3 gap-1.5 mb-2">
             {Object.entries(URBAN_CONTEXTS).map(([key, { label, emoji }]) => (
@@ -336,7 +382,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
           <div className="flex items-center justify-between mb-5">
             <div>
               <p className="text-[0.7rem] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                In motion?
+                {t('isMoving')}
               </p>
               <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 Were you moving (bus, car, bike…)?
@@ -356,12 +402,12 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
           {/* Description */}
           <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Describe what happened
+            {t('description')}
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Man shouting near bus stop..."
+            placeholder={t('descriptionPlaceholder')}
             rows={2}
             className="w-full rounded-xl text-sm p-3 outline-none transition resize-none mb-4"
             style={{
@@ -374,7 +420,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
           {/* Multi-media upload */}
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-[0.7rem] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Media (optional)
+              {t('addMedia')}
             </label>
             <span className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>{mediaFiles.length}/5</span>
           </div>
@@ -422,7 +468,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             >
               <span className="text-xl">📎</span>
               <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                Add photo, video or audio…
+                {t('addMedia')}
               </span>
               <input
                 ref={fileInputRef}
@@ -437,7 +483,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
           {/* Severity */}
           <label className="block text-[0.7rem] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Severity
+            {t('severity')}
           </label>
           <div className="flex gap-2 mb-5">
             {Object.entries(SEVERITY).map(([key, { label, emoji, color }]) => (
@@ -463,7 +509,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
             className="w-full bg-gradient-to-r from-[#f43f5e] to-[#e11d48] text-white font-bold rounded-xl py-4 text-sm shadow-lg disabled:opacity-50 transition"
             style={{ boxShadow: '0 8px 24px var(--accent-glow)' }}
           >
-            {loading ? 'Submitting…' : 'Submit report'}
+            {loading ? t('submitting') : t('submit')}
           </button>
         </div>
       </motion.div>

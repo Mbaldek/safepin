@@ -3,8 +3,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle, Share2 } from 'lucide-react';
+import { useFocusTrap } from '@/lib/useFocusTrap';
+import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle, Share2, Flag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
@@ -13,6 +15,7 @@ import PinChat from './PinChat';
 import PinStoriesRow from './PinStoriesRow';
 import LiveBroadcaster from './LiveBroadcaster';
 import LiveViewer from './LiveViewer';
+import FlagReportModal from './FlagReportModal';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -63,6 +66,8 @@ export default function DetailSheet() {
     selectedPin, setSelectedPin, setActiveSheet, userId, updatePin, userProfile,
     followedPinIds, toggleFollowPin, liveSessions, addLiveSession, updateLiveSession,
   } = useStore();
+  const t = useTranslations('detail');
+  const focusTrapRef = useFocusTrap(true, handleClose);
 
   const [confirms, setConfirms] = useState<VoteRow[]>([]);
   const [denies, setDenies] = useState<VoteRow[]>([]);
@@ -73,6 +78,7 @@ export default function DetailSheet() {
   const [showViewer, setShowViewer] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatCount, setChatCount] = useState(0);
+  const [showFlagModal, setShowFlagModal] = useState(false);
 
   useEffect(() => {
     if (!selectedPin) return;
@@ -153,7 +159,7 @@ export default function DetailSheet() {
           if (newDenies.length >= 3) {
             await supabase.from('pins').update({ resolved_at: now }).eq('id', pinId);
             updatePin({ ...selectedPin!, resolved_at: now });
-            toast.success('Pin removed — 3 users confirmed it has cleared');
+            toast.success(t('pinRemoved'));
             setVotingInFlight(false);
             handleClose();
             return;
@@ -170,9 +176,9 @@ export default function DetailSheet() {
     const now = new Date().toISOString();
     const { error } = await supabase.from('pins').update({ resolved_at: now }).eq('id', selectedPin!.id);
     setResolving(false);
-    if (error) { toast.error('Failed to resolve'); return; }
+    if (error) { toast.error(t('failedResolve')); return; }
     updatePin({ ...selectedPin!, resolved_at: now });
-    toast.success('Marked as resolved ✅');
+    toast.success(t('markedResolved') + ' ✅');
   }
 
   const myVoteType = myVote?.vote_type as 'confirm' | 'deny' | undefined;
@@ -180,6 +186,14 @@ export default function DetailSheet() {
   return (
     <>
       <AnimatePresence>
+        {showFlagModal && (
+          <FlagReportModal
+            key="flag-modal"
+            targetType="pin"
+            targetId={selectedPin.id}
+            onClose={() => setShowFlagModal(false)}
+          />
+        )}
         {showBroadcaster && userId && (
           <LiveBroadcaster
             key="broadcaster"
@@ -213,6 +227,10 @@ export default function DetailSheet() {
         onClick={handleClose}
       />
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Incident details"
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[88dvh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -229,9 +247,9 @@ export default function DetailSheet() {
             >
               <span className="text-2xl">🆘</span>
               <div>
-                <p className="text-sm font-bold" style={{ color: '#ef4444' }}>Emergency Alert</p>
+                <p className="text-sm font-bold" style={{ color: '#ef4444' }}>{t('emergencyAlert')}</p>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {isResolved ? '✅ This alert has been resolved' : 'This person signalled they need help'}
+                  {isResolved ? '✅ ' + t('emergencyResolved') : t('emergencyHelp')}
                 </p>
               </div>
             </div>
@@ -262,7 +280,8 @@ export default function DetailSheet() {
                 }}
                 className="p-2 rounded-full transition"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
-                title="Share"
+                aria-label={t('share')}
+                title={t('share')}
               >
                 <Share2 size={15} />
               </button>
@@ -271,7 +290,7 @@ export default function DetailSheet() {
                 <button
                   onClick={() => {
                     toggleFollowPin(selectedPin.id);
-                    toast.success(isFollowed ? 'Unfollowed pin' : 'Following pin — you\'ll be notified of updates');
+                    toast.success(isFollowed ? t('unfollowSuccess') : t('followSuccess'));
                   }}
                   className="p-2 rounded-full transition"
                   style={{
@@ -279,9 +298,23 @@ export default function DetailSheet() {
                     border: `1px solid ${isFollowed ? 'var(--accent)' : 'var(--border)'}`,
                     color: isFollowed ? 'var(--accent)' : 'var(--text-muted)',
                   }}
-                  title={isFollowed ? 'Unfollow' : 'Follow'}
+                  aria-label={isFollowed ? t('unfollow') : t('follow')}
+                  title={isFollowed ? t('unfollow') : t('follow')}
                 >
                   {isFollowed ? <BellOff size={15} /> : <Bell size={15} />}
+                </button>
+              )}
+
+              {/* Flag / report button */}
+              {userId && !isOwner && (
+                <button
+                  onClick={() => setShowFlagModal(true)}
+                  className="p-2 rounded-full transition"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+                  aria-label={t('report')}
+                  title={t('report')}
+                >
+                  <Flag size={15} />
                 </button>
               )}
 
@@ -293,7 +326,7 @@ export default function DetailSheet() {
                   style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
                 >
                   <Radio size={13} />
-                  Go Live
+                  {t('goLive')}
                 </button>
               )}
               {activeSession && !isOwner && (
@@ -303,7 +336,7 @@ export default function DetailSheet() {
                   style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
-                  Watch Live
+                  {t('watchLive')}
                 </button>
               )}
               {activeSession && isOwner && (
@@ -313,7 +346,7 @@ export default function DetailSheet() {
                   style={{ backgroundColor: 'rgba(244,63,94,0.2)', border: '1px solid #f43f5e', color: '#f43f5e' }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
-                  LIVE
+                  {t('live')}
                 </button>
               )}
 
@@ -364,7 +397,7 @@ export default function DetailSheet() {
           <div className="flex gap-3 text-xs font-medium mb-4" style={{ color: 'var(--text-muted)' }}>
             <span>🕐 {timeAgo(selectedPin.created_at)}</span>
             {mediaItems.length > 0 && (
-              <span>📎 {mediaItems.length} {mediaItems.length === 1 ? 'file' : 'files'}</span>
+              <span>📎 {t('files', { count: mediaItems.length })}</span>
             )}
           </div>
 
@@ -404,7 +437,7 @@ export default function DetailSheet() {
                   : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
               }
             >
-              👍 {confirms.length > 0 ? confirms.length : ''} Still there
+              👍 {confirms.length > 0 ? confirms.length : ''} {t('stillThere')}
             </button>
 
             {/* Deny / cleared */}
@@ -419,7 +452,7 @@ export default function DetailSheet() {
                     : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
                 }
               >
-                👁️ {denies.length > 0 ? `${denies.length}/3` : ''} Cleared?
+                👁️ {denies.length > 0 ? `${denies.length}/3` : ''} {t('cleared')}
               </button>
             )}
 
@@ -439,7 +472,7 @@ export default function DetailSheet() {
                 className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold"
                 style={{ backgroundColor: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
               >
-                ✅ Resolved
+                ✅ {t('resolved')}
               </div>
             )}
           </div>
@@ -456,7 +489,7 @@ export default function DetailSheet() {
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">👍</span>
                     <span className="text-xs font-bold" style={{ color: '#10b981' }}>
-                      {confirms.length} {confirms.length === 1 ? 'person' : 'people'} confirmed it's still there
+                      {t('confirmedStill', { count: confirms.length })}
                     </span>
                   </div>
                   <span className="text-[0.6rem] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>
@@ -472,7 +505,7 @@ export default function DetailSheet() {
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm">👁️</span>
                       <span className="text-xs font-bold" style={{ color: '#f59e0b' }}>
-                        {denies.length}/3 say it has cleared
+                        {t('clearingVotes', { count: denies.length })}
                       </span>
                     </div>
                     <span className="text-[0.6rem] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>
@@ -487,7 +520,7 @@ export default function DetailSheet() {
                   </div>
                   {denies.length === 2 && (
                     <p className="text-[0.6rem] mt-1" style={{ color: 'var(--text-muted)' }}>
-                      1 more clearing vote will remove this pin
+                      {t('oneMoreClearing')}
                     </p>
                   )}
                 </div>
@@ -505,7 +538,7 @@ export default function DetailSheet() {
                       className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
                       style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }}
                     >
-                      timer reset by confirm
+                      {t('timerReset')}
                     </span>
                   )}
                 </div>
@@ -531,7 +564,7 @@ export default function DetailSheet() {
             <div className="flex items-center gap-2">
               <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} />
               <span className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                Messages{chatCount > 0 ? ` · ${chatCount}` : ''}
+                {t('messages')}{chatCount > 0 ? ` · ${chatCount}` : ''}
               </span>
             </div>
             {chatExpanded

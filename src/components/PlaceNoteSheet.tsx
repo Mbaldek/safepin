@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useFocusTrap } from '@/lib/useFocusTrap';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { PlaceNote } from '@/types';
@@ -22,6 +23,7 @@ type Props = {
 
 export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Props) {
   const { addPlaceNote, toggleFavPlace } = useStore();
+  const focusTrapRef = useFocusTrap(true, onClose);
   const [name, setName]         = useState('');
   const [note, setNote]         = useState('');
   const [emoji, setEmoji]       = useState('📌');
@@ -92,6 +94,10 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
 
       {/* Sheet */}
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Place note"
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
