@@ -4,9 +4,10 @@
 
 import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Layers, Train, Loader2 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Layers } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import LayerPanel from './LayerPanel';
 import { useTheme } from '@/stores/useTheme';
 import { SEVERITY, Pin } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +30,11 @@ const TRANSIT_CIRCLE = 'paris-transit-circle';
 const TRANSIT_LABEL  = 'paris-transit-label';
 const TRANSIT_LINES_SRC = 'paris-transit-lines-src';
 const TRANSIT_LINES_LYR = 'paris-transit-lines-lyr';
+const POI_SRC    = 'paris-poi-src';
+const POI_CIRCLE = 'paris-poi-circle';
+const POI_LABEL  = 'paris-poi-label';
+const HEAT_SRC = 'location-history-src';
+const HEAT_LYR = 'location-history-heat';
 
 const STYLE_URLS: Record<string, string> = {
   streets: 'mapbox://styles/mapbox/streets-v12',
@@ -36,9 +42,11 @@ const STYLE_URLS: Record<string, string> = {
   dark:    'mapbox://styles/mapbox/dark-v11',
 };
 
-// Module-level transit data cache so it survives style switches
+// Module-level caches so they survive style switches
 let transitCache: GeoJSON.FeatureCollection | null = null;
 let transitLinesCache: GeoJSON.FeatureCollection | null = null;
+let poiCache: GeoJSON.FeatureCollection | null = null;
+let heatmapGeoJSON: GeoJSON.FeatureCollection | null = null;
 
 // Single Overpass request for BOTH stations (nodes) and lines (ways) — avoids rate-limiting
 const PARIS_BBOX = '48.78,2.20,48.94,2.50'; // wider bbox covering all Paris + inner suburbs
@@ -149,6 +157,110 @@ function addTransitLayer(m: mapboxgl.Map) {
       'text-halo-width': 1.5,
     },
   });
+}
+
+// ── POI (Points of Interest) ──────────────────────────────────────────────────
+
+async function fetchParisPOIs(): Promise<void> {
+  if (poiCache) return;
+  const query = `[out:json][timeout:40];(
+    node["amenity"="pharmacy"](${PARIS_BBOX});
+    node["amenity"="hospital"](${PARIS_BBOX});
+    node["amenity"="clinic"](${PARIS_BBOX});
+    node["amenity"="police"](${PARIS_BBOX});
+  );out body;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
+  const data = await res.json() as {
+    elements: Array<{ type: string; id: number; lat?: number; lon?: number; tags?: Record<string, string> }>;
+  };
+  poiCache = {
+    type: 'FeatureCollection',
+    features: data.elements
+      .filter((el) => el.type === 'node' && el.lat != null)
+      .map((el) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [el.lon!, el.lat!] },
+        properties: {
+          name: el.tags?.name ?? '',
+          kind: el.tags?.amenity === 'police' ? 'police'
+            : el.tags?.amenity === 'pharmacy' ? 'pharmacy'
+            : 'hospital',
+        },
+      })),
+  };
+}
+
+function addPOILayers(m: mapboxgl.Map) {
+  if (!poiCache || m.getSource(POI_SRC)) return;
+  m.addSource(POI_SRC, { type: 'geojson', data: poiCache });
+  m.addLayer({
+    id: POI_CIRCLE,
+    type: 'circle',
+    source: POI_SRC,
+    paint: {
+      'circle-radius': 6,
+      'circle-color': ['match', ['get', 'kind'], 'pharmacy', '#10b981', 'hospital', '#ef4444', 'police', '#3b82f6', '#6b7280'],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#fff',
+      'circle-opacity': 0.9,
+    },
+  });
+  m.addLayer({
+    id: POI_LABEL,
+    type: 'symbol',
+    source: POI_SRC,
+    minzoom: 14,
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-size': 10,
+      'text-offset': [0, 1.4],
+      'text-anchor': 'top',
+      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
+    },
+    paint: {
+      'text-color': ['match', ['get', 'kind'], 'pharmacy', '#10b981', 'hospital', '#ef4444', 'police', '#3b82f6', '#6b7280'],
+      'text-halo-color': '#fff',
+      'text-halo-width': 1.5,
+    },
+  });
+}
+
+function buildPOIFilter(show: { pharmacy: boolean; hospital: boolean; police: boolean }): mapboxgl.FilterSpecification {
+  const conds: mapboxgl.FilterSpecification[] = [];
+  if (show.pharmacy) conds.push(['==', ['get', 'kind'], 'pharmacy']);
+  if (show.hospital) conds.push(['==', ['get', 'kind'], 'hospital']);
+  if (show.police)   conds.push(['==', ['get', 'kind'], 'police']);
+  if (conds.length === 0) return ['==', ['get', 'kind'], '__none__'];
+  return ['any', ...conds] as mapboxgl.FilterSpecification;
+}
+
+function addHeatmapLayer(m: mapboxgl.Map, geojson: GeoJSON.FeatureCollection) {
+  if (m.getSource(HEAT_SRC)) return;
+  m.addSource(HEAT_SRC, { type: 'geojson', data: geojson });
+  m.addLayer({
+    id: HEAT_LYR,
+    type: 'heatmap',
+    source: HEAT_SRC,
+    maxzoom: 17,
+    paint: {
+      'heatmap-weight': 1,
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 17, 3],
+      'heatmap-color': [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0,   'rgba(244,63,94,0)',
+        0.2, 'rgba(244,63,94,0.2)',
+        0.5, 'rgba(244,63,94,0.5)',
+        1,   'rgba(244,63,94,0.85)',
+      ],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 17, 20],
+      'heatmap-opacity': 0.55,
+    },
+  }, 'clusters');
 }
 
 function getPinOpacity(pin: Pin): number {
@@ -274,9 +386,14 @@ export default function MapView() {
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [mapStyle, setMapStyle]           = useState<'streets' | 'light' | 'dark'>(theme === 'dark' ? 'dark' : 'streets');
-  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [showTransit, setShowTransit]     = useState(false);
   const [transitLoading, setTransitLoading] = useState(false);
+  const [showPharmacy, setShowPharmacy]   = useState(false);
+  const [showHospital, setShowHospital]   = useState(false);
+  const [showPolice, setShowPolice]       = useState(false);
+  const [poiLoading, setPOILoading]       = useState(false);
+  const [showHeatmap, setShowHeatmap]     = useState(true);
 
   // Initialize map
   useEffect(() => {
@@ -546,11 +663,22 @@ export default function MapView() {
     }
   }, [placeNotes, favPlaceIds, mapReady]);
 
-  // Load and render personal location heatmap (Sprint 28)
+  // Load and render personal location heatmap
   useEffect(() => {
     if (!userId || !mapReady || !layersReady) return;
-    const HEAT_SRC = 'location-history-src';
-    const HEAT_LYR = 'location-history-heat';
+
+    const m = map.current;
+    if (!m) return;
+
+    // Use cached data if available (e.g. after style switch)
+    if (heatmapGeoJSON) {
+      if (m.getSource(HEAT_SRC)) {
+        (m.getSource(HEAT_SRC) as mapboxgl.GeoJSONSource).setData(heatmapGeoJSON);
+      } else {
+        addHeatmapLayer(m, heatmapGeoJSON);
+      }
+      return;
+    }
 
     supabase
       .from('location_history')
@@ -558,10 +686,8 @@ export default function MapView() {
       .eq('user_id', userId)
       .limit(2000)
       .then(({ data }) => {
-        const m = map.current;
-        if (!m || !data?.length) return;
-
-        const geojson: GeoJSON.FeatureCollection = {
+        if (!map.current || !data?.length) return;
+        heatmapGeoJSON = {
           type: 'FeatureCollection',
           features: data.map((r) => ({
             type: 'Feature',
@@ -569,31 +695,7 @@ export default function MapView() {
             properties: {},
           })),
         };
-
-        if (m.getSource(HEAT_SRC)) {
-          (m.getSource(HEAT_SRC) as mapboxgl.GeoJSONSource).setData(geojson);
-        } else {
-          m.addSource(HEAT_SRC, { type: 'geojson', data: geojson });
-          m.addLayer({
-            id: HEAT_LYR,
-            type: 'heatmap',
-            source: HEAT_SRC,
-            maxzoom: 17,
-            paint: {
-              'heatmap-weight': 1,
-              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 17, 3],
-              'heatmap-color': [
-                'interpolate', ['linear'], ['heatmap-density'],
-                0,   'rgba(244,63,94,0)',
-                0.2, 'rgba(244,63,94,0.2)',
-                0.5, 'rgba(244,63,94,0.5)',
-                1,   'rgba(244,63,94,0.85)',
-              ],
-              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 17, 20],
-              'heatmap-opacity': 0.55,
-            },
-          }, 'clusters'); // render beneath pin clusters
-        }
+        addHeatmapLayer(map.current, heatmapGeoJSON);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, mapReady, layersReady]);
@@ -606,7 +708,7 @@ export default function MapView() {
   // Apply mapStyle to the actual Mapbox map — re-add cluster layers + transit after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    transitCache = null; transitLinesCache = null; // clear transit cache; layer was wiped by setStyle
+    transitCache = null; transitLinesCache = null; poiCache = null; heatmapGeoJSON = null;
     setLayersReady(false);
     map.current.once('style.load', () => {
       addClusterLayers(map.current!, mapStyle === 'dark');
@@ -614,6 +716,18 @@ export default function MapView() {
         fetchParisTransitAll()
           .then(() => { if (map.current) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
           .catch((err) => console.warn('[KOVA] Transit fetch failed:', err));
+      }
+      if (showPharmacy || showHospital || showPolice) {
+        fetchParisPOIs()
+          .then(() => {
+            if (map.current) {
+              addPOILayers(map.current);
+              const f = buildPOIFilter({ pharmacy: showPharmacy, hospital: showHospital, police: showPolice });
+              if (map.current.getLayer(POI_CIRCLE)) map.current.setFilter(POI_CIRCLE, f);
+              if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
+            }
+          })
+          .catch((err) => console.warn('[KOVA] POI fetch failed:', err));
       }
       setLayersReady(true);
     });
@@ -741,13 +855,52 @@ export default function MapView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransit, mapReady, layersReady]);
 
-  // ── UI ───────────────────────────────────────────────────────────────────
+  // Show / hide POI layers
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
 
-  const STYLE_OPTIONS: { id: 'streets' | 'light' | 'dark'; label: string; emoji: string }[] = [
-    { id: 'streets', label: 'Streets', emoji: '🗺️' },
-    { id: 'light',   label: 'Light',   emoji: '☀️' },
-    { id: 'dark',    label: 'Dark',    emoji: '🌙' },
-  ];
+    const anyVisible = showPharmacy || showHospital || showPolice;
+
+    if (!anyVisible) {
+      if (m.getLayer(POI_LABEL))  m.removeLayer(POI_LABEL);
+      if (m.getLayer(POI_CIRCLE)) m.removeLayer(POI_CIRCLE);
+      if (m.getSource(POI_SRC))   m.removeSource(POI_SRC);
+      return;
+    }
+
+    if (poiCache) {
+      addPOILayers(m);
+      const f = buildPOIFilter({ pharmacy: showPharmacy, hospital: showHospital, police: showPolice });
+      if (m.getLayer(POI_CIRCLE)) m.setFilter(POI_CIRCLE, f);
+      if (m.getLayer(POI_LABEL))  m.setFilter(POI_LABEL, f);
+      return;
+    }
+
+    setPOILoading(true);
+    fetchParisPOIs()
+      .then(() => {
+        if (!map.current) return;
+        addPOILayers(map.current);
+        const f = buildPOIFilter({ pharmacy: showPharmacy, hospital: showHospital, police: showPolice });
+        if (map.current.getLayer(POI_CIRCLE)) map.current.setFilter(POI_CIRCLE, f);
+        if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
+      })
+      .catch((err) => console.warn('[KOVA] POI fetch failed:', err))
+      .finally(() => setPOILoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPharmacy, showHospital, showPolice, mapReady, layersReady]);
+
+  // Toggle heatmap visibility
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+    if (m.getLayer(HEAT_LYR)) {
+      m.setLayoutProperty(HEAT_LYR, 'visibility', showHeatmap ? 'visible' : 'none');
+    }
+  }, [showHeatmap, mapReady, layersReady]);
+
+  // ── UI ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="relative w-full h-full">
@@ -756,79 +909,49 @@ export default function MapView() {
       {/* ── Map controls (right side, above bottom nav) ─────────────── */}
       <div className="absolute right-3 bottom-22 z-50 flex flex-col items-end gap-2">
 
-        {/* Style picker popover */}
+        {/* Layer panel popover */}
         <AnimatePresence>
-          {showStylePicker && (
-            <motion.div
-              className="flex flex-col gap-1 p-1.5 rounded-2xl mb-1"
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
-                border: '1px solid var(--border)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-              }}
-              initial={{ opacity: 0, scale: 0.85, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: 8 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.6 }}
-            >
-              {STYLE_OPTIONS.map(({ id, label, emoji }) => (
-                <button
-                  key={id}
-                  onClick={() => { setMapStyle(id); setShowStylePicker(false); }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition text-left whitespace-nowrap"
-                  style={{
-                    backgroundColor: mapStyle === id ? 'var(--accent)' : 'transparent',
-                    color: mapStyle === id ? '#fff' : 'var(--text-primary)',
-                  }}
-                >
-                  <span>{emoji}</span>
-                  {label}
-                </button>
-              ))}
-            </motion.div>
+          {showLayerPanel && (
+            <LayerPanel
+              key="layer-panel"
+              mapStyle={mapStyle}
+              onStyleChange={(s) => { setMapStyle(s); }}
+              showTransit={showTransit}
+              onTransitToggle={() => setShowTransit((v) => !v)}
+              transitLoading={transitLoading}
+              showPharmacy={showPharmacy}
+              onPharmacyToggle={() => setShowPharmacy((v) => !v)}
+              showHospital={showHospital}
+              onHospitalToggle={() => setShowHospital((v) => !v)}
+              showPolice={showPolice}
+              onPoliceToggle={() => setShowPolice((v) => !v)}
+              poiLoading={poiLoading}
+              showHeatmap={showHeatmap}
+              onHeatmapToggle={() => setShowHeatmap((v) => !v)}
+              onClose={() => setShowLayerPanel(false)}
+            />
           )}
         </AnimatePresence>
 
         {/* Layers toggle button */}
         <button
-          onClick={() => setShowStylePicker((v) => !v)}
+          onClick={() => setShowLayerPanel((v) => !v)}
           className="w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95"
           style={{
-            backgroundColor: showStylePicker
+            backgroundColor: showLayerPanel
               ? 'var(--accent)'
               : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
             border: '1px solid var(--border)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}
-          title="Map style"
+          title="Map layers"
         >
           <Layers
             size={16}
             strokeWidth={2}
-            style={{ color: showStylePicker ? '#fff' : 'var(--text-muted)' }}
+            style={{ color: showLayerPanel ? '#fff' : 'var(--text-muted)' }}
           />
-        </button>
-
-        {/* Transit toggle button */}
-        <button
-          onClick={() => setShowTransit((v) => !v)}
-          className="w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95 relative"
-          style={{
-            backgroundColor: showTransit
-              ? '#3b82f6'
-              : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
-            border: showTransit ? '1px solid #3b82f6' : '1px solid var(--border)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-          }}
-          title="Paris transit stops"
-        >
-          {transitLoading
-            ? <Loader2 size={15} className="animate-spin" style={{ color: '#3b82f6' }} />
-            : <Train size={15} strokeWidth={2} style={{ color: showTransit ? '#fff' : 'var(--text-muted)' }} />
-          }
         </button>
 
       </div>

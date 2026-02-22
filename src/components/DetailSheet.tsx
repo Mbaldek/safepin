@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
@@ -248,6 +248,24 @@ export default function DetailSheet() {
               </h2>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {/* Share button */}
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/map?pin=${selectedPin.id}`;
+                  const shareData = { title: `KOVA — ${cat?.label || 'Report'}`, text: selectedPin.description?.slice(0, 120) || 'Safety report on KOVA', url };
+                  if (navigator.share) {
+                    try { await navigator.share(shareData); } catch { /* cancelled */ }
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    toast.success('Link copied to clipboard');
+                  }
+                }}
+                className="p-2 rounded-full transition"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+                title="Share"
+              >
+                <Share2 size={15} />
+              </button>
               {/* Follow button */}
               {userId && (
                 <button

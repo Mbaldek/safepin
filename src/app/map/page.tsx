@@ -29,6 +29,8 @@ import SosBanner from '@/components/SosBanner';
 import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
 import PlaceNoteSheet from '@/components/PlaceNoteSheet';
 import PlaceNotePopup from '@/components/PlaceNotePopup';
+import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
+import OfflineBanner from '@/components/OfflineBanner';
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -183,6 +185,8 @@ export default function MapPage() {
   const [showCityContext, setShowCityContext] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
+  const [showPushOptIn, setShowPushOptIn] = useState(false);
+  const deepLinkHandled = useRef(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -226,6 +230,31 @@ export default function MapPage() {
     }
     loadPins();
   }, [setPins]);
+
+  // Deep link: ?pin=UUID → fly to pin and open detail sheet
+  useEffect(() => {
+    if (deepLinkHandled.current || pins.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const pinId = params.get('pin');
+    if (!pinId) return;
+    deepLinkHandled.current = true;
+    const pin = pins.find((p) => p.id === pinId);
+    if (pin) {
+      useStore.getState().setSelectedPin(pin);
+      setActiveSheet('detail');
+      useStore.getState().setMapFlyTo({ lat: pin.lat, lng: pin.lng, zoom: 16 });
+    }
+    window.history.replaceState({}, '', '/map');
+  }, [pins, setActiveSheet]);
+
+  // Show push opt-in after a short delay (first session only)
+  useEffect(() => {
+    if (!userId || loading) return;
+    const timer = setTimeout(() => {
+      if (shouldShowPushOptIn()) setShowPushOptIn(true);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [userId, loading]);
 
   // Realtime: new/updated pins
   const handleNewPin = useCallback((pin: Pin) => {
@@ -575,6 +604,25 @@ export default function MapPage() {
       {!loading && !onboardingDone && (
         <OnboardingOverlay onDone={markOnboardingDone} />
       )}
+
+      {/* ── Push notification opt-in ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showPushOptIn && (
+          <PushOptInModal
+            key="push-optin"
+            onEnable={async () => {
+              setShowPushOptIn(false);
+              dismissPushOptIn();
+              const perm = await Notification.requestPermission();
+              if (perm === 'granted' && userId) registerPush(userId);
+            }}
+            onDismiss={() => { setShowPushOptIn(false); dismissPushOptIn(); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Offline banner ──────────────────────────────────────────── */}
+      <OfflineBanner />
     </div>
   );
 }

@@ -3,33 +3,51 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const STEPS = [
+function KovaShield({ size = 48 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.2" />
+      <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.5" fill="none" />
+      <text x="16" y="21" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">K</text>
+    </svg>
+  );
+}
+
+type Step = {
+  icon: 'shield' | string;
+  title: string;
+  body: string;
+  cta: string;
+};
+
+const STEPS: Step[] = [
   {
-    emoji: '🛡️',
+    icon: 'shield',
     title: 'Welcome to KOVA',
     body: 'Your community safety network. Report incidents, stay informed, and look out for each other — all in real time.',
     cta: 'Get started',
   },
   {
-    emoji: '📍',
+    icon: '📍',
     title: 'Drop a pin',
     body: 'Tap the + button on the map to report a safety incident. Add a description, severity level, and optional photo.',
     cta: 'Next',
   },
   {
-    emoji: '🆘',
+    icon: '🆘',
     title: 'Emergency mode',
     body: 'Hold the red SOS button to broadcast a live emergency alert. Your trail appears on everyone\'s map in real time.',
     cta: 'Next',
   },
   {
-    emoji: '💬',
+    icon: '💬',
     title: 'Communities & messages',
     body: 'Join or create private groups, share stories, and send direct messages — just like a neighborhood watch, but smarter.',
     cta: 'Start exploring',
   },
-] as const;
+];
 
 const STORAGE_KEY = 'kova_onboarding_done';
 
@@ -74,7 +92,7 @@ export default function OnboardingOverlay({ onDone }: { onDone: () => void }) {
           {STEPS.map((_, i) => (
             <div
               key={i}
-              className="rounded-full transition-all"
+              className="rounded-full transition-all duration-300"
               style={{
                 width: i === step ? '20px' : '6px',
                 height: '6px',
@@ -84,23 +102,39 @@ export default function OnboardingOverlay({ onDone }: { onDone: () => void }) {
           ))}
         </div>
 
-        {/* Emoji icon */}
-        <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #f43f5e22, #f43f5e44)', border: '1.5px solid rgba(244,63,94,0.3)' }}
-        >
-          {current.emoji}
-        </div>
+        {/* Icon with transition */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -10 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300, mass: 0.6 }}
+            className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
+            style={{ background: 'linear-gradient(135deg, rgba(244,63,94,0.1), rgba(244,63,94,0.25))', border: '1.5px solid rgba(244,63,94,0.3)' }}
+          >
+            {current.icon === 'shield' ? <KovaShield size={44} /> : <span className="text-4xl">{current.icon}</span>}
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Text */}
-        <div className="text-center">
-          <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>
-            {current.title}
-          </h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            {current.body}
-          </p>
-        </div>
+        {/* Text with transition */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            className="text-center"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300, mass: 0.6 }}
+          >
+            <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>
+              {current.title}
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              {current.body}
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
         {/* CTA */}
         <button
