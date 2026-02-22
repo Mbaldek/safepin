@@ -9,7 +9,8 @@ import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Settings, X, Building2 } from 'lucide-react';
+import { Bell, Search, Menu, X, Building2 } from 'lucide-react';
+import SettingsSheet from '@/components/SettingsSheet';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
@@ -171,6 +172,7 @@ export default function MapPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showCityContext, setShowCityContext] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -351,13 +353,13 @@ export default function MapPage() {
               )}
             </button>
             <ThemeToggle />
-            {/* Settings icon — placeholder */}
+            {/* Settings / burger menu */}
             <button
               className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
-              style={{ backgroundColor: 'var(--bg-card)' }}
-              onClick={() => toast('Settings coming soon')}
+              style={{ backgroundColor: showSettings ? 'var(--accent)' : 'var(--bg-card)' }}
+              onClick={() => setShowSettings((v) => !v)}
             >
-              <Settings size={15} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+              <Menu size={15} strokeWidth={2} style={{ color: showSettings ? '#fff' : 'var(--text-muted)' }} />
             </button>
           </div>
         </div>
@@ -380,8 +382,8 @@ export default function MapPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── Map tab — visible for map, trip, incidents AND community tabs ── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' && activeTab !== 'community' ? 'hidden' : 'flex flex-col'}`}>
+      {/* ── Map tab — visible for map, trip, incidents, community AND profile tabs ── */}
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' && activeTab !== 'community' && activeTab !== 'profile' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
@@ -417,6 +419,18 @@ export default function MapPage() {
             <CommunityView key="community-sheet" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
+
+        {/* Profile sheet — overlays the map when on profile tab */}
+        <AnimatePresence>
+          {activeTab === 'profile' && userId && (
+            <ProfileView
+              key="profile-sheet"
+              userId={userId}
+              userEmail={userEmail}
+              onClose={() => setActiveTab('map')}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* SOS nearby banner */}
@@ -436,16 +450,6 @@ export default function MapPage() {
               userLocation={useStore.getState().userLocation}
               onDismiss={() => setSosPin(null)}
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Non-map tabs — fade in/out with AnimatePresence ────────── */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'profile' && userId && (
-          <motion.div key="profile" className="flex-1 min-h-0 overflow-hidden flex flex-col"
-            variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={tabTransition}>
-            <ProfileView userId={userId} userEmail={userEmail} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -502,6 +506,13 @@ export default function MapPage() {
             transition={{ duration: 0.15 }}>
             <NotificationsSheet onClose={() => setShowNotifications(false)} />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Settings sheet ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showSettings && (
+          <SettingsSheet key="settings" onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
 

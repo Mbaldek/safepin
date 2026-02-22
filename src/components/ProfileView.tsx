@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, TripLog, Pin } from '@/types';
@@ -12,6 +13,8 @@ import VerificationView from '@/components/VerificationView';
 import TrustedCircleSection from '@/components/TrustedCircleSection';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Trash2, Pencil, Check, X } from 'lucide-react';
+
+const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,7 +68,7 @@ const MODE_EMOJI: Record<string, string> = { walk: '🚶', bike: '🚴', drive: 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ProfileView({ userId, userEmail }: { userId: string; userEmail: string }) {
+export default function ProfileView({ userId, userEmail, onClose }: { userId: string; userEmail: string; onClose: () => void }) {
   const router = useRouter();
   const { pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet, setPins, updatePin } = useStore();
   const [editing, setEditing] = useState(false);
@@ -237,8 +240,26 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <div className="max-w-110 mx-auto w-full px-4 py-6 flex flex-col gap-5">
+    <>
+      {/* Backdrop */}
+      <motion.div
+        className="absolute inset-0 z-60"
+        style={{ backgroundColor: 'var(--bg-overlay)' }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <motion.div
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-61 flex flex-col overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-secondary)', maxHeight: 'calc(100dvh - 120px)' }}
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={springTransition}
+      >
+        <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+        <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <div className="max-w-110 mx-auto w-full px-4 py-4 flex flex-col gap-5">
 
         {/* ── Avatar + name ─────────────────────────────────────── */}
         <div className="flex flex-col items-center gap-3 pt-2">
@@ -700,10 +721,12 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
           Sign out
         </button>
 
-        <div className="pb-4" />
+        <div className="pb-6" />
       </div>
+        </div>
+      </motion.div>
 
       {showVerification && <VerificationView onClose={() => setShowVerification(false)} />}
-    </div>
+    </>
   );
 }
