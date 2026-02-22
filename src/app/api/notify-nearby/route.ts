@@ -51,6 +51,15 @@ export async function POST(req: NextRequest) {
 
   const settingsMap = Object.fromEntries((settingsRows ?? []).map((r) => [r.user_id, r]));
 
+  // Load last known locations for geo-filtering
+  const { data: locationRows } = await admin
+    .from('profiles')
+    .select('id, last_known_lat, last_known_lng')
+    .in('id', userIds);
+  const locationMap = Object.fromEntries(
+    (locationRows ?? []).map((r) => [r.id, { lat: r.last_known_lat, lng: r.last_known_lng }])
+  );
+
   const title = pin.is_emergency ? '🆘 SOS nearby' : `⚠️ New ${pin.category.replace('_', ' ')} nearby`;
   const body  = pin.is_emergency ? 'Someone nearby triggered a safety alert' : `A new ${pin.severity} severity report was added near you`;
 
@@ -82,12 +91,13 @@ export async function POST(req: NextRequest) {
       if (inQuiet && !pin.is_emergency) continue;
     }
 
-    // We don't store user location server-side — use a generous bbox check.
-    // Client already does accurate filtering; this is best-effort for push.
-    // For a proper implementation, store last_known_lat/lng in profiles.
-    // For now, send to everyone within no-location-check and let client filter.
-    // TODO: Add last_known_lat/lng to profiles for accurate server-side filtering.
-    void radiusM; // suppress unused warning until location data is available
+    // Geo-filter: only send if subscriber is within their configured radius
+    const loc = locationMap[sub.user_id];
+    if (loc?.lat != null && loc?.lng != null) {
+      const dist = distanceM(loc.lat, loc.lng, pin.lat, pin.lng);
+      if (dist > radiusM) continue;
+    }
+    // If no location data, send to them anyway (better to over-notify than miss SOS)
 
     // Send push via web-push
     try {

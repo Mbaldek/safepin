@@ -10,8 +10,12 @@ type MapStyle = 'streets' | 'light' | 'dark';
 type Props = {
   mapStyle: MapStyle;
   onStyleChange: (s: MapStyle) => void;
-  showTransit: boolean;
-  onTransitToggle: () => void;
+  showMetro: boolean;
+  onMetroToggle: () => void;
+  showRER: boolean;
+  onRERToggle: () => void;
+  showBus: boolean;
+  onBusToggle: () => void;
   transitLoading: boolean;
   showPharmacy: boolean;
   onPharmacyToggle: () => void;
@@ -22,6 +26,8 @@ type Props = {
   poiLoading: boolean;
   showHeatmap: boolean;
   onHeatmapToggle: () => void;
+  showScores: boolean;
+  onScoresToggle: () => void;
   onClose: () => void;
 };
 
@@ -115,9 +121,9 @@ export default function LayerPanel(props: Props) {
         Safety
       </p>
       <div className="flex flex-col gap-0.5 mb-2">
-        <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading && !props.showPharmacy} label="Pharmacies" color="#10b981" emoji="💊" />
-        <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading && !props.showHospital} label="Hospitals" color="#ef4444" emoji="🏥" />
-        <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading && !props.showPolice}   label="Police"     color="#3b82f6" emoji="🚔" />
+        <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label="Pharmacies" color="#10b981" emoji="💊" />
+        <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label="Hospitals" color="#ef4444" emoji="🏥" />
+        <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading}   label="Police"     color="#3b82f6" emoji="🚔" />
       </div>
 
       {/* Divider */}
@@ -127,8 +133,10 @@ export default function LayerPanel(props: Props) {
       <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
         Transport
       </p>
-      <div className="mb-2">
-        <Toggle on={props.showTransit} onToggle={props.onTransitToggle} loading={props.transitLoading} label="Metro / RER" color="#8b5cf6" emoji="🚇" />
+      <div className="flex flex-col gap-0.5 mb-2">
+        <Toggle on={props.showMetro} onToggle={props.onMetroToggle} loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label="Metro" color="#3b82f6" emoji="🚇" />
+        <Toggle on={props.showRER}   onToggle={props.onRERToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label="RER"   color="#8b5cf6" emoji="🚆" />
+        <Toggle on={props.showBus}   onToggle={props.onBusToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label="Bus"   color="#f59e0b" emoji="🚌" />
       </div>
 
       {/* Divider */}
@@ -138,7 +146,10 @@ export default function LayerPanel(props: Props) {
       <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
         Data
       </p>
-      <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label="My heatmap" color="#f43f5e" emoji="🔥" />
+      <div className="flex flex-col gap-0.5">
+        <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label="My heatmap" color="#f43f5e" emoji="🔥" />
+        <Toggle on={props.showScores} onToggle={props.onScoresToggle} label="Safety scores" color="#6366f1" emoji="🗺️" />
+      </div>
     </motion.div>
   );
 }

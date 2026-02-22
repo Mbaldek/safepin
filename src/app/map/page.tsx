@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
+import { checkMilestones, type MilestoneStats } from '@/lib/milestones';
+import { computeScore } from '@/lib/levels';
+import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List } from 'lucide-react';
 import SettingsSheet from '@/components/SettingsSheet';
@@ -31,6 +34,9 @@ import PlaceNoteSheet from '@/components/PlaceNoteSheet';
 import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
+import SessionBriefingCard from '@/components/SessionBriefingCard';
+import MapContextCard from '@/components/MapContextCard';
+import InstallPrompt from '@/components/InstallPrompt';
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -85,6 +91,7 @@ export default function MapPage() {
     selectedPlaceNote, setSelectedPlaceNote,
     setLiveSessions, addLiveSession, updateLiveSession,
     showIncidentsList, setShowIncidentsList,
+    achievedMilestones, addAchievedMilestone,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -186,6 +193,8 @@ export default function MapPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(false);
+  const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -256,6 +265,94 @@ export default function MapPage() {
     return () => clearTimeout(timer);
   }, [userId, loading]);
 
+  // Run milestone check on first load (catches anything earned between sessions)
+  useEffect(() => {
+    if (userId && pins.length > 0) runMilestoneCheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, pins.length > 0]);
+
+  // Show session briefing card once per session (after 2s delay)
+  useEffect(() => {
+    if (!userId || loading || briefingShownRef.current || !onboardingDone) return;
+    const timer = setTimeout(() => {
+      briefingShownRef.current = true;
+      setShowBriefing(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [userId, loading, onboardingDone]);
+
+  // App badge — update unread count on home screen icon
+  useEffect(() => {
+    if ('setAppBadge' in navigator) {
+      if (unreadCount > 0) {
+        (navigator as Navigator & { setAppBadge(n: number): Promise<void> }).setAppBadge(unreadCount);
+      } else {
+        (navigator as Navigator & { clearAppBadge(): Promise<void> }).clearAppBadge();
+      }
+    }
+  }, [unreadCount]);
+
+  // Update profile last_known_lat/lng for geo-filtered push
+  useEffect(() => {
+    if (!userId || !userLocation) return;
+    supabase.from('profiles').update({
+      last_known_lat: userLocation.lat,
+      last_known_lng: userLocation.lng,
+      last_seen_at: new Date().toISOString(),
+    }).eq('id', userId).then(() => {});
+  }, [userId, userLocation?.lat, userLocation?.lng]);
+
+  // ── Milestone check — runs after realtime events that involve the current user ──
+  const milestoneCheckRef = useRef(false);
+  const runMilestoneCheck = useCallback(async () => {
+    if (!userId || milestoneCheckRef.current) return;
+    milestoneCheckRef.current = true;
+    try {
+      const store = useStore.getState();
+      const myPins = store.pins.filter((p) => p.user_id === userId);
+      const alerts = myPins.filter((p) => p.is_emergency).length;
+      const pinsCount = myPins.filter((p) => !p.is_emergency).length;
+
+      const [{ count: votesCount }, { count: commentsCount }, { count: routesCount }, { count: placeNotesCount }, { count: communitiesCount }] = await Promise.all([
+        supabase.from('pin_votes').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('vote_type', 'confirm'),
+        supabase.from('pin_comments').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('saved_routes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('place_notes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('community_members').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      ]);
+
+      const score = computeScore(pinsCount, alerts, votesCount ?? 0, commentsCount ?? 0);
+      const stats: MilestoneStats = {
+        pins: pinsCount,
+        alerts,
+        votes: votesCount ?? 0,
+        comments: commentsCount ?? 0,
+        routes: routesCount ?? 0,
+        placeNotes: placeNotesCount ?? 0,
+        communities: communitiesCount ?? 0,
+        score,
+      };
+
+      const newMilestones = checkMilestones(stats, store.achievedMilestones);
+      for (const m of newMilestones) {
+        store.addAchievedMilestone(m.key);
+        showMilestoneToast(m);
+        store.addNotification({
+          id: crypto.randomUUID(),
+          type: 'milestone',
+          title: `${m.emoji} ${m.label}`,
+          body: m.description,
+          read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Non-critical — don't block the app
+    } finally {
+      milestoneCheckRef.current = false;
+    }
+  }, [userId]);
+
   // Realtime: new/updated pins
   const handleNewPin = useCallback((pin: Pin) => {
     addPin(pin);
@@ -280,8 +377,9 @@ export default function MapPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin }),
       }).catch(() => {});
+      runMilestoneCheck();
     }
-  }, [addPin, addNotification]);
+  }, [addPin, addNotification, runMilestoneCheck]);
 
   // Realtime: comment on own pin → notification
   const handleNewComment = useCallback((payload: { pin_id: string; display_name: string | null; content: string }) => {
@@ -297,7 +395,8 @@ export default function MapPage() {
       created_at: new Date().toISOString(),
       pin_id: payload.pin_id,
     });
-  }, [addNotification]);
+    runMilestoneCheck();
+  }, [addNotification, runMilestoneCheck]);
 
   // Realtime: vote on own pin → notification
   const handleNewVote = useCallback((payload: { pin_id: string }) => {
@@ -313,7 +412,8 @@ export default function MapPage() {
       created_at: new Date().toISOString(),
       pin_id: payload.pin_id,
     });
-  }, [addNotification]);
+    runMilestoneCheck();
+  }, [addNotification, runMilestoneCheck]);
 
   useEffect(() => {
     const channel = supabase
@@ -450,24 +550,35 @@ export default function MapPage() {
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
+
+        {/* Session briefing card — shown once per session on map tab */}
+        <AnimatePresence>
+          {showBriefing && activeTab === 'map' && !sosPin && (
+            <SessionBriefingCard key="briefing" onDismiss={() => setShowBriefing(false)} />
+          )}
+        </AnimatePresence>
+
         {/* Report + incidents list toggle — map tab only */}
         {activeTab === 'map' && (
           <>
-            {/* Incidents list toggle — bottom left */}
+            {/* Incidents list toggle — top left pill */}
             <button
               onClick={() => setShowIncidentsList(!showIncidentsList)}
-              className="absolute bottom-6 left-4 w-11 h-11 rounded-full flex items-center justify-center shadow-lg z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute top-3 left-3 h-9 px-3 rounded-xl flex items-center gap-2 shadow-lg z-50 hover:scale-105 active:scale-95 transition"
               style={{
-                backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 85%, transparent)',
+                backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',
                 border: showIncidentsList ? 'none' : '1px solid var(--border)',
                 backdropFilter: 'blur(12px)',
               }}
             >
-              <List size={18} strokeWidth={2.2} style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }} />
+              <List size={15} strokeWidth={2.2} style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }} />
+              <span className="text-xs font-bold" style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }}>
+                Nearby
+              </span>
               {/* Emergency badge */}
               {!showIncidentsList && pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  className="min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
                   style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
                   {pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length}
@@ -483,6 +594,9 @@ export default function MapPage() {
             </button>
           </>
         )}
+        {/* Map contextual card — shows area info */}
+        {activeTab === 'map' && !showBriefing && <MapContextCard />}
+
         {/* Trip sheet — overlays the map when on trip tab */}
         <AnimatePresence>
           {activeTab === 'trip' && (
@@ -620,6 +734,9 @@ export default function MapPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* ── PWA install prompt ──────────────────────────────────────── */}
+      <InstallPrompt />
 
       {/* ── Offline banner ──────────────────────────────────────────── */}
       <OfflineBanner />

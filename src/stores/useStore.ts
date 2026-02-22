@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Pin, AppNotification, PlaceNote, LiveSession, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
 
@@ -206,13 +207,35 @@ export const useStore = create<Store>((set) => ({
   pendingRoutes: null,
   setPendingRoutes: (routes) => set({ pendingRoutes: routes }),
 
-  // Notifications
+  // Notifications (in-memory + DB persistence)
   notifications: [],
-  addNotification: (n) => set((state) => ({ notifications: [...state.notifications, n] })),
-  markNotificationsRead: () =>
+  addNotification: (n) => {
+    set((state) => ({ notifications: [n, ...state.notifications] }));
+    // Persist to DB (fire-and-forget)
+    const uid = useStore.getState().userId;
+    if (uid) {
+      supabase.from('notifications').insert({
+        id: n.id,
+        user_id: uid,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        read: n.read,
+        pin_id: n.pin_id ?? null,
+        community_id: n.community_id ?? null,
+      }).then(() => {});
+    }
+  },
+  markNotificationsRead: () => {
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, read: true })),
-    })),
+    }));
+    // Batch update in DB (fire-and-forget)
+    const uid = useStore.getState().userId;
+    if (uid) {
+      supabase.from('notifications').update({ read: true }).eq('user_id', uid).eq('read', false).then(() => {});
+    }
+  },
 
   // Walk With Me
   isSharingLocation: false,

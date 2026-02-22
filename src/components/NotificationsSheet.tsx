@@ -2,9 +2,12 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
+import { supabase } from '@/lib/supabase';
+import { MapPin } from 'lucide-react';
+import type { AppNotification } from '@/types';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -23,10 +26,36 @@ const TYPE_META: Record<string, { icon: string; color: string }> = {
   comment:   { icon: '💬', color: 'rgba(59,130,246,0.10)' },
   resolve:   { icon: '✅', color: 'rgba(16,185,129,0.10)' },
   community: { icon: '💬', color: 'rgba(139,92,246,0.10)' },
+  milestone: { icon: '🏆', color: 'rgba(245,158,11,0.12)' },
+  digest:    { icon: '📊', color: 'rgba(99,102,241,0.10)' },
 };
 
 export default function NotificationsSheet({ onClose }: { onClose: () => void }) {
-  const { notifications, markNotificationsRead } = useStore();
+  const { notifications, markNotificationsRead, setActiveTab, userId, addNotification } = useStore();
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydrate from DB on first open if Zustand array is empty
+  useEffect(() => {
+    if (hydrated || notifications.length > 0 || !userId) { setHydrated(true); return; }
+    supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (data) {
+          for (const n of data.reverse()) {
+            const existing = useStore.getState().notifications.find((x) => x.id === n.id);
+            if (!existing) {
+              // Add to Zustand only (skip DB insert since it already exists)
+              useStore.setState((s) => ({ notifications: [n as AppNotification, ...s.notifications] }));
+            }
+          }
+        }
+        setHydrated(true);
+      });
+  }, [userId, notifications.length, hydrated]);
 
   useEffect(() => {
     markNotificationsRead();
@@ -66,6 +95,14 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 You'll see emergency alerts, comments, and votes here
               </p>
+              <button
+                onClick={() => { setActiveTab('map'); onClose(); }}
+                className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
+                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+              >
+                <MapPin size={13} />
+                Go to map
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">

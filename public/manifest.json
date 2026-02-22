@@ -1,11 +1,12 @@
 {
   "name": "KOVA",
   "short_name": "KOVA",
-  "description": "A safer world, mapped by women — for women.",
-  "start_url": "/",
+  "description": "Real-time safety reporting and community protection",
+  "start_url": "/map",
   "display": "standalone",
-  "background_color": "#f5f6fa",
-  "theme_color": "#6C63FF",
+  "background_color": "#0a0a0a",
+  "theme_color": "#f43f5e",
+  "categories": ["safety", "navigation", "social"],
   "orientation": "portrait",
   "icons": [
     {

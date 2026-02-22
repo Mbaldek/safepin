@@ -10,6 +10,7 @@ import { useStore } from '@/stores/useStore';
 import LayerPanel from './LayerPanel';
 import { useTheme } from '@/stores/useTheme';
 import { SEVERITY, Pin } from '@/types';
+import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
 
@@ -48,14 +49,15 @@ let transitLinesCache: GeoJSON.FeatureCollection | null = null;
 let poiCache: GeoJSON.FeatureCollection | null = null;
 let heatmapGeoJSON: GeoJSON.FeatureCollection | null = null;
 
-// Single Overpass request for BOTH stations (nodes) and lines (ways) — avoids rate-limiting
+// Single Overpass request for stations (nodes) + lines (ways) + bus stops — avoids rate-limiting
 const PARIS_BBOX = '48.78,2.20,48.94,2.50'; // wider bbox covering all Paris + inner suburbs
 async function fetchParisTransitAll(): Promise<void> {
   if (transitCache && transitLinesCache) return;
   const query = `[out:json][timeout:40];(
-    node["station"="subway"](${PARIS_BBOX});
-    node["station"="light_rail"](${PARIS_BBOX});
+    node["railway"="station"]["station"~"subway|RER"](${PARIS_BBOX});
+    node["railway"="stop"]["train"="yes"](${PARIS_BBOX});
     node["railway"="tram_stop"](${PARIS_BBOX});
+    node["highway"="bus_stop"](${PARIS_BBOX});
     way["railway"="subway"](${PARIS_BBOX});
     way["railway"="light_rail"](${PARIS_BBOX});
     way["railway"="tram"](${PARIS_BBOX});
@@ -74,9 +76,22 @@ async function fetchParisTransitAll(): Promise<void> {
     }>;
   };
 
-  // Split nodes (stations) from ways (lines)
+  // Split nodes (stations/stops) from ways (lines)
   const nodes = data.elements.filter((el) => el.type === 'node' && el.lat != null);
   const ways  = data.elements.filter((el) => el.type === 'way' && el.geometry?.length);
+
+  function classifyNode(tags?: Record<string, string>): string {
+    if (!tags) return 'bus';
+    if (tags.highway === 'bus_stop') return 'bus';
+    if (tags.railway === 'tram_stop') return 'tram';
+    const station = tags.station?.toLowerCase() ?? '';
+    if (station.includes('rer') || station === 'light_rail') return 'rer';
+    if (station === 'subway') return 'metro';
+    // Fallback: check network tag for RATP metro vs RER
+    const net = (tags.network ?? '').toLowerCase();
+    if (net.includes('rer')) return 'rer';
+    return 'metro';
+  }
 
   transitCache = {
     type: 'FeatureCollection',
@@ -85,7 +100,7 @@ async function fetchParisTransitAll(): Promise<void> {
       geometry: { type: 'Point' as const, coordinates: [el.lon!, el.lat!] },
       properties: {
         name: el.tags?.name ?? el.tags?.['name:fr'] ?? '',
-        kind: el.tags?.station === 'subway' ? 'metro' : el.tags?.station === 'light_rail' ? 'rer' : 'tram',
+        kind: classifyNode(el.tags),
       },
     })),
   };
@@ -124,6 +139,15 @@ function addTransitLinesLayer(m: mapboxgl.Map) {
   });
 }
 
+function buildTransitFilter(show: { metro: boolean; rer: boolean; bus: boolean }): mapboxgl.FilterSpecification {
+  const conds: mapboxgl.FilterSpecification[] = [];
+  if (show.metro) { conds.push(['==', ['get', 'kind'], 'metro']); conds.push(['==', ['get', 'kind'], 'tram']); }
+  if (show.rer)   conds.push(['==', ['get', 'kind'], 'rer']);
+  if (show.bus)   conds.push(['==', ['get', 'kind'], 'bus']);
+  if (conds.length === 0) return ['==', ['get', 'kind'], '__none__'];
+  return ['any', ...conds] as mapboxgl.FilterSpecification;
+}
+
 function addTransitLayer(m: mapboxgl.Map) {
   if (!transitCache || m.getSource(TRANSIT_SRC)) return;
   m.addSource(TRANSIT_SRC, { type: 'geojson', data: transitCache });
@@ -132,9 +156,9 @@ function addTransitLayer(m: mapboxgl.Map) {
     type: 'circle',
     source: TRANSIT_SRC,
     paint: {
-      'circle-radius': ['match', ['get', 'kind'], 'metro', 7, 'rer', 7, 5],
-      'circle-color':  ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', '#10b981'],
-      'circle-stroke-width': 2,
+      'circle-radius': ['match', ['get', 'kind'], 'metro', 7, 'rer', 7, 'bus', 4, 5],
+      'circle-color':  ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', 'bus', '#f59e0b', '#10b981'],
+      'circle-stroke-width': ['match', ['get', 'kind'], 'bus', 1.5, 2],
       'circle-stroke-color': '#fff',
       'circle-opacity': 0.92,
     },
@@ -143,7 +167,7 @@ function addTransitLayer(m: mapboxgl.Map) {
     id: TRANSIT_LABEL,
     type: 'symbol',
     source: TRANSIT_SRC,
-    minzoom: 13,
+    minzoom: 14,
     layout: {
       'text-field': ['get', 'name'],
       'text-size': 10,
@@ -152,7 +176,7 @@ function addTransitLayer(m: mapboxgl.Map) {
       'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
     },
     paint: {
-      'text-color': ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', '#10b981'],
+      'text-color': ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', 'bus', '#f59e0b', '#10b981'],
       'text-halo-color': '#fff',
       'text-halo-width': 1.5,
     },
@@ -387,13 +411,16 @@ export default function MapView() {
   const [layersReady, setLayersReady] = useState(false);
   const [mapStyle, setMapStyle]           = useState<'streets' | 'light' | 'dark'>(theme === 'dark' ? 'dark' : 'streets');
   const [showLayerPanel, setShowLayerPanel] = useState(false);
-  const [showTransit, setShowTransit]     = useState(false);
+  const [showMetro, setShowMetro]         = useState(false);
+  const [showRER, setShowRER]             = useState(false);
+  const [showBus, setShowBus]             = useState(false);
   const [transitLoading, setTransitLoading] = useState(false);
   const [showPharmacy, setShowPharmacy]   = useState(false);
   const [showHospital, setShowHospital]   = useState(false);
   const [showPolice, setShowPolice]       = useState(false);
   const [poiLoading, setPOILoading]       = useState(false);
   const [showHeatmap, setShowHeatmap]     = useState(true);
+  const [showScores, setShowScores]       = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -712,9 +739,19 @@ export default function MapView() {
     setLayersReady(false);
     map.current.once('style.load', () => {
       addClusterLayers(map.current!, mapStyle === 'dark');
-      if (showTransit) {
+      if (showMetro || showRER || showBus) {
         fetchParisTransitAll()
-          .then(() => { if (map.current) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
+          .then(() => {
+            if (!map.current) return;
+            addTransitLinesLayer(map.current);
+            addTransitLayer(map.current);
+            const f = buildTransitFilter({ metro: showMetro, rer: showRER, bus: showBus });
+            if (map.current.getLayer(TRANSIT_CIRCLE)) map.current.setFilter(TRANSIT_CIRCLE, f);
+            if (map.current.getLayer(TRANSIT_LABEL))  map.current.setFilter(TRANSIT_LABEL, f);
+            if (map.current.getLayer(TRANSIT_LINES_LYR)) {
+              map.current.setLayoutProperty(TRANSIT_LINES_LYR, 'visibility', (showMetro || showRER) ? 'visible' : 'none');
+            }
+          })
           .catch((err) => console.warn('[KOVA] Transit fetch failed:', err));
       }
       if (showPharmacy || showHospital || showPolice) {
@@ -827,12 +864,14 @@ export default function MapView() {
     }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
-  // Show / hide Paris transit layer
+  // Show / hide Paris transit layers (per-kind filtering)
   useEffect(() => {
     const m = map.current;
     if (!m || !mapReady || !layersReady) return;
 
-    if (!showTransit) {
+    const anyTransit = showMetro || showRER || showBus;
+
+    if (!anyTransit) {
       if (m.getLayer(TRANSIT_LABEL))     m.removeLayer(TRANSIT_LABEL);
       if (m.getLayer(TRANSIT_CIRCLE))    m.removeLayer(TRANSIT_CIRCLE);
       if (m.getSource(TRANSIT_SRC))      m.removeSource(TRANSIT_SRC);
@@ -841,19 +880,35 @@ export default function MapView() {
       return;
     }
 
+    const applyFilter = () => {
+      const f = buildTransitFilter({ metro: showMetro, rer: showRER, bus: showBus });
+      if (m.getLayer(TRANSIT_CIRCLE)) m.setFilter(TRANSIT_CIRCLE, f);
+      if (m.getLayer(TRANSIT_LABEL))  m.setFilter(TRANSIT_LABEL, f);
+      // Show/hide lines layer (only metro+RER have lines, not bus)
+      if (m.getLayer(TRANSIT_LINES_LYR)) {
+        m.setLayoutProperty(TRANSIT_LINES_LYR, 'visibility', (showMetro || showRER) ? 'visible' : 'none');
+      }
+    };
+
     if (transitCache && transitLinesCache) {
       addTransitLinesLayer(m);
       addTransitLayer(m);
+      applyFilter();
       return;
     }
 
     setTransitLoading(true);
     fetchParisTransitAll()
-      .then(() => { if (map.current && showTransit) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
+      .then(() => {
+        if (!map.current) return;
+        addTransitLinesLayer(map.current);
+        addTransitLayer(map.current);
+        applyFilter();
+      })
       .catch((err) => console.warn('[KOVA] Transit fetch failed:', err))
       .finally(() => setTransitLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showTransit, mapReady, layersReady]);
+  }, [showMetro, showRER, showBus, mapReady, layersReady]);
 
   // Show / hide POI layers
   useEffect(() => {
@@ -900,6 +955,45 @@ export default function MapView() {
     }
   }, [showHeatmap, mapReady, layersReady]);
 
+  // Toggle safety scores layer
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady) return;
+
+    const SCORE_SRC = 'safety-scores-src';
+    const SCORE_LYR = 'safety-scores-fill';
+
+    if (!showScores) {
+      if (m.getLayer(SCORE_LYR)) m.setLayoutProperty(SCORE_LYR, 'visibility', 'none');
+      return;
+    }
+
+    const bounds = m.getBounds();
+    if (!bounds) return;
+    const geojson = buildScoreGeoJSON(pins, {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest(),
+    });
+
+    if (m.getSource(SCORE_SRC)) {
+      (m.getSource(SCORE_SRC) as mapboxgl.GeoJSONSource).setData(geojson as GeoJSON.FeatureCollection);
+      if (m.getLayer(SCORE_LYR)) m.setLayoutProperty(SCORE_LYR, 'visibility', 'visible');
+    } else {
+      m.addSource(SCORE_SRC, { type: 'geojson', data: geojson as GeoJSON.FeatureCollection });
+      m.addLayer({
+        id: SCORE_LYR,
+        type: 'fill',
+        source: SCORE_SRC,
+        paint: {
+          'fill-color': ['get', 'color'],
+          'fill-opacity': 0.6,
+        },
+      });
+    }
+  }, [showScores, mapReady, pins]);
+
   // ── UI ───────────────────────────────────────────────────────────────────
 
   return (
@@ -916,8 +1010,12 @@ export default function MapView() {
               key="layer-panel"
               mapStyle={mapStyle}
               onStyleChange={(s) => { setMapStyle(s); }}
-              showTransit={showTransit}
-              onTransitToggle={() => setShowTransit((v) => !v)}
+              showMetro={showMetro}
+              onMetroToggle={() => setShowMetro((v) => !v)}
+              showRER={showRER}
+              onRERToggle={() => setShowRER((v) => !v)}
+              showBus={showBus}
+              onBusToggle={() => setShowBus((v) => !v)}
               transitLoading={transitLoading}
               showPharmacy={showPharmacy}
               onPharmacyToggle={() => setShowPharmacy((v) => !v)}
@@ -928,6 +1026,8 @@ export default function MapView() {
               poiLoading={poiLoading}
               showHeatmap={showHeatmap}
               onHeatmapToggle={() => setShowHeatmap((v) => !v)}
+              showScores={showScores}
+              onScoresToggle={() => setShowScores((v) => !v)}
               onClose={() => setShowLayerPanel(false)}
             />
           )}

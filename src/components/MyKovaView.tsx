@@ -20,6 +20,7 @@ import VerificationView from '@/components/VerificationView';
 import TrustedCircleSection from '@/components/TrustedCircleSection';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
+import LocationHistoryViewer from '@/components/LocationHistoryViewer';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ function DangerBadge({ score }: { score: number }) {
   );
 }
 
-function EmptyState({ emoji, title, body }: { emoji: string; title: string; body: string }) {
+function EmptyState({ emoji, title, body, ctaLabel, onCta }: { emoji: string; title: string; body: string; ctaLabel?: string; onCta?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
       <span className="text-4xl leading-none">{emoji}</span>
@@ -103,6 +104,15 @@ function EmptyState({ emoji, title, body }: { emoji: string; title: string; body
         <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</p>
         <p className="text-xs mt-1 max-w-[220px] mx-auto" style={{ color: 'var(--text-muted)' }}>{body}</p>
       </div>
+      {ctaLabel && onCta && (
+        <button
+          onClick={onCta}
+          className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
+          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+        >
+          {ctaLabel}
+        </button>
+      )}
     </div>
   );
 }
@@ -193,6 +203,8 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const [editSeverity, setEditSeverity] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  const [showLocationHistory, setShowLocationHistory] = useState(false);
 
   // Collapsible sections in Profile tab
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -438,7 +450,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {activeSubTab === 'feed' && (
               <motion.div key="feed" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-3">
                 {followedPins.length === 0 && feedNotifs.length === 0 ? (
-                  <EmptyState emoji="📡" title="Nothing here yet" body="Follow pins on the map to see their activity here" />
+                  <EmptyState emoji="📡" title="Nothing here yet" body="Follow pins on the map to see their activity here" ctaLabel="Browse the map" onCta={() => setActiveTab('map')} />
                 ) : (
                   <>
                     {feedNotifs.length > 0 && (
@@ -506,7 +518,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {activeSubTab === 'favorites' && (
               <motion.div key="favorites" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4">
                 {favPlaces.length === 0 && savedRoutes.length === 0 && !routesLoading ? (
-                  <EmptyState emoji="⭐" title="No favorites yet" body="Star places on the map or save routes from the Trip planner" />
+                  <EmptyState emoji="⭐" title="No favorites yet" body="Star places on the map or save routes from the Trip planner" ctaLabel="Explore places" onCta={() => setActiveTab('map')} />
                 ) : (
                   <>
                     {favPlaces.length > 0 && (
@@ -593,6 +605,15 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       </div>
                     ))}
                   </div>
+                  {trustScore === 0 && (
+                    <button
+                      onClick={() => setActiveTab('map')}
+                      className="w-full mt-2 py-2.5 rounded-xl text-xs font-bold transition hover:opacity-80"
+                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    >
+                      Report your first incident to earn points
+                    </button>
+                  )}
                 </div>
 
                 <TrustedCircleSection userId={userId} />
@@ -687,6 +708,17 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   )}
                 </div>
 
+                {/* ── Location History ─────────────────────────── */}
+                <button
+                  onClick={() => setShowLocationHistory(true)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition active:scale-[0.98]"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <span className="text-sm">📍</span>
+                  <span className="flex-1 text-xs font-bold text-left" style={{ color: 'var(--text-primary)' }}>Location History</span>
+                  <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                </button>
+
                 {/* ── Collapsible: My Pins ─────────────────────── */}
                 <div>
                   <button onClick={() => toggleSection('pins')}
@@ -721,6 +753,15 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                         <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
                           <span className="text-2xl">📍</span>
                           <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{pinFilter === 'all' ? 'No pins yet' : `No ${pinFilter} pins`}</p>
+                          {pinFilter === 'all' && (
+                            <button
+                              onClick={() => setActiveTab('map')}
+                              className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
+                              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                            >
+                              Report an incident
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
@@ -829,6 +870,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                         <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
                           <span className="text-2xl">🗺️</span>
                           <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No trips recorded yet</p>
+                          <button
+                            onClick={() => setActiveTab('trip')}
+                            className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
+                            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                          >
+                            Plan your first trip
+                          </button>
                         </div>
                       ) : tripHistory.map((t) => {
                         const dangerColor = t.danger_score === 0 ? '#22c55e' : t.danger_score <= 2 ? '#f59e0b' : '#ef4444';
@@ -923,6 +971,12 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
       </motion.div>
 
       {showVerification && <VerificationView onClose={() => setShowVerification(false)} />}
+
+      <AnimatePresence>
+        {showLocationHistory && (
+          <LocationHistoryViewer userId={userId} onClose={() => setShowLocationHistory(false)} />
+        )}
+      </AnimatePresence>
     </>
   );
 }

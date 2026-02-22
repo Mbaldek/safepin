@@ -137,6 +137,25 @@ export default function SettingsSheet({ onClose }: Props) {
     });
   }, [section, userId]);
 
+  const [upgrading, setUpgrading] = useState(false);
+
+  async function handleUpgrade(plan: 'pro' | 'pro_annual') {
+    if (!userId) return;
+    setUpgrading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email: user?.email ?? '', plan }),
+      });
+      const { url, error } = await res.json();
+      if (error) { toast.error(error); return; }
+      window.location.href = url;
+    } catch { toast.error('Failed to start checkout'); }
+    finally { setUpgrading(false); }
+  }
+
   async function handleJoinWaitlist() {
     if (!userId) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -350,15 +369,26 @@ export default function SettingsSheet({ onClose }: Props) {
                   )}
                 </div>
 
-                {/* Manage subscription (Stripe portal — coming soon) */}
+                {/* Manage subscription via Stripe portal */}
                 {subscription && subscription.plan !== 'free' && (
                   <div className="px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
                     <button
-                      disabled
-                      className="w-full text-center text-xs font-semibold py-2 rounded-xl opacity-40"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/stripe/portal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId }),
+                          });
+                          const { url, error } = await res.json();
+                          if (error) { toast.error(error); return; }
+                          window.location.href = url;
+                        } catch { toast.error('Failed to open billing portal'); }
+                      }}
+                      className="w-full text-center text-xs font-semibold py-2 rounded-xl flex items-center justify-center gap-1.5 transition hover:opacity-80"
                       style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                     >
-                      Manage subscription — coming soon
+                      <ExternalLink size={12} /> Manage subscription
                     </button>
                   </div>
                 )}
@@ -373,38 +403,38 @@ export default function SettingsSheet({ onClose }: Props) {
                 <div className="flex items-center gap-2 mb-3">
                   <Crown size={15} style={{ color: '#f59e0b' }} />
                   <p className="text-sm font-black" style={{ color: '#f59e0b' }}>KOVA Pro</p>
-                  <span
-                    className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
-                  >
-                    Coming soon
-                  </span>
                 </div>
                 <ul className="flex flex-col gap-1.5 mb-4">
                   {[
-                    'Unlimited saved routes & places',
+                    'Location history viewer',
+                    'Safety buddy matching',
+                    'Neighborhood safety scores',
                     'Advanced trip analytics',
                     'Priority alert notifications',
-                    'Extended pin history (90 days)',
-                    'Export your safety data',
                   ].map((f) => (
                     <li key={f} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                       <span style={{ color: '#f59e0b' }}>✦</span> {f}
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={waitlistJoined ? undefined : handleJoinWaitlist}
-                  disabled={waitlistJoined}
-                  className="w-full py-2.5 rounded-xl text-xs font-black transition-opacity"
-                  style={
-                    waitlistJoined
-                      ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
-                      : { backgroundColor: '#f59e0b', color: '#000' }
-                  }
-                >
-                  {waitlistJoined ? '✓ You\'re on the waitlist' : 'Join the waitlist'}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleUpgrade('pro')}
+                    disabled={upgrading}
+                    className="w-full py-2.5 rounded-xl text-xs font-black transition-opacity disabled:opacity-50"
+                    style={{ backgroundColor: '#f59e0b', color: '#000' }}
+                  >
+                    {upgrading ? 'Redirecting…' : 'Upgrade — €4.99/mo'}
+                  </button>
+                  <button
+                    onClick={() => handleUpgrade('pro_annual')}
+                    disabled={upgrading}
+                    className="w-full py-2 rounded-xl text-xs font-bold transition-opacity disabled:opacity-50"
+                    style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
+                  >
+                    Annual — €39.99/yr (save 33%)
+                  </button>
+                </div>
               </div>
             </Section>
           )}
