@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, Building2 } from 'lucide-react';
 import SettingsSheet from '@/components/SettingsSheet';
+import DashboardView from '@/components/DashboardView';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
@@ -81,6 +82,7 @@ export default function MapPage() {
     userLocation, userProfile,
     newPlaceNoteCoords, setNewPlaceNoteCoords,
     selectedPlaceNote, setSelectedPlaceNote,
+    setLiveSessions, addLiveSession, updateLiveSession,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -232,16 +234,16 @@ export default function MapPage() {
         created_at: new Date().toISOString(),
         pin_id: pin.id,
       });
-      fetch('/api/push-notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: '🆘 SafePin — Emergency nearby',
-          body: pin.description?.slice(0, 80) ?? 'Someone needs help in your area',
-        }),
-      }).catch(() => {});
     } else {
       toast('📍 New report nearby');
+    }
+    // Notify nearby users (server-side push) — only triggered by the pin creator
+    if (pin.user_id === useStore.getState().userId) {
+      fetch('/api/notify-nearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin }),
+      }).catch(() => {});
     }
   }, [addPin, addNotification]);
 
@@ -291,6 +293,25 @@ export default function MapPage() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [handleNewPin, updatePin, handleNewComment, handleNewVote]);
+
+  // ── Live sessions realtime ────────────────────────────────────────────────
+  useEffect(() => {
+    // Load active sessions on mount
+    supabase
+      .from('live_sessions')
+      .select('*')
+      .is('ended_at', null)
+      .then(({ data }) => { if (data) setLiveSessions(data as import('@/types').LiveSession[]); });
+
+    const liveChannel = supabase
+      .channel('live-sessions')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_sessions' },
+        (payload) => addLiveSession(payload.new as import('@/types').LiveSession))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_sessions' },
+        (payload) => updateLiveSession(payload.new as import('@/types').LiveSession))
+      .subscribe();
+    return () => { supabase.removeChannel(liveChannel); };
+  }, [setLiveSessions, addLiveSession, updateLiveSession]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -382,8 +403,8 @@ export default function MapPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── Map tab — visible for map, trip, incidents, community AND profile tabs ── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' && activeTab !== 'community' && activeTab !== 'profile' ? 'hidden' : 'flex flex-col'}`}>
+      {/* ── Map tab — visible for map, trip, incidents, community AND dashboard tabs ── */}
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'incidents' && activeTab !== 'community' && activeTab !== 'dashboard' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
@@ -420,15 +441,22 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Profile sheet — overlays the map when on profile tab */}
+        {/* Profile sheet — triggered from settings burger or dashboard */}
         <AnimatePresence>
-          {activeTab === 'profile' && userId && (
+          {activeSheet === 'profile' && userId && (
             <ProfileView
               key="profile-sheet"
               userId={userId}
               userEmail={userEmail}
-              onClose={() => setActiveTab('map')}
+              onClose={() => setActiveSheet('none')}
             />
+          )}
+        </AnimatePresence>
+
+        {/* Dashboard sheet — overlays the map when on dashboard tab */}
+        <AnimatePresence>
+          {activeTab === 'dashboard' && (
+            <DashboardView key="dashboard-sheet" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
       </div>

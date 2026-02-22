@@ -17,7 +17,7 @@ const AGE_OPTIONS = [
 
 const springConfig = { type: 'spring', damping: 32, stiffness: 300, mass: 0.8 } as const;
 
-const DEFAULT: MapFilters = { severity: 'all', age: 'all', urban: 'all', confirmedOnly: false };
+const DEFAULT: MapFilters = { severity: 'all', age: 'all', urban: 'all', confirmedOnly: false, liveOnly: false };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

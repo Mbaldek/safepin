@@ -1,27 +1,28 @@
 import { create } from 'zustand';
-import { Pin, AppNotification, PlaceNote } from '@/types';
+import { Pin, AppNotification, PlaceNote, LiveSession, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
 
-type Sheet = 'none' | 'report' | 'detail';
-type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'profile';
+type Sheet = 'none' | 'report' | 'detail' | 'profile';
+type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'dashboard';
 
 export type RouteOption = {
   id: string;
   label: 'Safest' | 'Balanced' | 'Fastest';
   color: string;
   coords: [number, number][];
-  duration: number;   // seconds
-  distance: number;   // meters
+  duration: number;
+  distance: number;
   dangerScore: number;
-  rerouted?: boolean; // true when bypass waypoint was applied
+  rerouted?: boolean;
 };
 
 export type MapFilters = {
-  severity: string;        // 'all' | 'low' | 'med' | 'high'
-  age: string;             // 'all' | '1h' | '6h' | 'today'
-  urban: string;           // 'all' | keyof URBAN_CONTEXTS
+  severity: string;
+  age: string;
+  urban: string;
   confirmedOnly: boolean;
+  liveOnly: boolean;
 };
 
 const DEFAULT_MAP_FILTERS: MapFilters = {
@@ -29,7 +30,16 @@ const DEFAULT_MAP_FILTERS: MapFilters = {
   age: 'all',
   urban: 'all',
   confirmedOnly: false,
+  liveOnly: false,
 };
+
+function loadLS<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback; } catch { return fallback; }
+}
+function saveLS(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
+}
 
 type Store = {
   // Auth
@@ -86,7 +96,7 @@ type Store = {
   activeRoute: { coords: [number, number][]; destination: string } | null;
   setActiveRoute: (r: { coords: [number, number][]; destination: string } | null) => void;
 
-  // Pending route options (multi-route selection)
+  // Pending route options
   pendingRoutes: RouteOption[] | null;
   setPendingRoutes: (routes: RouteOption[] | null) => void;
 
@@ -95,13 +105,13 @@ type Store = {
   addNotification: (n: AppNotification) => void;
   markNotificationsRead: () => void;
 
-  // Walk With Me — location sharing
+  // Walk With Me
   isSharingLocation: boolean;
   setIsSharingLocation: (v: boolean) => void;
   watchedLocations: Record<string, WatchedLocation>;
   setWatchedLocation: (contactId: string, data: WatchedLocation | null) => void;
 
-  // Place Notes — long-press to annotate map
+  // Place Notes
   newPlaceNoteCoords: { lat: number; lng: number } | null;
   setNewPlaceNoteCoords: (c: { lat: number; lng: number } | null) => void;
   placeNotes: PlaceNote[];
@@ -110,14 +120,33 @@ type Store = {
   selectedPlaceNote: PlaceNote | null;
   setSelectedPlaceNote: (note: PlaceNote | null) => void;
 
-  // Place note favorites — persisted in localStorage
+  // Place note favorites
   favPlaceIds: string[];
   toggleFavPlace: (id: string) => void;
   deletePlaceNote: (id: string) => void;
 
-  // Trip prefill — set by map popup to pre-fill trip planner fields
+  // Trip prefill
   tripPrefill: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null;
   setTripPrefill: (p: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null) => void;
+
+  // Followed pins (Sprint 14)
+  followedPinIds: string[];
+  toggleFollowPin: (id: string) => void;
+
+  // Live sessions (Sprint 20)
+  liveSessions: LiveSession[];
+  setLiveSessions: (sessions: LiveSession[]) => void;
+  addLiveSession: (session: LiveSession) => void;
+  removeLiveSession: (sessionId: string) => void;
+  updateLiveSession: (session: LiveSession) => void;
+
+  // Notification settings (Sprint 14)
+  notifSettings: NotifSettings;
+  setNotifSettings: (s: NotifSettings) => void;
+
+  // Achieved milestones (Sprint 16) — locally cached to avoid re-notifying
+  achievedMilestones: string[];
+  addAchievedMilestone: (key: string) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -180,11 +209,8 @@ export const useStore = create<Store>((set) => ({
   setWatchedLocation: (contactId, data) =>
     set((state) => {
       const next = { ...state.watchedLocations };
-      if (data === null) {
-        delete next[contactId];
-      } else {
-        next[contactId] = data;
-      }
+      if (data === null) delete next[contactId];
+      else next[contactId] = data;
       return { watchedLocations: next };
     }),
 
@@ -198,26 +224,58 @@ export const useStore = create<Store>((set) => ({
   setSelectedPlaceNote: (note) => set({ selectedPlaceNote: note }),
 
   // Place note favorites
-  favPlaceIds: typeof window !== 'undefined'
-    ? (() => { try { return JSON.parse(localStorage.getItem('safepin_fav_places') ?? '[]') as string[]; } catch { return []; } })()
-    : [],
+  favPlaceIds: loadLS<string[]>('safepin_fav_places', []),
   toggleFavPlace: (id) =>
     set((state) => {
       const has = state.favPlaceIds.includes(id);
       const next = has ? state.favPlaceIds.filter((x) => x !== id) : [...state.favPlaceIds, id];
-      try { localStorage.setItem('safepin_fav_places', JSON.stringify(next)); } catch { /* noop */ }
+      saveLS('safepin_fav_places', next);
       return { favPlaceIds: next };
     }),
   deletePlaceNote: (id) =>
     set((state) => {
       const next = state.favPlaceIds.filter((x) => x !== id);
-      try { localStorage.setItem('safepin_fav_places', JSON.stringify(next)); } catch { /* noop */ }
-      return {
-        placeNotes: state.placeNotes.filter((n) => n.id !== id),
-        favPlaceIds: next,
-      };
+      saveLS('safepin_fav_places', next);
+      return { placeNotes: state.placeNotes.filter((n) => n.id !== id), favPlaceIds: next };
     }),
 
+  // Trip prefill
   tripPrefill: null,
   setTripPrefill: (p) => set({ tripPrefill: p }),
+
+  // Followed pins
+  followedPinIds: loadLS<string[]>('safepin_followed_pins', []),
+  toggleFollowPin: (id) =>
+    set((state) => {
+      const has = state.followedPinIds.includes(id);
+      const next = has ? state.followedPinIds.filter((x) => x !== id) : [...state.followedPinIds, id];
+      saveLS('safepin_followed_pins', next);
+      return { followedPinIds: next };
+    }),
+
+  // Live sessions
+  liveSessions: [],
+  setLiveSessions: (sessions) => set({ liveSessions: sessions }),
+  addLiveSession: (session) => set((state) => ({ liveSessions: [...state.liveSessions, session] })),
+  removeLiveSession: (sessionId) =>
+    set((state) => ({ liveSessions: state.liveSessions.filter((s) => s.id !== sessionId) })),
+  updateLiveSession: (session) =>
+    set((state) => ({ liveSessions: state.liveSessions.map((s) => s.id === session.id ? session : s) })),
+
+  // Notification settings
+  notifSettings: loadLS<NotifSettings>('safepin_notif_settings', DEFAULT_NOTIF_SETTINGS),
+  setNotifSettings: (s) => {
+    saveLS('safepin_notif_settings', s);
+    set({ notifSettings: s });
+  },
+
+  // Achieved milestones
+  achievedMilestones: loadLS<string[]>('safepin_milestones', []),
+  addAchievedMilestone: (key) =>
+    set((state) => {
+      if (state.achievedMilestones.includes(key)) return {};
+      const next = [...state.achievedMilestones, key];
+      saveLS('safepin_milestones', next);
+      return { achievedMilestones: next };
+    }),
 }));

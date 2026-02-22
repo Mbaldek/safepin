@@ -3,13 +3,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, BellOff, Radio } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
 import { toast } from 'sonner';
 import PinChat from './PinChat';
 import PinStoriesRow from './PinStoriesRow';
+import LiveBroadcaster from './LiveBroadcaster';
+import LiveViewer from './LiveViewer';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -56,13 +59,18 @@ function isPinExpired(pin: Pin): boolean {
 }
 
 export default function DetailSheet() {
-  const { selectedPin, setSelectedPin, setActiveSheet, userId, updatePin, userProfile } = useStore();
+  const {
+    selectedPin, setSelectedPin, setActiveSheet, userId, updatePin, userProfile,
+    followedPinIds, toggleFollowPin, liveSessions, addLiveSession, updateLiveSession,
+  } = useStore();
 
   const [confirms, setConfirms] = useState<VoteRow[]>([]);
   const [denies, setDenies] = useState<VoteRow[]>([]);
   const [myVote, setMyVote] = useState<VoteRow | null>(null);
   const [votingInFlight, setVotingInFlight] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [showBroadcaster, setShowBroadcaster] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
 
   useEffect(() => {
     if (!selectedPin) return;
@@ -91,6 +99,8 @@ export default function DetailSheet() {
     : null;
   const isOwner = !!userId && userId === selectedPin.user_id;
   const isResolved = !!selectedPin.resolved_at;
+  const isFollowed = followedPinIds.includes(selectedPin.id);
+  const activeSession = liveSessions.find((s) => s.pin_id === selectedPin.id && !s.ended_at) ?? null;
   const mediaItems =
     selectedPin.media_urls?.length
       ? selectedPin.media_urls
@@ -166,6 +176,32 @@ export default function DetailSheet() {
 
   return (
     <>
+      <AnimatePresence>
+        {showBroadcaster && userId && (
+          <LiveBroadcaster
+            key="broadcaster"
+            pinId={selectedPin.id}
+            userId={userId}
+            displayName={userProfile?.display_name ?? null}
+            onClose={() => setShowBroadcaster(false)}
+            onSessionStarted={(session) => addLiveSession(session)}
+            onSessionEnded={() => {
+              if (activeSession) updateLiveSession({ ...activeSession, ended_at: new Date().toISOString() });
+            }}
+          />
+        )}
+        {showViewer && activeSession && userId && (
+          <LiveViewer
+            key="viewer"
+            session={activeSession}
+            userId={userId}
+            displayName={userProfile?.display_name ?? null}
+            onClose={() => setShowViewer(false)}
+            onReport={() => toast('Report submitted — thank you')}
+          />
+        )}
+      </AnimatePresence>
+
       <motion.div
         className="absolute inset-0 z-[200]"
         style={{ backgroundColor: 'var(--bg-overlay)' }}
@@ -208,12 +244,65 @@ export default function DetailSheet() {
                 {cat?.label || 'Report'}
               </h2>
             </div>
-            <span
-              className="text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
-              style={{ backgroundColor: sev?.color + '18', color: sev?.color }}
-            >
-              {sev?.emoji} {sev?.label}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Follow button */}
+              {userId && (
+                <button
+                  onClick={() => {
+                    toggleFollowPin(selectedPin.id);
+                    toast.success(isFollowed ? 'Unfollowed pin' : 'Following pin — you\'ll be notified of updates');
+                  }}
+                  className="p-2 rounded-full transition"
+                  style={{
+                    backgroundColor: isFollowed ? 'rgba(var(--accent-rgb),0.12)' : 'var(--bg-card)',
+                    border: `1px solid ${isFollowed ? 'var(--accent)' : 'var(--border)'}`,
+                    color: isFollowed ? 'var(--accent)' : 'var(--text-muted)',
+                  }}
+                  title={isFollowed ? 'Unfollow' : 'Follow'}
+                >
+                  {isFollowed ? <BellOff size={15} /> : <Bell size={15} />}
+                </button>
+              )}
+
+              {/* Live button */}
+              {userId && isOwner && !isResolved && !activeSession && (
+                <button
+                  onClick={() => setShowBroadcaster(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide transition"
+                  style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
+                >
+                  <Radio size={13} />
+                  Go Live
+                </button>
+              )}
+              {activeSession && !isOwner && (
+                <button
+                  onClick={() => setShowViewer(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide transition"
+                  style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
+                  Watch Live
+                </button>
+              )}
+              {activeSession && isOwner && (
+                <button
+                  onClick={() => setShowBroadcaster(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide"
+                  style={{ backgroundColor: 'rgba(244,63,94,0.2)', border: '1px solid #f43f5e', color: '#f43f5e' }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
+                  LIVE
+                </button>
+              )}
+
+              <span
+                className="text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
+                style={{ backgroundColor: sev?.color + '18', color: sev?.color }}
+              >
+                {sev?.emoji} {sev?.label}
+              </span>
+            </div>
           </div>
 
           {(env || urban || selectedPin.is_moving) && (

@@ -3,17 +3,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Map, AlertTriangle, Users, Navigation, User, type LucideIcon } from 'lucide-react';
+import { Map, AlertTriangle, Users, Navigation, LayoutDashboard, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 
-type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'profile';
+type Tab = 'map' | 'incidents' | 'community' | 'trip' | 'dashboard';
 
 const TABS: { id: Tab; label: string; Icon: LucideIcon }[] = [
-  { id: 'map',       label: 'Map',       Icon: Map           },
-  { id: 'incidents', label: 'Incidents', Icon: AlertTriangle  },
-  { id: 'community', label: 'Community', Icon: Users          },
-  { id: 'trip',      label: 'Trip',      Icon: Navigation     },
-  { id: 'profile',   label: 'Profile',   Icon: User           },
+  { id: 'map',       label: 'Map',       Icon: Map               },
+  { id: 'incidents', label: 'Incidents', Icon: AlertTriangle      },
+  { id: 'community', label: 'Community', Icon: Users              },
+  { id: 'trip',      label: 'Trip',      Icon: Navigation         },
+  { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard    },
 ];
 
 export default function BottomNav() {

@@ -138,6 +138,70 @@ export type PinStory = {
   created_at: string;
 };
 
+export type PinFollow = {
+  id: string;
+  user_id: string;
+  pin_id: string;
+  created_at: string;
+};
+
+export type LiveSession = {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  room_name: string;
+  visibility: 'public' | 'contacts';
+  started_at: string;
+  ended_at: string | null;
+  display_name: string | null;
+};
+
+export type UserMilestone = {
+  id: string;
+  user_id: string;
+  milestone_key: string;
+  achieved_at: string;
+};
+
+export type NotifSettings = {
+  proximity_radius_m: number;
+  notify_nearby_pins: boolean;
+  notify_sos_nearby: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_start: string;
+  quiet_end: string;
+  notify_followed_pins: boolean;
+  notify_milestones: boolean;
+};
+
+export const DEFAULT_NOTIF_SETTINGS: NotifSettings = {
+  proximity_radius_m: 1000,
+  notify_nearby_pins: true,
+  notify_sos_nearby: true,
+  quiet_hours_enabled: false,
+  quiet_start: '22:00',
+  quiet_end: '07:00',
+  notify_followed_pins: true,
+  notify_milestones: true,
+};
+
+export type UserReport = {
+  id: string;
+  reporter_id: string;
+  target_type: 'pin' | 'user' | 'message' | 'story';
+  target_id: string;
+  reason: string;
+  status: 'pending' | 'reviewed' | 'resolved';
+  created_at: string;
+};
+
+export type AdminParam = {
+  key: string;
+  value: string;
+  description: string | null;
+  updated_at: string;
+};
+
 export type PlaceNote = {
   id: string;
   user_id: string;

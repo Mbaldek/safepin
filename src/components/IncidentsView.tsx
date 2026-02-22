@@ -58,7 +58,8 @@ const RADIUS_FILTERS: { id: RadiusFilter; label: string; meters: number }[] = [
 // ─── Incident card ────────────────────────────────────────────────────────────
 
 function EmergencyCard({ pin, dist }: { pin: Pin; dist: number | null }) {
-  const { setSelectedPin, setActiveSheet } = useStore();
+  const { setSelectedPin, setActiveSheet, liveSessions } = useStore();
+  const isLive = liveSessions.some((s) => s.pin_id === pin.id && !s.ended_at);
   const mediaCount = pin.media_urls?.length ?? (pin.photo_url ? 1 : 0);
 
   return (
@@ -80,6 +81,12 @@ function EmergencyCard({ pin, dist }: { pin: Pin; dist: number | null }) {
           <span className="text-xs font-black tracking-widest uppercase" style={{ color: '#ef4444' }}>
             Emergency Alert
           </span>
+          {isLive && (
+            <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full animate-pulse"
+              style={{ backgroundColor: '#ef4444', color: '#fff' }}>
+              ● LIVE
+            </span>
+          )}
         </div>
         <span className="text-[0.65rem] font-bold" style={{ color: 'rgba(239,68,68,0.8)' }}>
           {timeAgo(pin.created_at)}
@@ -124,7 +131,8 @@ function EmergencyCard({ pin, dist }: { pin: Pin; dist: number | null }) {
 }
 
 function PinCard({ pin, dist }: { pin: Pin; dist: number | null }) {
-  const { setSelectedPin, setActiveSheet } = useStore();
+  const { setSelectedPin, setActiveSheet, liveSessions } = useStore();
+  const isLive = liveSessions.some((s) => s.pin_id === pin.id && !s.ended_at);
   const cat = CATEGORIES[pin.category as keyof typeof CATEGORIES];
   const sev = SEVERITY[pin.severity as keyof typeof SEVERITY];
   const env = pin.environment ? ENVIRONMENTS[pin.environment as keyof typeof ENVIRONMENTS] : null;
@@ -152,6 +160,12 @@ function PinCard({ pin, dist }: { pin: Pin; dist: number | null }) {
               {cat?.label ?? pin.category}
             </span>
           </div>
+          {isLive && (
+            <span className="shrink-0 text-[0.55rem] font-black px-1.5 py-0.5 rounded-full animate-pulse"
+              style={{ backgroundColor: '#ef4444', color: '#fff' }}>
+              ● LIVE
+            </span>
+          )}
           <span
             className="shrink-0 text-[0.6rem] font-black px-2 py-0.5 rounded-full"
             style={{ backgroundColor: (sev?.color ?? '#6b7490') + '18', color: sev?.color ?? '#6b7490' }}
@@ -194,11 +208,12 @@ function PinCard({ pin, dist }: { pin: Pin; dist: number | null }) {
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 export default function IncidentsView({ onClose }: { onClose: () => void }) {
-  const { pins, userLocation } = useStore();
+  const { pins, userLocation, liveSessions } = useStore();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [emergencyOnly, setEmergencyOnly] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [radiusFilter, setRadiusFilter] = useState<RadiusFilter>('all');
+  const [liveOnly, setLiveOnly] = useState(false);
 
   const now = Date.now();
 
@@ -233,16 +248,26 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
           const maxM = RADIUS_FILTERS.find((r) => r.id === radiusFilter)!.meters;
           if (distanceM(userLocation, { lat: pin.lat, lng: pin.lng }) > maxM) return false;
         }
+        // Live only filter
+        if (liveOnly) {
+          const hasLive = liveSessions.some((s) => s.pin_id === pin.id && !s.ended_at);
+          if (!hasLive) return false;
+        }
         return true;
       })
       .sort((a, b) => {
-        // Emergencies always first
+        // Live sessions first
+        const aLive = liveSessions.some((s) => s.pin_id === a.id && !s.ended_at);
+        const bLive = liveSessions.some((s) => s.pin_id === b.id && !s.ended_at);
+        if (aLive && !bLive) return -1;
+        if (!aLive && bLive) return 1;
+        // Emergencies always next
         if (a.is_emergency && !b.is_emergency) return -1;
         if (!a.is_emergency && b.is_emergency) return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pins, timeFilter, emergencyOnly, severityFilter, radiusFilter, userLocation]);
+  }, [pins, timeFilter, emergencyOnly, severityFilter, radiusFilter, liveOnly, userLocation, liveSessions]);
 
   return (
     <motion.div
@@ -280,6 +305,18 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
             )}
           </div>
           <div className="flex items-center gap-2">
+          {/* LIVE only toggle */}
+          <button
+            onClick={() => setLiveOnly(!liveOnly)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition"
+            style={
+              liveOnly
+                ? { backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.5)' }
+                : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+            }
+          >
+            🔴 Live
+          </button>
           {/* Emergency only toggle */}
           <button
             onClick={() => setEmergencyOnly(!emergencyOnly)}
@@ -290,7 +327,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                 : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
             }
           >
-            🆘 Emergency
+            🆘 SOS
           </button>
           <button
             onClick={onClose}

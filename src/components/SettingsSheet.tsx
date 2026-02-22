@@ -7,8 +7,9 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, Shield, CreditCard, Database, FileText, User, Crown, Download, Trash2, ExternalLink } from 'lucide-react';
+import { ChevronRight, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { DEFAULT_NOTIF_SETTINGS } from '@/types';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -107,12 +108,24 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function SettingsSheet({ onClose }: Props) {
-  const { userId, userProfile } = useStore();
+  const { userId, userProfile, notifSettings, setNotifSettings, setActiveSheet } = useStore();
   const router = useRouter();
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [crashReports, setCrashReports] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const RADIUS_OPTIONS = [
+    { label: '500 m', value: 500 },
+    { label: '1 km',  value: 1000 },
+    { label: '2 km',  value: 2000 },
+    { label: '5 km',  value: 5000 },
+    { label: '10 km', value: 10000 },
+  ];
+
+  function patchNotif(patch: Partial<typeof notifSettings>) {
+    setNotifSettings({ ...(notifSettings ?? DEFAULT_NOTIF_SETTINGS), ...patch });
+  }
 
   async function handleDeleteAccount() {
     if (!confirmDelete) { setConfirmDelete(true); return; }
@@ -161,6 +174,25 @@ export default function SettingsSheet({ onClose }: Props) {
               ✕
             </button>
           </div>
+
+          {/* ── My Profile link ──────────────────────────────────────── */}
+          <button
+            onClick={() => { setActiveSheet('profile'); onClose(); }}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-6 transition active:opacity-70"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-black text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}>
+              {(userProfile?.display_name?.[0] ?? '?').toUpperCase()}
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>
+                {userProfile?.display_name ?? 'Set your name'}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>View profile & activity</p>
+            </div>
+            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+          </button>
 
           {/* ── Account ─────────────────────────────────────────────── */}
           <Section title="Account" icon={<User size={13} />}>
@@ -314,6 +346,69 @@ export default function SettingsSheet({ onClose }: Props) {
                 SafePin v1.0 · © {new Date().getFullYear()} SafePin SAS
               </p>
             </div>
+          </Section>
+
+          {/* ── Notifications ────────────────────────────────────────── */}
+          <Section title="Notifications" icon={<Bell size={13} />}>
+            {/* Proximity radius */}
+            <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Alert radius</p>
+              <div className="flex flex-wrap gap-1.5">
+                {RADIUS_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    onClick={() => patchNotif({ proximity_radius_m: o.value })}
+                    className="px-3 py-1 rounded-full text-xs font-bold transition"
+                    style={
+                      (notifSettings?.proximity_radius_m ?? 1000) === o.value
+                        ? { backgroundColor: 'var(--accent)', color: '#fff' }
+                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                    }
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ToggleRow
+              label="Notify on nearby pins"
+              subtitle="New reports within your alert radius"
+              value={notifSettings?.notify_nearby_pins ?? true}
+              onChange={(v) => patchNotif({ notify_nearby_pins: v })}
+            />
+            <ToggleRow
+              label="SOS alerts (always on)"
+              subtitle="Emergency alerts near you — cannot be silenced"
+              value={notifSettings?.notify_sos_nearby ?? true}
+              onChange={(v) => patchNotif({ notify_sos_nearby: v })}
+            />
+            <ToggleRow
+              label="Followed pin activity"
+              subtitle="Messages, stories, and status changes on pins you follow"
+              value={notifSettings?.notify_followed_pins ?? true}
+              onChange={(v) => patchNotif({ notify_followed_pins: v })}
+            />
+            <ToggleRow
+              label="Milestones & achievements"
+              subtitle="Level-ups, impact stats, and badges"
+              value={notifSettings?.notify_milestones ?? true}
+              onChange={(v) => patchNotif({ notify_milestones: v })}
+            />
+            <ToggleRow
+              label="Quiet hours"
+              subtitle={`${notifSettings?.quiet_start ?? '22:00'} – ${notifSettings?.quiet_end ?? '07:00'} · SOS always active`}
+              value={notifSettings?.quiet_hours_enabled ?? false}
+              onChange={(v) => patchNotif({ quiet_hours_enabled: v })}
+            />
+          </Section>
+
+          {/* ── Admin ────────────────────────────────────────────────── */}
+          <Section title="Admin" icon={<LayoutDashboard size={13} />}>
+            <Row
+              label="Tower Control"
+              badge="Admin only"
+              onPress={() => { router.push('/admin'); onClose(); }}
+            />
           </Section>
 
           {/* Security section */}
