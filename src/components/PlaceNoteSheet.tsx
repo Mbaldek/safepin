@@ -28,7 +28,7 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
   const [saving, setSaving] = useState(false);
 
   async function save() {
-    if (!note.trim()) return;
+    if (!name.trim() && !note.trim()) return;
     setSaving(true);
     const { data, error } = await supabase
       .from('place_notes')
@@ -120,7 +120,7 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
           {/* Note text */}
           <div>
             <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Note <span style={{ color: 'var(--accent)' }}>*</span>
+              Note <span style={{ color: 'var(--text-placeholder)' }}>(optional)</span>
             </p>
             <textarea
               value={note}
@@ -139,7 +139,7 @@ export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Pro
           {/* Save */}
           <button
             onClick={save}
-            disabled={!note.trim() || saving}
+            disabled={(!name.trim() && !note.trim()) || saving}
             className="w-full py-3.5 rounded-2xl font-black text-sm transition disabled:opacity-40"
             style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
           >

@@ -188,7 +188,8 @@ export default function MapView() {
       longPressTimer.current = setTimeout(() => {
         longPressTimer.current = null;
         const store = useStore.getState();
-        if (store.activeSheet === 'none' && !store.newPlaceNoteCoords) {
+        const blockedTab = store.activeTab === 'trip' || store.activeTab === 'incidents' || store.activeTab === 'community';
+        if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
           store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         }
       }, 600);
@@ -202,7 +203,8 @@ export default function MapView() {
     // Also handle mobile long-press via contextmenu
     map.current.on('contextmenu', (e) => {
       const store = useStore.getState();
-      if (store.activeSheet === 'none' && !store.newPlaceNoteCoords) {
+      const blockedTab = store.activeTab === 'trip' || store.activeTab === 'incidents' || store.activeTab === 'community';
+      if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
         store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       }
     });
@@ -390,10 +392,14 @@ export default function MapView() {
 
     for (const note of placeNotes) {
       const el = document.createElement('div');
-      el.style.cssText =
-        'width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid #fff;' +
-        'box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;' +
-        'font-size:14px;cursor:pointer;';
+      const isFavorite = Boolean(note.name);
+      el.style.cssText = isFavorite
+        ? 'width:32px;height:32px;border-radius:50%;background:#f59e0b;border:2.5px solid #fff;' +
+          'box-shadow:0 2px 10px rgba(245,158,11,0.45);display:flex;align-items:center;justify-content:center;' +
+          'font-size:15px;cursor:pointer;'
+        : 'width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid #fff;' +
+          'box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;' +
+          'font-size:14px;cursor:pointer;';
       el.textContent = note.emoji;
       el.title = note.name || note.note;
       el.addEventListener('click', (e) => {
