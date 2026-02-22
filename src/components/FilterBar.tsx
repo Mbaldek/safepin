@@ -126,15 +126,12 @@ export default function FilterBar() {
 
             {/* Filter panel */}
             <motion.div
-              className="sheet-motion absolute bottom-0 left-0 right-0 z-[56] rounded-t-3xl max-h-[65dvh] overflow-y-auto"
-              style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              className="sheet-motion absolute top-0 left-0 bottom-0 z-56 rounded-r-3xl overflow-y-auto w-[82%] max-w-75"
+              style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={springConfig}
             >
-              {/* Handle */}
-              <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
-
-              <div className="px-5 pt-3 pb-10">
+              <div className="px-5 pt-14 pb-10">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
