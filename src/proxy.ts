@@ -1,4 +1,4 @@
-// src/middleware.ts — Rate limiting + next-intl locale routing
+// src/proxy.ts — Rate limiting + next-intl locale routing (Next.js 16 proxy convention)
 
 import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
@@ -66,22 +66,32 @@ function rateLimit(req: NextRequest): NextResponse | null {
   return null;
 }
 
-// ─── Composed middleware ──────────────────────────────────────────────────────
-export function middleware(req: NextRequest) {
+// ─── Composed proxy (Next.js 16) ────────────────────────────────────────────
+export async function proxy(req: NextRequest) {
   // Rate-limit API routes first
   const rateLimitResponse = rateLimit(req);
   if (rateLimitResponse) return rateLimitResponse;
 
-  // Skip intl for API routes and static assets
+  // Skip intl for API routes, static assets, and internal paths
   const { pathname } = req.nextUrl;
-  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/') || pathname.includes('.')) {
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/track/') ||
+    pathname.startsWith('/admin') ||
+    pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
-  // Apply locale detection for page routes
-  return intlMiddleware(req);
+  // Apply locale detection for page routes (with fallback)
+  try {
+    return intlMiddleware(req);
+  } catch {
+    return NextResponse.next();
+  }
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon|manifest|sw).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon|manifest|sw|api/).*)'],
 };
