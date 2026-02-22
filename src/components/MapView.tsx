@@ -27,6 +27,8 @@ const NOTES_LYR    = 'place-notes-layer';
 const TRANSIT_SRC    = 'paris-transit-src';
 const TRANSIT_CIRCLE = 'paris-transit-circle';
 const TRANSIT_LABEL  = 'paris-transit-label';
+const TRANSIT_LINES_SRC = 'paris-transit-lines-src';
+const TRANSIT_LINES_LYR = 'paris-transit-lines-lyr';
 
 const STYLE_URLS: Record<string, string> = {
   streets: 'mapbox://styles/mapbox/streets-v12',
@@ -36,6 +38,7 @@ const STYLE_URLS: Record<string, string> = {
 
 // Module-level transit data cache so it survives style switches
 let transitCache: GeoJSON.FeatureCollection | null = null;
+let transitLinesCache: GeoJSON.FeatureCollection | null = null;
 
 async function fetchParisTransit(): Promise<GeoJSON.FeatureCollection> {
   if (transitCache) return transitCache;
@@ -66,6 +69,57 @@ async function fetchParisTransit(): Promise<GeoJSON.FeatureCollection> {
   };
   transitCache = geojson;
   return geojson;
+}
+
+async function fetchParisTransitLines(): Promise<GeoJSON.FeatureCollection> {
+  if (transitLinesCache) return transitLinesCache;
+  const query = `[out:json][timeout:30];(
+    way["railway"="subway"](48.81,2.25,48.91,2.43);
+    way["railway"="light_rail"](48.81,2.25,48.91,2.43);
+    way["railway"="tram"](48.81,2.25,48.91,2.43);
+  );out geom;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+  const data = await res.json() as { elements: Array<{ type: string; tags?: Record<string, string>; geometry?: Array<{ lat: number; lon: number }> }> };
+  const geojson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: data.elements
+      .filter((el) => el.type === 'way' && el.geometry?.length)
+      .map((el) => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: el.geometry!.map((p) => [p.lon, p.lat]),
+        },
+        properties: {
+          kind: el.tags?.railway === 'subway' ? 'metro' : el.tags?.railway === 'light_rail' ? 'rer' : 'tram',
+        },
+      })),
+  };
+  transitLinesCache = geojson;
+  return geojson;
+}
+
+function addTransitLinesLayer(m: mapboxgl.Map) {
+  if (!transitLinesCache || m.getSource(TRANSIT_LINES_SRC)) return;
+  m.addSource(TRANSIT_LINES_SRC, { type: 'geojson', data: transitLinesCache });
+  m.addLayer({
+    id: TRANSIT_LINES_LYR,
+    type: 'line',
+    source: TRANSIT_LINES_SRC,
+    paint: {
+      'line-color': ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', '#10b981'],
+      'line-width': ['match', ['get', 'kind'], 'metro', 3, 'rer', 3, 2],
+      'line-opacity': 0.55,
+    },
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round',
+    },
+  });
 }
 
 function addTransitLayer(m: mapboxgl.Map) {
@@ -558,13 +612,13 @@ export default function MapView() {
   // Apply mapStyle to the actual Mapbox map — re-add cluster layers + transit after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    transitCache = null; // clear transit cache; layer was wiped by setStyle
+    transitCache = null; transitLinesCache = null; // clear transit cache; layer was wiped by setStyle
     setLayersReady(false);
     map.current.once('style.load', () => {
       addClusterLayers(map.current!, mapStyle === 'dark');
       if (showTransit) {
-        fetchParisTransit()
-          .then(() => { if (map.current) addTransitLayer(map.current); })
+        Promise.all([fetchParisTransit(), fetchParisTransitLines()])
+          .then(() => { if (map.current) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
           .catch(() => {});
       }
       setLayersReady(true);
@@ -671,17 +725,23 @@ export default function MapView() {
     if (!m || !mapReady || !layersReady) return;
 
     if (!showTransit) {
-      if (m.getLayer(TRANSIT_LABEL))  m.removeLayer(TRANSIT_LABEL);
-      if (m.getLayer(TRANSIT_CIRCLE)) m.removeLayer(TRANSIT_CIRCLE);
-      if (m.getSource(TRANSIT_SRC))   m.removeSource(TRANSIT_SRC);
+      if (m.getLayer(TRANSIT_LABEL))     m.removeLayer(TRANSIT_LABEL);
+      if (m.getLayer(TRANSIT_CIRCLE))    m.removeLayer(TRANSIT_CIRCLE);
+      if (m.getSource(TRANSIT_SRC))      m.removeSource(TRANSIT_SRC);
+      if (m.getLayer(TRANSIT_LINES_LYR)) m.removeLayer(TRANSIT_LINES_LYR);
+      if (m.getSource(TRANSIT_LINES_SRC)) m.removeSource(TRANSIT_LINES_SRC);
       return;
     }
 
-    if (transitCache) { addTransitLayer(m); return; }
+    if (transitCache && transitLinesCache) {
+      addTransitLinesLayer(m);
+      addTransitLayer(m);
+      return;
+    }
 
     setTransitLoading(true);
-    fetchParisTransit()
-      .then(() => { if (map.current && showTransit) addTransitLayer(map.current); })
+    Promise.all([fetchParisTransit(), fetchParisTransitLines()])
+      .then(() => { if (map.current && showTransit) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
       .catch(() => {})
       .finally(() => setTransitLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -955,6 +955,18 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
 
 // ─── Tab 7 — Analytics ────────────────────────────────────────────────────────
 
+function groupByHour(rows: { created_at: string }[]): ChartPoint[] {
+  const counts: Record<string, number> = {};
+  for (let h = 0; h < 24; h++) counts[String(h).padStart(2, '0')] = 0;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  for (const r of rows) {
+    if (!r.created_at.startsWith(todayStr)) continue;
+    const hh = r.created_at.slice(11, 13);
+    if (hh in counts) counts[hh]++;
+  }
+  return Object.entries(counts).map(([h, value]) => ({ label: `${h}h`, value }));
+}
+
 function groupByDay(rows: { created_at: string }[], days = 30): ChartPoint[] {
   const counts: Record<string, number> = {};
   const now = Date.now();
@@ -1051,7 +1063,7 @@ function AnalyticsTab() {
   const oldUserIds = new Set(allProfiles.filter((p) => p.created_at < sevenDaysAgo).map((p) => p.id));
   const returnedThisWeek = [...distinctUsers(filterByRange([...allPins, ...allVotes, ...allComments], weekStart, tomorrow))].filter((id) => oldUserIds.has(id)).length;
 
-  // Chart data
+  // Chart data (30-day trends)
   const newUsersChart = groupByDay(allProfiles);
   const pinsChart     = groupByDay(allPins);
   const votesChart    = groupByDay(allVotes);
@@ -1068,6 +1080,17 @@ function AnalyticsTab() {
     }
     return pts;
   })();
+
+  // Intra-day charts (hourly, today)
+  const pinsHourly    = groupByHour(allPins);
+  const votesHourly   = groupByHour(allVotes);
+  const commentsHourly = groupByHour(allComments);
+  const allActivityHourly: ChartPoint[] = pinsHourly.map((p, i) => ({
+    label: p.label,
+    value: p.value + votesHourly[i].value + commentsHourly[i].value,
+  }));
+  const peakHour = allActivityHourly.reduce((best, cur) => cur.value > best.value ? cur : best, allActivityHourly[0]);
+  const totalActivityToday = allActivityHourly.reduce((s, p) => s + p.value, 0);
 
   const kpiRows = [
     { label: 'DAU Today',      value: dauToday,      color: 'text-indigo-700', sub: `${dauYesterday} yesterday` },
@@ -1095,13 +1118,30 @@ function AnalyticsTab() {
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ChartCard title="Daily Active Users"  subtitle="30-day trend"        data={dauChart}     color="#6366f1" />
-        <ChartCard title="New Users / day"     subtitle="Signups last 30 days" data={newUsersChart} color="#10b981" />
-        <ChartCard title="Pins created / day"  subtitle="Content volume"       data={pinsChart}    color="#f59e0b" />
-        <ChartCard title="Votes / day"         subtitle="Community engagement"  data={votesChart}   color="#3b82f6" />
-        <ChartCard title="Comments / day"      subtitle="Discussion activity"   data={commentsChart} color="#8b5cf6" />
+      {/* Intra-day (today, hourly) */}
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <h3 className="text-sm font-bold text-gray-700">Today — Hourly Breakdown</h3>
+          <span className="text-xs text-gray-400">{totalActivityToday} actions total · Peak at {peakHour.label} ({peakHour.value})</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ChartCard title="All activity / hour"  subtitle="Pins + votes + comments today" data={allActivityHourly} color="#6366f1" />
+          <ChartCard title="Pins / hour"           subtitle="New reports today"             data={pinsHourly}       color="#f59e0b" />
+          <ChartCard title="Votes / hour"          subtitle="Confirmations today"           data={votesHourly}      color="#3b82f6" />
+          <ChartCard title="Comments / hour"       subtitle="Discussion today"              data={commentsHourly}   color="#8b5cf6" />
+        </div>
+      </div>
+
+      {/* 30-day trends */}
+      <div>
+        <h3 className="text-sm font-bold text-gray-700 mb-3">30-Day Trends</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ChartCard title="Daily Active Users"  subtitle="30-day trend"        data={dauChart}     color="#6366f1" />
+          <ChartCard title="New Users / day"     subtitle="Signups last 30 days" data={newUsersChart} color="#10b981" />
+          <ChartCard title="Pins created / day"  subtitle="Content volume"       data={pinsChart}    color="#f59e0b" />
+          <ChartCard title="Votes / day"         subtitle="Community engagement"  data={votesChart}   color="#3b82f6" />
+          <ChartCard title="Comments / day"      subtitle="Discussion activity"   data={commentsChart} color="#8b5cf6" />
+        </div>
       </div>
     </div>
   );

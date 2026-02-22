@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, Pin } from '@/types';
 
@@ -214,6 +215,15 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [radiusFilter, setRadiusFilter] = useState<RadiusFilter>('all');
   const [liveOnly, setLiveOnly] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  function toggleSection(key: string) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   const now = Date.now();
 
@@ -416,9 +426,9 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
       </div>
       </div>
 
-      {/* ── List ──────────────────────────────────────────────────── */}
+      {/* ── List (grouped by category) ──────────────────────────── */}
       <div className="flex-1 overflow-y-auto py-3 pb-8">
-      <div className="w-full px-4 flex flex-col gap-3">
+      <div className="w-full px-4 flex flex-col gap-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
             <div
@@ -447,14 +457,60 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
               </button>
             )}
           </div>
-        ) : (
-          filtered.map((pin) => {
-            const dist = userLocation ? distanceM(userLocation, { lat: pin.lat, lng: pin.lng }) : null;
-            return pin.is_emergency
-              ? <EmergencyCard key={pin.id} pin={pin} dist={dist} />
-              : <PinCard       key={pin.id} pin={pin} dist={dist} />;
-          })
-        )}
+        ) : (() => {
+          // Group: emergencies first, then by category
+          const emergencies = filtered.filter((p) => p.is_emergency);
+          const byCategory = new Map<string, Pin[]>();
+          filtered.filter((p) => !p.is_emergency).forEach((pin) => {
+            const arr = byCategory.get(pin.category) ?? [];
+            arr.push(pin);
+            byCategory.set(pin.category, arr);
+          });
+          const sections: { key: string; label: string; emoji: string; color?: string; pins: Pin[] }[] = [];
+          if (emergencies.length) sections.push({ key: '_sos', label: 'Emergency Alerts', emoji: '🆘', color: '#ef4444', pins: emergencies });
+          for (const [cat, catPins] of byCategory) {
+            const catInfo = CATEGORIES[cat as keyof typeof CATEGORIES];
+            sections.push({ key: cat, label: catInfo?.label ?? cat, emoji: catInfo?.emoji ?? '⚠️', pins: catPins });
+          }
+          return sections.map(({ key, label, emoji, color, pins: sectionPins }) => {
+            const open = expandedSections.has(key);
+            return (
+              <div key={key}>
+                <button
+                  onClick={() => toggleSection(key)}
+                  className="w-full flex items-center justify-between py-2.5 px-1 transition-opacity hover:opacity-70"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{emoji}</span>
+                    <span className="text-xs font-black uppercase tracking-wider" style={{ color: color ?? 'var(--text-muted)' }}>
+                      {label}
+                    </span>
+                    <span
+                      className="text-[0.6rem] font-black px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: (color ?? 'var(--text-muted)') + '18', color: color ?? 'var(--text-muted)' }}
+                    >
+                      {sectionPins.length}
+                    </span>
+                  </div>
+                  {open
+                    ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
+                    : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+                  }
+                </button>
+                {open && (
+                  <div className="flex flex-col gap-2 pb-2">
+                    {sectionPins.map((pin) => {
+                      const dist = userLocation ? distanceM(userLocation, { lat: pin.lat, lng: pin.lng }) : null;
+                      return pin.is_emergency
+                        ? <EmergencyCard key={pin.id} pin={pin} dist={dist} />
+                        : <PinCard key={pin.id} pin={pin} dist={dist} />;
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          });
+        })()}
       </div>
       </div>
     </motion.div>
