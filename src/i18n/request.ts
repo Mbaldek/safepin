@@ -1,19 +1,24 @@
 // src/i18n/request.ts
 
 import { getRequestConfig } from 'next-intl/server';
-import { routing } from './routing';
+import { cookies } from 'next/headers';
 import en from '../messages/en.json';
 import fr from '../messages/fr.json';
 
-const messages: Record<string, typeof en> = { en, fr };
+const LOCALES = ['en', 'fr'] as const;
+const DEFAULT_LOCALE = 'en';
+const allMessages: Record<string, typeof en> = { en, fr };
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale;
-  if (!locale || !routing.locales.includes(locale as 'en' | 'fr')) {
-    locale = routing.defaultLocale;
-  }
+export default getRequestConfig(async () => {
+  // Read locale from cookie set by proxy.ts
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value;
+  const locale = cookieLocale && (LOCALES as readonly string[]).includes(cookieLocale)
+    ? cookieLocale
+    : DEFAULT_LOCALE;
+
   return {
     locale,
-    messages: messages[locale] ?? messages.en,
+    messages: allMessages[locale] ?? allMessages.en,
   };
 });

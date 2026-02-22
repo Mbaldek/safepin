@@ -1,11 +1,15 @@
-// src/proxy.ts — Rate limiting + next-intl locale routing (Next.js 16 proxy convention)
+// src/proxy.ts — Rate limiting + locale cookie (Next.js 16 proxy convention)
+//
+// NOTE: next-intl's createMiddleware rewrites "/" → "/en" internally, which
+// causes 404s because the app uses src/app/page.tsx (no [locale] segment).
+// Instead we detect locale from Accept-Language / cookie and set a cookie
+// so that next-intl's server-side getLocale() picks it up.
 
 import { NextRequest, NextResponse } from 'next/server';
-import createMiddleware from 'next-intl/middleware';
-import { routing } from './i18n/routing';
 
-// ─── next-intl locale middleware ──────────────────────────────────────────────
-const intlMiddleware = createMiddleware(routing);
+const LOCALES = ['en', 'fr'] as const;
+const DEFAULT_LOCALE = 'en';
+const COOKIE_NAME = 'NEXT_LOCALE';
 
 // ─── Rate limiting (sliding window per-instance) ─────────────────────────────
 const counters = new Map<string, { count: number; resetAt: number }>();
@@ -66,32 +70,57 @@ function rateLimit(req: NextRequest): NextResponse | null {
   return null;
 }
 
+// ─── Locale detection ───────────────────────────────────────────────────────
+function detectLocale(req: NextRequest): string {
+  // 1. Explicit cookie
+  const cookie = req.cookies.get(COOKIE_NAME)?.value;
+  if (cookie && (LOCALES as readonly string[]).includes(cookie)) return cookie;
+
+  // 2. Accept-Language header
+  const accept = req.headers.get('accept-language') ?? '';
+  for (const locale of LOCALES) {
+    if (accept.includes(locale)) return locale;
+  }
+
+  return DEFAULT_LOCALE;
+}
+
 // ─── Composed proxy (Next.js 16) ────────────────────────────────────────────
 export async function proxy(req: NextRequest) {
   // Rate-limit API routes first
   const rateLimitResponse = rateLimit(req);
   if (rateLimitResponse) return rateLimitResponse;
 
-  // Skip intl for API routes, static assets, and internal paths
   const { pathname } = req.nextUrl;
+
+  // Skip locale handling for API routes, static assets, and internal paths
   if (
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
-    pathname.startsWith('/track/') ||
-    pathname.startsWith('/admin') ||
     pathname.includes('.')
   ) {
     return NextResponse.next();
   }
 
-  // Apply locale detection for page routes (with fallback)
-  try {
-    return intlMiddleware(req);
-  } catch {
-    return NextResponse.next();
+  // Handle /fr/* routes — redirect to / and set locale cookie
+  if (pathname.startsWith('/fr')) {
+    const newPath = pathname.replace(/^\/fr/, '') || '/';
+    const url = req.nextUrl.clone();
+    url.pathname = newPath;
+    const response = NextResponse.redirect(url);
+    response.cookies.set(COOKIE_NAME, 'fr', { path: '/', maxAge: 365 * 24 * 60 * 60 });
+    return response;
   }
+
+  // Set locale cookie if not present (so server-side getLocale() works)
+  const locale = detectLocale(req);
+  const response = NextResponse.next();
+  if (!req.cookies.get(COOKIE_NAME)) {
+    response.cookies.set(COOKIE_NAME, locale, { path: '/', maxAge: 365 * 24 * 60 * 60 });
+  }
+  return response;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon|manifest|sw|api/).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon|manifest|sw).*)'],
 };
