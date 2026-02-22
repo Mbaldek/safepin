@@ -2,9 +2,22 @@
 
 import Stripe from 'stripe';
 
-// Server-side Stripe instance — only import this in API routes / server components
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover',
+// Lazy-initialised so the build doesn't crash when STRIPE_SECRET_KEY is absent
+let _stripe: Stripe | null = null;
+export function getStripeServer(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2026-01-28.clover',
+    });
+  }
+  return _stripe;
+}
+
+/** @deprecated Use getStripeServer() — kept for backward compat */
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    return (getStripeServer() as unknown as Record<string | symbol, unknown>)[prop];
+  },
 });
 
 // Client-side lazy loader (call only in browser context)
