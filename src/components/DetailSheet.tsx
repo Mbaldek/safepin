@@ -9,6 +9,7 @@ import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
 import { toast } from 'sonner';
 import PinChat from './PinChat';
+import PinStoriesRow from './PinStoriesRow';
 
 const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
@@ -404,6 +405,12 @@ export default function DetailSheet() {
 
           {/* Divider */}
           <div className="mb-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
+
+          {/* Pin Stories */}
+          <PinStoriesRow pinId={selectedPin.id} />
+
+          {/* Divider */}
+          <div className="mt-5 mb-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
 
           {/* Pin Chat */}
           <PinChat

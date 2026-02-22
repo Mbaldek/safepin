@@ -127,6 +127,17 @@ export type CommunityStory = {
   created_at: string;
 };
 
+export type PinStory = {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  display_name: string | null;
+  media_url: string;
+  media_type: 'image' | 'video';
+  caption: string | null;
+  created_at: string;
+};
+
 export type PlaceNote = {
   id: string;
   user_id: string;

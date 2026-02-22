@@ -5,12 +5,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY, TripLog } from '@/types';
+import { CATEGORIES, SEVERITY, TripLog, Pin } from '@/types';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
 import TrustedCircleSection from '@/components/TrustedCircleSection';
 import { computeExpertiseTags } from '@/lib/expertise';
+import { Trash2, Pencil, Check, X } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,16 @@ function timeAgo(dateStr: string) {
 
 function joinedDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en', { month: 'long', year: 'numeric' });
+}
+
+function fmtDur(s: number) {
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+
+function fmtDist(m: number) {
+  return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
 }
 
 // ─── Trust Score / Levels ────────────────────────────────────────────────────
@@ -47,11 +58,16 @@ function computeScore(pinsCount: number, alertsCount: number, confirmedVotes: nu
   return pinsCount * 10 + alertsCount * 15 + confirmedVotes * 5 + commentsMade * 2;
 }
 
+type PanelTab = 'stats' | 'pins' | 'trips' | 'sos';
+type PinFilter = 'all' | 'active' | 'resolved';
+
+const MODE_EMOJI: Record<string, string> = { walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇' };
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProfileView({ userId, userEmail }: { userId: string; userEmail: string }) {
   const router = useRouter();
-  const { pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet } = useStore();
+  const { pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet, setPins, updatePin } = useStore();
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -59,7 +75,16 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   const inputRef = useRef<HTMLInputElement>(null);
   const didSaveRef = useRef(false);
 
-  // Impact stats (fetched once)
+  // Panel state
+  const [panelTab, setPanelTab] = useState<PanelTab>('stats');
+  const [pinFilter, setPinFilter] = useState<PinFilter>('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingPinId, setEditingPinId] = useState<string | null>(null);
+  const [editSeverity, setEditSeverity] = useState<string>('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
+  // Impact stats
   const [confirmedVotes, setConfirmedVotes] = useState(0);
   const [commentsMade, setCommentsMade] = useState(0);
   const [placeNotesCount, setPlaceNotesCount] = useState(0);
@@ -69,38 +94,21 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   const [tripHistory, setTripHistory] = useState<TripLog[]>([]);
   const [tripsLoaded, setTripsLoaded] = useState(false);
 
-  useEffect(() => {
-    setNameInput(userProfile?.display_name ?? '');
-  }, [userProfile]);
-
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
+  useEffect(() => { setNameInput(userProfile?.display_name ?? ''); }, [userProfile]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
   // Load impact stats
   useEffect(() => {
     if (impactLoaded) return;
     async function loadImpact() {
       const myPinIds = pins.filter((p) => p.user_id === userId).map((p) => p.id);
-
       const [votesRes, commentsRes, notesRes] = await Promise.all([
         myPinIds.length > 0
-          ? supabase
-              .from('pin_votes')
-              .select('*', { count: 'exact', head: true })
-              .in('pin_id', myPinIds)
-              .eq('vote_type', 'confirm')
+          ? supabase.from('pin_votes').select('*', { count: 'exact', head: true }).in('pin_id', myPinIds).eq('vote_type', 'confirm')
           : Promise.resolve({ count: 0 }),
-        supabase
-          .from('pin_comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
-        supabase
-          .from('place_notes')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
+        supabase.from('pin_comments').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('place_notes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
-
       setConfirmedVotes((votesRes as { count: number | null }).count ?? 0);
       setCommentsMade((commentsRes as { count: number | null }).count ?? 0);
       setPlaceNotesCount((notesRes as { count: number | null }).count ?? 0);
@@ -110,58 +118,57 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, pins.length]);
 
-  // Load trip history
+  // Load trip history (limit 20)
   useEffect(() => {
     if (tripsLoaded) return;
     supabase
-      .from('trip_log')
-      .select('*')
-      .eq('user_id', userId)
-      .order('ended_at', { ascending: false })
-      .limit(10)
-      .then(({ data }) => {
-        setTripHistory((data as TripLog[]) ?? []);
-        setTripsLoaded(true);
-      });
+      .from('trip_log').select('*').eq('user_id', userId)
+      .order('ended_at', { ascending: false }).limit(20)
+      .then(({ data }) => { setTripHistory((data as TripLog[]) ?? []); setTripsLoaded(true); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // ── Derived data ─────────────────────────────────────────────────────────
 
   const displayName = userProfile?.display_name ?? null;
   const initial = (displayName?.[0] ?? userEmail[0] ?? '?').toUpperCase();
 
-  const myPins   = useMemo(() =>
+  const myPins = useMemo(() =>
     pins
       .filter((p) => p.user_id === userId)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [pins, userId]
+    [pins, userId],
   );
-  const myReports  = myPins.filter((p) => !p.is_emergency);
-  const myAlerts   = myPins.filter((p) => p.is_emergency);
-  const recentPins = myPins.slice(0, 5);
+  const myReports = myPins.filter((p) => !p.is_emergency);
+  const myAlerts  = myPins.filter((p) => p.is_emergency);
 
   const trustScore = computeScore(myReports.length, myAlerts.length, confirmedVotes, commentsMade);
   const level      = getLevel(trustScore);
   const progress   = level.next === Infinity ? 1 : (trustScore - level.min) / (level.next - level.min);
 
   const expertiseTags = useMemo(() =>
-    computeExpertiseTags(
-      pins,
-      userId,
-      userProfile?.verification_status === 'approved',
-      level.label,
-    ),
+    computeExpertiseTags(pins, userId, userProfile?.verification_status === 'approved', level.label),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [pins.length, userId, userProfile?.verification_status, level.label]);
 
-  // Active pins (not resolved, not expired)
   const now = Date.now();
-  const activePins = myPins.filter((p) => {
-    if (p.resolved_at) return false;
-    const base = p.last_confirmed_at
-      ? Math.max(new Date(p.created_at).getTime(), new Date(p.last_confirmed_at).getTime())
-      : new Date(p.created_at).getTime();
-    return (now - base) / 3_600_000 < (p.is_emergency ? 2 : 24);
-  });
+  function isActive(pin: Pin) {
+    if (pin.resolved_at) return false;
+    const base = pin.last_confirmed_at
+      ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
+      : new Date(pin.created_at).getTime();
+    return (now - base) / 3_600_000 < (pin.is_emergency ? 2 : 24);
+  }
+  const activePins = myPins.filter(isActive);
+
+  const filteredPins = useMemo(() => {
+    if (pinFilter === 'active')   return myPins.filter(isActive);
+    if (pinFilter === 'resolved') return myPins.filter((p) => !isActive(p));
+    return myPins;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myPins, pinFilter]);
+
+  // ── Actions ──────────────────────────────────────────────────────────────
 
   async function saveName() {
     if (didSaveRef.current || saving) return;
@@ -179,16 +186,55 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
   }
 
   function startEditing() { didSaveRef.current = false; setEditing(true); }
-  function cancelEdit() {
-    didSaveRef.current = true;
-    setNameInput(userProfile?.display_name ?? '');
-    setEditing(false);
-  }
+  function cancelEdit()   { didSaveRef.current = true; setNameInput(userProfile?.display_name ?? ''); setEditing(false); }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.replace('/login');
   }
+
+  async function deletePin(pin: Pin) {
+    const { error } = await supabase.from('pins').delete().eq('id', pin.id);
+    if (error) { toast.error('Could not delete pin'); return; }
+    setPins(pins.filter((p) => p.id !== pin.id));
+    setConfirmDeleteId(null);
+    toast.success('Pin deleted');
+  }
+
+  function startPinEdit(pin: Pin) {
+    setEditingPinId(pin.id);
+    setEditSeverity(pin.severity);
+    setEditDesc(pin.description);
+    setConfirmDeleteId(null);
+  }
+
+  async function savePinEdit(pin: Pin) {
+    setEditSaving(true);
+    const { error } = await supabase
+      .from('pins')
+      .update({ severity: editSeverity, description: editDesc.trim() })
+      .eq('id', pin.id);
+    setEditSaving(false);
+    if (error) { toast.error('Could not save changes'); return; }
+    updatePin({ ...pin, severity: editSeverity as Pin['severity'], description: editDesc.trim() });
+    setEditingPinId(null);
+    toast.success('Pin updated');
+  }
+
+  // ── Panel tab config ──────────────────────────────────────────────────────
+
+  const TABS: { id: PanelTab; emoji: string; label: string; count?: number }[] = [
+    { id: 'stats', emoji: '📊', label: 'Stats' },
+    { id: 'pins',  emoji: '📍', label: 'Pins',  count: myPins.length },
+    { id: 'trips', emoji: '🗺️', label: 'Trips', count: tripHistory.length > 0 ? tripHistory.length : undefined },
+    { id: 'sos',   emoji: '🆘', label: 'SOS',   count: myAlerts.length > 0 ? myAlerts.length : undefined },
+  ];
+
+  // ── Common styles ─────────────────────────────────────────────────────────
+
+  const card = { backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' };
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -203,14 +249,9 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
             >
               {initial}
             </div>
-            {/* Level badge over avatar */}
             <div
               className="absolute -bottom-1 -right-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.55rem] font-black border-2"
-              style={{
-                backgroundColor: level.color + '18',
-                color: level.color,
-                borderColor: 'var(--bg-primary)',
-              }}
+              style={{ backgroundColor: level.color + '18', color: level.color, borderColor: 'var(--bg-primary)' }}
             >
               {level.emoji} {level.label}
             </div>
@@ -254,18 +295,13 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
             </p>
           )}
 
-          {/* Expertise tags */}
           {expertiseTags.length > 0 && (
             <div className="flex flex-wrap justify-center gap-1.5">
               {expertiseTags.map((tag) => (
                 <span
                   key={tag.label}
                   className="text-[0.6rem] font-black px-2.5 py-1 rounded-full"
-                  style={{
-                    backgroundColor: tag.color + '18',
-                    color: tag.color,
-                    border: `1px solid ${tag.color}40`,
-                  }}
+                  style={{ backgroundColor: tag.color + '18', color: tag.color, border: `1px solid ${tag.color}40` }}
                 >
                   {tag.emoji} {tag.label}
                 </span>
@@ -273,7 +309,6 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
             </div>
           )}
 
-          {/* Verification badge */}
           {userProfile?.verification_status === 'approved' ? (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black"
               style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.3)' }}>
@@ -320,122 +355,341 @@ export default function ProfileView({ userId, userEmail }: { userId: string; use
           </div>
         </div>
 
-        {/* ── Impact Dashboard ──────────────────────────────────── */}
-        <div>
-          <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-            Your Impact
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: 'Reports made',        value: myReports.length,   emoji: '📋', color: '#6366f1' },
-              { label: 'Confirmed by others', value: confirmedVotes,     emoji: '👍', color: '#22c55e' },
-              { label: 'Active right now',    value: activePins.length,  emoji: '🔴', color: '#f43f5e' },
-              { label: 'Comments written',    value: commentsMade,       emoji: '💬', color: '#f59e0b' },
-              { label: 'Place notes',         value: placeNotesCount,    emoji: '📌', color: '#8b5cf6' },
-            ].map(({ label, value, emoji, color }) => (
-              <div
-                key={label}
-                className="rounded-2xl p-3.5 flex flex-col gap-1"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-              >
-                <span className="text-xl">{emoji}</span>
-                <span className="text-2xl font-black" style={{ color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-                <span className="text-[0.6rem] font-bold uppercase tracking-wide leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</span>
-              </div>
-            ))}
-          </div>
+        {/* ── Activity panels ────────────────────────────────────── */}
+
+        {/* Tab row */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setPanelTab(t.id)}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition shrink-0"
+              style={{
+                backgroundColor: panelTab === t.id ? 'var(--accent)' : 'var(--bg-card)',
+                color: panelTab === t.id ? '#fff' : 'var(--text-muted)',
+                border: panelTab === t.id ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+              }}
+            >
+              <span>{t.emoji}</span>
+              <span>{t.label}</span>
+              {t.count != null && t.count > 0 && (
+                <span
+                  className="text-[0.5rem] px-1.5 py-0.5 rounded-full font-black"
+                  style={{
+                    backgroundColor: panelTab === t.id ? 'rgba(255,255,255,0.25)' : 'rgba(244,63,94,0.12)',
+                    color: panelTab === t.id ? '#fff' : 'var(--accent)',
+                  }}
+                >
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* ── Trusted Circle ────────────────────────────────────── */}
-        <TrustedCircleSection userId={userId} />
-
-        {/* ── Trip History ──────────────────────────────────────── */}
-        {tripHistory.length > 0 && (
-          <div>
-            <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-              Trip History
-            </p>
-            <div className="flex flex-col gap-2">
-              {tripHistory.map((t) => {
-                const modeEmoji: Record<string, string> = { walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇' };
-                const distKm = t.distance_m >= 1000
-                  ? `${(t.distance_m / 1000).toFixed(1)} km`
-                  : `${t.distance_m} m`;
-                const durationMin = Math.round(t.duration_s / 60);
-                const dangerColor = t.danger_score === 0 ? '#22c55e' : t.danger_score <= 2 ? '#f59e0b' : '#ef4444';
-                return (
+        {/* ── Stats panel ───────────────────────────────────────── */}
+        {panelTab === 'stats' && (
+          <>
+            <div>
+              <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                Your Impact
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Reports made',        value: myReports.length,  emoji: '📋', color: '#6366f1' },
+                  { label: 'Confirmed by others', value: confirmedVotes,    emoji: '👍', color: '#22c55e' },
+                  { label: 'Active right now',    value: activePins.length, emoji: '🔴', color: '#f43f5e' },
+                  { label: 'Comments written',    value: commentsMade,      emoji: '💬', color: '#f59e0b' },
+                  { label: 'Place notes',         value: placeNotesCount,   emoji: '📌', color: '#8b5cf6' },
+                ].map(({ label, value, emoji, color }) => (
                   <div
-                    key={t.id}
-                    className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                    key={label}
+                    className="rounded-2xl p-3.5 flex flex-col gap-1"
+                    style={card}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xl shrink-0">{modeEmoji[t.mode] ?? '🗺️'}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {t.from_label ? `${t.from_label} → ` : ''}{t.to_label}
-                        </p>
-                        <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                          {distKm} · {durationMin} min · {new Date(t.ended_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0"
-                      style={{ backgroundColor: dangerColor + '18', color: dangerColor }}
-                    >
-                      {t.danger_score === 0 ? 'Clear' : `${t.danger_score} risk`}
-                    </span>
+                    <span className="text-xl">{emoji}</span>
+                    <span className="text-2xl font-black" style={{ color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+                    <span className="text-[0.6rem] font-bold uppercase tracking-wide leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
+
+            <TrustedCircleSection userId={userId} />
+          </>
         )}
 
-        {/* ── Recent Activity ───────────────────────────────────── */}
-        <div>
-          <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-            Recent Activity
-          </p>
-          {recentPins.length === 0 ? (
-            <div className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-              <span className="text-2xl">🗺️</span>
-              <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No reports yet</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Your pins will appear here</p>
+        {/* ── Pins panel ────────────────────────────────────────── */}
+        {panelTab === 'pins' && (
+          <>
+            {/* Filter chips */}
+            <div className="flex gap-1.5">
+              {(['all', 'active', 'resolved'] as PinFilter[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setPinFilter(f)}
+                  className="px-3 py-1.5 rounded-full text-xs font-bold transition capitalize"
+                  style={{
+                    backgroundColor: pinFilter === f ? 'var(--accent)' : 'var(--bg-card)',
+                    color:           pinFilter === f ? '#fff'          : 'var(--text-muted)',
+                    border:          pinFilter === f ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                  }}
+                >
+                  {f === 'all' ? `All (${myPins.length})` : f === 'active' ? `Active (${activePins.length})` : `Resolved (${myPins.length - activePins.length})`}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {recentPins.map((pin) => {
-                const cat = CATEGORIES[pin.category as keyof typeof CATEGORIES];
-                const sev = SEVERITY[pin.severity as keyof typeof SEVERITY];
-                return (
-                  <button
-                    key={pin.id}
-                    onClick={() => { setSelectedPin(pin); setActiveSheet('detail'); }}
-                    className="w-full text-left rounded-2xl overflow-hidden flex transition active:scale-[0.98]"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                  >
-                    <div className="w-1 shrink-0 rounded-l-2xl"
-                      style={{ backgroundColor: pin.is_emergency ? '#ef4444' : (sev?.color ?? '#6b7490') }} />
-                    <div className="flex-1 px-3 py-2.5 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <span className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {pin.is_emergency ? '🆘 Emergency' : `${cat?.emoji} ${cat?.label ?? pin.category}`}
-                        </span>
-                        <span className="text-[0.6rem] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>
-                          {timeAgo(pin.created_at)}
-                        </span>
+
+            {filteredPins.length === 0 ? (
+              <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
+                <span className="text-2xl">📍</span>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
+                  {pinFilter === 'all' ? 'No pins yet' : `No ${pinFilter} pins`}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {filteredPins.map((pin) => {
+                  const cat = CATEGORIES[pin.category as keyof typeof CATEGORIES];
+                  const sev = SEVERITY[pin.severity as keyof typeof SEVERITY];
+                  const pinIsActive = isActive(pin);
+                  const canManage = !pin.is_emergency;
+                  const isEditing = editingPinId === pin.id;
+                  const isConfirmingDelete = confirmDeleteId === pin.id;
+
+                  return (
+                    <div
+                      key={pin.id}
+                      className="rounded-2xl overflow-hidden"
+                      style={{ backgroundColor: 'var(--bg-card)', border: `1px solid ${isEditing ? 'var(--accent)' : 'var(--border)'}` }}
+                    >
+                      {/* Pin row */}
+                      <div className="flex items-center gap-0">
+                        {/* Severity strip */}
+                        <div
+                          className="w-1 self-stretch shrink-0 rounded-l-2xl"
+                          style={{ backgroundColor: pin.is_emergency ? '#ef4444' : (sev?.color ?? '#6b7490') }}
+                        />
+                        {/* Main content */}
+                        <button
+                          className="flex-1 px-3 py-2.5 text-left min-w-0"
+                          onClick={() => { setSelectedPin(pin); setActiveSheet('detail'); }}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <span className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                              {pin.is_emergency ? '🆘 Emergency' : `${cat?.emoji ?? ''} ${cat?.label ?? pin.category}`}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                                style={{
+                                  backgroundColor: pinIsActive ? 'rgba(34,197,94,0.12)' : 'rgba(107,114,128,0.12)',
+                                  color:           pinIsActive ? '#22c55e' : '#6b7280',
+                                }}
+                              >
+                                {pinIsActive ? 'Active' : pin.resolved_at ? 'Resolved' : 'Expired'}
+                              </span>
+                              <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                {timeAgo(pin.created_at)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>{pin.description}</p>
+                        </button>
+                        {/* Action buttons (non-emergency only) */}
+                        {canManage && !isEditing && (
+                          <div className="flex items-center gap-1 pr-2 shrink-0">
+                            <button
+                              onClick={() => startPinEdit(pin)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:opacity-70"
+                              style={{ backgroundColor: 'rgba(99,102,241,0.10)' }}
+                              title="Edit"
+                            >
+                              <Pencil size={11} style={{ color: '#6366f1' }} />
+                            </button>
+                            {isConfirmingDelete ? (
+                              <button
+                                onClick={() => deletePin(pin)}
+                                className="px-2 h-7 rounded-lg flex items-center justify-center text-[0.6rem] font-black transition"
+                                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                                title="Confirm delete"
+                              >
+                                Delete?
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteId(pin.id)}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:opacity-70"
+                                style={{ backgroundColor: 'rgba(239,68,68,0.10)' }}
+                                title="Delete"
+                              >
+                                <Trash2 size={11} style={{ color: '#ef4444' }} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {isEditing && (
+                          <div className="flex items-center gap-1 pr-2 shrink-0">
+                            <button
+                              onClick={() => savePinEdit(pin)}
+                              disabled={editSaving}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center"
+                              style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}
+                            >
+                              <Check size={12} style={{ color: '#22c55e' }} />
+                            </button>
+                            <button
+                              onClick={() => setEditingPinId(null)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center"
+                              style={{ backgroundColor: 'rgba(107,114,128,0.10)' }}
+                            >
+                              <X size={12} style={{ color: 'var(--text-muted)' }} />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>{pin.description}</p>
+
+                      {/* Inline edit form */}
+                      {isEditing && (
+                        <div className="px-3 pb-3 pt-1 flex flex-col gap-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                          {/* Severity chips */}
+                          <div className="flex gap-1.5">
+                            {Object.entries(SEVERITY).map(([key, { label, color }]) => (
+                              <button
+                                key={key}
+                                onClick={() => setEditSeverity(key)}
+                                className="flex-1 py-1 rounded-lg text-[0.6rem] font-black transition"
+                                style={{
+                                  backgroundColor: editSeverity === key ? color + '22' : 'var(--bg-secondary)',
+                                  color:           editSeverity === key ? color : 'var(--text-muted)',
+                                  border:          editSeverity === key ? `1.5px solid ${color}` : '1px solid var(--border)',
+                                }}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Description */}
+                          <textarea
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            rows={2}
+                            className="w-full text-xs rounded-xl px-3 py-2 outline-none resize-none"
+                            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Trips panel ───────────────────────────────────────── */}
+        {panelTab === 'trips' && (
+          <>
+            {tripHistory.length === 0 ? (
+              <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
+                <span className="text-2xl">🗺️</span>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No trips recorded yet</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Completed trips appear here</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {tripHistory.map((t) => {
+                  const dangerColor = t.danger_score === 0 ? '#22c55e' : t.danger_score <= 2 ? '#f59e0b' : '#ef4444';
+                  return (
+                    <div
+                      key={t.id}
+                      className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+                      style={card}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-xl shrink-0">{MODE_EMOJI[t.mode] ?? '🗺️'}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                            {t.from_label ? `${t.from_label} → ` : ''}{t.to_label}
+                          </p>
+                          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                            {fmtDist(t.distance_m)} · {fmtDur(t.duration_s)} · {new Date(t.ended_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className="text-[0.55rem] font-black px-2 py-0.5 rounded-full shrink-0"
+                        style={{ backgroundColor: dangerColor + '18', color: dangerColor }}
+                      >
+                        {t.danger_score === 0 ? 'Clear' : `${t.danger_score} risk`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── SOS panel ─────────────────────────────────────────── */}
+        {panelTab === 'sos' && (
+          <>
+            {myAlerts.length === 0 ? (
+              <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
+                <span className="text-2xl">🆘</span>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No SOS signals sent</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Emergency alerts you've triggered will appear here</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {myAlerts.map((pin) => {
+                  const pinIsActive = isActive(pin);
+                  const resolvedAt = pin.resolved_at ? new Date(pin.resolved_at) : null;
+                  const createdAt = new Date(pin.created_at);
+                  const durationMin = resolvedAt
+                    ? Math.round((resolvedAt.getTime() - createdAt.getTime()) / 60_000)
+                    : null;
+                  return (
+                    <button
+                      key={pin.id}
+                      onClick={() => { setSelectedPin(pin); setActiveSheet('detail'); }}
+                      className="rounded-2xl overflow-hidden text-left flex transition active:scale-[0.98]"
+                      style={{ backgroundColor: 'var(--bg-card)', border: `1.5px solid ${pinIsActive ? '#ef444440' : 'var(--border)'}` }}
+                    >
+                      <div
+                        className="w-1 shrink-0"
+                        style={{ backgroundColor: pinIsActive ? '#ef4444' : '#6b7280' }}
+                      />
+                      <div className="flex-1 px-3 py-3 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-black" style={{ color: pinIsActive ? '#ef4444' : 'var(--text-primary)' }}>
+                            🆘 Emergency alert
+                          </span>
+                          <span
+                            className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: pinIsActive ? 'rgba(239,68,68,0.12)' : 'rgba(107,114,128,0.12)',
+                              color:           pinIsActive ? '#ef4444' : '#6b7280',
+                            }}
+                          >
+                            {pinIsActive ? 'Active' : 'Resolved'}
+                          </span>
+                        </div>
+                        <p className="text-xs line-clamp-2 mb-1" style={{ color: 'var(--text-muted)' }}>
+                          {pin.description}
+                        </p>
+                        <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                          {createdAt.toLocaleDateString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {durationMin != null && ` · lasted ${durationMin} min`}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {/* ── Sign out ──────────────────────────────────────────── */}
         <button
