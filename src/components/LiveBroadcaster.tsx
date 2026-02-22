@@ -268,10 +268,8 @@ export default function LiveBroadcaster({
         .from('live_sessions')
         .insert({
           pin_id: pinId,
-          user_id: userId,
+          host_user_id: userId,
           room_name: roomName,
-          visibility,
-          display_name: displayName ?? null,
           started_at: new Date().toISOString(),
         })
         .select('*')
@@ -286,7 +284,7 @@ export default function LiveBroadcaster({
       setErrorMsg(e instanceof Error ? e.message : 'Failed to start session');
       setPhase('error');
     }
-  }, [token, pinId, userId, roomName, visibility, displayName, onSessionStarted]);
+  }, [token, pinId, userId, roomName, onSessionStarted]);
 
   const handleStopLive = useCallback(async () => {
     if (!session) return;
