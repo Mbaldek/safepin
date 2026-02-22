@@ -764,6 +764,10 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               onLoadRoute={loadSavedRoute}
               onDeleteRoute={deleteRoute}
               onAddPlace={() => { onClose(); setActiveTab('map'); }}
+              onRouteAdded={(route) => setSavedRoutes((prev) => {
+                const filtered = prev.filter((r) => r.id !== route.id);
+                return [route, ...filtered];
+              })}
             />
           </div>
         )}

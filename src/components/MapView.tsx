@@ -4,6 +4,8 @@
 
 import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Layers, Train, Loader2 } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { SEVERITY, Pin } from '@/types';
@@ -22,6 +24,84 @@ const WATCH_CIRCLE = 'watch-contacts-circle';
 const WATCH_LABEL  = 'watch-contacts-label';
 const NOTES_SRC    = 'place-notes-src';
 const NOTES_LYR    = 'place-notes-layer';
+const TRANSIT_SRC    = 'paris-transit-src';
+const TRANSIT_CIRCLE = 'paris-transit-circle';
+const TRANSIT_LABEL  = 'paris-transit-label';
+
+const STYLE_URLS: Record<string, string> = {
+  streets: 'mapbox://styles/mapbox/streets-v12',
+  light:   'mapbox://styles/mapbox/light-v11',
+  dark:    'mapbox://styles/mapbox/dark-v11',
+};
+
+// Module-level transit data cache so it survives style switches
+let transitCache: GeoJSON.FeatureCollection | null = null;
+
+async function fetchParisTransit(): Promise<GeoJSON.FeatureCollection> {
+  if (transitCache) return transitCache;
+  // Query OSM Overpass: Paris metro + RER + tram stations (bbox covers ~Paris intramuros + inner suburbs)
+  const query = `[out:json][timeout:25];(
+    node["station"="subway"](48.81,2.25,48.91,2.43);
+    node["station"="light_rail"](48.81,2.25,48.91,2.43);
+    node["railway"="tram_stop"](48.81,2.25,48.91,2.43);
+  );out body;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `data=${encodeURIComponent(query)}`,
+  });
+  const data = await res.json() as { elements: Array<{ type: string; id: number; lat: number; lon: number; tags?: Record<string, string> }> };
+  const geojson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: data.elements
+      .filter((el) => el.type === 'node' && el.lat != null)
+      .map((el) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [el.lon, el.lat] },
+        properties: {
+          name:  el.tags?.name ?? el.tags?.['name:fr'] ?? '',
+          kind:  el.tags?.station === 'subway' ? 'metro' : el.tags?.station === 'light_rail' ? 'rer' : 'tram',
+        },
+      })),
+  };
+  transitCache = geojson;
+  return geojson;
+}
+
+function addTransitLayer(m: mapboxgl.Map) {
+  if (!transitCache || m.getSource(TRANSIT_SRC)) return;
+  m.addSource(TRANSIT_SRC, { type: 'geojson', data: transitCache });
+  m.addLayer({
+    id: TRANSIT_CIRCLE,
+    type: 'circle',
+    source: TRANSIT_SRC,
+    paint: {
+      'circle-radius': ['match', ['get', 'kind'], 'metro', 7, 'rer', 7, 5],
+      'circle-color':  ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', '#10b981'],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#fff',
+      'circle-opacity': 0.92,
+    },
+  });
+  m.addLayer({
+    id: TRANSIT_LABEL,
+    type: 'symbol',
+    source: TRANSIT_SRC,
+    minzoom: 13,
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-size': 10,
+      'text-offset': [0, 1.4],
+      'text-anchor': 'top',
+      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
+    },
+    paint: {
+      'text-color': ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', '#10b981'],
+      'text-halo-color': '#fff',
+      'text-halo-width': 1.5,
+    },
+  });
+}
 
 function getPinOpacity(pin: Pin): number {
   const base = pin.last_confirmed_at
@@ -145,6 +225,10 @@ export default function MapView() {
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
+  const [mapStyle, setMapStyle]           = useState<'streets' | 'light' | 'dark'>(theme === 'dark' ? 'dark' : 'streets');
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showTransit, setShowTransit]     = useState(false);
+  const [transitLoading, setTransitLoading] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -466,18 +550,28 @@ export default function MapView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, mapReady, layersReady]);
 
-  // Switch map style when theme changes — re-add cluster layers after style loads
+  // Auto-follow app theme (unless user manually overrode via style picker)
+  useEffect(() => {
+    setMapStyle(theme === 'dark' ? 'dark' : 'streets');
+  }, [theme]);
+
+  // Apply mapStyle to the actual Mapbox map — re-add cluster layers + transit after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    const style = theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
+    transitCache = null; // clear transit cache; layer was wiped by setStyle
     setLayersReady(false);
     map.current.once('style.load', () => {
-      addClusterLayers(map.current!, theme === 'dark');
+      addClusterLayers(map.current!, mapStyle === 'dark');
+      if (showTransit) {
+        fetchParisTransit()
+          .then(() => { if (map.current) addTransitLayer(map.current); })
+          .catch(() => {});
+      }
       setLayersReady(true);
     });
-    map.current.setStyle(style);
+    map.current.setStyle(STYLE_URLS[mapStyle]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme]);
+  }, [mapStyle, mapReady]);
 
   // Render emergency HTML markers + update regular pins GeoJSON
   useEffect(() => {
@@ -571,5 +665,119 @@ export default function MapView() {
     }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
-  return <div ref={mapContainer} className="w-full h-full" />;
+  // Show / hide Paris transit layer
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    if (!showTransit) {
+      if (m.getLayer(TRANSIT_LABEL))  m.removeLayer(TRANSIT_LABEL);
+      if (m.getLayer(TRANSIT_CIRCLE)) m.removeLayer(TRANSIT_CIRCLE);
+      if (m.getSource(TRANSIT_SRC))   m.removeSource(TRANSIT_SRC);
+      return;
+    }
+
+    if (transitCache) { addTransitLayer(m); return; }
+
+    setTransitLoading(true);
+    fetchParisTransit()
+      .then(() => { if (map.current && showTransit) addTransitLayer(map.current); })
+      .catch(() => {})
+      .finally(() => setTransitLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTransit, mapReady, layersReady]);
+
+  // ── UI ───────────────────────────────────────────────────────────────────
+
+  const STYLE_OPTIONS: { id: 'streets' | 'light' | 'dark'; label: string; emoji: string }[] = [
+    { id: 'streets', label: 'Streets', emoji: '🗺️' },
+    { id: 'light',   label: 'Light',   emoji: '☀️' },
+    { id: 'dark',    label: 'Dark',    emoji: '🌙' },
+  ];
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} className="w-full h-full" />
+
+      {/* ── Map controls (right side, above bottom nav) ─────────────── */}
+      <div className="absolute right-3 bottom-22 z-50 flex flex-col items-end gap-2">
+
+        {/* Style picker popover */}
+        <AnimatePresence>
+          {showStylePicker && (
+            <motion.div
+              className="flex flex-col gap-1 p-1.5 rounded-2xl mb-1"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
+                border: '1px solid var(--border)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+              initial={{ opacity: 0, scale: 0.85, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: 8 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.6 }}
+            >
+              {STYLE_OPTIONS.map(({ id, label, emoji }) => (
+                <button
+                  key={id}
+                  onClick={() => { setMapStyle(id); setShowStylePicker(false); }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition text-left whitespace-nowrap"
+                  style={{
+                    backgroundColor: mapStyle === id ? 'var(--accent)' : 'transparent',
+                    color: mapStyle === id ? '#fff' : 'var(--text-primary)',
+                  }}
+                >
+                  <span>{emoji}</span>
+                  {label}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Layers toggle button */}
+        <button
+          onClick={() => setShowStylePicker((v) => !v)}
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95"
+          style={{
+            backgroundColor: showStylePicker
+              ? 'var(--accent)'
+              : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
+            border: '1px solid var(--border)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+          title="Map style"
+        >
+          <Layers
+            size={16}
+            strokeWidth={2}
+            style={{ color: showStylePicker ? '#fff' : 'var(--text-muted)' }}
+          />
+        </button>
+
+        {/* Transit toggle button */}
+        <button
+          onClick={() => setShowTransit((v) => !v)}
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95 relative"
+          style={{
+            backgroundColor: showTransit
+              ? '#3b82f6'
+              : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
+            border: showTransit ? '1px solid #3b82f6' : '1px solid var(--border)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+          title="Paris transit stops"
+        >
+          {transitLoading
+            ? <Loader2 size={15} className="animate-spin" style={{ color: '#3b82f6' }} />
+            : <Train size={15} strokeWidth={2} style={{ color: showTransit ? '#fff' : 'var(--text-muted)' }} />
+          }
+        </button>
+
+      </div>
+    </div>
+  );
 }
