@@ -40,67 +40,61 @@ const STYLE_URLS: Record<string, string> = {
 let transitCache: GeoJSON.FeatureCollection | null = null;
 let transitLinesCache: GeoJSON.FeatureCollection | null = null;
 
-async function fetchParisTransit(): Promise<GeoJSON.FeatureCollection> {
-  if (transitCache) return transitCache;
-  // Query OSM Overpass: Paris metro + RER + tram stations (bbox covers ~Paris intramuros + inner suburbs)
-  const query = `[out:json][timeout:25];(
-    node["station"="subway"](48.81,2.25,48.91,2.43);
-    node["station"="light_rail"](48.81,2.25,48.91,2.43);
-    node["railway"="tram_stop"](48.81,2.25,48.91,2.43);
-  );out body;`;
+// Single Overpass request for BOTH stations (nodes) and lines (ways) — avoids rate-limiting
+const PARIS_BBOX = '48.78,2.20,48.94,2.50'; // wider bbox covering all Paris + inner suburbs
+async function fetchParisTransitAll(): Promise<void> {
+  if (transitCache && transitLinesCache) return;
+  const query = `[out:json][timeout:40];(
+    node["station"="subway"](${PARIS_BBOX});
+    node["station"="light_rail"](${PARIS_BBOX});
+    node["railway"="tram_stop"](${PARIS_BBOX});
+    way["railway"="subway"](${PARIS_BBOX});
+    way["railway"="light_rail"](${PARIS_BBOX});
+    way["railway"="tram"](${PARIS_BBOX});
+  );out body geom;`;
   const res = await fetch('https://overpass-api.de/api/interpreter', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `data=${encodeURIComponent(query)}`,
   });
-  const data = await res.json() as { elements: Array<{ type: string; id: number; lat: number; lon: number; tags?: Record<string, string> }> };
-  const geojson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: data.elements
-      .filter((el) => el.type === 'node' && el.lat != null)
-      .map((el) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [el.lon, el.lat] },
-        properties: {
-          name:  el.tags?.name ?? el.tags?.['name:fr'] ?? '',
-          kind:  el.tags?.station === 'subway' ? 'metro' : el.tags?.station === 'light_rail' ? 'rer' : 'tram',
-        },
-      })),
+  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
+  const data = await res.json() as {
+    elements: Array<{
+      type: string; id: number; lat?: number; lon?: number;
+      tags?: Record<string, string>;
+      geometry?: Array<{ lat: number; lon: number }>;
+    }>;
   };
-  transitCache = geojson;
-  return geojson;
-}
 
-async function fetchParisTransitLines(): Promise<GeoJSON.FeatureCollection> {
-  if (transitLinesCache) return transitLinesCache;
-  const query = `[out:json][timeout:30];(
-    way["railway"="subway"](48.81,2.25,48.91,2.43);
-    way["railway"="light_rail"](48.81,2.25,48.91,2.43);
-    way["railway"="tram"](48.81,2.25,48.91,2.43);
-  );out geom;`;
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-  const data = await res.json() as { elements: Array<{ type: string; tags?: Record<string, string>; geometry?: Array<{ lat: number; lon: number }> }> };
-  const geojson: GeoJSON.FeatureCollection = {
+  // Split nodes (stations) from ways (lines)
+  const nodes = data.elements.filter((el) => el.type === 'node' && el.lat != null);
+  const ways  = data.elements.filter((el) => el.type === 'way' && el.geometry?.length);
+
+  transitCache = {
     type: 'FeatureCollection',
-    features: data.elements
-      .filter((el) => el.type === 'way' && el.geometry?.length)
-      .map((el) => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'LineString' as const,
-          coordinates: el.geometry!.map((p) => [p.lon, p.lat]),
-        },
-        properties: {
-          kind: el.tags?.railway === 'subway' ? 'metro' : el.tags?.railway === 'light_rail' ? 'rer' : 'tram',
-        },
-      })),
+    features: nodes.map((el) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [el.lon!, el.lat!] },
+      properties: {
+        name: el.tags?.name ?? el.tags?.['name:fr'] ?? '',
+        kind: el.tags?.station === 'subway' ? 'metro' : el.tags?.station === 'light_rail' ? 'rer' : 'tram',
+      },
+    })),
   };
-  transitLinesCache = geojson;
-  return geojson;
+
+  transitLinesCache = {
+    type: 'FeatureCollection',
+    features: ways.map((el) => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: el.geometry!.map((p) => [p.lon, p.lat]),
+      },
+      properties: {
+        kind: el.tags?.railway === 'subway' ? 'metro' : el.tags?.railway === 'light_rail' ? 'rer' : 'tram',
+      },
+    })),
+  };
 }
 
 function addTransitLinesLayer(m: mapboxgl.Map) {
@@ -617,9 +611,9 @@ export default function MapView() {
     map.current.once('style.load', () => {
       addClusterLayers(map.current!, mapStyle === 'dark');
       if (showTransit) {
-        Promise.all([fetchParisTransit(), fetchParisTransitLines()])
+        fetchParisTransitAll()
           .then(() => { if (map.current) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
-          .catch(() => {});
+          .catch((err) => console.warn('[KOVA] Transit fetch failed:', err));
       }
       setLayersReady(true);
     });
@@ -740,9 +734,9 @@ export default function MapView() {
     }
 
     setTransitLoading(true);
-    Promise.all([fetchParisTransit(), fetchParisTransitLines()])
+    fetchParisTransitAll()
       .then(() => { if (map.current && showTransit) { addTransitLinesLayer(map.current); addTransitLayer(map.current); } })
-      .catch(() => {})
+      .catch((err) => console.warn('[KOVA] Transit fetch failed:', err))
       .finally(() => setTransitLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransit, mapReady, layersReady]);
