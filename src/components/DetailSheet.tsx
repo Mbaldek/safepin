@@ -265,7 +265,7 @@ export default function DetailSheet() {
               )}
 
               {/* Live button */}
-              {userId && isOwner && !isResolved && !activeSession && (
+              {userId && !isResolved && !activeSession && (
                 <button
                   onClick={() => setShowBroadcaster(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide transition"
