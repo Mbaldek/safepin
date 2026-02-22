@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0a0c10',
+  themeColor: '#f5f6fa',
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="light">
       <body className="min-h-dvh overscroll-none touch-manipulation">
         <ThemeProvider>
           {children}

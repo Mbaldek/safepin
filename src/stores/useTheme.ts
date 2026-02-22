@@ -8,7 +8,7 @@ type ThemeStore = {
 };
 
 export const useTheme = create<ThemeStore>((set) => ({
-  theme: (typeof window !== 'undefined' && localStorage.getItem('kova-theme') === 'light') ? 'light' : 'dark',
+  theme: (typeof window !== 'undefined' && localStorage.getItem('kova-theme') === 'dark') ? 'dark' : 'light',
   toggleTheme: () =>
     set((state) => {
       const next = state.theme === 'dark' ? 'light' : 'dark';
