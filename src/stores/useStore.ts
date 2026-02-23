@@ -9,13 +9,37 @@ type Tab = 'map' | 'trip' | 'community' | 'mykova';
 
 export type RouteOption = {
   id: string;
-  label: 'Safest' | 'Balanced' | 'Fastest';
+  label: string;
   color: string;
   coords: [number, number][];
   duration: number;
   distance: number;
   dangerScore: number;
   rerouted?: boolean;
+};
+
+export type RouteSegment = {
+  coords: [number, number][];
+  color: string;
+  dashed?: boolean; // true for walking segments
+};
+
+export type EscortState = 'IDLE' | 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+
+export type TripSession = {
+  id: string;
+  state: EscortState;
+  origin: { label: string; coords: [number, number] };
+  destination: { label: string; coords: [number, number] };
+  mode: 'walk' | 'bike' | 'drive' | 'transit';
+  route: RouteOption;
+  transitSteps?: import('@/lib/transit').TransitStep[];
+  startedAt: string;
+  estimatedArrival: string;
+  sharingWithCircle: boolean;
+  incidents: number;
+  nudges: number;
+  escalated: boolean;
 };
 
 export type TimeOfDay = 'all' | 'morning' | 'afternoon' | 'evening' | 'night';
@@ -133,6 +157,10 @@ type Store = {
   pendingRoutes: RouteOption[] | null;
   setPendingRoutes: (routes: RouteOption[] | null) => void;
 
+  // Transit per-segment colored route lines
+  transitSegments: RouteSegment[] | null;
+  setTransitSegments: (s: RouteSegment[] | null) => void;
+
   // Notifications
   notifications: AppNotification[];
   addNotification: (n: AppNotification) => void;
@@ -203,6 +231,12 @@ type Store = {
   myKovaInitialTab: string | null;
   setMyKovaInitialTab: (tab: string | null) => void;
 
+  // Active trip session (Live Safety Escort)
+  activeTrip: TripSession | null;
+  setActiveTrip: (t: TripSession | null) => void;
+  tripNudge: string | null;
+  setTripNudge: (msg: string | null) => void;
+
   // Streaks
   currentStreak: number;
   longestStreak: number;
@@ -255,6 +289,8 @@ export const useStore = create<Store>((set) => ({
   // Pending route options
   pendingRoutes: null,
   setPendingRoutes: (routes) => set({ pendingRoutes: routes }),
+  transitSegments: null,
+  setTransitSegments: (s) => set({ transitSegments: s }),
 
   // Notifications (in-memory + DB persistence)
   notifications: [],
@@ -385,6 +421,16 @@ export const useStore = create<Store>((set) => ({
   myKovaInitialTab: null,
   setMyKovaInitialTab: (tab) => set({ myKovaInitialTab: tab }),
 
+  // Active trip session (Live Safety Escort)
+  activeTrip: loadLS<TripSession | null>('brume_active_trip', null),
+  setActiveTrip: (t) => {
+    if (t) saveLS('brume_active_trip', t);
+    else { try { localStorage.removeItem('brume_active_trip'); } catch { /* */ } }
+    set({ activeTrip: t });
+  },
+  tripNudge: null,
+  setTripNudge: (msg) => set({ tripNudge: msg }),
+
   // Streaks
   currentStreak: 0,
   longestStreak: 0,
@@ -398,3 +444,4 @@ export const useActiveTab = () => useStore((s) => s.activeTab);
 export const useActiveSheet = () => useStore((s) => s.activeSheet);
 export const useMapFilters = () => useStore((s) => s.mapFilters);
 export const useStreak = () => useStore((s) => ({ current: s.currentStreak, longest: s.longestStreak }));
+export const useActiveTrip = () => useStore((s) => s.activeTrip);

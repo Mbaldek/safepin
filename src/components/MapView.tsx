@@ -30,8 +30,6 @@ const NOTES_LYR    = 'place-notes-layer';
 const TRANSIT_SRC    = 'paris-transit-src';
 const TRANSIT_CIRCLE = 'paris-transit-circle';
 const TRANSIT_LABEL  = 'paris-transit-label';
-const TRANSIT_LINES_SRC = 'paris-transit-lines-src';
-const TRANSIT_LINES_LYR = 'paris-transit-lines-lyr';
 const POI_SRC    = 'paris-poi-src';
 const POI_CIRCLE = 'paris-poi-circle';
 const POI_LABEL  = 'paris-poi-label';
@@ -50,23 +48,19 @@ const STYLE_URLS: Record<string, string> = {
 
 // Module-level caches so they survive style switches
 let transitCache: GeoJSON.FeatureCollection | null = null;
-let transitLinesCache: GeoJSON.FeatureCollection | null = null;
 let poiCache: GeoJSON.FeatureCollection | null = null;
 let heatmapGeoJSON: GeoJSON.FeatureCollection | null = null;
 
-// Single Overpass request for stations (nodes) + lines (ways) + bus stops — avoids rate-limiting
+// Single Overpass request for transit stations + bus stops
 const PARIS_BBOX = '48.78,2.20,48.94,2.50'; // wider bbox covering all Paris + inner suburbs
-async function fetchParisTransitAll(): Promise<void> {
-  if (transitCache && transitLinesCache) return;
+async function fetchParisTransitStations(): Promise<void> {
+  if (transitCache) return;
   const query = `[out:json][timeout:40];(
     node["railway"="station"]["station"~"subway|RER"](${PARIS_BBOX});
     node["railway"="stop"]["train"="yes"](${PARIS_BBOX});
     node["railway"="tram_stop"](${PARIS_BBOX});
     node["highway"="bus_stop"](${PARIS_BBOX});
-    way["railway"="subway"](${PARIS_BBOX});
-    way["railway"="light_rail"](${PARIS_BBOX});
-    way["railway"="tram"](${PARIS_BBOX});
-  );out body geom;`;
+  );out body;`;
   const res = await fetch('https://overpass-api.de/api/interpreter', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -77,13 +71,10 @@ async function fetchParisTransitAll(): Promise<void> {
     elements: Array<{
       type: string; id: number; lat?: number; lon?: number;
       tags?: Record<string, string>;
-      geometry?: Array<{ lat: number; lon: number }>;
     }>;
   };
 
-  // Split nodes (stations/stops) from ways (lines)
   const nodes = data.elements.filter((el) => el.type === 'node' && el.lat != null);
-  const ways  = data.elements.filter((el) => el.type === 'way' && el.geometry?.length);
 
   function classifyNode(tags?: Record<string, string>): string {
     if (!tags) return 'bus';
@@ -92,7 +83,6 @@ async function fetchParisTransitAll(): Promise<void> {
     const station = tags.station?.toLowerCase() ?? '';
     if (station.includes('rer') || station === 'light_rail') return 'rer';
     if (station === 'subway') return 'metro';
-    // Fallback: check network tag for RATP metro vs RER
     const net = (tags.network ?? '').toLowerCase();
     if (net.includes('rer')) return 'rer';
     return 'metro';
@@ -109,49 +99,9 @@ async function fetchParisTransitAll(): Promise<void> {
       },
     })),
   };
-
-  transitLinesCache = {
-    type: 'FeatureCollection',
-    features: ways.map((el) => ({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: el.geometry!.map((p) => [p.lon, p.lat]),
-      },
-      properties: {
-        kind: el.tags?.railway === 'subway' ? 'metro' : el.tags?.railway === 'light_rail' ? 'rer' : 'tram',
-      },
-    })),
-  };
 }
 
-function addTransitLinesLayer(m: mapboxgl.Map) {
-  if (!transitLinesCache || m.getSource(TRANSIT_LINES_SRC)) return;
-  m.addSource(TRANSIT_LINES_SRC, { type: 'geojson', data: transitLinesCache });
-  m.addLayer({
-    id: TRANSIT_LINES_LYR,
-    type: 'line',
-    source: TRANSIT_LINES_SRC,
-    paint: {
-      'line-color': ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', '#10b981'],
-      'line-width': ['match', ['get', 'kind'], 'metro', 3, 'rer', 3, 2],
-      'line-opacity': 0.55,
-    },
-    layout: {
-      'line-cap': 'round',
-      'line-join': 'round',
-    },
-  });
-}
-
-function buildTransitFilter(show: { metro: boolean; rer: boolean; bus: boolean }): mapboxgl.FilterSpecification {
-  const conds: mapboxgl.FilterSpecification[] = [];
-  if (show.metro) { conds.push(['==', ['get', 'kind'], 'metro']); conds.push(['==', ['get', 'kind'], 'tram']); }
-  if (show.rer)   conds.push(['==', ['get', 'kind'], 'rer']);
-  if (show.bus)   conds.push(['==', ['get', 'kind'], 'bus']);
-  if (conds.length === 0) return ['==', ['get', 'kind'], '__none__'];
-  return ['any', ...conds] as mapboxgl.FilterSpecification;
-}
+const KIND_EMOJI: Record<string, string> = { metro: '🚇', rer: '🚆', tram: '🚊', bus: '🚌' };
 
 function addTransitLayer(m: mapboxgl.Map) {
   if (!transitCache || m.getSource(TRANSIT_SRC)) return;
@@ -186,6 +136,22 @@ function addTransitLayer(m: mapboxgl.Map) {
       'text-halo-width': 1.5,
     },
   });
+
+  // Station click → popup with name + transport type
+  m.on('click', TRANSIT_CIRCLE, (e) => {
+    const f = e.features?.[0];
+    if (!f) return;
+    const name = f.properties?.name || 'Station';
+    const kind: string = f.properties?.kind || 'metro';
+    const emoji = KIND_EMOJI[kind] || '🚉';
+    const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+    new mapboxgl.Popup({ closeButton: false, maxWidth: '200px', offset: 12 })
+      .setLngLat(coords)
+      .setHTML(`<div style="font-size:13px;font-weight:600">${emoji} ${name}</div><div style="font-size:11px;color:#666;text-transform:capitalize">${kind}</div>`)
+      .addTo(m);
+  });
+  m.on('mouseenter', TRANSIT_CIRCLE, () => { m.getCanvas().style.cursor = 'pointer'; });
+  m.on('mouseleave', TRANSIT_CIRCLE, () => { m.getCanvas().style.cursor = ''; });
 }
 
 // ── POI (Points of Interest) ──────────────────────────────────────────────────
@@ -410,15 +376,13 @@ export default function MapView() {
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [mapStyle, setMapStyle]           = useState<'streets' | 'light' | 'dark'>(theme === 'dark' ? 'dark' : 'streets');
   const [showLayerPanel, setShowLayerPanel] = useState(false);
-  const [showMetro, setShowMetro]         = useState(false);
-  const [showRER, setShowRER]             = useState(false);
-  const [showBus, setShowBus]             = useState(false);
+  const [showStations, setShowStations]   = useState(false);
   const [transitLoading, setTransitLoading] = useState(false);
   const [showPharmacy, setShowPharmacy]   = useState(false);
   const [showHospital, setShowHospital]   = useState(false);
@@ -609,6 +573,59 @@ export default function MapView() {
     }
   }, [pendingRoutes, mapReady, layersReady]);
 
+  // ── Per-segment transit route colors ──────────────────────────────────────
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    // Clean up previous transit segment layers/sources
+    const prevIds: string[] = [];
+    m.getStyle()?.layers?.forEach((l) => {
+      if (l.id.startsWith('transit-seg-')) prevIds.push(l.id);
+    });
+    prevIds.forEach((id) => { try { m.removeLayer(id); } catch { /* */ } });
+    prevIds.forEach((id) => {
+      const srcId = id.replace('-line', '-src');
+      try { m.removeSource(srcId); } catch { /* */ }
+    });
+
+    if (!transitSegments || transitSegments.length === 0) return;
+
+    transitSegments.forEach((seg, i) => {
+      const srcId = `transit-seg-${i}-src`;
+      const lyrId = `transit-seg-${i}-line`;
+      const geojson: GeoJSON.Feature = {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: seg.coords },
+        properties: {},
+      };
+      m.addSource(srcId, { type: 'geojson', data: geojson });
+      m.addLayer({
+        id: lyrId,
+        type: 'line',
+        source: srcId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': seg.color,
+          'line-width': seg.dashed ? 3 : 5,
+          'line-opacity': 0.9,
+          ...(seg.dashed ? { 'line-dasharray': [2, 2] } : {}),
+        },
+      }, 'clusters');
+    });
+
+    // Fit bounds to show all segments
+    const allCoords = transitSegments.flatMap((s) => s.coords);
+    if (allCoords.length > 0) {
+      const lngs = allCoords.map((c) => c[0]);
+      const lats = allCoords.map((c) => c[1]);
+      m.fitBounds(
+        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+        { padding: 60, duration: 1200 },
+      );
+    }
+  }, [transitSegments, mapReady, layersReady]);
+
   // Draw / update watched contact dots (Walk With Me)
   useEffect(() => {
     const m = map.current;
@@ -741,24 +758,14 @@ export default function MapView() {
   // Apply mapStyle to the actual Mapbox map — re-add cluster layers + transit after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    transitCache = null; transitLinesCache = null; poiCache = null; heatmapGeoJSON = null;
+    transitCache = null; poiCache = null; heatmapGeoJSON = null;
     setLayersReady(false);
     map.current.once('style.load', () => {
       addClusterLayers(map.current!, mapStyle === 'dark');
-      if (showMetro || showRER || showBus) {
-        fetchParisTransitAll()
-          .then(() => {
-            if (!map.current) return;
-            addTransitLinesLayer(map.current);
-            addTransitLayer(map.current);
-            const f = buildTransitFilter({ metro: showMetro, rer: showRER, bus: showBus });
-            if (map.current.getLayer(TRANSIT_CIRCLE)) map.current.setFilter(TRANSIT_CIRCLE, f);
-            if (map.current.getLayer(TRANSIT_LABEL))  map.current.setFilter(TRANSIT_LABEL, f);
-            if (map.current.getLayer(TRANSIT_LINES_LYR)) {
-              map.current.setLayoutProperty(TRANSIT_LINES_LYR, 'visibility', (showMetro || showRER) ? 'visible' : 'none');
-            }
-          })
-          .catch((err) => console.warn('[Brume] Transit fetch failed:', err));
+      if (showStations) {
+        fetchParisTransitStations()
+          .then(() => { if (map.current) addTransitLayer(map.current); })
+          .catch((err: unknown) => console.warn('[Brume] Transit fetch failed:', err));
       }
       if (showPharmacy || showHospital || showPolice) {
         fetchParisPOIs()
@@ -770,7 +777,7 @@ export default function MapView() {
               if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
             }
           })
-          .catch((err) => console.warn('[Brume] POI fetch failed:', err));
+          .catch((err: unknown) => console.warn('[Brume] POI fetch failed:', err));
       }
       setLayersReady(true);
     });
@@ -878,51 +885,30 @@ export default function MapView() {
     }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
-  // Show / hide Paris transit layers (per-kind filtering)
+  // Show / hide Paris transit station dots
   useEffect(() => {
     const m = map.current;
     if (!m || !mapReady || !layersReady) return;
 
-    const anyTransit = showMetro || showRER || showBus;
-
-    if (!anyTransit) {
-      if (m.getLayer(TRANSIT_LABEL))     m.removeLayer(TRANSIT_LABEL);
-      if (m.getLayer(TRANSIT_CIRCLE))    m.removeLayer(TRANSIT_CIRCLE);
-      if (m.getSource(TRANSIT_SRC))      m.removeSource(TRANSIT_SRC);
-      if (m.getLayer(TRANSIT_LINES_LYR)) m.removeLayer(TRANSIT_LINES_LYR);
-      if (m.getSource(TRANSIT_LINES_SRC)) m.removeSource(TRANSIT_LINES_SRC);
+    if (!showStations) {
+      if (m.getLayer(TRANSIT_LABEL))  m.removeLayer(TRANSIT_LABEL);
+      if (m.getLayer(TRANSIT_CIRCLE)) m.removeLayer(TRANSIT_CIRCLE);
+      if (m.getSource(TRANSIT_SRC))   m.removeSource(TRANSIT_SRC);
       return;
     }
 
-    const applyFilter = () => {
-      const f = buildTransitFilter({ metro: showMetro, rer: showRER, bus: showBus });
-      if (m.getLayer(TRANSIT_CIRCLE)) m.setFilter(TRANSIT_CIRCLE, f);
-      if (m.getLayer(TRANSIT_LABEL))  m.setFilter(TRANSIT_LABEL, f);
-      // Show/hide lines layer (only metro+RER have lines, not bus)
-      if (m.getLayer(TRANSIT_LINES_LYR)) {
-        m.setLayoutProperty(TRANSIT_LINES_LYR, 'visibility', (showMetro || showRER) ? 'visible' : 'none');
-      }
-    };
-
-    if (transitCache && transitLinesCache) {
-      addTransitLinesLayer(m);
+    if (transitCache) {
       addTransitLayer(m);
-      applyFilter();
       return;
     }
 
     setTransitLoading(true);
-    fetchParisTransitAll()
-      .then(() => {
-        if (!map.current) return;
-        addTransitLinesLayer(map.current);
-        addTransitLayer(map.current);
-        applyFilter();
-      })
-      .catch((err) => console.warn('[Brume] Transit fetch failed:', err))
+    fetchParisTransitStations()
+      .then(() => { if (map.current) addTransitLayer(map.current); })
+      .catch((err: unknown) => console.warn('[Brume] Transit fetch failed:', err))
       .finally(() => setTransitLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showMetro, showRER, showBus, mapReady, layersReady]);
+  }, [showStations, mapReady, layersReady]);
 
   // Show / hide POI layers
   useEffect(() => {
@@ -1111,12 +1097,8 @@ export default function MapView() {
               key="layer-panel"
               mapStyle={mapStyle}
               onStyleChange={(s) => { setMapStyle(s); }}
-              showMetro={showMetro}
-              onMetroToggle={() => setShowMetro((v) => !v)}
-              showRER={showRER}
-              onRERToggle={() => setShowRER((v) => !v)}
-              showBus={showBus}
-              onBusToggle={() => setShowBus((v) => !v)}
+              showStations={showStations}
+              onStationsToggle={() => setShowStations((v) => !v)}
               transitLoading={transitLoading}
               showPharmacy={showPharmacy}
               onPharmacyToggle={() => setShowPharmacy((v) => !v)}

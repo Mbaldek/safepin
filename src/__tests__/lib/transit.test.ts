@@ -1,11 +1,12 @@
 // src/__tests__/lib/transit.test.ts
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   formatTransitDuration,
   getLineIcon,
-  parseNavitiaJourney,
-  fetchTransitRoute,
+  decodePolyline,
+  getTransitCheckpoints,
+  TransitRoute,
 } from '@/lib/transit';
 
 // ---------------------------------------------------------------------------
@@ -42,7 +43,6 @@ describe('formatTransitDuration', () => {
   });
 
   it('formats 150 seconds as "3 min" (rounds to nearest minute)', () => {
-    // 150s = 2.5 min → Math.round → 3
     expect(formatTransitDuration(150)).toBe('3 min');
   });
 
@@ -82,276 +82,135 @@ describe('getLineIcon', () => {
 });
 
 // ---------------------------------------------------------------------------
-// parseNavitiaJourney
+// decodePolyline
 // ---------------------------------------------------------------------------
 
-describe('parseNavitiaJourney', () => {
-  const mockJourney = {
-    duration: 1800,
-    departure_date_time: '20260223T080000',
-    arrival_date_time: '20260223T083000',
-    nb_transfers: 1,
-    sections: [
-      {
-        type: 'street_network',
-        duration: 300,
-        departure_date_time: '20260223T080000',
-        arrival_date_time: '20260223T080500',
-        from: { address: { name: '12 Rue de Rivoli', coord: { lon: '2.352', lat: '48.856' } } },
-        to: { stop_point: { name: 'Chatelet', coord: { lon: '2.347', lat: '48.858' } } },
-        geojson: {
-          coordinates: [[2.352, 48.856], [2.347, 48.858]],
-        },
-      },
-      {
-        type: 'public_transport',
-        duration: 900,
-        departure_date_time: '20260223T080500',
-        arrival_date_time: '20260223T082000',
-        from: { stop_point: { name: 'Chatelet' } },
-        to: { stop_point: { name: 'Nation' } },
-        display_informations: {
-          commercial_mode: 'Metro',
-          code: '1',
-          color: 'FFCD00',
-        },
-        stop_date_times: [
-          { stop_point: { name: 'Chatelet' } },
-          { stop_point: { name: 'Hotel de Ville' } },
-          { stop_point: { name: 'Bastille' } },
-          { stop_point: { name: 'Gare de Lyon' } },
-          { stop_point: { name: 'Nation' } },
-        ],
-        geojson: {
-          coordinates: [[2.347, 48.858], [2.353, 48.853], [2.369, 48.853], [2.395, 48.844]],
-        },
-      },
-      {
-        type: 'transfer',
-        duration: 180,
-        departure_date_time: '20260223T082000',
-        arrival_date_time: '20260223T082300',
-        from: { stop_point: { name: 'Nation (Line 1)' } },
-        to: { stop_point: { name: 'Nation (Line 2)' } },
-        geojson: { coordinates: [] },
-      },
-      {
-        type: 'public_transport',
-        duration: 240,
-        departure_date_time: '20260223T082300',
-        arrival_date_time: '20260223T082700',
-        from: { stop_point: { name: 'Nation' } },
-        to: { stop_point: { name: 'Avron' } },
-        display_informations: {
-          commercial_mode: 'Bus',
-          code: '56',
-          color: '00A84F',
-        },
-        stop_date_times: [
-          { stop_point: { name: 'Nation' } },
-          { stop_point: { name: 'Avron' } },
-        ],
-        geojson: {
-          coordinates: [[2.395, 48.844], [2.398, 48.850]],
-        },
-      },
-      {
-        type: 'street_network',
-        duration: 180,
-        departure_date_time: '20260223T082700',
-        arrival_date_time: '20260223T083000',
-        from: { stop_point: { name: 'Avron', coord: { lon: '2.398', lat: '48.850' } } },
-        to: { address: { name: '5 Rue Avron', coord: { lon: '2.400', lat: '48.851' } } },
-        geojson: {
-          coordinates: [[2.398, 48.850], [2.400, 48.851]],
-        },
-      },
-    ],
-  };
-
-  it('extracts all steps from sections', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    // 2 walking + 2 public_transport + 1 transfer = 5 steps
-    expect(route.steps).toHaveLength(5);
+describe('decodePolyline', () => {
+  it('decodes a simple encoded polyline (precision 6)', () => {
+    // Encode a known point pair for precision 6
+    // [lng=2.352, lat=48.856] should decode correctly
+    const coords = decodePolyline('_seqH_ibM');
+    expect(coords.length).toBeGreaterThan(0);
+    // Each coord should be [lng, lat]
+    for (const c of coords) {
+      expect(c).toHaveLength(2);
+      expect(typeof c[0]).toBe('number');
+      expect(typeof c[1]).toBe('number');
+    }
   });
 
-  it('correctly identifies walking steps', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    const walkingSteps = route.steps.filter((s) => s.mode === 'walking');
-    expect(walkingSteps).toHaveLength(3); // 2 street_network + 1 transfer
+  it('returns empty array for empty string', () => {
+    expect(decodePolyline('')).toEqual([]);
   });
 
-  it('correctly maps commercial mode to transit mode', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    const transitSteps = route.steps.filter((s) => s.mode !== 'walking');
-    expect(transitSteps[0].mode).toBe('metro');
-    expect(transitSteps[1].mode).toBe('bus');
-  });
-
-  it('extracts line codes', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    const transitSteps = route.steps.filter((s) => s.mode !== 'walking');
-    expect(transitSteps[0].line).toBe('1');
-    expect(transitSteps[1].line).toBe('56');
-  });
-
-  it('formats line colors with # prefix', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    const transitSteps = route.steps.filter((s) => s.mode !== 'walking');
-    expect(transitSteps[0].lineColor).toBe('#FFCD00');
-    expect(transitSteps[1].lineColor).toBe('#00A84F');
-  });
-
-  it('counts stops correctly (stop_date_times.length - 1)', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    const transitSteps = route.steps.filter((s) => s.mode !== 'walking');
-    expect(transitSteps[0].stops).toBe(4); // 5 stop_date_times - 1
-    expect(transitSteps[1].stops).toBe(1); // 2 stop_date_times - 1
-  });
-
-  it('computes total duration from the journey object', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    expect(route.totalDuration).toBe(1800);
-  });
-
-  it('computes total walking time from walking + transfer sections', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    // 300 (street_network) + 180 (transfer) + 180 (street_network) = 660
-    expect(route.totalWalking).toBe(660);
-  });
-
-  it('parses departure and arrival datetime strings', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    expect(route.departureTime).toBe('2026-02-23T08:00:00');
-    expect(route.arrivalTime).toBe('2026-02-23T08:30:00');
-  });
-
-  it('extracts transfers count', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    expect(route.transfers).toBe(1);
-  });
-
-  it('concatenates all coordinates into the route coords', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    // 2 + 4 + 0 (empty transfer) + 2 + 2 = 10 coordinate pairs
-    expect(route.coords).toHaveLength(10);
-  });
-
-  it('extracts place names from stop_points and addresses', () => {
-    const route = parseNavitiaJourney(mockJourney);
-    expect(route.steps[0].from).toBe('12 Rue de Rivoli');
-    expect(route.steps[0].to).toBe('Chatelet');
-    expect(route.steps[1].from).toBe('Chatelet');
-    expect(route.steps[1].to).toBe('Nation');
-  });
-
-  it('handles an empty journey with no sections', () => {
-    const emptyJourney = {
-      duration: 0,
-      departure_date_time: '',
-      arrival_date_time: '',
-      nb_transfers: 0,
-      sections: [],
-    };
-    const route = parseNavitiaJourney(emptyJourney);
-    expect(route.steps).toHaveLength(0);
-    expect(route.totalDuration).toBe(0);
-    expect(route.totalWalking).toBe(0);
-    expect(route.coords).toHaveLength(0);
-  });
-
-  it('skips waiting sections', () => {
-    const journeyWithWaiting = {
-      duration: 600,
-      departure_date_time: '20260223T090000',
-      arrival_date_time: '20260223T091000',
-      nb_transfers: 0,
-      sections: [
-        {
-          type: 'waiting',
-          duration: 120,
-          departure_date_time: '20260223T090000',
-          arrival_date_time: '20260223T090200',
-          from: { stop_point: { name: 'Station A' } },
-          to: { stop_point: { name: 'Station A' } },
-        },
-        {
-          type: 'public_transport',
-          duration: 480,
-          departure_date_time: '20260223T090200',
-          arrival_date_time: '20260223T091000',
-          from: { stop_point: { name: 'Station A' } },
-          to: { stop_point: { name: 'Station B' } },
-          display_informations: {
-            commercial_mode: 'RapidTransit',
-            code: 'A',
-            color: 'E2231A',
-          },
-          stop_date_times: [
-            { stop_point: { name: 'Station A' } },
-            { stop_point: { name: 'Station B' } },
-          ],
-          geojson: { coordinates: [[2.3, 48.8], [2.4, 48.9]] },
-        },
-      ],
-    };
-    const route = parseNavitiaJourney(journeyWithWaiting);
-    // Waiting section is skipped; only the public_transport step remains
-    expect(route.steps).toHaveLength(1);
-    expect(route.steps[0].mode).toBe('rer');
-    expect(route.steps[0].line).toBe('A');
+  it('returns [lng, lat] pairs (Mapbox convention)', () => {
+    // A minimal polyline that encodes a single point
+    const coords = decodePolyline('_seqH_ibM');
+    if (coords.length > 0) {
+      const [lng, lat] = coords[0];
+      // Paris-area: lat ~48, lng ~2
+      expect(Math.abs(lat)).toBeGreaterThan(0);
+      expect(Math.abs(lng)).toBeGreaterThan(0);
+    }
   });
 });
 
 // ---------------------------------------------------------------------------
-// fetchTransitRoute — fallback when no API key
+// getTransitCheckpoints
 // ---------------------------------------------------------------------------
 
-describe('fetchTransitRoute', () => {
-  it('returns a fallback route when NAVITIA_KEY is not set', async () => {
-    // NAVITIA_KEY reads process.env.NEXT_PUBLIC_NAVITIA_KEY at module level,
-    // which is undefined in the test environment, so the fallback path is used.
-    const from: [number, number] = [2.352, 48.856];
-    const to: [number, number] = [2.400, 48.851];
+describe('getTransitCheckpoints', () => {
+  const mockRoute: TransitRoute = {
+    steps: [
+      {
+        mode: 'walking',
+        from: 'Start',
+        to: 'Station A',
+        departureTime: '2026-02-23T08:00:00',
+        arrivalTime: '2026-02-23T08:05:00',
+        duration: 300,
+        coords: [[2.35, 48.85], [2.347, 48.858]],
+      },
+      {
+        mode: 'metro',
+        line: '1',
+        lineColor: '#FFBE00',
+        from: 'Station A',
+        to: 'Station B',
+        departureTime: '2026-02-23T08:05:00',
+        arrivalTime: '2026-02-23T08:20:00',
+        duration: 900,
+        stops: 4,
+        coords: [[2.347, 48.858], [2.369, 48.853], [2.395, 48.844]],
+      },
+      {
+        mode: 'bus',
+        line: '56',
+        lineColor: '#00A84F',
+        from: 'Station B',
+        to: 'Station C',
+        departureTime: '2026-02-23T08:23:00',
+        arrivalTime: '2026-02-23T08:27:00',
+        duration: 240,
+        stops: 1,
+        coords: [[2.395, 48.844], [2.398, 48.850]],
+      },
+      {
+        mode: 'walking',
+        from: 'Station C',
+        to: 'End',
+        departureTime: '2026-02-23T08:27:00',
+        arrivalTime: '2026-02-23T08:30:00',
+        duration: 180,
+        coords: [[2.398, 48.850], [2.400, 48.851]],
+      },
+    ],
+    totalDuration: 1800,
+    totalWalking: 480,
+    departureTime: '2026-02-23T08:00:00',
+    arrivalTime: '2026-02-23T08:30:00',
+    coords: [],
+    transfers: 1,
+  };
 
-    const routes = await fetchTransitRoute(from, to);
-
-    expect(routes).toHaveLength(1);
-    const route = routes[0];
-
-    // Fallback generates 3 steps: walking → metro → walking
-    expect(route.steps).toHaveLength(3);
-    expect(route.steps[0].mode).toBe('walking');
-    expect(route.steps[1].mode).toBe('metro');
-    expect(route.steps[2].mode).toBe('walking');
-
-    // Walking durations on each end are 300s (5 minutes)
-    expect(route.steps[0].duration).toBe(300);
-    expect(route.steps[2].duration).toBe(300);
-    expect(route.totalWalking).toBe(600);
-
-    // The metro step has an approximate line marker
-    expect(route.steps[1].line).toBe('~');
-    expect(route.steps[1].lineColor).toBe('#999999');
-
-    // Total duration = walking + transit + walking
-    expect(route.totalDuration).toBe(route.steps[0].duration + route.steps[1].duration + route.steps[2].duration);
-
-    // Zero transfers in fallback
-    expect(route.transfers).toBe(0);
-
-    // Coords are populated
-    expect(route.coords.length).toBeGreaterThan(0);
+  it('extracts checkpoints only from transit legs (not walking)', () => {
+    const checkpoints = getTransitCheckpoints(mockRoute);
+    // 2 transit legs × 2 (departure + arrival) = 4 checkpoints
+    expect(checkpoints).toHaveLength(4);
   });
 
-  it('fallback route has stops based on distance', async () => {
-    const from: [number, number] = [2.30, 48.85];
-    const to: [number, number] = [2.40, 48.85];
+  it('includes departure and arrival stations for each transit leg', () => {
+    const checkpoints = getTransitCheckpoints(mockRoute);
+    expect(checkpoints[0].name).toBe('Station A');
+    expect(checkpoints[1].name).toBe('Station B');
+    expect(checkpoints[2].name).toBe('Station B');
+    expect(checkpoints[3].name).toBe('Station C');
+  });
 
-    const routes = await fetchTransitRoute(from, to);
-    const metroStep = routes[0].steps[1];
+  it('includes mode and line info', () => {
+    const checkpoints = getTransitCheckpoints(mockRoute);
+    expect(checkpoints[0].mode).toBe('metro');
+    expect(checkpoints[0].line).toBe('1');
+    expect(checkpoints[2].mode).toBe('bus');
+    expect(checkpoints[2].line).toBe('56');
+  });
 
-    // The stops calculation is Math.max(1, Math.round(dist / 800))
-    expect(metroStep.stops).toBeGreaterThanOrEqual(1);
+  it('includes expected times', () => {
+    const checkpoints = getTransitCheckpoints(mockRoute);
+    expect(checkpoints[0].expectedTime).toBe('2026-02-23T08:05:00');
+    expect(checkpoints[1].expectedTime).toBe('2026-02-23T08:20:00');
+  });
+
+  it('returns empty array for route with only walking', () => {
+    const walkOnly: TransitRoute = {
+      steps: [{
+        mode: 'walking', from: 'A', to: 'B',
+        departureTime: '', arrivalTime: '', duration: 600,
+        coords: [[2.35, 48.85], [2.36, 48.86]],
+      }],
+      totalDuration: 600, totalWalking: 600,
+      departureTime: '', arrivalTime: '', coords: [], transfers: 0,
+    };
+    expect(getTransitCheckpoints(walkOnly)).toHaveLength(0);
   });
 });

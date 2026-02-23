@@ -12,12 +12,8 @@ type MapStyle = 'streets' | 'light' | 'dark';
 type Props = {
   mapStyle: MapStyle;
   onStyleChange: (s: MapStyle) => void;
-  showMetro: boolean;
-  onMetroToggle: () => void;
-  showRER: boolean;
-  onRERToggle: () => void;
-  showBus: boolean;
-  onBusToggle: () => void;
+  showStations: boolean;
+  onStationsToggle: () => void;
   transitLoading: boolean;
   showPharmacy: boolean;
   onPharmacyToggle: () => void;
@@ -147,9 +143,7 @@ export default function LayerPanel(props: Props) {
         {t('transport')}
       </p>
       <div className="flex flex-col gap-0.5 mb-2">
-        <Toggle on={props.showMetro} onToggle={props.onMetroToggle} loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label={t('metro')} color="#3b82f6" emoji="🚇" />
-        <Toggle on={props.showRER}   onToggle={props.onRERToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label={t('rer')}   color="#8b5cf6" emoji="🚆" />
-        <Toggle on={props.showBus}   onToggle={props.onBusToggle}   loading={props.transitLoading && !props.showMetro && !props.showRER && !props.showBus} label={t('bus')}   color="#f59e0b" emoji="🚌" />
+        <Toggle on={props.showStations} onToggle={props.onStationsToggle} loading={props.transitLoading && !props.showStations} label={t('stations')} color="#6366f1" emoji="🚉" />
       </div>
 
       {/* Divider */}

@@ -42,6 +42,7 @@ const CommunityView = dynamic(() => import('@/components/CommunityView'), { ssr:
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
+const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -98,6 +99,9 @@ export default function MapPage() {
     showIncidentsList, setShowIncidentsList,
     achievedMilestones, addAchievedMilestone,
     setStreakInfo, longestStreak,
+    activeTrip, setActiveTrip,
+    setActiveRoute, setTransitSegments,
+    tripNudge,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -650,6 +654,25 @@ export default function MapPage() {
         )}
         {/* Map contextual card — shows area info */}
         {activeTab === 'map' && !showBriefing && <MapContextCard />}
+
+        {/* TripHUD — persistent map overlay during active trip */}
+        <AnimatePresence>
+          {activeTrip?.state === 'ACTIVE' && activeTab === 'map' && (
+            <TripHUD
+              key="trip-hud"
+              trip={activeTrip}
+              nudge={tripNudge}
+              onImSafe={() => {
+                setActiveTrip(null);
+                setActiveRoute(null);
+                setTransitSegments(null);
+                setPendingRoutes(null);
+                setActiveTab('trip'); // open trip tab to show summary
+              }}
+              onOpenTrip={() => setActiveTab('trip')}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Trip sheet — overlays the map when on trip tab */}
         <AnimatePresence>
