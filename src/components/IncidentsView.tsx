@@ -7,33 +7,13 @@ import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, SEVERITY, ENVIRONMENTS, Pin } from '@/types';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { timeAgoLong as timeAgo, haversineMeters, springTransition } from '@/lib/utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const R = 6_371_000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
 
 function formatDist(m: number) {
   if (m < 1000) return `${Math.round(m / 10) * 10}m`;
   return `${(m / 1000).toFixed(1)}km`;
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}min ago`;
-  return `${hours}h ago`;
 }
 
 // ─── Filter types ─────────────────────────────────────────────────────────────
@@ -256,7 +236,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
         // Radius filter (only applied when user location is known)
         if (radiusFilter !== 'all' && userLocation) {
           const maxM = RADIUS_FILTERS.find((r) => r.id === radiusFilter)!.meters;
-          if (distanceM(userLocation, { lat: pin.lat, lng: pin.lng }) > maxM) return false;
+          if (haversineMeters(userLocation, { lat: pin.lat, lng: pin.lng }) > maxM) return false;
         }
         // Live only filter
         if (liveOnly) {
@@ -500,7 +480,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                 {open && (
                   <div className="flex flex-col gap-2 pb-2">
                     {sectionPins.map((pin) => {
-                      const dist = userLocation ? distanceM(userLocation, { lat: pin.lat, lng: pin.lng }) : null;
+                      const dist = userLocation ? haversineMeters(userLocation, { lat: pin.lat, lng: pin.lng }) : null;
                       return pin.is_emergency
                         ? <EmergencyCard key={pin.id} pin={pin} dist={dist} />
                         : <PinCard key={pin.id} pin={pin} dist={dist} />;

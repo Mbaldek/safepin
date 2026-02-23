@@ -8,16 +8,9 @@ import { X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { computeTrend } from '@/components/TrendSparkline';
+import { haversineMeters } from '@/lib/utils';
 
 type CardType = 'high_activity' | 'calm' | 'active_trip' | null;
-
-function distM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6_371_000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const avgLat = ((a.lat + b.lat) / 2) * (Math.PI / 180);
-  return R * Math.sqrt(dLat * dLat + (Math.cos(avgLat) * dLng) ** 2);
-}
 
 export default function MapContextCard() {
   const { userLocation, pins, activeRoute } = useStore();
@@ -36,7 +29,7 @@ export default function MapContextCard() {
       const oneWeekAgo = Date.now() - 7 * 24 * 3600_000;
       const nearby = pins.filter((p) => {
         if (new Date(p.created_at).getTime() < oneWeekAgo) return false;
-        return distM(userLocation, { lat: p.lat, lng: p.lng }) <= radius;
+        return haversineMeters(userLocation, { lat: p.lat, lng: p.lng }) <= radius;
       });
 
       if (activeRoute) {

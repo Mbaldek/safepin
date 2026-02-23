@@ -7,13 +7,10 @@
 //   SUPABASE_SERVICE_ROLE_KEY
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase-admin';
 import crypto from 'crypto';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = createAdminClient();
 
 export async function POST(req: NextRequest) {
   const { userId } = await req.json();
@@ -71,7 +68,7 @@ export async function POST(req: NextRequest) {
     // Store session ID in profile for reference
     await supabaseAdmin
       .from('profiles')
-      .update({ verification_id: sessionId, verification_status: 'started' })
+      .update({ verification_id: sessionId, verification_status: 'pending' })
       .eq('id', userId);
 
     return NextResponse.json({ sessionUrl, sessionId });

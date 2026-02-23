@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "닫기",
+    "cancel": "취소",
+    "submit": "제출",
+    "save": "저장",
+    "delete": "삭제",
+    "loading": "로딩 중…",
+    "back": "뒤로",
+    "done": "완료",
+    "search": "검색",
+    "or": "또는",
+    "signIn": "로그인",
+    "signOut": "로그아웃",
+    "comingSoon": "곧 출시"
+  },
+  "nav": {
+    "map": "지도",
+    "trip": "여행",
+    "community": "커뮤니티",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "주변 사용자에게 알리는 중…",
+    "locationShared": "위치가 공유됩니다",
+    "imSafe": "안전합니다",
+    "alertActive": "알림 활성화됨",
+    "locationUpdating": "위치 업데이트 중 · 주변 사용자에게 알림 완료",
+    "resolved": "알림 해제 — 무사하셔서 다행입니다!",
+    "locationRequired": "긴급 알림을 위해 위치 정보가 필요합니다",
+    "signInFirst": "먼저 로그인하세요",
+    "description": "긴급 알림 — 도움이 필요합니다",
+    "cancelCountdown": "취소",
+    "quickDial": "빠른 전화",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "경찰",
+      "fire": "소방서",
+      "eu": "EU"
+    }
+  }
+}

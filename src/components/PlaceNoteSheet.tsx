@@ -9,8 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { PlaceNote } from '@/types';
 import { toast } from 'sonner';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { springTransition } from '@/lib/utils';
 
 const EMOJI_OPTIONS = ['📌', '⚠️', '💡', '❤️', '🏠', '🍽️', '🌳', '🔒', '🚶', '⭐'];
 

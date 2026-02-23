@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore';
 import { PlaceNote, SavedRoute } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { geocodeForward } from '@/lib/geocode';
 
 const MODES_LIST = [
   { id: 'walk',    emoji: '🚶' },
@@ -19,22 +20,6 @@ type Mode = typeof MODES_LIST[number]['id'];
 
 const MODES: Record<string, string> = { walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇' };
 const PLACE_EMOJIS = ['📌', '🏠', '💼', '🍽️', '❤️', '🌳', '🔒', '🚶', '⭐', '⚠️'];
-
-async function geocode(
-  query: string,
-  userLocation?: { lat: number; lng: number } | null,
-): Promise<[number, number] | null> {
-  try {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    const prox = userLocation ? `&proximity=${userLocation.lng},${userLocation.lat}` : '';
-    const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-      `?access_token=${token}&limit=1&language=fr,en${prox}`,
-    );
-    const d = await res.json();
-    return d.features?.[0]?.geometry?.coordinates ?? null;
-  } catch { return null; }
-}
 
 type Props = {
   savedRoutes: SavedRoute[];
@@ -107,7 +92,7 @@ export default function SavedPanel({
 
     let lat = 48.8566, lng = 2.3522; // Paris fallback
     if (pAddr.trim()) {
-      const coords = await geocode(pAddr.trim(), userLocation);
+      const coords = await geocodeForward(pAddr.trim(), userLocation);
       if (!coords) {
         toast.error('Address not found — try a more specific address');
         setPSaving(false);

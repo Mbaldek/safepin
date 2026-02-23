@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Zavřít",
+    "cancel": "Zrušit",
+    "submit": "Odeslat",
+    "save": "Uložit",
+    "delete": "Smazat",
+    "loading": "Načítání…",
+    "back": "Zpět",
+    "done": "Hotovo",
+    "search": "Hledat",
+    "or": "nebo",
+    "signIn": "Přihlásit se",
+    "signOut": "Odhlásit se",
+    "comingSoon": "Již brzy"
+  },
+  "nav": {
+    "map": "Mapa",
+    "trip": "Cesta",
+    "community": "Komunita",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Upozorňování uživatelů v okolí…",
+    "locationShared": "Vaše poloha bude sdílena",
+    "imSafe": "Jsem v bezpečí",
+    "alertActive": "Výstraha aktivní",
+    "locationUpdating": "Poloha se aktualizuje · lidé v okolí byli upozorněni",
+    "resolved": "Výstraha ukončena — jsme rádi, že jste v bezpečí!",
+    "locationRequired": "Pro nouzovou výstrahu je nutná poloha",
+    "signInFirst": "Nejprve se přihlaste",
+    "description": "NOUZOVÁ VÝSTRAHA — Potřebuji pomoc",
+    "cancelCountdown": "ZRUŠIT",
+    "quickDial": "Rychlá volba",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Policie",
+      "fire": "Hasiči",
+      "eu": "EU"
+    }
+  }
+}

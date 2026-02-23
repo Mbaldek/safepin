@@ -17,13 +17,7 @@ type Props = {
   onClose: () => void;
 };
 
-function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
+import { haversineKm } from '@/lib/utils';
 
 export default function SosBroadcastPanel({ pinId, pinLat, pinLng, onClose }: Props) {
   const { userId, userLocation } = useStore();
@@ -101,7 +95,7 @@ export default function SosBroadcastPanel({ pinId, pinLat, pinLng, onClose }: Pr
           {responders.length > 0 && (
             <div className="space-y-1.5 mb-3">
               {responders.map((r) => {
-                const dist = r.lat && r.lng ? distanceKm({ lat: pinLat, lng: pinLng }, { lat: r.lat, lng: r.lng }) : null;
+                const dist = r.lat && r.lng ? haversineKm({ lat: pinLat, lng: pinLng }, { lat: r.lat, lng: r.lng }) : null;
                 return (
                   <div
                     key={r.id}

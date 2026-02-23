@@ -3,23 +3,8 @@
 // Triggered by the client immediately after pin insert.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const R = 6_371_000; // Earth radius in metres
-
-function distanceM(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number,
-): number {
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.sin(dLng / 2) ** 2 *
-      Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+import { createAdminClient } from '@/lib/supabase-admin';
+import { haversineMetersRaw } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   const { pin } = await req.json() as {
@@ -28,11 +13,10 @@ export async function POST(req: NextRequest) {
 
   if (!pin) return NextResponse.json({ sent: 0 });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) return NextResponse.json({ error: 'service role key not configured' }, { status: 500 });
 
-  const admin = createClient(supabaseUrl, serviceKey);
+  const admin = createAdminClient();
 
   // Load all push subscriptions (except the pin creator)
   const { data: subs } = await admin
@@ -94,7 +78,7 @@ export async function POST(req: NextRequest) {
     // Geo-filter: only send if subscriber is within their configured radius
     const loc = locationMap[sub.user_id];
     if (loc?.lat != null && loc?.lng != null) {
-      const dist = distanceM(loc.lat, loc.lng, pin.lat, pin.lng);
+      const dist = haversineMetersRaw(loc.lat, loc.lng, pin.lat, pin.lng);
       if (dist > radiusM) continue;
     }
     // If no location data, send to them anyway (better to over-notify than miss SOS)

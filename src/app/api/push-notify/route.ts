@@ -1,7 +1,7 @@
 // src/app/api/push-notify/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase-admin';
 
 // Only import web-push if the env vars are configured
 async function sendPushNotifications(payload: { title: string; body: string }) {
@@ -17,10 +17,7 @@ async function sendPushNotifications(payload: { title: string; body: string }) {
   const webpush = (await import('web-push')).default;
   webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceKey
-  );
+  const supabase = createAdminClient();
 
   const { data: rows } = await supabase
     .from('push_subscriptions')

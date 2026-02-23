@@ -9,16 +9,13 @@
 //   Events: verification.accepted, verification.declined, verification.resubmission_requested
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase-admin';
 import crypto from 'crypto';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = createAdminClient();
 
 function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
-  if (!secret) return true;
+  if (!secret) return false;
   if (!signature) return false;
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   try {

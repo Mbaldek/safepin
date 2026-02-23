@@ -1,18 +1,7 @@
 // src/lib/expertise.ts
 
 import { Pin } from '@/types';
-
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6_371_000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+import { haversineMetersRaw } from '@/lib/utils';
 
 export type ExpertiseTag = {
   label: string;
@@ -66,7 +55,7 @@ export function computeExpertiseTags(
       let nearby = 0;
       for (const p2 of myPins) {
         if (p2.id === p1.id) continue;
-        if (haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng) <= 500) nearby++;
+        if (haversineMetersRaw(p1.lat, p1.lng, p2.lat, p2.lng) <= 500) nearby++;
         if (nearby >= 2) return true;
       }
       return false;

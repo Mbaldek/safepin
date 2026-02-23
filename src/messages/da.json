@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Luk",
+    "cancel": "Annuller",
+    "submit": "Indsend",
+    "save": "Gem",
+    "delete": "Slet",
+    "loading": "Indlæser…",
+    "back": "Tilbage",
+    "done": "Færdig",
+    "search": "Søg",
+    "or": "eller",
+    "signIn": "Log ind",
+    "signOut": "Log ud",
+    "comingSoon": "Kommer snart"
+  },
+  "nav": {
+    "map": "Kort",
+    "trip": "Rejse",
+    "community": "Fællesskab",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Adviserer brugere i nærheden…",
+    "locationShared": "Din placering vil blive delt",
+    "imSafe": "Jeg er i sikkerhed",
+    "alertActive": "Alarm aktiv",
+    "locationUpdating": "Placering opdateres · brugere i nærheden underrettet",
+    "resolved": "Alarm ophævet — godt du er i sikkerhed!",
+    "locationRequired": "Placering påkrævet for nødalarm",
+    "signInFirst": "Log ind først",
+    "description": "NØDALARM — Jeg har brug for hjælp",
+    "cancelCountdown": "ANNULLER",
+    "quickDial": "Hurtigopkald",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Politi",
+      "fire": "Brandvæsen",
+      "eu": "EU"
+    }
+  }
+}

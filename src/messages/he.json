@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "סגור",
+    "cancel": "ביטול",
+    "submit": "שלח",
+    "save": "שמור",
+    "delete": "מחק",
+    "loading": "טוען…",
+    "back": "חזרה",
+    "done": "סיום",
+    "search": "חיפוש",
+    "or": "או",
+    "signIn": "התחברות",
+    "signOut": "התנתקות",
+    "comingSoon": "בקרוב"
+  },
+  "nav": {
+    "map": "מפה",
+    "trip": "מסלול",
+    "community": "קהילה",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "מתריע למשתמשים בסביבה…",
+    "locationShared": "המיקום שלך ישותף",
+    "imSafe": "אני בטוח/ה",
+    "alertActive": "התראה פעילה",
+    "locationUpdating": "המיקום מתעדכן · משתמשים בסביבה עודכנו",
+    "resolved": "ההתראה הסתיימה — שמחים שאת/ה בטוח/ה!",
+    "locationRequired": "נדרש מיקום להתראת חירום",
+    "signInFirst": "התחבר/י תחילה",
+    "description": "התראת חירום — אני צריך/ה עזרה",
+    "cancelCountdown": "ביטול",
+    "quickDial": "חיוג מהיר",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "משטרה",
+      "fire": "כיבוי אש",
+      "eu": "EU"
+    }
+  }
+}

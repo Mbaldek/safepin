@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { haversineMeters } from '@/lib/utils';
+import { geocodeReverse } from '@/lib/geocode';
 
 type Phase = 'idle' | 'countdown' | 'active';
 
@@ -31,21 +33,6 @@ async function dispatchToContacts(action: string, userId: string, pinId: string,
 // Minimum time (ms) between two trail pins
 const TRAIL_MIN_TIME_MS = 45_000;
 
-function distanceMeters(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number }
-): number {
-  const R = 6_371_000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const x =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
 export default function EmergencyButton({ userId }: { userId: string | null }) {
   const { userLocation, setUserLocation } = useStore();
   const t = useTranslations('emergency');
@@ -69,13 +56,8 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
 
   // ─── Geocode a location and patch the pin description ───────────────────────
   async function geocodeAndPatchPin(pinId: string, loc: { lat: number; lng: number }) {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${loc.lng},${loc.lat}.json?access_token=${token}&types=address,poi&limit=1&language=fr,en`
-      );
-      const data = await res.json();
-      const address = data.features?.[0]?.place_name;
+      const address = await geocodeReverse(loc.lng, loc.lat);
       if (address) {
         await supabase
           .from('pins')
@@ -125,7 +107,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
     const now = Date.now();
     const timeSinceLast = now - lastPinTimeRef.current;
     const distSinceLast = lastPinLocRef.current
-      ? distanceMeters(lastPinLocRef.current, newLoc)
+      ? haversineMeters(lastPinLocRef.current, newLoc)
       : Infinity;
 
     // Only create a new trail pin if moved enough AND enough time has passed

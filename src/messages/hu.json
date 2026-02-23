@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Bezárás",
+    "cancel": "Mégse",
+    "submit": "Küldés",
+    "save": "Mentés",
+    "delete": "Törlés",
+    "loading": "Betöltés…",
+    "back": "Vissza",
+    "done": "Kész",
+    "search": "Keresés",
+    "or": "vagy",
+    "signIn": "Bejelentkezés",
+    "signOut": "Kijelentkezés",
+    "comingSoon": "Hamarosan"
+  },
+  "nav": {
+    "map": "Térkép",
+    "trip": "Útvonal",
+    "community": "Közösség",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Közeli felhasználók riasztása…",
+    "locationShared": "A tartózkodási helyed meg lesz osztva",
+    "imSafe": "Biztonságban vagyok",
+    "alertActive": "Riasztás aktív",
+    "locationUpdating": "Helyzet frissítése · a közelben lévők értesítve",
+    "resolved": "Riasztás lezárva — örülünk, hogy biztonságban vagy!",
+    "locationRequired": "A vészjelzéshez helymeghatározás szükséges",
+    "signInFirst": "Először jelentkezz be",
+    "description": "VÉSZJELZÉS — Segítségre van szükségem",
+    "cancelCountdown": "MÉGSE",
+    "quickDial": "Gyorshívás",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Rendőrség",
+      "fire": "Tűzoltóság",
+      "eu": "EU"
+    }
+  }
+}

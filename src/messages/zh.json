@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "关闭",
+    "cancel": "取消",
+    "submit": "提交",
+    "save": "保存",
+    "delete": "删除",
+    "loading": "加载中…",
+    "back": "返回",
+    "done": "完成",
+    "search": "搜索",
+    "or": "或",
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "comingSoon": "即将推出"
+  },
+  "nav": {
+    "map": "地图",
+    "trip": "出行",
+    "community": "社区",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "正在通知附近用户…",
+    "locationShared": "您的位置将被共享",
+    "imSafe": "我已安全",
+    "alertActive": "警报已激活",
+    "locationUpdating": "位置更新中 · 附近用户已通知",
+    "resolved": "警报已解除——很高兴您安全了！",
+    "locationRequired": "紧急警报需要位置信息",
+    "signInFirst": "请先登录",
+    "description": "紧急警报——我需要帮助",
+    "cancelCountdown": "取消",
+    "quickDial": "快速拨号",
+    "numbers": {
+      "samu": "急救中心",
+      "police": "警察",
+      "fire": "消防",
+      "eu": "欧盟"
+    }
+  }
+}

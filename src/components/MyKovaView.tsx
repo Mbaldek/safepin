@@ -25,10 +25,9 @@ import LocationHistoryViewer from '@/components/LocationHistoryViewer';
 import ChallengesSection from '@/components/ChallengesSection';
 import ReferralSection from '@/components/ReferralSection';
 import TrendSparkline from '@/components/TrendSparkline';
+import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
 
 const MODE_EMOJI: Record<string, string> = {
   walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇',
@@ -42,17 +41,6 @@ const TAB_VARIANTS = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (mins < 2) return 'just now';
-  if (hours < 1) return `${mins}min ago`;
-  if (days < 1) return `${hours}h ago`;
-  return `${days}d ago`;
-}
 
 function joinedDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en', { month: 'long', year: 'numeric' });
@@ -315,7 +303,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     setSaving(false);
     didSaveRef.current = false;
     if (error) { toast.error(`Save failed: ${error.message}`); return; }
-    setUserProfile({ id: userId, display_name: trimmed, created_at: userProfile?.created_at ?? new Date().toISOString() });
+    setUserProfile({ ...(userProfile ?? { id: userId, display_name: null, created_at: new Date().toISOString() }), display_name: trimmed });
     setEditing(false);
     toast.success('Name updated');
   }

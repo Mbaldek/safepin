@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Zamknij",
+    "cancel": "Anuluj",
+    "submit": "Wyślij",
+    "save": "Zapisz",
+    "delete": "Usuń",
+    "loading": "Ładowanie…",
+    "back": "Wstecz",
+    "done": "Gotowe",
+    "search": "Szukaj",
+    "or": "lub",
+    "signIn": "Zaloguj się",
+    "signOut": "Wyloguj się",
+    "comingSoon": "Wkrótce"
+  },
+  "nav": {
+    "map": "Mapa",
+    "trip": "Podróż",
+    "community": "Społeczność",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Powiadamianie użytkowników w pobliżu…",
+    "locationShared": "Twoja lokalizacja zostanie udostępniona",
+    "imSafe": "Jestem bezpieczny",
+    "alertActive": "Alert aktywny",
+    "locationUpdating": "Aktualizacja lokalizacji · osoby w pobliżu powiadomione",
+    "resolved": "Alert zakończony — dobrze, że jesteś bezpieczny!",
+    "locationRequired": "Lokalizacja wymagana do alertu awaryjnego",
+    "signInFirst": "Najpierw się zaloguj",
+    "description": "ALERT AWARYJNY — Potrzebuję pomocy",
+    "cancelCountdown": "ANULUJ",
+    "quickDial": "Szybkie połączenie",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Policja",
+      "fire": "Straż pożarna",
+      "eu": "EU"
+    }
+  }
+}

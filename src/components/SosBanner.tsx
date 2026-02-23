@@ -4,19 +4,9 @@
 
 import { useEffect, useState } from 'react';
 import { Pin } from '@/types';
+import { haversineMeters } from '@/lib/utils';
 
 const DISMISS_AFTER_MS = 30_000;
-
-function flatEarthDistanceM(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number }
-): number {
-  const R = 6_371_000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const avgLat = ((a.lat + b.lat) / 2) * (Math.PI / 180);
-  return R * Math.sqrt(dLat * dLat + (Math.cos(avgLat) * dLng) * (Math.cos(avgLat) * dLng));
-}
 
 function formatDistance(meters: number): string {
   if (meters < 1000) {
@@ -60,7 +50,7 @@ export default function SosBanner({ pin, userLocation, onDismiss }: SosBannerPro
 
   const distanceM =
     userLocation
-      ? flatEarthDistanceM(userLocation, { lat: pin.lat, lng: pin.lng })
+      ? haversineMeters(userLocation, { lat: pin.lat, lng: pin.lng })
       : null;
 
   const distanceText = distanceM !== null ? formatDistance(distanceM) : 'Distance unknown';

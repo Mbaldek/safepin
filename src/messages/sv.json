@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Stäng",
+    "cancel": "Avbryt",
+    "submit": "Skicka",
+    "save": "Spara",
+    "delete": "Radera",
+    "loading": "Laddar…",
+    "back": "Tillbaka",
+    "done": "Klar",
+    "search": "Sök",
+    "or": "eller",
+    "signIn": "Logga in",
+    "signOut": "Logga ut",
+    "comingSoon": "Kommer snart"
+  },
+  "nav": {
+    "map": "Karta",
+    "trip": "Resa",
+    "community": "Gemenskap",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Varnar användare i närheten…",
+    "locationShared": "Din plats kommer att delas",
+    "imSafe": "Jag är säker",
+    "alertActive": "Larm aktivt",
+    "locationUpdating": "Plats uppdateras · personer i närheten har meddelats",
+    "resolved": "Larm avslutat — skönt att du är säker!",
+    "locationRequired": "Plats krävs för nödlarm",
+    "signInFirst": "Logga in först",
+    "description": "NÖDLARM — Jag behöver hjälp",
+    "cancelCountdown": "AVBRYT",
+    "quickDial": "Snabbval",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Polis",
+      "fire": "Räddningstjänst",
+      "eu": "EU"
+    }
+  }
+}

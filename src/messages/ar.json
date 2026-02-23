@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "إغلاق",
+    "cancel": "إلغاء",
+    "submit": "إرسال",
+    "save": "حفظ",
+    "delete": "حذف",
+    "loading": "جارٍ التحميل…",
+    "back": "رجوع",
+    "done": "تم",
+    "search": "بحث",
+    "or": "أو",
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "comingSoon": "قريبًا"
+  },
+  "nav": {
+    "map": "الخريطة",
+    "trip": "رحلة",
+    "community": "المجتمع",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "جارٍ تنبيه المستخدمين القريبين…",
+    "locationShared": "سيتم مشاركة موقعك",
+    "imSafe": "أنا بأمان",
+    "alertActive": "التنبيه نشط",
+    "locationUpdating": "جارٍ تحديث الموقع · تم إبلاغ المستخدمين القريبين",
+    "resolved": "تم حل التنبيه — سعداء بسلامتك!",
+    "locationRequired": "الموقع مطلوب لتنبيه الطوارئ",
+    "signInFirst": "سجّل الدخول أولًا",
+    "description": "تنبيه طوارئ — أحتاج مساعدة",
+    "cancelCountdown": "إلغاء",
+    "quickDial": "اتصال سريع",
+    "numbers": {
+      "samu": "الإسعاف",
+      "police": "الشرطة",
+      "fire": "الإطفاء",
+      "eu": "الاتحاد الأوروبي"
+    }
+  }
+}

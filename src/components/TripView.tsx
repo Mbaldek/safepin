@@ -12,8 +12,8 @@ import AutocompleteInput from '@/components/AutocompleteInput';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { springTransition, haversineMetersLngLat } from '@/lib/utils';
+import { geocodeForward } from '@/lib/geocode';
 
 type Phase = 'idle' | 'searching' | 'selecting' | 'active';
 type Mode  = 'walk' | 'bike' | 'drive' | 'transit';
@@ -89,22 +89,6 @@ function scoreDanger(coords: [number, number][], pins: Pin[], nightOnly = false)
   return score;
 }
 
-async function geocodePlace(
-  query: string,
-  proximity?: { lat: number; lng: number },
-): Promise<[number, number] | null> {
-  try {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    const prox = proximity ? `&proximity=${proximity.lng},${proximity.lat}` : '';
-    const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-      `?access_token=${token}&limit=1&language=fr,en${prox}`,
-    );
-    const data = await res.json();
-    return data.features?.[0]?.geometry?.coordinates ?? null;
-  } catch { return null; }
-}
-
 // ─── OSRM helpers ──────────────────────────────────────────────────────────────
 
 async function osrmRoutes(
@@ -124,17 +108,6 @@ async function osrmRoutes(
   }));
 }
 
-// Haversine distance in metres between two [lng, lat] points
-function haversineM(a: [number, number], b: [number, number]): number {
-  const R = 6_371_000;
-  const dLat = ((b[1] - a[1]) * Math.PI) / 180;
-  const dLng = ((b[0] - a[0]) * Math.PI) / 180;
-  const lat1 = (a[1] * Math.PI) / 180;
-  const lat2 = (b[1] * Math.PI) / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
 // Closest unresolved danger pin to any point on the route; returns [lng, lat] or null
 function closestDangerPin(
   coords: [number, number][],
@@ -146,7 +119,7 @@ function closestDangerPin(
     const pt = coords[i];
     for (const pin of pins) {
       if (pin.resolved_at) continue;
-      const d = haversineM(pt, [pin.lng, pin.lat]);
+      const d = haversineMetersLngLat(pt, [pin.lng, pin.lat]);
       if (d < 200 && (!best || d < best.dist)) best = { dist: d, pin, pt };
     }
   }
@@ -372,7 +345,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     let fromCoords: [number, number] | null = departureCoords;
     if (!fromCoords) {
       if (departure.trim()) {
-        fromCoords = await geocodePlace(departure.trim(), userLocation ?? undefined);
+        fromCoords = await geocodeForward(departure.trim(), userLocation ?? undefined);
       } else if (userLocation) {
         fromCoords = [userLocation.lng, userLocation.lat];
       }
@@ -384,7 +357,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    const toCoords = destCoords ?? await geocodePlace(destination.trim(), userLocation ?? undefined);
+    const toCoords = destCoords ?? await geocodeForward(destination.trim(), userLocation ?? undefined);
     if (!toCoords) {
       setError('Could not find destination. Try a more specific address.');
       setPhase('idle');
@@ -764,7 +737,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                     let best = store.safeSpaces[0];
                     let bestDist = Infinity;
                     for (const sp of store.safeSpaces) {
-                      const d = haversineM([loc.lng, loc.lat], [sp.lng, sp.lat]);
+                      const d = haversineMetersLngLat([loc.lng, loc.lat], [sp.lng, sp.lat]);
                       if (d < bestDist) { bestDist = d; best = sp; }
                     }
                     toast(`${best.name} — ${fmtDist(bestDist)} away`);

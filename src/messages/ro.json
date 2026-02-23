@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Închide",
+    "cancel": "Anulează",
+    "submit": "Trimite",
+    "save": "Salvează",
+    "delete": "Șterge",
+    "loading": "Se încarcă…",
+    "back": "Înapoi",
+    "done": "Gata",
+    "search": "Caută",
+    "or": "sau",
+    "signIn": "Conectare",
+    "signOut": "Deconectare",
+    "comingSoon": "În curând"
+  },
+  "nav": {
+    "map": "Hartă",
+    "trip": "Traseu",
+    "community": "Comunitate",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Se alertează utilizatorii din apropiere…",
+    "locationShared": "Locația ta va fi partajată",
+    "imSafe": "Sunt în siguranță",
+    "alertActive": "Alertă activă",
+    "locationUpdating": "Locația se actualizează · persoanele din apropiere au fost notificate",
+    "resolved": "Alertă rezolvată — ne bucurăm că ești în siguranță!",
+    "locationRequired": "Locația este necesară pentru alerta de urgență",
+    "signInFirst": "Conectează-te mai întâi",
+    "description": "ALERTĂ DE URGENȚĂ — Am nevoie de ajutor",
+    "cancelCountdown": "ANULEAZĂ",
+    "quickDial": "Apel rapid",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Poliție",
+      "fire": "Pompieri",
+      "eu": "EU"
+    }
+  }
+}

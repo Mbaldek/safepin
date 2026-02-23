@@ -8,15 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { AnimatePresence } from 'framer-motion';
 import { Comment } from '@/types';
 import FlagReportModal from './FlagReportModal';
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  return `${hours}h ago`;
-}
+import { timeAgoLong as timeAgo } from '@/lib/utils';
 
 export default function PinChat({
   pinId,

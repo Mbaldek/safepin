@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Sulje",
+    "cancel": "Peruuta",
+    "submit": "Lähetä",
+    "save": "Tallenna",
+    "delete": "Poista",
+    "loading": "Ladataan…",
+    "back": "Takaisin",
+    "done": "Valmis",
+    "search": "Haku",
+    "or": "tai",
+    "signIn": "Kirjaudu sisään",
+    "signOut": "Kirjaudu ulos",
+    "comingSoon": "Tulossa pian"
+  },
+  "nav": {
+    "map": "Kartta",
+    "trip": "Matka",
+    "community": "Yhteisö",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Hälytetään lähellä olevia käyttäjiä…",
+    "locationShared": "Sijaintisi jaetaan",
+    "imSafe": "Olen turvassa",
+    "alertActive": "Hälytys aktiivinen",
+    "locationUpdating": "Sijaintia päivitetään · lähellä olevat käyttäjät ilmoitettu",
+    "resolved": "Hälytys ratkaistu — hyvä että olet turvassa!",
+    "locationRequired": "Sijainti vaaditaan hätähälytykseen",
+    "signInFirst": "Kirjaudu ensin sisään",
+    "description": "HÄTÄHÄLYTYS — Tarvitsen apua",
+    "cancelCountdown": "PERUUTA",
+    "quickDial": "Pikavalinta",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Poliisi",
+      "fire": "Palokunta",
+      "eu": "EU"
+    }
+  }
+}

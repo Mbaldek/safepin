@@ -27,23 +27,7 @@ type Message = {
   created_at: string;
 };
 
-function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'now';
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-}
+import { timeAgo, haversineKm } from '@/lib/utils';
 
 export default function NeighborhoodFeed() {
   const { userId, userLocation, userProfile } = useStore();
@@ -70,8 +54,8 @@ export default function NeighborhoodFeed() {
         items = items
           .filter((n) => n.geo_lat && n.geo_lng)
           .sort((a, b) => {
-            const da = distanceKm(userLocation, { lat: a.geo_lat!, lng: a.geo_lng! });
-            const db = distanceKm(userLocation, { lat: b.geo_lat!, lng: b.geo_lng! });
+            const da = haversineKm(userLocation, { lat: a.geo_lat!, lng: a.geo_lng! });
+            const db = haversineKm(userLocation, { lat: b.geo_lat!, lng: b.geo_lng! });
             return da - db;
           });
       }

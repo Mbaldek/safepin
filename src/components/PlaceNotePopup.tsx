@@ -7,8 +7,7 @@
 import { motion } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
 import { PlaceNote } from '@/types';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { springTransition } from '@/lib/utils';
 
 interface Props {
   note: PlaceNote;

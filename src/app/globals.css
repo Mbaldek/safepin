@@ -26,7 +26,6 @@
   --safe: #10b981;
   --warn: #f59e0b;
   --blue: #38bdf8;
-  --mapbox-style: mapbox://styles/mapbox/dark-v11;
 }
 
 /* ===== LIGHT THEME ===== */
@@ -46,7 +45,6 @@
   --safe: #059669;
   --warn: #d97706;
   --blue: #0284c7;
-  --mapbox-style: mapbox://styles/mapbox/light-v11;
 }
 
 body {

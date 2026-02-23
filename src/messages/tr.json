@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Kapat",
+    "cancel": "İptal",
+    "submit": "Gönder",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "loading": "Yükleniyor…",
+    "back": "Geri",
+    "done": "Tamam",
+    "search": "Ara",
+    "or": "veya",
+    "signIn": "Giriş yap",
+    "signOut": "Çıkış yap",
+    "comingSoon": "Yakında"
+  },
+  "nav": {
+    "map": "Harita",
+    "trip": "Yolculuk",
+    "community": "Topluluk",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Yakındaki kullanıcılar uyarılıyor…",
+    "locationShared": "Konumunuz paylaşılacak",
+    "imSafe": "Güvendeyim",
+    "alertActive": "Uyarı aktif",
+    "locationUpdating": "Konum güncelleniyor · yakındaki kişiler bilgilendirildi",
+    "resolved": "Uyarı kaldırıldı — güvende olduğunuza sevindik!",
+    "locationRequired": "Acil uyarı için konum gerekli",
+    "signInFirst": "Önce giriş yapın",
+    "description": "ACİL UYARI — Yardıma ihtiyacım var",
+    "cancelCountdown": "İPTAL",
+    "quickDial": "Hızlı arama",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Polis",
+      "fire": "İtfaiye",
+      "eu": "EU"
+    }
+  }
+}

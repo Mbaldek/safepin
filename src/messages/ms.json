@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Tutup",
+    "cancel": "Batal",
+    "submit": "Hantar",
+    "save": "Simpan",
+    "delete": "Padam",
+    "loading": "Memuatkan…",
+    "back": "Kembali",
+    "done": "Selesai",
+    "search": "Cari",
+    "or": "atau",
+    "signIn": "Log masuk",
+    "signOut": "Log keluar",
+    "comingSoon": "Akan datang"
+  },
+  "nav": {
+    "map": "Peta",
+    "trip": "Perjalanan",
+    "community": "Komuniti",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Memberi amaran kepada pengguna berdekatan…",
+    "locationShared": "Lokasi anda akan dikongsi",
+    "imSafe": "Saya selamat",
+    "alertActive": "Amaran aktif",
+    "locationUpdating": "Lokasi dikemas kini · pengguna berdekatan dimaklumkan",
+    "resolved": "Amaran selesai — syukur anda selamat!",
+    "locationRequired": "Lokasi diperlukan untuk amaran kecemasan",
+    "signInFirst": "Log masuk dahulu",
+    "description": "AMARAN KECEMASAN — Saya perlukan bantuan",
+    "cancelCountdown": "BATAL",
+    "quickDial": "Panggilan cepat",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Polis",
+      "fire": "Bomba",
+      "eu": "EU"
+    }
+  }
+}

@@ -12,8 +12,7 @@ import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { enqueue, getCount } from '@/lib/offlineQueue';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { springTransition } from '@/lib/utils';
 
 type LocalMedia = {
   file: File;

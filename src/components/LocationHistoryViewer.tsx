@@ -8,8 +8,7 @@ import { X, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import ProGate from '@/components/ProGate';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { springTransition } from '@/lib/utils';
 
 type TimeRange = '24h' | '7d' | '30d' | 'all';
 

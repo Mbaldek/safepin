@@ -6,8 +6,8 @@
 // so that next-intl's server-side getLocale() picks it up.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { LOCALES } from '@/i18n/routing';
 
-const LOCALES = ['en', 'fr'] as const;
 const DEFAULT_LOCALE = 'en';
 const COOKIE_NAME = 'NEXT_LOCALE';
 
@@ -102,13 +102,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle /fr/* routes — redirect to / and set locale cookie
-  if (pathname.startsWith('/fr')) {
-    const newPath = pathname.replace(/^\/fr/, '') || '/';
+  // Handle /<locale>/* routes — redirect to / and set locale cookie
+  const pathLocale = pathname.split('/')[1];
+  if (pathLocale && pathLocale !== 'en' && (LOCALES as readonly string[]).includes(pathLocale)) {
+    const newPath = pathname.replace(new RegExp(`^/${pathLocale}`), '') || '/';
     const url = req.nextUrl.clone();
     url.pathname = newPath;
     const response = NextResponse.redirect(url);
-    response.cookies.set(COOKIE_NAME, 'fr', { path: '/', maxAge: 365 * 24 * 60 * 60 });
+    response.cookies.set(COOKIE_NAME, pathLocale, { path: '/', maxAge: 365 * 24 * 60 * 60 });
     return response;
   }
 

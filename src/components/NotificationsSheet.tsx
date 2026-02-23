@@ -10,17 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { AppNotification } from '@/types';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  return `${hours}h ago`;
-}
+import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
 
 const TYPE_META: Record<string, { icon: string; color: string }> = {
   emergency: { icon: '🆘', color: 'rgba(239,68,68,0.12)' },

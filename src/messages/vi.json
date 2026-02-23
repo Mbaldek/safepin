@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "submit": "Gửi",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "loading": "Đang tải…",
+    "back": "Quay lại",
+    "done": "Xong",
+    "search": "Tìm kiếm",
+    "or": "hoặc",
+    "signIn": "Đăng nhập",
+    "signOut": "Đăng xuất",
+    "comingSoon": "Sắp ra mắt"
+  },
+  "nav": {
+    "map": "Bản đồ",
+    "trip": "Chuyến đi",
+    "community": "Cộng đồng",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Đang thông báo cho người dùng gần đây…",
+    "locationShared": "Vị trí của bạn sẽ được chia sẻ",
+    "imSafe": "Tôi an toàn",
+    "alertActive": "Cảnh báo đang hoạt động",
+    "locationUpdating": "Đang cập nhật vị trí · đã thông báo cho người gần đây",
+    "resolved": "Cảnh báo đã được giải quyết — mừng vì bạn an toàn!",
+    "locationRequired": "Cần vị trí để gửi cảnh báo khẩn cấp",
+    "signInFirst": "Vui lòng đăng nhập trước",
+    "description": "CẢNH BÁO KHẨN CẤP — Tôi cần giúp đỡ",
+    "cancelCountdown": "HỦY",
+    "quickDial": "Gọi nhanh",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Công an",
+      "fire": "Cứu hỏa",
+      "eu": "EU"
+    }
+  }
+}

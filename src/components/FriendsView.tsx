@@ -22,18 +22,9 @@ type SearchResult = {
 };
 type FriendshipRow = { id: string; requester_id: string; addressee_id: string; status: string };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import { timeAgo } from '@/lib/utils';
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  const days = Math.floor(diff / 86_400_000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  if (days < 1) return `${hours}h`;
-  return `${days}d`;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function Avatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md' | 'lg' }) {
   const sz =

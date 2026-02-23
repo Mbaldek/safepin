@@ -18,21 +18,9 @@ import LiveViewer from './LiveViewer';
 import FlagReportModal from './FlagReportModal';
 import SosBroadcastPanel from './SosBroadcastPanel';
 import AudioCheckinButton from './AudioCheckinButton';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
 
 type VoteRow = { user_id: string; vote_type: string; created_at: string };
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (mins < 2) return 'just now';
-  if (hours < 1) return `${mins}min ago`;
-  if (days < 1) return `${hours}h ago`;
-  return `${days}d ago`;
-}
 
 function maxDateStr(votes: VoteRow[]): string {
   return votes.reduce((m, v) => (v.created_at > m ? v.created_at : m), votes[0].created_at);

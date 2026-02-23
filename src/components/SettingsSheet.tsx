@@ -12,8 +12,7 @@ import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User
 import { useRouter } from 'next/navigation';
 import { DEFAULT_NOTIF_SETTINGS, type Subscription, type Invoice } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
-
-const springTransition = { type: 'spring', damping: 32, stiffness: 320, mass: 0.8 } as const;
+import { springTransition } from '@/lib/utils';
 
 type Props = { onClose: () => void };
 
@@ -111,7 +110,38 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 
 type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin';
 
-const LOCALE_LABELS: Record<string, string> = { en: 'English', fr: 'Français' };
+const LOCALE_LABELS: Record<string, { native: string; flag: string }> = {
+  en: { native: 'English', flag: '🇬🇧' },
+  fr: { native: 'Français', flag: '🇫🇷' },
+  es: { native: 'Español', flag: '🇪🇸' },
+  zh: { native: '中文', flag: '🇨🇳' },
+  ar: { native: 'العربية', flag: '🇸🇦' },
+  hi: { native: 'हिन्दी', flag: '🇮🇳' },
+  pt: { native: 'Português', flag: '🇧🇷' },
+  bn: { native: 'বাংলা', flag: '🇧🇩' },
+  ru: { native: 'Русский', flag: '🇷🇺' },
+  ja: { native: '日本語', flag: '🇯🇵' },
+  de: { native: 'Deutsch', flag: '🇩🇪' },
+  ko: { native: '한국어', flag: '🇰🇷' },
+  it: { native: 'Italiano', flag: '🇮🇹' },
+  tr: { native: 'Türkçe', flag: '🇹🇷' },
+  vi: { native: 'Tiếng Việt', flag: '🇻🇳' },
+  pl: { native: 'Polski', flag: '🇵🇱' },
+  nl: { native: 'Nederlands', flag: '🇳🇱' },
+  th: { native: 'ไทย', flag: '🇹🇭' },
+  sv: { native: 'Svenska', flag: '🇸🇪' },
+  ro: { native: 'Română', flag: '🇷🇴' },
+  cs: { native: 'Čeština', flag: '🇨🇿' },
+  el: { native: 'Ελληνικά', flag: '🇬🇷' },
+  hu: { native: 'Magyar', flag: '🇭🇺' },
+  da: { native: 'Dansk', flag: '🇩🇰' },
+  fi: { native: 'Suomi', flag: '🇫🇮' },
+  no: { native: 'Norsk', flag: '🇳🇴' },
+  he: { native: 'עברית', flag: '🇮🇱' },
+  id: { native: 'Bahasa', flag: '🇮🇩' },
+  ms: { native: 'Melayu', flag: '🇲🇾' },
+  uk: { native: 'Українська', flag: '🇺🇦' },
+};
 
 export default function SettingsSheet({ onClose }: Props) {
   const { userId, userProfile, notifSettings, setNotifSettings, setActiveTab, setMyKovaInitialTab } = useStore();
@@ -128,6 +158,8 @@ export default function SettingsSheet({ onClose }: Props) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [billingLoading, setBillingLoading] = useState(false);
   const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
+  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
     if (section !== 'billing' || !userId) return;
@@ -274,29 +306,50 @@ export default function SettingsSheet({ onClose }: Props) {
 
           {/* ── Language picker ───────────────────────────────────────── */}
           <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <button
+              onClick={() => setLangOpen(!langOpen)}
+              className="flex items-center gap-3 px-4 py-3.5 w-full text-left"
+            >
               <Globe size={16} style={{ color: 'var(--accent)' }} />
               <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{t('language')}</span>
-              <div className="flex gap-1.5">
-                {(['en', 'fr'] as const).map((loc) => (
-                  <button
-                    key={loc}
-                    onClick={() => {
-                      document.cookie = `NEXT_LOCALE=${loc};path=/;max-age=31536000`;
-                      window.location.reload();
-                    }}
-                    className="px-3 py-1 rounded-full text-xs font-bold transition"
-                    style={
-                      locale === loc
-                        ? { backgroundColor: 'var(--accent)', color: '#fff' }
-                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                    }
-                  >
-                    {LOCALE_LABELS[loc]}
-                  </button>
-                ))}
+              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
+                {LOCALE_LABELS[locale]?.flag} {LOCALE_LABELS[locale]?.native ?? locale}
+              </span>
+              <ChevronRight size={14} className="transition" style={{ color: 'var(--text-muted)', transform: langOpen ? 'rotate(90deg)' : 'none' }} />
+            </button>
+            {langOpen && (
+              <div className="px-3 pb-3">
+                <input
+                  value={langSearch}
+                  onChange={(e) => setLangSearch(e.target.value)}
+                  placeholder="Search language…"
+                  className="w-full text-xs rounded-xl px-3 py-2 mb-2 outline-none"
+                  style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                />
+                <div className="grid grid-cols-2 gap-1.5 max-h-[240px] overflow-y-auto">
+                  {Object.entries(LOCALE_LABELS)
+                    .filter(([, v]) => !langSearch || v.native.toLowerCase().includes(langSearch.toLowerCase()))
+                    .map(([code, { native, flag }]) => (
+                    <button
+                      key={code}
+                      onClick={() => {
+                        document.cookie = `NEXT_LOCALE=${code};path=/;max-age=31536000`;
+                        window.location.reload();
+                      }}
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-bold transition text-left"
+                      style={
+                        locale === code
+                          ? { backgroundColor: 'var(--accent)', color: '#fff' }
+                          : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
+                      }
+                    >
+                      <span className="text-sm">{flag}</span>
+                      <span className="truncate">{native}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* ── Level 1 menu ─────────────────────────────────────────── */}
@@ -581,19 +634,19 @@ export default function SettingsSheet({ onClose }: Props) {
           <Section title="Legal & Conformity" icon={<FileText size={13} />}>
             <Row
               label="Privacy Policy"
-              onPress={() => toast('Privacy policy — coming soon')}
+              onPress={() => window.open('/privacy', '_blank')}
               chevron={false}
               value={<ExternalLink size={12} style={{ color: 'var(--text-muted)' }} /> as unknown as string}
             />
             <Row
               label="Terms of Service"
-              onPress={() => toast('Terms of service — coming soon')}
+              onPress={() => window.open('/terms', '_blank')}
               chevron={false}
               value={<ExternalLink size={12} style={{ color: 'var(--text-muted)' }} /> as unknown as string}
             />
             <Row
               label="Cookie Policy"
-              onPress={() => toast('Cookie policy — coming soon')}
+              onPress={() => window.open('/cookies', '_blank')}
               chevron={false}
               value={<ExternalLink size={12} style={{ color: 'var(--text-muted)' }} /> as unknown as string}
             />

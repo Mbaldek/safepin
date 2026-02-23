@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Sluiten",
+    "cancel": "Annuleren",
+    "submit": "Verzenden",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "loading": "Laden…",
+    "back": "Terug",
+    "done": "Klaar",
+    "search": "Zoeken",
+    "or": "of",
+    "signIn": "Inloggen",
+    "signOut": "Uitloggen",
+    "comingSoon": "Binnenkort beschikbaar"
+  },
+  "nav": {
+    "map": "Kaart",
+    "trip": "Reis",
+    "community": "Community",
+    "myKova": "Mijn KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Gebruikers in de buurt worden gewaarschuwd…",
+    "locationShared": "Je locatie wordt gedeeld",
+    "imSafe": "Ik ben veilig",
+    "alertActive": "Alarm actief",
+    "locationUpdating": "Locatie wordt bijgewerkt · mensen in de buurt zijn gewaarschuwd",
+    "resolved": "Alarm opgeheven — fijn dat je veilig bent!",
+    "locationRequired": "Locatie vereist voor noodalarm",
+    "signInFirst": "Log eerst in",
+    "description": "NOODALARM — Ik heb hulp nodig",
+    "cancelCountdown": "ANNULEREN",
+    "quickDial": "Snelkeuze",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Politie",
+      "fire": "Brandweer",
+      "eu": "EU"
+    }
+  }
+}

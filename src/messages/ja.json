@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "submit": "送信",
+    "save": "保存",
+    "delete": "削除",
+    "loading": "読み込み中…",
+    "back": "戻る",
+    "done": "完了",
+    "search": "検索",
+    "or": "または",
+    "signIn": "ログイン",
+    "signOut": "ログアウト",
+    "comingSoon": "近日公開"
+  },
+  "nav": {
+    "map": "マップ",
+    "trip": "トリップ",
+    "community": "コミュニティ",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "近くのユーザーに通知中…",
+    "locationShared": "あなたの位置情報が共有されます",
+    "imSafe": "安全です",
+    "alertActive": "アラート作動中",
+    "locationUpdating": "位置情報更新中 · 近くのユーザーに通知済み",
+    "resolved": "アラート解除 — ご無事で何よりです！",
+    "locationRequired": "緊急アラートには位置情報が必要です",
+    "signInFirst": "先にログインしてください",
+    "description": "緊急アラート — 助けが必要です",
+    "cancelCountdown": "キャンセル",
+    "quickDial": "クイックダイヤル",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "警察",
+      "fire": "消防",
+      "eu": "EU"
+    }
+  }
+}

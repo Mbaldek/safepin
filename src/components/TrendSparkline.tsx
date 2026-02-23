@@ -4,6 +4,7 @@
 
 import { useMemo } from 'react';
 import type { Pin } from '@/types';
+import { haversineMeters } from '@/lib/utils';
 
 type Props = {
   pins: Pin[];
@@ -103,12 +104,7 @@ export function computeTrend(
   const weekMs = 7 * 24 * 3_600_000;
 
   function nearby(p: Pin): boolean {
-    const R = 6_371_000;
-    const dLat = ((p.lat - center.lat) * Math.PI) / 180;
-    const dLng = ((p.lng - center.lng) * Math.PI) / 180;
-    const avgLat = ((p.lat + center.lat) / 2) * (Math.PI / 180);
-    const dist = R * Math.sqrt(dLat * dLat + (Math.cos(avgLat) * dLng) ** 2);
-    return dist <= radiusM;
+    return haversineMeters(center, { lat: p.lat, lng: p.lng }) <= radiusM;
   }
 
   let recent = 0;

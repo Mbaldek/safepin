@@ -1,0 +1,43 @@
+{
+  "common": {
+    "close": "Lukk",
+    "cancel": "Avbryt",
+    "submit": "Send inn",
+    "save": "Lagre",
+    "delete": "Slett",
+    "loading": "Laster…",
+    "back": "Tilbake",
+    "done": "Ferdig",
+    "search": "Søk",
+    "or": "eller",
+    "signIn": "Logg inn",
+    "signOut": "Logg ut",
+    "comingSoon": "Kommer snart"
+  },
+  "nav": {
+    "map": "Kart",
+    "trip": "Reise",
+    "community": "Fellesskap",
+    "myKova": "My KOVA"
+  },
+  "emergency": {
+    "button": "SOS",
+    "alerting": "Varsler brukere i nærheten…",
+    "locationShared": "Posisjonen din vil bli delt",
+    "imSafe": "Jeg er trygg",
+    "alertActive": "Varsel aktivt",
+    "locationUpdating": "Posisjon oppdateres · brukere i nærheten varslet",
+    "resolved": "Varsel avsluttet — godt du er trygg!",
+    "locationRequired": "Posisjon kreves for nødvarsel",
+    "signInFirst": "Logg inn først",
+    "description": "NØDVARSEL — Jeg trenger hjelp",
+    "cancelCountdown": "AVBRYT",
+    "quickDial": "Hurtigring",
+    "numbers": {
+      "samu": "SAMU",
+      "police": "Politi",
+      "fire": "Brannvesen",
+      "eu": "EU"
+    }
+  }
+}

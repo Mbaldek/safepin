@@ -7,18 +7,11 @@ import { motion } from 'framer-motion';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { MapPin, Navigation, X } from 'lucide-react';
+import { haversineMeters } from '@/lib/utils';
 
 const DISMISS_MS = 15_000;
 const LS_KEY = 'kova_last_session_ts';
 const NEARBY_RADIUS_M = 1000;
-
-function distM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6_371_000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const avgLat = ((a.lat + b.lat) / 2) * (Math.PI / 180);
-  return R * Math.sqrt(dLat * dLat + (Math.cos(avgLat) * dLng) ** 2);
-}
 
 type BriefingData = {
   newPins: number;
@@ -47,7 +40,7 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
 
     const recentPins = pins.filter((p) => {
       if (new Date(p.created_at) <= since) return false;
-      return distM(loc, { lat: p.lat, lng: p.lng }) <= NEARBY_RADIUS_M;
+      return haversineMeters(loc, { lat: p.lat, lng: p.lng }) <= NEARBY_RADIUS_M;
     });
 
     const activeSos = recentPins.find((p) => p.is_emergency && !p.resolved_at);
