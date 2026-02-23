@@ -1,8 +1,8 @@
-# KOVA — Product & Technical Report
+# Brume — Product & Technical Report
 
-## What is KOVA?
+## What is Brume?
 
-KOVA is a **women's safety mapping platform** — a progressive web app where users collectively map, report, and navigate around real-world safety incidents. Think of it as a community-powered safety radar: users drop geo-located pins for incidents they witness (harassment, stalking, aggression, poorly lit areas), the community confirms or clears them, and everyone benefits from a living, real-time danger map.
+Brume is a **women's safety mapping platform** — a progressive web app where users collectively map, report, and navigate around real-world safety incidents. Think of it as a community-powered safety radar: users drop geo-located pins for incidents they witness (harassment, stalking, aggression, poorly lit areas), the community confirms or clears them, and everyone benefits from a living, real-time danger map.
 
 The name stands for a shield — the app's core promise is to help women move through cities with more awareness, faster emergency response, and a trusted network at their fingertips.
 
@@ -37,7 +37,7 @@ The name stands for a shield — the app's core promise is to help women move th
 - Enter departure/destination, choose transport mode (walk, bike, drive, transit)
 - OSRM routing engine returns up to 3 alternatives
 - Each route scored for danger based on proximity to active pins
-- **Automatic rerouting**: if the safest route passes a danger pin, KOVA computes a bypass waypoint 380m away and re-queries a detour (accepted only if danger improves and duration penalty ≤ 50%)
+- **Automatic rerouting**: if the safest route passes a danger pin, Brume computes a bypass waypoint 380m away and re-queries a detour (accepted only if danger improves and duration penalty ≤ 50%)
 - Route labels: Safest (green), Balanced (amber), Fastest (blue)
 - Active trip mode with countdown timer and "I'm Safe" confirmation
 - "Plan for tonight" toggle weights scoring by night-time pins only
@@ -100,12 +100,12 @@ The name stands for a shield — the app's core promise is to help women move th
 ## Logic & Strategy
 
 ### Why Community Validation Matters
-Traditional safety apps rely on official data (police reports, city statistics) — which is delayed, incomplete, and often underreports the kinds of incidents women face. KOVA inverts this: the community **is** the sensor network. Every user is a potential reporter, and every confirmation or clearing vote improves data quality in real-time.
+Traditional safety apps rely on official data (police reports, city statistics) — which is delayed, incomplete, and often underreports the kinds of incidents women face. Brume inverts this: the community **is** the sensor network. Every user is a potential reporter, and every confirmation or clearing vote improves data quality in real-time.
 
 The **3-vote clearing system** prevents stale data from lingering. The **confirmation timer reset** keeps genuinely active incidents visible. This creates a self-correcting map that reflects ground truth within minutes, not days.
 
 ### Danger-Aware Routing
-Rather than just showing the fastest path, KOVA scores every route segment against nearby active pins. The rerouting algorithm:
+Rather than just showing the fastest path, Brume scores every route segment against nearby active pins. The rerouting algorithm:
 
 1. Score all OSRM alternatives by proximity to danger pins
 2. If the best route still has danger, find the closest danger pin to the route
@@ -113,10 +113,10 @@ Rather than just showing the fastest path, KOVA scores every route segment again
 4. Re-query OSRM through the bypass
 5. Accept only if danger score improves AND duration penalty ≤ 50%
 
-This means KOVA can suggest "walk 3 extra minutes to avoid the dark underpass" — a trade-off most users would gladly make.
+This means Brume can suggest "walk 3 extra minutes to avoid the dark underpass" — a trade-off most users would gladly make.
 
 ### Time-Aware Safety
-Safety is not static — a park that's safe at noon can be dangerous at 10pm. KOVA's time-of-day filtering (morning/afternoon/evening/night) and the "Plan for tonight" toggle let users see the map as it would be at night, not as it is now. The neighborhood score layer also accepts a time bracket, so safety scores shift with the clock.
+Safety is not static — a park that's safe at noon can be dangerous at 10pm. Brume's time-of-day filtering (morning/afternoon/evening/night) and the "Plan for tonight" toggle let users see the map as it would be at night, not as it is now. The neighborhood score layer also accepts a time bracket, so safety scores shift with the clock.
 
 ### Emergency Dispatch Chain
 The SOS flow is designed for panic situations where every second counts:
@@ -128,14 +128,14 @@ The SOS flow is designed for panic situations where every second counts:
 - **Safe spaces auto-show** gives you an immediate "where can I go" answer
 
 ### Offline Resilience
-In the moments when safety matters most (underground metro, poor signal areas), KOVA continues working:
+In the moments when safety matters most (underground metro, poor signal areas), Brume continues working:
 - Reports are queued in IndexedDB when offline
 - Background Sync API flushes the queue when connectivity returns
 - Service worker caches the app shell for instant load
 - Offline banner shows pending report count
 
 ### Internationalization Strategy
-KOVA launched with French (Paris-first) and English. The `next-intl` setup with middleware-based locale detection means:
+Brume launched with French (Paris-first) and English. The `next-intl` setup with middleware-based locale detection means:
 - URL structure stays clean (no `/en/` prefix for default locale)
 - Emergency numbers are locale-aware (French: 15/17/18/112)
 - All 500+ UI strings are externalized in structured JSON

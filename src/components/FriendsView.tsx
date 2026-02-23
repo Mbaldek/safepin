@@ -249,9 +249,9 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
 
   async function shareInvite() {
     const url = typeof window !== 'undefined' ? window.location.origin : 'https://kovaapp.io';
-    const text = `Join me on KOVA — a community safety app. ${url}`;
+    const text = `Join me on Brume — a community safety app. ${url}`;
     if (navigator.share) {
-      await navigator.share({ title: 'KOVA', text, url }).catch(() => {});
+      await navigator.share({ title: 'Brume', text, url }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(text);
       toast.success('Invite link copied!');
@@ -391,7 +391,7 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
             <button onClick={shareInvite}
               className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition"
               style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-              🔗 Invite a friend to KOVA
+              🔗 Invite a friend to Brume
             </button>
 
             {/* Results */}

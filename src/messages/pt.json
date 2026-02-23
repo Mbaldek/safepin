@@ -18,7 +18,7 @@
     "map": "Mapa",
     "trip": "Viagem",
     "community": "Comunidade",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Receba notificações quando algo acontecer por perto",
     "featureVerified": "Identidade verificada",
     "featureVerifiedDesc": "Construa confiança com perfis verificados e badges",
-    "quote": "KOVA me deu confiança para caminhar à noite. Saber que minha comunidade está comigo muda tudo.",
-    "quoteAuthor": "— Usuária KOVA, Paris",
+    "quote": "Brume me deu confiança para caminhar à noite. Saber que minha comunidade está comigo muda tudo.",
+    "quoteAuthor": "— Usuária Brume, Paris",
     "privacyPolicy": "Política de Privacidade",
     "termsOfService": "Termos de Serviço",
     "cookiePolicy": "Política de Cookies",

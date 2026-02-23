@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const result = await sendPushNotifications({
-      title: body.title ?? '🆘 KOVA — Emergency nearby',
+      title: body.title ?? '🆘 Brume — Emergency nearby',
       body:  body.body  ?? 'Someone needs help in your area',
     });
     return NextResponse.json(result);

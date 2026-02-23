@@ -18,7 +18,7 @@
     "map": "Kaart",
     "trip": "Reis",
     "community": "Community",
-    "myKova": "Mijn KOVA"
+    "myKova": "Mijn Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Ontvang meldingen als er iets in de buurt gebeurt",
     "featureVerified": "Geverifieerde identiteit",
     "featureVerifiedDesc": "Bouw vertrouwen met geverifieerde profielen en badges",
-    "quote": "KOVA gaf me het vertrouwen om 's nachts naar huis te lopen. Weten dat mijn gemeenschap achter me staat verandert alles.",
-    "quoteAuthor": "— KOVA-gebruiker, Parijs",
+    "quote": "Brume gaf me het vertrouwen om 's nachts naar huis te lopen. Weten dat mijn gemeenschap achter me staat verandert alles.",
+    "quoteAuthor": "— Brume-gebruiker, Parijs",
     "privacyPolicy": "Privacybeleid",
     "termsOfService": "Servicevoorwaarden",
     "cookiePolicy": "Cookiebeleid",

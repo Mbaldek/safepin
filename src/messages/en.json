@@ -18,7 +18,7 @@
     "map": "Map",
     "trip": "Trip",
     "community": "Community",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -204,7 +204,7 @@
     "markAllRead": "Mark all read"
   },
   "mykova": {
-    "title": "My KOVA",
+    "title": "My Brume",
     "feed": "Feed",
     "favorites": "Favorites",
     "profile": "Profile",
@@ -304,7 +304,7 @@
     "arrival": "Arrives {time}"
   },
   "engagement": {
-    "welcome": "Welcome to KOVA!",
+    "welcome": "Welcome to Brume!",
     "welcomeDesc": "Start exploring safety reports in your area",
     "verifyPrompt": "Verify your identity to unlock full trust",
     "verifyBonus": "Verified users get 2x trust score",
@@ -315,7 +315,7 @@
     "newReportsNearby": "Your neighborhood has {count} new reports"
   },
   "install": {
-    "addToHome": "Add KOVA to home screen",
+    "addToHome": "Add Brume to home screen",
     "quickAccess": "Quick access, offline support",
     "install": "Install"
   },
@@ -358,8 +358,8 @@
     "featureAlertsDesc": "Get notified when something happens near you",
     "featureVerified": "Verified Identity",
     "featureVerifiedDesc": "Build trust with verified profiles & expertise badges",
-    "quote": "KOVA gave me the confidence to walk home at night. Knowing my community has my back changes everything.",
-    "quoteAuthor": "— KOVA user, Paris",
+    "quote": "Brume gave me the confidence to walk home at night. Knowing my community has my back changes everything.",
+    "quoteAuthor": "— Brume user, Paris",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
     "cookiePolicy": "Cookie Policy",

@@ -1,4 +1,4 @@
-// src/lib/streaks.ts — Daily streak tracking + engagement event logging for KOVA
+// src/lib/streaks.ts — Daily streak tracking + engagement event logging for Brume
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 

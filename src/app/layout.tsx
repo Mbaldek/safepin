@@ -8,7 +8,7 @@ import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'KOVA',
+  title: 'Brume',
   description: 'A safer world, mapped by women — for women.',
   manifest: '/manifest.json',
   icons: {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'KOVA',
+    title: 'Brume',
   },
 };
 

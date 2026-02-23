@@ -1,4 +1,4 @@
-// src/components/MyKovaView.tsx — Unified "My KOVA" hub (Feed + Favorites + Stats + Profile)
+// src/components/MyKovaView.tsx — Unified "My Brume" hub (Feed + Favorites + Stats + Profile)
 
 'use client';
 

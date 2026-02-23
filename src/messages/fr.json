@@ -18,7 +18,7 @@
     "map": "Carte",
     "trip": "Trajet",
     "community": "Communauté",
-    "myKova": "Mon KOVA"
+    "myKova": "Mon Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -204,7 +204,7 @@
     "markAllRead": "Tout marquer comme lu"
   },
   "mykova": {
-    "title": "Mon KOVA",
+    "title": "Mon Brume",
     "feed": "Fil",
     "favorites": "Favoris",
     "profile": "Profil",
@@ -304,7 +304,7 @@
     "arrival": "Arrivée {time}"
   },
   "engagement": {
-    "welcome": "Bienvenue sur KOVA !",
+    "welcome": "Bienvenue sur Brume !",
     "welcomeDesc": "Explorez les signalements de sécurité dans votre zone",
     "verifyPrompt": "Vérifiez votre identité pour débloquer la confiance",
     "verifyBonus": "Les utilisateurs vérifiés obtiennent 2x le score de confiance",
@@ -315,7 +315,7 @@
     "newReportsNearby": "Votre quartier a {count} nouveaux signalements"
   },
   "install": {
-    "addToHome": "Ajouter KOVA à l'écran d'accueil",
+    "addToHome": "Ajouter Brume à l'écran d'accueil",
     "quickAccess": "Accès rapide, support hors ligne",
     "install": "Installer"
   },
@@ -358,8 +358,8 @@
     "featureAlertsDesc": "Soyez notifié quand quelque chose se passe près de vous",
     "featureVerified": "Identité vérifiée",
     "featureVerifiedDesc": "Renforcez la confiance avec des profils vérifiés et des badges d'expertise",
-    "quote": "KOVA m'a donné la confiance de rentrer chez moi à pied le soir. Savoir que ma communauté veille sur moi change tout.",
-    "quoteAuthor": "— Utilisatrice KOVA, Paris",
+    "quote": "Brume m'a donné la confiance de rentrer chez moi à pied le soir. Savoir que ma communauté veille sur moi change tout.",
+    "quoteAuthor": "— Utilisatrice Brume, Paris",
     "privacyPolicy": "Politique de confidentialité",
     "termsOfService": "Conditions d'utilisation",
     "cookiePolicy": "Politique des cookies",

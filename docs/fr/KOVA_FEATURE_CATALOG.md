@@ -1,6 +1,6 @@
-# KOVA -- Catalogue des fonctionnalites
+# Brume -- Catalogue des fonctionnalites
 
-Reference complete de chaque fonctionnalite de la plateforme de securite KOVA.
+Reference complete de chaque fonctionnalite de la plateforme de securite Brume.
 
 ---
 
@@ -17,7 +17,7 @@ Reference complete de chaque fonctionnalite de la plateforme de securite KOVA.
 9. [Liste des incidents](#9-liste-des-incidents)
 10. [Systeme communautaire](#10-systeme-communautaire)
 11. [Amis et messages directs](#11-amis-et-messages-directs)
-12. [Mon espace KOVA](#12-mon-espace-kova)
+12. [Mon espace Brume](#12-mon-espace-kova)
 13. [Systeme de niveaux de confiance](#13-systeme-de-niveaux-de-confiance)
 14. [Badges d'expertise](#14-badges-dexpertise)
 15. [Jalons](#15-jalons)
@@ -46,7 +46,7 @@ Reference complete de chaque fonctionnalite de la plateforme de securite KOVA.
 **Composant :** `MapView.tsx`
 **Emplacement :** Page principale de la carte -- toujours visible derriere toutes les bottom sheets
 
-La carte interactive plein ecran Mapbox GL JS est le coeur de KOVA. Elle affiche simultanement plusieurs couches de donnees et constitue l'interface principale pour la sensibilisation spatiale a la securite.
+La carte interactive plein ecran Mapbox GL JS est le coeur de Brume. Elle affiche simultanement plusieurs couches de donnees et constitue l'interface principale pour la sensibilisation spatiale a la securite.
 
 ### Couches de la carte (activables via le LayerPanel)
 
@@ -163,7 +163,7 @@ Lorsqu'aucune connexion reseau n'est detectee :
 | **Confirmer** | Voter que l'incident est reel -- incremente `votes_confirm`, prolonge la duree de vie du signalement |
 | **Infirmer** | Voter que l'incident n'est plus d'actualite -- incremente `votes_deny`. A 3 infirmations, le signalement est automatiquement resolu |
 | **Remercier** | Envoyer de la gratitude au signaleur -- bouton coeur rose, incremente `thanks_received` du signaleur |
-| **Suivre** | Ajouter ce signalement aux favoris pour recevoir les mises a jour -- sauvegarde dans localStorage, apparait dans le fil Mon KOVA |
+| **Suivre** | Ajouter ce signalement aux favoris pour recevoir les mises a jour -- sauvegarde dans localStorage, apparait dans le fil Mon Brume |
 | **Partager** | Partager via l'API Web Share native |
 | **Commenter** | Ajouter un commentaire textuel -- discussion en temps reel sur le signalement via Supabase Realtime |
 | **Passer en direct** | Lancer une diffusion video/audio LiveKit depuis cet emplacement |
@@ -327,7 +327,7 @@ waiting -> active -> completed / cancelled
 ### Itineraires sauvegardes
 
 - Mettre en favori n'importe quel itineraire dans la table `saved_routes`
-- Les itineraires sauvegardes apparaissent dans l'onglet Favoris de Mon KOVA
+- Les itineraires sauvegardes apparaissent dans l'onglet Favoris de Mon Brume
 - Les itineraires sauvegardes sont surveilles pour les nouveaux incidents le long du trajet
 
 ---
@@ -447,10 +447,10 @@ Voir [Amis et messages directs](#11-amis-et-messages-directs) ci-dessous.
 
 ---
 
-## 12. Mon espace KOVA
+## 12. Mon espace Brume
 
 **Composant :** `MyKovaView.tsx`
-**Acces :** Onglet Mon KOVA dans la navigation inferieure
+**Acces :** Onglet Mon Brume dans la navigation inferieure
 
 ### Quatre sous-onglets
 
@@ -606,7 +606,7 @@ Les badges se mettent a jour automatiquement en fonction de l'activite de l'util
 ## 16. Defis hebdomadaires
 
 **Composant :** `ChallengesSection.tsx`
-**Emplacement :** Mon KOVA -> onglet Statistiques
+**Emplacement :** Mon Brume -> onglet Statistiques
 
 ### Defis hebdomadaires par defaut
 
@@ -631,14 +631,14 @@ Les badges se mettent a jour automatiquement en fonction de l'activite de l'util
 ## 17. Systeme de parrainage
 
 **Composant :** `ReferralSection.tsx`
-**Emplacement :** Mon KOVA -> onglet Statistiques
+**Emplacement :** Mon Brume -> onglet Statistiques
 
 ### Fonctionnement
 
-1. A la premiere consultation, un code unique est genere automatiquement : `KOVA-XXXXX` (5 caracteres alphanumeriques aleatoires)
+1. A la premiere consultation, un code unique est genere automatiquement : `Brume-XXXXX` (5 caracteres alphanumeriques aleatoires)
 2. Le code est stocke dans `profiles.referral_code`
 3. L'utilisateur peut **copier le code** dans le presse-papiers ou le **partager** via l'API Web Share native
-4. Format de l'URL de partage : `safepin-pearl.vercel.app/login?ref=KOVA-XXXXX`
+4. Format de l'URL de partage : `safepin-pearl.vercel.app/login?ref=Brume-XXXXX`
 5. Le nombre de parrainages est suivi dans `profiles.referral_count` et affiche
 
 ### Interface
@@ -736,7 +736,7 @@ Les itineraires publics affichent un badge de votes positifs :
 ## 21. Cercle de confiance
 
 **Composant :** `TrustedCircleSection.tsx`
-**Emplacement :** Mon KOVA -> onglet Statistiques
+**Emplacement :** Mon Brume -> onglet Statistiques
 
 ### Fonctionnalites
 
@@ -758,7 +758,7 @@ Les itineraires publics affichent un badge de votes positifs :
 ## 22. Notes de lieu
 
 **Composants :** `PlaceNoteSheet.tsx`, `PlaceNotePopup.tsx`
-**Emplacement :** Couche de la carte + Favoris Mon KOVA
+**Emplacement :** Couche de la carte + Favoris Mon Brume
 
 ### Creer une note de lieu
 
@@ -975,7 +975,7 @@ Le bouton "Gerer l'abonnement" dans les Parametres ouvre le portail client Strip
 | Couche Historique de position | Carte de securite |
 | Couche Scores de quartier | Carte de securite |
 | Jumelage de compagnons de securite | Compagnon de securite |
-| Visualiseur d'historique de position | Profil Mon KOVA |
+| Visualiseur d'historique de position | Profil Mon Brume |
 
 ---
 
@@ -1065,7 +1065,7 @@ Le bouton "Gerer l'abonnement" dans les Parametres ouvre le portail client Strip
 | `trip` | Planificateur d'itineraire et trajet actif |
 | `settings` | Page des parametres |
 | `notifications` | Types et messages de notification |
-| `mykova` | Espace Mon KOVA |
+| `mykova` | Espace Mon Brume |
 | `community` | Communaute, groupes, quartiers |
 | `offline` | Messages du mode hors-ligne |
 | `moderation` | Signalement et moderation |
@@ -1247,7 +1247,7 @@ Page d'accueil complete repensee, servant a la fois de page marketing et de poin
 
 #### Barre de navigation
 
-- Logo et nom de marque KOVA
+- Logo et nom de marque Brume
 - Liens de navigation
 
 #### Section hero
@@ -1375,6 +1375,6 @@ Interface a onglets avec 3 onglets :
 
 ---
 
-*KOVA -- Securite urbaine portee par la communaute.*
+*Brume -- Securite urbaine portee par la communaute.*
 *Societe : DBEK, Paris, France*
 *Contact : kovaapp@pm.me*

@@ -1,4 +1,4 @@
-// public/sw.js — KOVA service worker with offline support
+// public/sw.js — Brume service worker with offline support
 
 const CACHE_NAME = 'kova-v1';
 const STATIC_ASSETS = [
@@ -194,7 +194,7 @@ async function syncPendingPins() {
   if (synced > 0) {
     const allClients = await clients.matchAll({ type: 'window' });
     for (const client of allClients) {
-      client.postMessage({ type: 'KOVA_SYNC_COMPLETE', synced });
+      client.postMessage({ type: 'BRUME_SYNC_COMPLETE', synced });
     }
   }
 }
@@ -210,7 +210,7 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
   event.waitUntil(
-    self.registration.showNotification(data.title || '🆘 KOVA Alert', {
+    self.registration.showNotification(data.title || '🆘 Brume Alert', {
       body: data.body || 'Emergency alert in your area',
       icon: '/icon-192.png',
       badge: '/icon-192.png',

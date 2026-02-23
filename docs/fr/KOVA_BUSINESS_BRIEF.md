@@ -1,4 +1,4 @@
-# KOVA — Dossier de Présentation
+# Brume — Dossier de Présentation
 
 **Entreprise :** DBEK
 **Siège social :** 75 rue de Lourmel, 75015 Paris, France
@@ -21,7 +21,7 @@ Les femmes se déplacent en ville sans information exploitable sur leur sécurit
 
 ## 2. Solution
 
-KOVA est une **plateforme communautaire de sécurité urbaine** — une carte de sécurité vivante, alimentée par sa communauté.
+Brume est une **plateforme communautaire de sécurité urbaine** — une carte de sécurité vivante, alimentée par sa communauté.
 
 ### Boucle principale
 
@@ -31,7 +31,7 @@ Vous voyez quelque chose → Signalez (30 secondes) → Apparaît sur la carte i
 automatiquement, les alertes se déclenchent, les scores de sécurité se mettent à jour
 ```
 
-KOVA transforme des témoins passifs en un réseau de sécurité actif. Chaque signalement enrichit la carte, chaque vote affine la précision, et chaque utilisatrice profite de l'intelligence collective de la communauté.
+Brume transforme des témoins passifs en un réseau de sécurité actif. Chaque signalement enrichit la carte, chaque vote affine la précision, et chaque utilisatrice profite de l'intelligence collective de la communauté.
 
 ---
 
@@ -68,7 +68,7 @@ Toutes les fonctionnalités essentielles, sans frais :
 - Défis hebdomadaires
 - Système de parrainage
 
-### KOVA Pro
+### Brume Pro
 
 | Formule | Tarif |
 |---------|-------|
@@ -103,7 +103,7 @@ Propulsés par **Stripe** :
 
 ### Parrainage viral
 
-Chaque utilisatrice reçoit un code de parrainage unique (`KOVA-XXXXX`). Le partage stimule l'acquisition organique grâce à des incitations intégrées.
+Chaque utilisatrice reçoit un code de parrainage unique (`Brume-XXXXX`). Le partage stimule l'acquisition organique grâce à des incitations intégrées.
 
 ### Ludification
 
@@ -137,16 +137,16 @@ Mécanismes d'engagement supplémentaires :
 
 ## 6. Paysage concurrentiel
 
-| Concurrent | Catégorie | Différenciation KOVA |
+| Concurrent | Catégorie | Différenciation Brume |
 |------------|-----------|----------------------|
-| bSafe | Sécurité personnelle | KOVA ajoute l'intelligence communautaire et la carte en direct |
-| Noonlight | Dispatch d'urgence | KOVA est proactif, pas seulement réactif |
-| Citizen | Alertes d'incidents | KOVA est centré sur les femmes avec une communauté de confiance |
-| Life360 | Suivi familial | KOVA ajoute le signalement d'incidents et la planification d'itinéraires |
-| Google Maps | Navigation | KOVA superpose des données de sécurité en temps réel sur les itinéraires |
-| Waze | Navigation communautaire | KOVA se concentre sur la sécurité personnelle, pas sur le trafic |
+| bSafe | Sécurité personnelle | Brume ajoute l'intelligence communautaire et la carte en direct |
+| Noonlight | Dispatch d'urgence | Brume est proactif, pas seulement réactif |
+| Citizen | Alertes d'incidents | Brume est centré sur les femmes avec une communauté de confiance |
+| Life360 | Suivi familial | Brume ajoute le signalement d'incidents et la planification d'itinéraires |
+| Google Maps | Navigation | Brume superpose des données de sécurité en temps réel sur les itinéraires |
+| Waze | Navigation communautaire | Brume se concentre sur la sécurité personnelle, pas sur le trafic |
 
-**KOVA est la seule solution à combiner** intelligence communautaire + sécurité personnelle + engagement social dans une seule PWA.
+**Brume est la seule solution à combiner** intelligence communautaire + sécurité personnelle + engagement social dans une seule PWA.
 
 ---
 
@@ -173,7 +173,7 @@ Mécanismes d'engagement supplémentaires :
 
 ## 8. Méthodes d'authentification
 
-KOVA prend en charge quatre méthodes d'authentification :
+Brume prend en charge quatre méthodes d'authentification :
 
 1. **Google OAuth**
 2. **Apple Sign-In**
@@ -226,7 +226,7 @@ La page d'accueil a été repensée avec :
 | 11 | Amis et messages directs | Connectez-vous avec des contacts de confiance et échangez en privé |
 | 12 | Niveaux de confiance | Progressez à travers les niveaux Watcher, Reporter, Guardian, Sentinel |
 | 13 | Défis hebdomadaires | Missions d'engagement ludiques renouvelées chaque semaine |
-| 14 | Système de parrainage | Codes uniques KOVA-XXXXX pour la croissance virale |
+| 14 | Système de parrainage | Codes uniques Brume-XXXXX pour la croissance virale |
 | 15 | Diffusion SOS | Diffusez des alertes SOS aux utilisatrices à proximité |
 | 16 | Safety Buddy (Pro) | Accompagnement virtuel dédié avec fonctionnalités enrichies |
 | 17 | Jalons | Suivi des accomplissements et récompenses |
@@ -271,4 +271,4 @@ La page d'accueil a été repensée avec :
 
 ---
 
-*KOVA par DBEK — Un monde plus sûr, cartographié par les femmes, pour les femmes.*
+*Brume par DBEK — Un monde plus sûr, cartographié par les femmes, pour les femmes.*

@@ -18,7 +18,7 @@
     "map": "Hartă",
     "trip": "Traseu",
     "community": "Comunitate",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Primește notificări când se întâmplă ceva în apropiere",
     "featureVerified": "Identitate verificată",
     "featureVerifiedDesc": "Construiește încredere cu profiluri verificate și insigne",
-    "quote": "KOVA mi-a dat încrederea să merg acasă pe jos noaptea. Să știu că comunitatea mea mă protejează schimbă totul.",
-    "quoteAuthor": "— Utilizatoare KOVA, Paris",
+    "quote": "Brume mi-a dat încrederea să merg acasă pe jos noaptea. Să știu că comunitatea mea mă protejează schimbă totul.",
+    "quoteAuthor": "— Utilizatoare Brume, Paris",
     "privacyPolicy": "Politica de confidențialitate",
     "termsOfService": "Termeni și condiții",
     "cookiePolicy": "Politica de cookie-uri",

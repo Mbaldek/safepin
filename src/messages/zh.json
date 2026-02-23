@@ -18,7 +18,7 @@
     "map": "地图",
     "trip": "出行",
     "community": "社区",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "附近发生事件时收到通知",
     "featureVerified": "身份认证",
     "featureVerifiedDesc": "通过认证档案和徽章建立信任",
-    "quote": "KOVA让我有信心在夜晚步行回家。知道社区在守护我，一切都不同了。",
-    "quoteAuthor": "—— KOVA 用户，巴黎",
+    "quote": "Brume让我有信心在夜晚步行回家。知道社区在守护我，一切都不同了。",
+    "quoteAuthor": "—— Brume 用户，巴黎",
     "privacyPolicy": "隐私政策",
     "termsOfService": "服务条款",
     "cookiePolicy": "Cookie 政策",

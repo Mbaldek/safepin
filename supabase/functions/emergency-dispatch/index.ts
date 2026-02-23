@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
       for (const profile of profiles ?? []) {
         if (!profile.phone) continue;
         try {
-          const smsBody = `🆘 KOVA Emergency: ${display_name ?? "A trusted contact"} needs help! Track: ${trackUrl}`;
+          const smsBody = `🆘 Brume Emergency: ${display_name ?? "A trusted contact"} needs help! Track: ${trackUrl}`;
           await fetch(
             `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
             {

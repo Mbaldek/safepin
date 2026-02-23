@@ -1,10 +1,10 @@
-// src/app/cookies/page.tsx — KOVA Cookie Policy
+// src/app/cookies/page.tsx — Brume Cookie Policy
 
 export default function CookiesPage() {
   return (
     <div style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100dvh' }}>
       <div className="max-w-2xl mx-auto px-5 py-10">
-        <a href="/login" className="text-xs font-bold mb-6 inline-block" style={{ color: 'var(--accent)' }}>&larr; Back to KOVA</a>
+        <a href="/login" className="text-xs font-bold mb-6 inline-block" style={{ color: 'var(--accent)' }}>&larr; Back to Brume</a>
 
         <h1 className="text-2xl font-extrabold mb-1">Cookie Policy</h1>
         <p className="text-xs mb-8" style={{ color: 'var(--text-muted)' }}>Last updated: February 2026</p>
@@ -15,7 +15,7 @@ export default function CookiesPage() {
             <p>
               Cookies are small text files stored on your device when you visit a website.
               They help the site remember your preferences and improve your experience.
-              KOVA uses minimal cookies — only what is strictly necessary to operate the Service.
+              Brume uses minimal cookies — only what is strictly necessary to operate the Service.
             </p>
           </section>
 
@@ -58,7 +58,7 @@ export default function CookiesPage() {
           <section>
             <h2 className="text-base font-black mb-2">3. Local Storage</h2>
             <p className="mb-2">
-              In addition to cookies, KOVA uses browser local storage for app functionality:
+              In addition to cookies, Brume uses browser local storage for app functionality:
             </p>
             <ul className="list-disc ml-5 space-y-1">
               <li><strong>kova_active_trip:</strong> Persists active trip navigation state.</li>
@@ -71,7 +71,7 @@ export default function CookiesPage() {
           <section>
             <h2 className="text-base font-black mb-2">4. Third-Party Cookies</h2>
             <p>
-              KOVA does <strong>not</strong> use any third-party tracking, analytics, or advertising cookies.
+              Brume does <strong>not</strong> use any third-party tracking, analytics, or advertising cookies.
               We do not use Google Analytics, Facebook Pixel, or any similar tracking tools.
               The only third-party services that may set cookies are:
             </p>
@@ -84,7 +84,7 @@ export default function CookiesPage() {
           <section>
             <h2 className="text-base font-black mb-2">5. Managing Cookies</h2>
             <p>
-              Since KOVA only uses essential and functional cookies, we do not display a cookie consent banner.
+              Since Brume only uses essential and functional cookies, we do not display a cookie consent banner.
               Under the ePrivacy Directive, consent is not required for cookies strictly necessary to provide the Service.
             </p>
             <p className="mt-2">
@@ -111,7 +111,7 @@ export default function CookiesPage() {
         </div>
 
         <div className="mt-10 pt-6 text-center text-[0.6rem]" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-placeholder)' }}>
-          &copy; {new Date().getFullYear()} KOVA by DBEK. All rights reserved.
+          &copy; {new Date().getFullYear()} Brume by DBEK. All rights reserved.
         </div>
       </div>
     </div>

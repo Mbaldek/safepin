@@ -1,4 +1,4 @@
-# KOVA — Technical Architecture Guide
+# Brume — Technical Architecture Guide
 
 ## 1. Project Structure
 

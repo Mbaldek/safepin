@@ -18,7 +18,7 @@
     "map": "マップ",
     "trip": "トリップ",
     "community": "コミュニティ",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "近くで何かあった時に通知を受け取る",
     "featureVerified": "認証済みID",
     "featureVerifiedDesc": "認証プロフィールと専門バッジで信頼を構築",
-    "quote": "KOVAのおかげで夜に歩いて帰る自信がつきました。コミュニティが見守ってくれていると知るだけで全てが変わります。",
-    "quoteAuthor": "— KOVAユーザー、パリ",
+    "quote": "Brumeのおかげで夜に歩いて帰る自信がつきました。コミュニティが見守ってくれていると知るだけで全てが変わります。",
+    "quoteAuthor": "— Brumeユーザー、パリ",
     "privacyPolicy": "プライバシーポリシー",
     "termsOfService": "利用規約",
     "cookiePolicy": "Cookieポリシー",

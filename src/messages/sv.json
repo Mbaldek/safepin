@@ -18,7 +18,7 @@
     "map": "Karta",
     "trip": "Resa",
     "community": "Gemenskap",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Bli meddelad när något händer nära dig",
     "featureVerified": "Verifierad identitet",
     "featureVerifiedDesc": "Bygg förtroende med verifierade profiler och märken",
-    "quote": "KOVA gav mig modet att gå hem på natten. Att veta att mitt samhälle har min rygg förändrar allt.",
-    "quoteAuthor": "— KOVA-användare, Paris",
+    "quote": "Brume gav mig modet att gå hem på natten. Att veta att mitt samhälle har min rygg förändrar allt.",
+    "quoteAuthor": "— Brume-användare, Paris",
     "privacyPolicy": "Integritetspolicy",
     "termsOfService": "Användarvillkor",
     "cookiePolicy": "Cookiepolicy",

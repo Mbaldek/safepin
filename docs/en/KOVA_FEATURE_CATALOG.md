@@ -1,6 +1,6 @@
-# KOVA -- Feature Catalog
+# Brume -- Feature Catalog
 
-Complete reference for every feature in the KOVA safety platform.
+Complete reference for every feature in the Brume safety platform.
 
 ---
 
@@ -17,7 +17,7 @@ Complete reference for every feature in the KOVA safety platform.
 9. [Incidents List](#9-incidents-list)
 10. [Community System](#10-community-system)
 11. [Friends & Direct Messages](#11-friends--direct-messages)
-12. [My KOVA Hub](#12-my-kova-hub)
+12. [My Brume Hub](#12-my-kova-hub)
 13. [Trust Level System](#13-trust-level-system)
 14. [Expertise Tags](#14-expertise-tags)
 15. [Milestones](#15-milestones)
@@ -46,7 +46,7 @@ Complete reference for every feature in the KOVA safety platform.
 **Component:** `MapView.tsx`
 **Location:** Main map page -- always visible behind all bottom sheets
 
-The full-screen interactive Mapbox GL JS map is the heart of KOVA. It renders multiple data layers simultaneously and serves as the primary interface for spatial safety awareness.
+The full-screen interactive Mapbox GL JS map is the heart of Brume. It renders multiple data layers simultaneously and serves as the primary interface for spatial safety awareness.
 
 ### Map Layers (toggleable via LayerPanel)
 
@@ -163,7 +163,7 @@ When no network connectivity is detected:
 | **Confirm** | Vote that the incident is real -- increments `votes_confirm`, extends pin lifetime |
 | **Deny** | Vote that the incident is cleared -- increments `votes_deny`. At 3 denies, pin auto-resolves |
 | **Thank** | Send gratitude to the reporter -- pink heart button, increments reporter's `thanks_received` |
-| **Follow** | Bookmark this pin for updates -- saved to localStorage, appears in My KOVA Feed |
+| **Follow** | Bookmark this pin for updates -- saved to localStorage, appears in My Brume Feed |
 | **Share** | Share via native Web Share API |
 | **Comment** | Add a text comment -- real-time chat on the pin via Supabase Realtime |
 | **Go Live** | Start a LiveKit video/audio broadcast from this location |
@@ -327,7 +327,7 @@ waiting -> active -> completed / cancelled
 ### Saved Routes
 
 - Star/save any route to `saved_routes` table
-- Saved routes appear in My KOVA Favorites tab
+- Saved routes appear in My Brume Favorites tab
 - Saved routes monitored for new incidents along the path
 
 ---
@@ -447,10 +447,10 @@ See [Friends & Direct Messages](#11-friends--direct-messages) below.
 
 ---
 
-## 12. My KOVA Hub
+## 12. My Brume Hub
 
 **Component:** `MyKovaView.tsx`
-**Access:** My KOVA tab in bottom navigation
+**Access:** My Brume tab in bottom navigation
 
 ### Four Sub-tabs
 
@@ -606,7 +606,7 @@ Tags auto-update as user activity changes. Displayed on profile and visible to o
 ## 16. Weekly Challenges
 
 **Component:** `ChallengesSection.tsx`
-**Location:** My KOVA -> Stats tab
+**Location:** My Brume -> Stats tab
 
 ### Default Weekly Challenges
 
@@ -631,14 +631,14 @@ Tags auto-update as user activity changes. Displayed on profile and visible to o
 ## 17. Referral System
 
 **Component:** `ReferralSection.tsx`
-**Location:** My KOVA -> Stats tab
+**Location:** My Brume -> Stats tab
 
 ### How It Works
 
-1. On first view, a unique code is auto-generated: `KOVA-XXXXX` (5 random alphanumeric chars)
+1. On first view, a unique code is auto-generated: `Brume-XXXXX` (5 random alphanumeric chars)
 2. Code stored in `profiles.referral_code`
 3. User can **copy code** to clipboard or **share** via native Web Share API
-4. Share URL format: `safepin-pearl.vercel.app/login?ref=KOVA-XXXXX`
+4. Share URL format: `safepin-pearl.vercel.app/login?ref=Brume-XXXXX`
 5. Referral count tracked in `profiles.referral_count` and displayed
 
 ### UI
@@ -736,7 +736,7 @@ Public routes display an upvote count badge:
 ## 21. Trusted Circle
 
 **Component:** `TrustedCircleSection.tsx`
-**Location:** My KOVA -> Stats tab
+**Location:** My Brume -> Stats tab
 
 ### Features
 
@@ -758,7 +758,7 @@ Public routes display an upvote count badge:
 ## 22. Place Notes
 
 **Components:** `PlaceNoteSheet.tsx`, `PlaceNotePopup.tsx`
-**Location:** Map layer + My KOVA Favorites
+**Location:** Map layer + My Brume Favorites
 
 ### Creating a Place Note
 
@@ -975,7 +975,7 @@ Settings -> "Upgrade to Pro" -> Stripe Checkout Session -> Payment -> Webhook ->
 | Location History layer | Safety Map |
 | Neighborhood Scores layer | Safety Map |
 | Safety Buddy Matching | Safety Buddy |
-| Location History viewer | My KOVA Profile |
+| Location History viewer | My Brume Profile |
 
 ---
 
@@ -1065,7 +1065,7 @@ Settings -> "Upgrade to Pro" -> Stripe Checkout Session -> Payment -> Webhook ->
 | `trip` | Route planner and active trip |
 | `settings` | Settings page |
 | `notifications` | Notification types and messages |
-| `mykova` | My KOVA hub |
+| `mykova` | My Brume hub |
 | `community` | Community, groups, neighborhoods |
 | `offline` | Offline mode messages |
 | `moderation` | Flagging and moderation |
@@ -1247,7 +1247,7 @@ Redesigned full landing page that serves as both the marketing homepage and the 
 
 #### Navbar
 
-- KOVA logo and brand name
+- Brume logo and brand name
 - Navigation links
 
 #### Hero Section
@@ -1375,6 +1375,6 @@ Tabbed interface with 3 tabs:
 
 ---
 
-*KOVA -- Community-powered urban safety.*
+*Brume -- Community-powered urban safety.*
 *Company: DBEK, Paris, France*
 *Contact: kovaapp@pm.me*

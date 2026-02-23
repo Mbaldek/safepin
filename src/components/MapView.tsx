@@ -758,7 +758,7 @@ export default function MapView() {
               map.current.setLayoutProperty(TRANSIT_LINES_LYR, 'visibility', (showMetro || showRER) ? 'visible' : 'none');
             }
           })
-          .catch((err) => console.warn('[KOVA] Transit fetch failed:', err));
+          .catch((err) => console.warn('[Brume] Transit fetch failed:', err));
       }
       if (showPharmacy || showHospital || showPolice) {
         fetchParisPOIs()
@@ -770,7 +770,7 @@ export default function MapView() {
               if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
             }
           })
-          .catch((err) => console.warn('[KOVA] POI fetch failed:', err));
+          .catch((err) => console.warn('[Brume] POI fetch failed:', err));
       }
       setLayersReady(true);
     });
@@ -919,7 +919,7 @@ export default function MapView() {
         addTransitLayer(map.current);
         applyFilter();
       })
-      .catch((err) => console.warn('[KOVA] Transit fetch failed:', err))
+      .catch((err) => console.warn('[Brume] Transit fetch failed:', err))
       .finally(() => setTransitLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showMetro, showRER, showBus, mapReady, layersReady]);
@@ -955,7 +955,7 @@ export default function MapView() {
         if (map.current.getLayer(POI_CIRCLE)) map.current.setFilter(POI_CIRCLE, f);
         if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
       })
-      .catch((err) => console.warn('[KOVA] POI fetch failed:', err))
+      .catch((err) => console.warn('[Brume] POI fetch failed:', err))
       .finally(() => setPOILoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPharmacy, showHospital, showPolice, mapReady, layersReady]);

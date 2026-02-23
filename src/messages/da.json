@@ -18,7 +18,7 @@
     "map": "Kort",
     "trip": "Rejse",
     "community": "Fællesskab",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Bliv underrettet når noget sker i nærheden",
     "featureVerified": "Verificeret identitet",
     "featureVerifiedDesc": "Byg tillid med verificerede profiler og badges",
-    "quote": "KOVA gav mig modet til at gå hjem om natten. At vide at mit fællesskab passer på mig ændrer alt.",
-    "quoteAuthor": "— KOVA-bruger, Paris",
+    "quote": "Brume gav mig modet til at gå hjem om natten. At vide at mit fællesskab passer på mig ændrer alt.",
+    "quoteAuthor": "— Brume-bruger, Paris",
     "privacyPolicy": "Privatlivspolitik",
     "termsOfService": "Servicevilkår",
     "cookiePolicy": "Cookiepolitik",

@@ -18,7 +18,7 @@
     "map": "Harita",
     "trip": "Yolculuk",
     "community": "Topluluk",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Yakınızda bir şey olduğunda bildirim alın",
     "featureVerified": "Doğrulanmış kimlik",
     "featureVerifiedDesc": "Doğrulanmış profiller ve uzmanlık rozetleriyle güven oluşturun",
-    "quote": "KOVA gece yürüyerek eve gitme güvenimi verdi. Topluluğumun arkamda olduğunu bilmek her şeyi değiştiriyor.",
-    "quoteAuthor": "— KOVA kullanıcısı, Paris",
+    "quote": "Brume gece yürüyerek eve gitme güvenimi verdi. Topluluğumun arkamda olduğunu bilmek her şeyi değiştiriyor.",
+    "quoteAuthor": "— Brume kullanıcısı, Paris",
     "privacyPolicy": "Gizlilik Politikası",
     "termsOfService": "Kullanım Şartları",
     "cookiePolicy": "Çerez Politikası",

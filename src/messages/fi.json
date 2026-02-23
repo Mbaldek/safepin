@@ -18,7 +18,7 @@
     "map": "Kartta",
     "trip": "Matka",
     "community": "Yhteisö",
-    "myKova": "My KOVA"
+    "myKova": "My Brume"
   },
   "emergency": {
     "button": "SOS",
@@ -79,8 +79,8 @@
     "featureAlertsDesc": "Saa ilmoitus kun jotain tapahtuu lähellä",
     "featureVerified": "Varmennettu henkilöllisyys",
     "featureVerifiedDesc": "Rakenna luottamusta varmennetuilla profiileilla ja merkeillä",
-    "quote": "KOVA antoi minulle itsevarmuuden kävellä kotiin yöllä. Tieto siitä, että yhteisöni on tukenani, muuttaa kaiken.",
-    "quoteAuthor": "— KOVA-käyttäjä, Pariisi",
+    "quote": "Brume antoi minulle itsevarmuuden kävellä kotiin yöllä. Tieto siitä, että yhteisöni on tukenani, muuttaa kaiken.",
+    "quoteAuthor": "— Brume-käyttäjä, Pariisi",
     "privacyPolicy": "Tietosuojakäytäntö",
     "termsOfService": "Käyttöehdot",
     "cookiePolicy": "Evästekäytäntö",

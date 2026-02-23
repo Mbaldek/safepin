@@ -1,4 +1,4 @@
-# KOVA Simulation Engine — Quick Start Guide
+# Brume Simulation Engine — Quick Start Guide
 
 The Simulation Engine lets admins populate Paris with realistic fake safety data and run live activity simulations. It is designed for demos, investor pitches, load testing, and development.
 
@@ -189,4 +189,4 @@ src/stores/useStore.ts → showSimulated: boolean
 
 ---
 
-*KOVA Simulation Engine — Part of the KOVA Admin Toolkit by DBEK.*
+*Brume Simulation Engine — Part of the Brume Admin Toolkit by DBEK.*

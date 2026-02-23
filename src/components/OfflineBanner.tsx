@@ -37,7 +37,7 @@ export default function OfflineBanner() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     function onMessage(event: MessageEvent) {
-      if (event.data?.type === 'KOVA_SYNC_COMPLETE') {
+      if (event.data?.type === 'BRUME_SYNC_COMPLETE') {
         getCount().then(setOfflineQueueCount).catch(() => {});
       }
     }

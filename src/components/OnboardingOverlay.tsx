@@ -25,7 +25,7 @@ type Step = {
 const STEPS: Step[] = [
   {
     icon: 'shield',
-    title: 'Welcome to KOVA',
+    title: 'Welcome to Brume',
     body: 'Your community safety network. Report incidents, stay informed, and look out for each other — all in real time.',
     cta: 'Get started',
   },

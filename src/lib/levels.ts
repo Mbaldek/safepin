@@ -1,4 +1,4 @@
-// src/lib/levels.ts — Shared trust-level system for KOVA
+// src/lib/levels.ts — Shared trust-level system for Brume
 
 export type Level = { label: string; emoji: string; color: string; min: number; next: number };
 

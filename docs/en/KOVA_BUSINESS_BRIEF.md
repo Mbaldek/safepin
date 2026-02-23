@@ -1,4 +1,4 @@
-# KOVA Business Brief
+# Brume Business Brief
 
 **Company:** DBEK
 **Headquarters:** 75 rue de Lourmel, 75015 Paris, France
@@ -21,7 +21,7 @@ Women navigate cities without actionable safety intelligence. Current solutions 
 
 ## 2. Solution
 
-KOVA is a **community-driven urban safety platform** — a living safety map powered by its community.
+Brume is a **community-driven urban safety platform** — a living safety map powered by its community.
 
 ### Core Loop
 
@@ -31,7 +31,7 @@ See something → Report (30 seconds) → Appears on map instantly
 alerts fire, safety scores update
 ```
 
-KOVA transforms passive bystanders into an active safety network. Every report enriches the map, every vote refines accuracy, and every user benefits from the collective intelligence of the community.
+Brume transforms passive bystanders into an active safety network. Every report enriches the map, every vote refines accuracy, and every user benefits from the collective intelligence of the community.
 
 ---
 
@@ -68,7 +68,7 @@ All core features at no cost:
 - Weekly challenges
 - Referral system
 
-### KOVA Pro
+### Brume Pro
 
 | Plan | Price |
 |------|-------|
@@ -103,7 +103,7 @@ Powered by **Stripe**:
 
 ### Viral Referral
 
-Every user gets a unique referral code (`KOVA-XXXXX`). Sharing drives organic acquisition with built-in incentives.
+Every user gets a unique referral code (`Brume-XXXXX`). Sharing drives organic acquisition with built-in incentives.
 
 ### Gamification
 
@@ -137,16 +137,16 @@ Additional engagement mechanics:
 
 ## 6. Competitive Landscape
 
-| Competitor | Category | KOVA Differentiator |
+| Competitor | Category | Brume Differentiator |
 |------------|----------|---------------------|
-| bSafe | Personal safety | KOVA adds community intelligence and live map |
-| Noonlight | Emergency dispatch | KOVA is proactive, not just reactive |
-| Citizen | Incident alerts | KOVA is women-focused with trusted community |
-| Life360 | Family tracking | KOVA adds safety reporting and route planning |
-| Google Maps | Navigation | KOVA layers real-time safety data on routes |
-| Waze | Community navigation | KOVA focuses on personal safety, not traffic |
+| bSafe | Personal safety | Brume adds community intelligence and live map |
+| Noonlight | Emergency dispatch | Brume is proactive, not just reactive |
+| Citizen | Incident alerts | Brume is women-focused with trusted community |
+| Life360 | Family tracking | Brume adds safety reporting and route planning |
+| Google Maps | Navigation | Brume layers real-time safety data on routes |
+| Waze | Community navigation | Brume focuses on personal safety, not traffic |
 
-**KOVA uniquely combines** community intelligence + personal safety + social engagement in a single PWA.
+**Brume uniquely combines** community intelligence + personal safety + social engagement in a single PWA.
 
 ---
 
@@ -173,7 +173,7 @@ Additional engagement mechanics:
 
 ## 8. Authentication Methods
 
-KOVA supports four authentication methods:
+Brume supports four authentication methods:
 
 1. **Google OAuth**
 2. **Apple Sign-In**
@@ -226,7 +226,7 @@ The landing page has been redesigned with:
 | 11 | Friends and DMs | Connect with trusted contacts and direct message |
 | 12 | Trust Levels | Progress through Watcher, Reporter, Guardian, Sentinel |
 | 13 | Weekly Challenges | Gamified engagement tasks refreshed weekly |
-| 14 | Referral System | Unique KOVA-XXXXX codes for viral growth |
+| 14 | Referral System | Unique Brume-XXXXX codes for viral growth |
 | 15 | SOS Broadcast | Broadcast SOS alerts to nearby users |
 | 16 | Safety Buddy (Pro) | Dedicated virtual companion with enhanced features |
 | 17 | Milestones | Achievement tracking and rewards |
@@ -271,4 +271,4 @@ The landing page has been redesigned with:
 
 ---
 
-*KOVA by DBEK — A safer world, mapped by women, for women.*
+*Brume by DBEK — A safer world, mapped by women, for women.*

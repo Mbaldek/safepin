@@ -206,7 +206,7 @@ export default function TrackPage({ params }: { params: Promise<{ sessionId: str
       {/* Footer */}
       <div className="shrink-0 px-4 py-3 text-center" style={{ borderTop: '1px solid #222' }}>
         <p className="text-xs font-bold" style={{ color: '#888' }}>
-          🛡️ KOVA Emergency Tracking
+          🛡️ Brume Emergency Tracking
         </p>
       </div>
     </div>

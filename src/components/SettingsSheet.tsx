@@ -202,7 +202,7 @@ export default function SettingsSheet({ onClose }: Props) {
     const { error } = await supabase.from('pro_waitlist').upsert({ user_id: userId, email: user.email }, { onConflict: 'email' });
     if (error) { toast.error('Could not join waitlist'); return; }
     setWaitlistJoined(true);
-    toast.success('You\'re on the waitlist! We\'ll notify you when KOVA Pro launches.');
+    toast.success('You\'re on the waitlist! We\'ll notify you when Brume Pro launches.');
   }
 
   const RADIUS_OPTIONS = [
@@ -358,7 +358,7 @@ export default function SettingsSheet({ onClose }: Props) {
               { id: 'account',       label: 'Account',              subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
               { id: 'notifications', label: 'Notifications',        subtitle: 'Alerts, radius, quiet hours',                        icon: <Bell size={16} /> },
               { id: 'privacy',       label: 'Privacy & Data',       subtitle: 'Analytics, GDPR, delete account',                    icon: <Database size={16} /> },
-              { id: 'billing',       label: 'Subscription',         subtitle: 'Free plan · KOVA Pro coming soon',                icon: <CreditCard size={16} /> },
+              { id: 'billing',       label: 'Subscription',         subtitle: 'Free plan · Brume Pro coming soon',                icon: <CreditCard size={16} /> },
               { id: 'legal',         label: 'Legal',                subtitle: 'Privacy policy, ToS, GDPR',                         icon: <FileText size={16} /> },
               { id: 'security',      label: 'Security',             subtitle: '2FA, sessions, sign out',                           icon: <Shield size={16} /> },
               { id: 'admin',         label: 'Admin — Tower Control', subtitle: 'Moderation & parameters',                           icon: <LayoutDashboard size={16} /> },
@@ -430,8 +430,8 @@ export default function SettingsSheet({ onClose }: Props) {
                         : <CheckCircle2 size={14} style={{ color: '#10b981' }} />
                       }
                       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                        {subscription?.plan === 'pro' ? 'KOVA Pro'
-                          : subscription?.plan === 'pro_annual' ? 'KOVA Pro Annual'
+                        {subscription?.plan === 'pro' ? 'Brume Pro'
+                          : subscription?.plan === 'pro_annual' ? 'Brume Pro Annual'
                           : 'Free'}
                       </p>
                     </div>
@@ -487,13 +487,13 @@ export default function SettingsSheet({ onClose }: Props) {
             )}
           </Section>
 
-          {/* KOVA Pro upgrade card */}
+          {/* Brume Pro upgrade card */}
           {(!subscription || subscription.plan === 'free') && (
             <Section title="Upgrade" icon={<Crown size={13} />}>
               <div className="px-4 py-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Crown size={15} style={{ color: '#f59e0b' }} />
-                  <p className="text-sm font-black" style={{ color: '#f59e0b' }}>KOVA Pro</p>
+                  <p className="text-sm font-black" style={{ color: '#f59e0b' }}>Brume Pro</p>
                 </div>
                 <ul className="flex flex-col gap-1.5 mb-4">
                   {[
@@ -539,7 +539,7 @@ export default function SettingsSheet({ onClose }: Props) {
                 <Clock size={22} className="mx-auto mb-2 opacity-30" style={{ color: 'var(--text-muted)' }} />
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No invoices yet.</p>
                 <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Invoices will appear here once you subscribe to KOVA Pro.
+                  Invoices will appear here once you subscribe to Brume Pro.
                 </p>
               </div>
             ) : (
@@ -547,7 +547,7 @@ export default function SettingsSheet({ onClose }: Props) {
                 <div key={inv.id} className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
                   <div>
                     <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {inv.description ?? 'KOVA subscription'}
+                      {inv.description ?? 'Brume subscription'}
                     </p>
                     <p className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>
                       {new Date(inv.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -592,7 +592,7 @@ export default function SettingsSheet({ onClose }: Props) {
           <Section title="Data & Privacy" icon={<Database size={13} />}>
             <ToggleRow
               label="Usage analytics"
-              subtitle="Help us improve KOVA with anonymous usage data"
+              subtitle="Help us improve Brume with anonymous usage data"
               value={analyticsEnabled}
               onChange={setAnalyticsEnabled}
             />
@@ -652,12 +652,12 @@ export default function SettingsSheet({ onClose }: Props) {
             />
             <div className="px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                KOVA complies with the EU General Data Protection Regulation (GDPR / RGPD) and
+                Brume complies with the EU General Data Protection Regulation (GDPR / RGPD) and
                 the French Loi Informatique et Libertés. Data is stored in the EU. No data is sold
                 to third parties.
               </p>
               <p className="text-[0.6rem] mt-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                KOVA v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
+                Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
               </p>
               <p className="text-[0.6rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>

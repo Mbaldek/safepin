@@ -1,4 +1,4 @@
-// src/app/login/page.tsx — KOVA landing + auth page
+// src/app/login/page.tsx — Brume landing + auth page
 
 'use client';
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
             🛡️
           </div>
           <span className="text-lg font-extrabold tracking-wide" style={{ color: 'var(--text-primary)' }}>
-            KO<span style={{ color: 'var(--accent)' }}>V</span>A
+            Br<span style={{ color: 'var(--accent)' }}>u</span>me
           </span>
         </div>
         <ThemeToggle />
@@ -351,7 +351,7 @@ export default function LoginPage() {
           </a>
         </div>
         <p className="text-[0.55rem]" style={{ color: 'var(--text-placeholder)' }}>
-          &copy; {new Date().getFullYear()} KOVA. All rights reserved.
+          &copy; {new Date().getFullYear()} Brume. All rights reserved.
         </p>
       </footer>
     </div>

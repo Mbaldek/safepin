@@ -173,7 +173,7 @@ type Store = {
   showSimulated: boolean;
   setShowSimulated: (v: boolean) => void;
 
-  // Deep-link into My KOVA sub-tab (e.g. from Settings → Profile)
+  // Deep-link into My Brume sub-tab (e.g. from Settings → Profile)
   myKovaInitialTab: string | null;
   setMyKovaInitialTab: (tab: string | null) => void;
 
@@ -355,7 +355,7 @@ export const useStore = create<Store>((set) => ({
   showSimulated: false,
   setShowSimulated: (v) => set({ showSimulated: v }),
 
-  // My KOVA deep-link
+  // My Brume deep-link
   myKovaInitialTab: null,
   setMyKovaInitialTab: (tab) => set({ myKovaInitialTab: tab }),
 

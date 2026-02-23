@@ -282,7 +282,7 @@ export default function DetailSheet() {
               <button
                 onClick={async () => {
                   const url = `${window.location.origin}/map?pin=${selectedPin.id}`;
-                  const shareData = { title: `KOVA — ${cat?.label || 'Report'}`, text: selectedPin.description?.slice(0, 120) || 'Safety report on KOVA', url };
+                  const shareData = { title: `Brume — ${cat?.label || 'Report'}`, text: selectedPin.description?.slice(0, 120) || 'Safety report on Brume', url };
                   if (navigator.share) {
                     try { await navigator.share(shareData); } catch { /* cancelled */ }
                   } else {

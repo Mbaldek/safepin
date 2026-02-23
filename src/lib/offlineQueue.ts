@@ -1,4 +1,4 @@
-// src/lib/offlineQueue.ts — IndexedDB queue for offline pin submissions
+// src/lib/offlineQueue.ts — IndexedDB queue for offline pin submissions (Brume)
 
 const DB_NAME = 'kova_offline';
 const DB_VERSION = 1;

@@ -1,4 +1,4 @@
-# Moteur de simulation KOVA — Guide de démarrage rapide
+# Moteur de simulation Brume — Guide de démarrage rapide
 
 Le moteur de simulation permet aux administrateurs de peupler Paris avec des données de sécurité fictives réalistes et de lancer des simulations d'activité en direct. Il est conçu pour les démonstrations, les présentations investisseurs, les tests de charge et le développement.
 
@@ -189,4 +189,4 @@ src/stores/useStore.ts → showSimulated: boolean
 
 ---
 
-*Moteur de simulation KOVA — Composant de la suite d'administration KOVA par DBEK.*
+*Moteur de simulation Brume — Composant de la suite d'administration Brume par DBEK.*
