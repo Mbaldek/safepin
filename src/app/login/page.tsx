@@ -4,28 +4,30 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import ThemeToggle from '@/components/ThemeToggle';
 
-const FEATURES = [
-  { emoji: '📍', title: 'Live Safety Map', desc: 'See real-time safety reports from your community' },
-  { emoji: '🆘', title: 'Emergency SOS', desc: 'One-tap alert with live GPS tracking & trusted contacts' },
-  { emoji: '🗺️', title: 'Smart Trip Planner', desc: 'Find the safest route — not just the fastest' },
-  { emoji: '💬', title: 'Community Chat', desc: 'Discuss, confirm & support each other in real time' },
-  { emoji: '🔔', title: 'Proximity Alerts', desc: 'Get notified when something happens near you' },
-  { emoji: '🛡️', title: 'Verified Identity', desc: 'Build trust with verified profiles & expertise badges' },
-];
+const FEATURE_KEYS = [
+  { emoji: '📍', titleKey: 'featureLiveMap', descKey: 'featureLiveMapDesc' },
+  { emoji: '🆘', titleKey: 'featureSOS', descKey: 'featureSOSDesc' },
+  { emoji: '🗺️', titleKey: 'featureTrip', descKey: 'featureTripDesc' },
+  { emoji: '💬', titleKey: 'featureChat', descKey: 'featureChatDesc' },
+  { emoji: '🔔', titleKey: 'featureAlerts', descKey: 'featureAlertsDesc' },
+  { emoji: '🛡️', titleKey: 'featureVerified', descKey: 'featureVerifiedDesc' },
+] as const;
 
-const STATS = [
-  { value: '10K+', label: 'Reports filed' },
-  { value: '30+', label: 'Languages' },
-  { value: '24/7', label: 'Live monitoring' },
-  { value: '100%', label: 'Free core features' },
-];
+const STAT_KEYS = [
+  { value: '10K+', labelKey: 'statReports' },
+  { value: '30+', labelKey: 'statLanguages' },
+  { value: '24/7', labelKey: 'statMonitoring' },
+  { value: '100%', labelKey: 'statFree' },
+] as const;
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations('login');
   const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -36,14 +38,14 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/map` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
   async function handleAppleSignIn() {
     await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: `${window.location.origin}/map` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
@@ -52,12 +54,12 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/map` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     setMagicSent(true);
-    toast.success('Magic link sent! Check your inbox.');
+    toast.success(t('magicLinkSuccess'));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -71,12 +73,12 @@ export default function LoginPage() {
         options: { data: { name } },
       });
       if (error) { toast.error(error.message); setLoading(false); return; }
-      toast.success('Account created! Check your email to confirm.');
+      toast.success(t('accountCreated'));
       setMode('signin');
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { toast.error(error.message); setLoading(false); return; }
-      toast.success('Welcome back!');
+      toast.success(t('welcomeBack'));
       router.push('/map');
     }
     setLoading(false);
@@ -106,34 +108,35 @@ export default function LoginPage() {
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[0.65rem] font-bold mb-5"
           style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
         >
-          <span>🛡️</span> Community-powered safety
+          <span>🛡️</span> {t('badge')}
         </div>
         <h1
           className="text-3xl sm:text-4xl font-extrabold leading-tight max-w-md"
           style={{ color: 'var(--text-primary)' }}
         >
-          A safer world,{' '}
-          <span className="bg-gradient-to-r from-[#f43f5e] to-[#e11d48] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
-            mapped by women
-          </span>{' '}
-          — for everyone.
+          {t.rich('heroTitle', {
+            accent: (chunks) => (
+              <span className="bg-gradient-to-r from-[#f43f5e] to-[#e11d48] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
+                {chunks}
+              </span>
+            ),
+          })}
         </h1>
         <p className="text-sm mt-3 max-w-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-          Report, navigate & protect each other with real-time safety intelligence.
-          Free, open, and built by the community.
+          {t('heroSubtitle')}
         </p>
       </section>
 
       {/* ─── Stats ─────────────────────────────────── */}
       <section className="flex justify-center gap-3 px-6 pb-8">
-        {STATS.map((s) => (
+        {STAT_KEYS.map((s) => (
           <div
-            key={s.label}
+            key={s.labelKey}
             className="flex-1 max-w-[90px] text-center py-3 rounded-2xl"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
           >
             <p className="text-lg font-black" style={{ color: 'var(--accent)' }}>{s.value}</p>
-            <p className="text-[0.55rem] font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+            <p className="text-[0.55rem] font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>{t(s.labelKey)}</p>
           </div>
         ))}
       </section>
@@ -145,7 +148,7 @@ export default function LoginPage() {
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
         >
           <h2 className="text-base font-black text-center mb-4" style={{ color: 'var(--text-primary)' }}>
-            Get started
+            {t('getStarted')}
           </h2>
 
           {/* Social auth */}
@@ -162,7 +165,7 @@ export default function LoginPage() {
                 <path d="M10.848 28.608c-.504-1.44-.792-2.976-.792-4.608s.288-3.168.792-4.608v-6.072H2.952A23.976 23.976 0 0 0 .48 24c0 3.888.912 7.56 2.472 10.68l7.896-6.072z" fill="#FBBC05"/>
                 <path d="M24.48 9.552c3.576 0 6.768 1.224 9.288 3.624l6.936-6.936C36.384 2.424 30.936 0 24.48 0 15.12 0 6.888 5.112 2.952 13.32l7.896 6.072c1.92-5.76 7.296-9.84 13.632-9.84z" fill="#EA4335"/>
               </svg>
-              Continue with Google
+              {t('continueGoogle')}
             </button>
             <button
               type="button"
@@ -173,14 +176,14 @@ export default function LoginPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.32 2.32-2.12 4.45-3.74 4.25z"/>
               </svg>
-              Continue with Apple
+              {t('continueApple')}
             </button>
           </div>
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border)' }} />
-            <span className="text-[0.6rem] font-bold" style={{ color: 'var(--text-muted)' }}>OR</span>
+            <span className="text-[0.6rem] font-bold" style={{ color: 'var(--text-muted)' }}>{t('or')}</span>
             <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border)' }} />
           </div>
 
@@ -196,7 +199,7 @@ export default function LoginPage() {
                   color: mode === m ? '#fff' : 'var(--text-muted)',
                 }}
               >
-                {m === 'magic' ? 'Magic Link' : m === 'signin' ? 'Sign In' : 'Sign Up'}
+                {m === 'magic' ? t('magicLink') : m === 'signin' ? t('signIn') : t('signUp')}
               </button>
             ))}
           </div>
@@ -207,16 +210,16 @@ export default function LoginPage() {
               {magicSent ? (
                 <div className="text-center py-6">
                   <p className="text-3xl mb-2">✉️</p>
-                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Check your inbox</p>
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('checkInbox')}</p>
                   <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    We sent a magic link to <strong>{email}</strong>
+                    {t('magicLinkSent')} <strong>{email}</strong>
                   </p>
                   <button
                     onClick={() => setMagicSent(false)}
                     className="text-xs font-bold mt-4 transition hover:opacity-80"
                     style={{ color: 'var(--accent)' }}
                   >
-                    Send again
+                    {t('sendAgain')}
                   </button>
                 </div>
               ) : (
@@ -225,7 +228,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder={t('emailPlaceholder')}
                     className="w-full rounded-xl text-sm px-4 py-3 outline-none"
                     style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                     onKeyDown={(e) => e.key === 'Enter' && handleMagicLink()}
@@ -236,10 +239,10 @@ export default function LoginPage() {
                     className="w-full rounded-xl py-3 text-sm font-bold transition disabled:opacity-40"
                     style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                   >
-                    {loading ? 'Sending...' : 'Send magic link'}
+                    {loading ? t('sending') : t('sendMagicLink')}
                   </button>
                   <p className="text-[0.6rem] text-center" style={{ color: 'var(--text-muted)' }}>
-                    No password needed — we'll email you a sign-in link
+                    {t('magicLinkNote')}
                   </p>
                 </>
               )}
@@ -254,7 +257,7 @@ export default function LoginPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
+                  placeholder={t('namePlaceholder')}
                   required
                   className="w-full rounded-xl text-sm px-4 py-3 outline-none"
                   style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
@@ -273,7 +276,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder={t('passwordPlaceholder')}
                 required
                 minLength={6}
                 className="w-full rounded-xl text-sm px-4 py-3 outline-none"
@@ -285,7 +288,7 @@ export default function LoginPage() {
                 className="w-full rounded-xl py-3 text-sm font-bold transition disabled:opacity-40"
                 style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               >
-                {loading ? '...' : mode === 'signup' ? 'Create account' : 'Sign in'}
+                {loading ? '...' : mode === 'signup' ? t('createAccount') : t('signIn')}
               </button>
             </form>
           )}
@@ -295,18 +298,18 @@ export default function LoginPage() {
       {/* ─── Features Grid ─────────────────────────── */}
       <section className="px-5 pb-10">
         <h2 className="text-lg font-black text-center mb-5" style={{ color: 'var(--text-primary)' }}>
-          Everything you need to stay safe
+          {t('featuresTitle')}
         </h2>
         <div className="grid grid-cols-2 gap-2.5 max-w-sm mx-auto">
-          {FEATURES.map((f) => (
+          {FEATURE_KEYS.map((f) => (
             <div
-              key={f.title}
+              key={f.titleKey}
               className="rounded-2xl p-3.5"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <p className="text-xl mb-1.5">{f.emoji}</p>
-              <p className="text-xs font-black mb-0.5" style={{ color: 'var(--text-primary)' }}>{f.title}</p>
-              <p className="text-[0.6rem] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{f.desc}</p>
+              <p className="text-xs font-black mb-0.5" style={{ color: 'var(--text-primary)' }}>{t(f.titleKey)}</p>
+              <p className="text-[0.6rem] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{t(f.descKey)}</p>
             </div>
           ))}
         </div>
@@ -319,11 +322,10 @@ export default function LoginPage() {
           style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.15)' }}
         >
           <p className="text-sm font-bold leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-            &ldquo;KOVA gave me the confidence to walk home at night.
-            Knowing my community has my back changes everything.&rdquo;
+            &ldquo;{t('quote')}&rdquo;
           </p>
           <p className="text-xs mt-3 font-bold" style={{ color: 'var(--accent)' }}>
-            — KOVA user, Paris
+            {t('quoteAuthor')}
           </p>
         </div>
       </section>
@@ -335,13 +337,13 @@ export default function LoginPage() {
       >
         <div className="flex items-center justify-center gap-4 mb-3">
           <a href="/privacy" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
-            Privacy Policy
+            {t('privacyPolicy')}
           </a>
           <a href="/terms" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
-            Terms of Service
+            {t('termsOfService')}
           </a>
           <a href="/cookies" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
-            Cookie Policy
+            {t('cookiePolicy')}
           </a>
         </div>
         <p className="text-[0.55rem]" style={{ color: 'var(--text-placeholder)' }}>

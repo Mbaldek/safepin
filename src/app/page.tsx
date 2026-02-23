@@ -9,6 +9,15 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // Handle OAuth code exchange if redirected here with ?code=
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
+        router.replace(data.session ? '/map' : '/login');
+      });
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         router.replace('/map');
