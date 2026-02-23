@@ -9,6 +9,10 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import ThemeToggle from '@/components/ThemeToggle';
 
+function getAppOrigin() {
+  return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+}
+
 const FEATURE_KEYS = [
   { emoji: '📍', titleKey: 'featureLiveMap', descKey: 'featureLiveMapDesc' },
   { emoji: '🆘', titleKey: 'featureSOS', descKey: 'featureSOSDesc' },
@@ -38,14 +42,14 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${getAppOrigin()}/auth/callback` },
     });
   }
 
   async function handleAppleSignIn() {
     await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${getAppOrigin()}/auth/callback` },
     });
   }
 
@@ -54,7 +58,7 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${getAppOrigin()}/auth/callback` },
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
