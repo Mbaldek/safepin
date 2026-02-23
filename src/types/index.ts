@@ -251,6 +251,17 @@ export type SafeSpace = {
   upvotes: number;
   created_by: string | null;
   created_at: string;
+  // Partner fields (S44)
+  address: string | null;
+  phone: string | null;
+  contact_name: string | null;
+  description: string | null;
+  website: string | null;
+  photo_urls: string[];
+  opening_hours: Record<string, string> | null;
+  is_partner: boolean;
+  partner_since: string | null;
+  partner_tier: 'basic' | 'premium' | null;
 };
 
 export type SafeSpaceVote = {
@@ -289,6 +300,17 @@ export type Profile = {
   name: string;
   is_shadow_banned?: boolean;
   is_simulated?: boolean;
+  current_streak?: number;
+  longest_streak?: number;
+  last_active_date?: string | null;
+  created_at: string;
+};
+
+export type EngagementEvent = {
+  id: string;
+  user_id: string;
+  event_type: 'signup' | 'login' | 'pin_created' | 'vote_cast' | 'comment_posted' | 'route_planned' | 'sos_triggered' | 'verification_started' | 'verification_completed' | 'streak_milestone';
+  metadata: Record<string, unknown>;
   created_at: string;
 };
 

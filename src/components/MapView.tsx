@@ -13,6 +13,7 @@ import { SEVERITY, Pin } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
+import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -39,6 +40,7 @@ const HEAT_LYR = 'location-history-heat';
 const SAFE_SRC = 'safe-spaces-src';
 const SAFE_CIRCLE = 'safe-spaces-circle';
 const SAFE_LABEL = 'safe-spaces-label';
+const SAFE_PARTNER = 'safe-spaces-partner';
 
 const STYLE_URLS: Record<string, string> = {
   streets: 'mapbox://styles/mapbox/streets-v12',
@@ -424,6 +426,7 @@ export default function MapView() {
   const [poiLoading, setPOILoading]       = useState(false);
   const [showHeatmap, setShowHeatmap]     = useState(true);
   const [showScores, setShowScores]       = useState(false);
+  const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -1035,7 +1038,7 @@ export default function MapView() {
       features: safeSpaces.map((s) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] },
-        properties: { id: s.id, name: s.name, kind: s.type },
+        properties: { id: s.id, name: s.name, kind: s.type, isPartner: s.is_partner, partnerTier: s.partner_tier },
       })),
     };
 
@@ -1050,9 +1053,13 @@ export default function MapView() {
       type: 'circle',
       source: SAFE_SRC,
       paint: {
-        'circle-radius': 7,
-        'circle-color': '#22c55e',
-        'circle-stroke-width': 2,
+        'circle-radius': ['case', ['get', 'isPartner'], 9, 7],
+        'circle-color': ['case',
+          ['==', ['get', 'partnerTier'], 'premium'], '#f59e0b',
+          ['==', ['get', 'partnerTier'], 'basic'], '#3b82f6',
+          '#22c55e'
+        ],
+        'circle-stroke-width': ['case', ['get', 'isPartner'], 3, 2],
         'circle-stroke-color': '#fff',
         'circle-opacity': 0.9,
       },
@@ -1075,6 +1082,16 @@ export default function MapView() {
         'text-halo-width': 1.5,
       },
     });
+
+    m.on('click', SAFE_CIRCLE, (e) => {
+      const id = e.features?.[0]?.properties?.id;
+      if (id) {
+        const space = safeSpaces.find(s => s.id === id);
+        if (space) setSelectedSafeSpace(space);
+      }
+    });
+    m.on('mouseenter', SAFE_CIRCLE, () => { m.getCanvas().style.cursor = 'pointer'; });
+    m.on('mouseleave', SAFE_CIRCLE, () => { m.getCanvas().style.cursor = ''; });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSafeSpaces, safeSpaces, mapReady, layersReady]);
 
@@ -1144,6 +1161,8 @@ export default function MapView() {
         </button>
 
       </div>
+
+      <SafeSpaceDetailSheet space={selectedSafeSpace} onClose={() => setSelectedSafeSpace(null)} />
     </div>
   );
 }

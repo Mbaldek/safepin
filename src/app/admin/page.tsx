@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
-import { Pin, UserReport, AdminParam, LiveSession } from '@/types';
+import { Pin, UserReport, AdminParam, LiveSession, SafeSpace } from '@/types';
 
 // ─── Supabase client (uses service role via anon key — add RLS policies or use service key) ──
 const supabase = createClient(
@@ -1349,9 +1349,450 @@ function SimulationTab() {
   );
 }
 
+// ─── Tab 9 — Safe Spaces ──────────────────────────────────────────────────────
+
+const SAFE_SPACE_TYPES = ['pharmacy', 'hospital', 'police', 'cafe', 'shelter'] as const;
+const PARTNER_TIERS = ['basic', 'premium'] as const;
+const DAYS_OF_WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+
+type SpaceFilter = 'all' | 'pharmacy' | 'hospital' | 'police' | 'cafe' | 'shelter';
+
+const EMPTY_SPACE_FORM = {
+  name: '',
+  type: 'pharmacy' as SafeSpace['type'],
+  address: '',
+  phone: '',
+  contact_name: '',
+  description: '',
+  website: '',
+  opening_hours: Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, ''])) as Record<string, string>,
+  is_partner: true,
+  partner_tier: 'basic' as 'basic' | 'premium',
+  lat: 0,
+  lng: 0,
+};
+
+function SafeSpacesTab() {
+  const [spaces, setSpaces] = useState<SafeSpace[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<SpaceFilter>('all');
+  const [partnerOnly, setPartnerOnly] = useState(false);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 20;
+
+  // Add form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({ ...EMPTY_SPACE_FORM });
+  const [addLoading, setAddLoading] = useState(false);
+
+  // Inline editing
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ ...EMPTY_SPACE_FORM });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      let query = supabase.from('safe_spaces').select('*', { count: 'exact' });
+      if (filter !== 'all') query = query.eq('type', filter);
+      if (partnerOnly) query = query.eq('is_partner', true);
+
+      const { data, count, error } = await query
+        .order('created_at', { ascending: false })
+        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+
+      if (error) throw error;
+      setSpaces((data as SafeSpace[]) ?? []);
+      setTotal(count ?? 0);
+    } catch {
+      toast.error('Failed to load safe spaces');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, partnerOnly, page]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Add partner safe space
+  async function handleAdd() {
+    if (!addForm.name.trim()) { toast.error('Name is required'); return; }
+    setAddLoading(true);
+    try {
+      const row = {
+        name: addForm.name.trim(),
+        type: addForm.type,
+        address: addForm.address.trim() || null,
+        phone: addForm.phone.trim() || null,
+        contact_name: addForm.contact_name.trim() || null,
+        description: addForm.description.trim() || null,
+        website: addForm.website.trim() || null,
+        opening_hours: Object.values(addForm.opening_hours).some((v) => v.trim()) ? addForm.opening_hours : null,
+        is_partner: addForm.is_partner,
+        partner_tier: addForm.is_partner ? addForm.partner_tier : null,
+        partner_since: addForm.is_partner ? new Date().toISOString() : null,
+        lat: addForm.lat,
+        lng: addForm.lng,
+        source: 'user' as const,
+        verified: true,
+        upvotes: 0,
+        photo_urls: [],
+      };
+      const { error } = await supabase.from('safe_spaces').insert(row);
+      if (error) throw error;
+      toast.success('Safe space added');
+      setAddForm({ ...EMPTY_SPACE_FORM });
+      setShowAddForm(false);
+      load();
+    } catch {
+      toast.error('Failed to add safe space');
+    } finally {
+      setAddLoading(false);
+    }
+  }
+
+  // Start editing
+  function startEdit(space: SafeSpace) {
+    setEditingId(space.id);
+    setEditForm({
+      name: space.name,
+      type: space.type,
+      address: space.address ?? '',
+      phone: space.phone ?? '',
+      contact_name: space.contact_name ?? '',
+      description: space.description ?? '',
+      website: space.website ?? '',
+      opening_hours: space.opening_hours
+        ? { ...Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, ''])), ...space.opening_hours }
+        : Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, ''])),
+      is_partner: space.is_partner,
+      partner_tier: space.partner_tier ?? 'basic',
+      lat: space.lat,
+      lng: space.lng,
+    });
+  }
+
+  // Save edit
+  async function handleSaveEdit(id: string) {
+    if (!editForm.name.trim()) { toast.error('Name is required'); return; }
+    try {
+      const updates = {
+        name: editForm.name.trim(),
+        type: editForm.type,
+        address: editForm.address.trim() || null,
+        phone: editForm.phone.trim() || null,
+        contact_name: editForm.contact_name.trim() || null,
+        description: editForm.description.trim() || null,
+        website: editForm.website.trim() || null,
+        opening_hours: Object.values(editForm.opening_hours).some((v) => v.trim()) ? editForm.opening_hours : null,
+        is_partner: editForm.is_partner,
+        partner_tier: editForm.is_partner ? editForm.partner_tier : null,
+        partner_since: editForm.is_partner ? new Date().toISOString() : null,
+        lat: editForm.lat,
+        lng: editForm.lng,
+      };
+      const { error } = await supabase.from('safe_spaces').update(updates).eq('id', id);
+      if (error) throw error;
+      toast.success('Safe space updated');
+      setEditingId(null);
+      load();
+    } catch {
+      toast.error('Failed to update safe space');
+    }
+  }
+
+  // Delete
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this safe space?')) return;
+    const { error } = await supabase.from('safe_spaces').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete safe space'); return; }
+    toast.success('Safe space deleted');
+    load();
+  }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const filterButtons: { id: SpaceFilter; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'pharmacy', label: 'Pharmacy' },
+    { id: 'hospital', label: 'Hospital' },
+    { id: 'police', label: 'Police' },
+    { id: 'cafe', label: 'Cafe' },
+    { id: 'shelter', label: 'Shelter' },
+  ];
+
+  // Shared form fields renderer
+  function renderFormFields(
+    form: typeof EMPTY_SPACE_FORM,
+    setForm: (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void,
+  ) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+            <input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="Safe space name"
+            />
+          </div>
+          {/* Type */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+            <select
+              value={form.type}
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as SafeSpace['type'] }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"
+            >
+              {SAFE_SPACE_TYPES.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            </select>
+          </div>
+          {/* Address */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
+            <input
+              value={form.address}
+              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="Street address"
+            />
+          </div>
+          {/* Phone */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+            <input
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="+33 1 23 45 67 89"
+            />
+          </div>
+          {/* Contact name */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Contact Name</label>
+            <input
+              value={form.contact_name}
+              onChange={(e) => setForm((f) => ({ ...f, contact_name: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="Contact person"
+            />
+          </div>
+          {/* Website */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Website</label>
+            <input
+              value={form.website}
+              onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="https://..."
+            />
+          </div>
+          {/* Lat */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
+            <input
+              type="number"
+              step="any"
+              value={form.lat}
+              onChange={(e) => setForm((f) => ({ ...f, lat: Number(e.target.value) }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            />
+          </div>
+          {/* Lng */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
+            <input
+              type="number"
+              step="any"
+              value={form.lng}
+              onChange={(e) => setForm((f) => ({ ...f, lng: Number(e.target.value) }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            />
+          </div>
+          {/* Partner tier */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Partner Tier</label>
+            <select
+              value={form.partner_tier}
+              onChange={(e) => setForm((f) => ({ ...f, partner_tier: e.target.value as 'basic' | 'premium' }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"
+            >
+              {PARTNER_TIERS.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            </select>
+          </div>
+        </div>
+        {/* Description */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            rows={2}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            placeholder="Short description..."
+          />
+        </div>
+        {/* Is partner checkbox */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={form.is_partner}
+            onChange={(e) => setForm((f) => ({ ...f, is_partner: e.target.checked }))}
+            className="rounded"
+            id="partner-checkbox"
+          />
+          <label htmlFor="partner-checkbox" className="text-sm text-gray-700 font-medium">Is Partner</label>
+        </div>
+        {/* Opening hours */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-2">Opening Hours</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {DAYS_OF_WEEK.map((day) => (
+              <div key={day} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500 w-8 uppercase">{day}</span>
+                <input
+                  value={form.opening_hours[day] ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: e.target.value } }))}
+                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  placeholder="09:00-18:00"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-gray-900">Safe Spaces ({total})</h2>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            {filterButtons.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => { setFilter(f.id); setPage(0); }}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+            <input type="checkbox" checked={partnerOnly} onChange={(e) => { setPartnerOnly(e.target.checked); setPage(0); }} className="rounded" />
+            Partners only
+          </label>
+          <button
+            onClick={() => setShowAddForm((v) => !v)}
+            className="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            {showAddForm ? 'Cancel' : '+ Add Partner'}
+          </button>
+        </div>
+      </div>
+
+      {/* Add form (inline) */}
+      {showAddForm && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h3 className="text-sm font-bold text-gray-700 mb-4">Add Partner Safe Space</h3>
+          {renderFormFields(addForm, setAddForm as (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void)}
+          <div className="flex items-center gap-2 mt-4">
+            <button
+              onClick={handleAdd}
+              disabled={addLoading}
+              className="px-5 py-2.5 bg-gray-900 text-white font-bold text-sm rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              {addLoading ? 'Adding...' : 'Add Safe Space'}
+            </button>
+            <button
+              onClick={() => { setShowAddForm(false); setAddForm({ ...EMPTY_SPACE_FORM }); }}
+              className="px-5 py-2.5 bg-gray-100 text-gray-600 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {loading ? <Spinner /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Address</th>
+                  <th className="px-4 py-3">Partner</th>
+                  <th className="px-4 py-3">Upvotes</th>
+                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {spaces.map((space) => (
+                  editingId === space.id ? (
+                    <tr key={space.id} className="bg-blue-50">
+                      <td colSpan={7} className="px-4 py-4">
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Editing: {space.name}</p>
+                          {renderFormFields(editForm, setEditForm as (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void)}
+                          <div className="flex items-center gap-2 pt-2">
+                            <button onClick={() => handleSaveEdit(space.id)} className="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors">Save</button>
+                            <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={space.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-800">{space.name}</td>
+                      <td className="px-4 py-3"><Badge color="bg-gray-100 text-gray-600">{space.type}</Badge></td>
+                      <td className="px-4 py-3 text-gray-500 max-w-xs truncate" title={space.address ?? ''}>{space.address ?? <span className="text-gray-400">--</span>}</td>
+                      <td className="px-4 py-3">
+                        {space.is_partner
+                          ? <Badge color="bg-green-100 text-green-700">{space.partner_tier ?? 'partner'}</Badge>
+                          : <span className="text-gray-400">--</span>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 font-medium">{space.upvotes}</td>
+                      <td className="px-4 py-3 text-gray-500">{fmt(space.created_at)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => startEdit(space)} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">Edit</button>
+                          <button onClick={() => handleDelete(space.id)} className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                ))}
+                {spaces.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No safe spaces found</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+            <span>Page {page + 1} of {totalPages} ({total} total)</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40">Prev</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40">Next</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation';
+type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation' | 'spaces';
 
 const TABS: { id: AdminTab; label: string; emoji: string }[] = [
   { id: 'overview',    label: 'Overview',    emoji: '📊' },
@@ -1362,6 +1803,7 @@ const TABS: { id: AdminTab; label: string; emoji: string }[] = [
   { id: 'params',      label: 'Parameters',  emoji: '⚙️' },
   { id: 'live',        label: 'Live',        emoji: '📡' },
   { id: 'simulation',  label: 'Simulation',  emoji: '🤖' },
+  { id: 'spaces',      label: 'Safe Spaces', emoji: '🛡️' },
 ];
 
 export default function AdminPage() {
@@ -1417,6 +1859,7 @@ export default function AdminPage() {
         {activeTab === 'params'     && <ParametersTab />}
         {activeTab === 'live'       && <LiveTab />}
         {activeTab === 'simulation' && <SimulationTab />}
+        {activeTab === 'spaces'     && <SafeSpacesTab />}
       </main>
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">KOVA v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:kovaapp@pm.me" className="hover:text-gray-600">kovaapp@pm.me</a></p>

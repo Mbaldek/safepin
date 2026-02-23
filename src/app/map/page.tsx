@@ -4,18 +4,18 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { checkMilestones, type MilestoneStats } from '@/lib/milestones';
+import { updateStreak } from '@/lib/streaks';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List } from 'lucide-react';
-import SettingsSheet from '@/components/SettingsSheet';
 import MapView from '@/components/MapView';
-import MyKovaView from '@/components/MyKovaView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
@@ -24,8 +24,6 @@ import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
 import IncidentsView from '@/components/IncidentsView';
-import CommunityView from '@/components/CommunityView';
-import TripView from '@/components/TripView';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
@@ -37,7 +35,13 @@ import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
 import MapContextCard from '@/components/MapContextCard';
 import InstallPrompt from '@/components/InstallPrompt';
-import WalkWithMePanel from '@/components/WalkWithMePanel';
+
+// Lazy-loaded heavy components — not on the critical rendering path
+const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
+const CommunityView = dynamic(() => import('@/components/CommunityView'), { ssr: false });
+const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
+const SettingsSheet = dynamic(() => import('@/components/SettingsSheet'), { ssr: false });
+const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -93,6 +97,7 @@ export default function MapPage() {
     setLiveSessions, addLiveSession, updateLiveSession,
     showIncidentsList, setShowIncidentsList,
     achievedMilestones, addAchievedMilestone,
+    setStreakInfo, longestStreak,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -287,6 +292,20 @@ export default function MapPage() {
     }, 2000);
     return () => clearTimeout(timer);
   }, [userId, loading, onboardingDone]);
+
+  // ── Streak tracking — update on each session ────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
+    updateStreak(supabase, userId).then((result) => {
+      if (result) {
+        setStreakInfo(result.streak, result.isNewRecord ? result.streak : longestStreak);
+        if (result.milestone) {
+          toast.success(`\u{1F525} ${result.streak}-day streak!`);
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Listen for SW sync-complete messages → refresh pins + queue count
   useEffect(() => {

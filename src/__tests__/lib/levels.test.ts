@@ -66,4 +66,18 @@ describe('computeScore', () => {
     // 2*10 + 1*15 + 3*5 + 4*2 = 20 + 15 + 15 + 8 = 58
     expect(computeScore(2, 1, 3, 4)).toBe(58);
   });
+
+  // Additional specific cases per test plan
+  it('computeScore(10, 0, 0, 0) = 100', () => {
+    expect(computeScore(10, 0, 0, 0)).toBe(100);
+  });
+
+  it('computeScore(0, 1, 0, 0) = 15', () => {
+    expect(computeScore(0, 1, 0, 0)).toBe(15);
+  });
+
+  it('computeScore(5, 2, 10, 20) = 50+30+50+40 = 170', () => {
+    // 5*10 + 2*15 + 10*5 + 20*2 = 50 + 30 + 50 + 40 = 170
+    expect(computeScore(5, 2, 10, 20)).toBe(170);
+  });
 });

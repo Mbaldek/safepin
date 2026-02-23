@@ -103,6 +103,13 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // ── Verification nudge logic ──────────────────────────────────────────
+  const daysSinceSignup = userProfile?.created_at
+    ? Math.floor((Date.now() - new Date(userProfile.created_at).getTime()) / 86400000)
+    : 0;
+  const showVerifyNudge = userProfile && !userProfile.verified && daysSinceSignup >= 2 && daysSinceSignup <= 7;
+  const daysRemaining = 7 - daysSinceSignup;
+
   const cfg = STATUS_CONFIG[displayStatus];
 
   return (
@@ -135,6 +142,31 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[440px] mx-auto w-full px-5 py-8 flex flex-col gap-6">
+
+          {/* Verification nudge banner */}
+          {showVerifyNudge && (
+            <div
+              className="flex items-center gap-3 p-4 rounded-2xl"
+              style={{
+                backgroundColor: 'rgba(245,158,11,0.08)',
+                border: '1.5px solid rgba(245,158,11,0.35)',
+              }}
+            >
+              <span className="text-2xl shrink-0">{daysRemaining <= 2 ? '\u{23F3}' : '\u{1F44B}'}</span>
+              <div>
+                <p className="text-sm font-black" style={{ color: '#f59e0b' }}>
+                  {daysRemaining <= 2
+                    ? `Only ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left to verify!`
+                    : 'Verify your identity to unlock your trusted badge'}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {daysRemaining <= 2
+                    ? 'Complete verification now to keep your account in good standing.'
+                    : 'Verified users build more trust in the KOVA community. It only takes 2 minutes.'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Status card */}
           <div

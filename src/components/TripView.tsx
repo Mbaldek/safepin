@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { springTransition, haversineMetersLngLat } from '@/lib/utils';
 import { geocodeForward } from '@/lib/geocode';
+import { fetchTransitRoute, TransitRoute, TransitStep, formatTransitDuration, getLineIcon } from '@/lib/transit';
 
 type Phase = 'idle' | 'searching' | 'selecting' | 'active';
 type Mode  = 'walk' | 'bike' | 'drive' | 'transit';
@@ -36,7 +37,7 @@ const MODES: { id: Mode; emoji: string; label: string; soon?: boolean }[] = [
   { id: 'walk',    emoji: '🚶', label: 'Walk'    },
   { id: 'bike',    emoji: '🚴', label: 'Bike'    },
   { id: 'drive',   emoji: '🚗', label: 'Drive'   },
-  { id: 'transit', emoji: '🚇', label: 'Transit', soon: true },
+  { id: 'transit', emoji: '🚇', label: 'Transit' },
 ];
 
 const OSRM_PROFILES: Record<Mode, string> = {
@@ -242,6 +243,8 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [error, setError]               = useState<string | null>(null);
   const [activeOpt, setActiveOpt]        = useState<RouteOption | null>(null);
   const [nightOnly, setNightOnly]        = useState(false);
+  const [transitRoutes, setTransitRoutes] = useState<TransitRoute[]>([]);
+  const [selectedTransitIdx, setSelectedTransitIdx] = useState(0);
   const locationHistoryRef               = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // My saved routes
@@ -361,6 +364,28 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     if (!toCoords) {
       setError('Could not find destination. Try a more specific address.');
       setPhase('idle');
+      return;
+    }
+
+    if (mode === 'transit') {
+      const routes = await fetchTransitRoute(fromCoords, toCoords);
+      setTransitRoutes(routes);
+      if (routes.length > 0) {
+        // Convert to RouteOption format for the map
+        const LABELS: ('Safest' | 'Balanced' | 'Fastest')[] = ['Safest', 'Balanced', 'Fastest'];
+        const COLORS = ['#22c55e', '#f59e0b', '#3b82f6'];
+        const routeOptions: RouteOption[] = routes.map((r, i) => ({
+          id: `transit-${i}`,
+          label: LABELS[i] ?? 'Fastest',
+          color: COLORS[i] ?? '#3b82f6',
+          coords: r.coords,
+          dangerScore: 0,
+          duration: r.totalDuration,
+          distance: 0,
+        }));
+        setPendingRoutes(routeOptions);
+      }
+      setPhase('selecting');
       return;
     }
 
@@ -640,6 +665,61 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             <p className="text-center text-xs pb-1" style={{ color: 'var(--text-muted)' }}>
               Routes are visible on the map behind this sheet
             </p>
+
+            {/* Transit route steps */}
+            {mode === 'transit' && transitRoutes.length > 0 && phase === 'selecting' && (
+              <div className="space-y-2 mt-3">
+                {/* Route selector tabs */}
+                <div className="flex gap-1">
+                  {transitRoutes.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setSelectedTransitIdx(i); }}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition"
+                      style={{
+                        backgroundColor: selectedTransitIdx === i ? 'var(--accent)' : 'var(--bg-card)',
+                        color: selectedTransitIdx === i ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      {formatTransitDuration(r.totalDuration)} · {r.transfers} {r.transfers === 1 ? 'transfer' : 'transfers'}
+                    </button>
+                  ))}
+                </div>
+                {/* Step-by-step */}
+                <div className="rounded-2xl p-3 space-y-2" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  {transitRoutes[selectedTransitIdx]?.steps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <div className="text-base mt-0.5">{getLineIcon(step.mode)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          {step.mode !== 'walking' && step.line && (
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[0.6rem] font-black text-white"
+                              style={{ backgroundColor: step.lineColor || 'var(--accent)' }}
+                            >
+                              {step.line}
+                            </span>
+                          )}
+                          <span className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                            {step.mode === 'walking' ? `Walk to ${step.to}` : `${step.from} → ${step.to}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                            {formatTransitDuration(step.duration)}
+                          </span>
+                          {step.stops && step.stops > 0 && (
+                            <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                              · {step.stops} stops
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -900,11 +980,6 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                   </button>
                 ))}
               </div>
-              {mode === 'transit' && (
-                <p className="text-[0.6rem] mt-1.5 text-center" style={{ color: 'var(--text-muted)' }}>
-                  🚇 Transit routing coming soon · showing walking route as proxy
-                </p>
-              )}
             </div>
 
             {/* Plan for tonight toggle */}

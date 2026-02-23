@@ -176,6 +176,11 @@ type Store = {
   // Deep-link into My KOVA sub-tab (e.g. from Settings → Profile)
   myKovaInitialTab: string | null;
   setMyKovaInitialTab: (tab: string | null) => void;
+
+  // Streaks
+  currentStreak: number;
+  longestStreak: number;
+  setStreakInfo: (current: number, longest: number) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -353,4 +358,17 @@ export const useStore = create<Store>((set) => ({
   // My KOVA deep-link
   myKovaInitialTab: null,
   setMyKovaInitialTab: (tab) => set({ myKovaInitialTab: tab }),
+
+  // Streaks
+  currentStreak: 0,
+  longestStreak: 0,
+  setStreakInfo: (current, longest) => set({ currentStreak: current, longestStreak: longest }),
 }));
+
+// Shallow selectors for performance — prevent unnecessary re-renders
+export const useUserId = () => useStore((s) => s.userId);
+export const usePins = () => useStore((s) => s.pins);
+export const useActiveTab = () => useStore((s) => s.activeTab);
+export const useActiveSheet = () => useStore((s) => s.activeSheet);
+export const useMapFilters = () => useStore((s) => s.mapFilters);
+export const useStreak = () => useStore((s) => ({ current: s.currentStreak, longest: s.longestStreak }));
