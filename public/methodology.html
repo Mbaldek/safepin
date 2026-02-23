@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Methodology &amp; Safety Data | Brume</title>
+  <meta name="description" content="How Brume collects, processes, and displays community safety data. Transparent methodology for incident reporting, severity scoring, routing algorithms, and privacy." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #f43f5e;
+      --accent-soft: rgba(244, 63, 94, 0.10);
+      --bg: #ffffff;
+      --bg-card: #f8f8fa;
+      --text: #111114;
+      --text-secondary: #3c3c43;
+      --text-muted: #8e8e93;
+      --border: #e5e5ea;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --orange: #f97316;
+      --red: #ef4444;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0f;
+        --bg-card: #141419;
+        --text: #f5f5f7;
+        --text-secondary: #b0b0b8;
+        --text-muted: #5e5e66;
+        --border: #1e1e26;
+        --accent-soft: rgba(244, 63, 94, 0.14);
+      }
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    /* Back link */
+    .back-link {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      margin-bottom: 32px;
+      transition: opacity 0.15s;
+    }
+    .back-link:hover { opacity: 0.75; }
+
+    /* Header */
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .page-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+
+    /* Table of contents */
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc-title {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .toc ol {
+      list-style: none;
+      counter-reset: toc-counter;
+      padding: 0;
+    }
+    .toc li {
+      counter-increment: toc-counter;
+      margin-bottom: 6px;
+    }
+    .toc li::before {
+      content: counter(toc-counter, decimal-leading-zero) " ";
+      font-weight: 800;
+      font-size: 0.7rem;
+      color: var(--accent);
+      margin-right: 4px;
+    }
+    .toc a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: color 0.15s;
+    }
+    .toc a:hover { color: var(--accent); }
+
+    /* Sections */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section-number {
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .section h2 {
+      font-size: 1.15rem;
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+    .section p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .section ul, .section ol {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+    .section li {
+      margin-bottom: 6px;
+    }
+    .section strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin: 16px 0 12px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .data-table thead th {
+      background: var(--bg-card);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .data-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Severity badges */
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .badge-green  { background: rgba(16,185,129,0.12); color: #10b981; }
+    .badge-yellow { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .badge-orange { background: rgba(249,115,22,0.12); color: #f97316; }
+    .badge-red    { background: rgba(239,68,68,0.12);  color: #ef4444; }
+
+    /* Info callout */
+    .callout {
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+    .callout strong {
+      color: var(--text);
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 48px;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .container { padding: 24px 16px 48px; }
+      .page-title { font-size: 1.4rem; }
+      .section h2 { font-size: 1.05rem; }
+      .data-table { font-size: 0.72rem; }
+      .data-table thead th, .data-table tbody td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/map" class="back-link">&larr; Back to Brume</a>
+
+    <h1 class="page-title">Methodology &amp; Safety Data</h1>
+    <p class="page-subtitle">Last updated: February 2026</p>
+
+    <!-- Table of Contents -->
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-title">Contents</p>
+      <ol>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#report-categories">Report Categories</a></li>
+        <li><a href="#severity-levels">Severity Levels</a></li>
+        <li><a href="#environment-context">Environment Context</a></li>
+        <li><a href="#urban-context">Urban Context Categories</a></li>
+        <li><a href="#verification">Community Verification System</a></li>
+        <li><a href="#routing">Danger-Aware Routing Algorithm</a></li>
+        <li><a href="#data-freshness">Data Freshness &amp; Lifecycle</a></li>
+        <li><a href="#privacy">Privacy by Design</a></li>
+        <li><a href="#limitations">Limitations &amp; Disclaimer</a></li>
+      </ol>
+    </nav>
+
+    <!-- 1. Introduction -->
+    <section class="section" id="introduction">
+      <p class="section-number">Section 01</p>
+      <h2>Introduction</h2>
+      <p>
+        Brume is a community-powered safety mapping platform built on the principle that
+        <strong>safety information should be transparent, accessible, and community-driven</strong>.
+        Our mission is to empower individuals with real-time awareness of their surroundings so they
+        can make informed decisions about their routes, timing, and travel.
+      </p>
+      <p>
+        Every data point on the Brume map originates from a community member who witnessed or
+        experienced a safety-relevant event. Reports are collected through a structured submission
+        process, enriched with contextual metadata (category, severity, time, location, environment),
+        and displayed on an interactive map in real time.
+      </p>
+      <p>
+        This page explains exactly <strong>how data is collected, processed, scored, and displayed</strong> &mdash;
+        because we believe the methodology behind safety tools should be as transparent as the data itself.
+      </p>
+    </section>
+
+    <!-- 2. Report Categories -->
+    <section class="section" id="report-categories">
+      <p class="section-number">Section 02</p>
+      <h2>Report Categories</h2>
+      <p>
+        When a user creates a safety report (a "pin"), they select a category that best describes
+        the incident. Each category is designed to capture a distinct type of safety concern.
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Examples</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Harassment</strong></td>
+            <td>Verbal, sexual, or persistent unwanted attention directed at an individual</td>
+            <td>Catcalling, verbal intimidation, sexual harassment, following</td>
+          </tr>
+          <tr>
+            <td><strong>Stalking</strong></td>
+            <td>Repeated or persistent surveillance, following, or threatening behavior</td>
+            <td>Being followed on foot or by vehicle, repeated appearances, surveillance</td>
+          </tr>
+          <tr>
+            <td><strong>Dark Area</strong></td>
+            <td>Environmental hazard related to poor visibility, infrastructure danger, or unsafe conditions</td>
+            <td>Broken streetlights, poorly lit passages, construction hazards, obstructed pathways</td>
+          </tr>
+          <tr>
+            <td><strong>Aggression</strong></td>
+            <td>Physical violence, robbery, or direct confrontational threat</td>
+            <td>Assault, robbery, bag snatching, physical altercation, armed threat</td>
+          </tr>
+          <tr>
+            <td><strong>Intoxicated</strong></td>
+            <td>Presence of intoxicated individuals behaving erratically or aggressively</td>
+            <td>Aggressive drunk behavior, drug use in public, erratic/unpredictable conduct</td>
+          </tr>
+          <tr>
+            <td><strong>Other</strong></td>
+            <td>Any safety concern that does not fit the above categories</td>
+            <td>Suspicious activity, vandalism, unusual gatherings, animal hazards</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Categories are intentionally broad to remain inclusive without being overwhelming. Users can
+        add a free-text description to provide additional detail beyond the selected category.
+      </p>
+    </section>
+
+    <!-- 3. Severity Levels -->
+    <section class="section" id="severity-levels">
+      <p class="section-number">Section 03</p>
+      <h2>Severity Levels</h2>
+      <p>
+        Each report includes a user-assessed severity level that communicates the perceived level of
+        danger. Severity affects how prominently a pin is displayed on the map and how it factors
+        into route danger scoring.
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Label</th>
+            <th>Indicator</th>
+            <th>Description</th>
+            <th>Examples</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-green">1</span></td>
+            <td><strong>Low / Mild</strong></td>
+            <td style="color: var(--green);">Green</td>
+            <td>Minor concern, no immediate physical danger</td>
+            <td>Suspicious loitering, minor vandalism, broken streetlight</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-yellow">2</span></td>
+            <td><strong>Medium / Moderate</strong></td>
+            <td style="color: var(--yellow);">Yellow</td>
+            <td>Moderate risk, heightened awareness recommended</td>
+            <td>Verbal harassment, petty theft area, aggressive panhandling</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-orange">3</span></td>
+            <td><strong>High / Danger</strong></td>
+            <td style="color: var(--orange);">Orange</td>
+            <td>Significant risk, active caution advised</td>
+            <td>Repeated theft incidents, aggressive confrontation, stalking pattern</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">4</span></td>
+            <td><strong>Critical / Emergency</strong></td>
+            <td style="color: var(--red);">Red</td>
+            <td>Immediate danger, emergency-level threat</td>
+            <td>Assault in progress, active emergency, armed threat</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>SOS alerts</strong> are a special category of critical-severity reports triggered
+        through the emergency button. They broadcast the user's live location to trusted contacts
+        and nearby community members, and are styled with high-visibility pulsing indicators on the map.
+      </div>
+    </section>
+
+    <!-- 4. Environment Context -->
+    <section class="section" id="environment-context">
+      <p class="section-number">Section 04</p>
+      <h2>Environment Context</h2>
+      <p>
+        Reports include an <strong>environment context</strong> that describes how the reporter was
+        traveling at the time of the incident. This metadata enables time-and-mode-specific safety
+        analysis.
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Environment</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>On foot</strong></td>
+            <td>Walking or running in any outdoor environment</td>
+          </tr>
+          <tr>
+            <td><strong>Transit</strong></td>
+            <td>Using metro, train, or tram systems</td>
+          </tr>
+          <tr>
+            <td><strong>Bus</strong></td>
+            <td>On a bus or at a bus stop</td>
+          </tr>
+          <tr>
+            <td><strong>Cycling</strong></td>
+            <td>On a bicycle, scooter, or similar micro-mobility vehicle</td>
+          </tr>
+          <tr>
+            <td><strong>Vehicle</strong></td>
+            <td>In a car, taxi, or ride-share</td>
+          </tr>
+          <tr>
+            <td><strong>Indoor</strong></td>
+            <td>Inside a building, venue, or enclosed public space</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Day vs. Night Reporting</h3>
+      <p>
+        Time of day fundamentally changes the safety landscape of any location. Brume distinguishes
+        between <strong>day reports</strong> (06:00&ndash;20:00) and <strong>night reports</strong>
+        (20:00&ndash;06:00) based on the timestamp of the incident.
+      </p>
+      <ul>
+        <li>Night-time incidents are filtered and weighted separately in the routing algorithm, since safety conditions often differ dramatically after dark.</li>
+        <li>The filter bar allows users to view reports by time-of-day: morning, afternoon, evening, or night.</li>
+        <li>Route planning factors in whether the trip is occurring during day or night hours, adjusting danger scores accordingly.</li>
+      </ul>
+    </section>
+
+    <!-- 5. Urban Context Categories -->
+    <section class="section" id="urban-context">
+      <p class="section-number">Section 05</p>
+      <h2>Urban Context Categories</h2>
+      <p>
+        Beyond how the reporter was traveling, Brume captures <strong>where</strong> the incident
+        occurred in terms of urban typology. This spatial metadata enables pattern analysis across
+        different types of urban infrastructure.
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Context</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Street</strong></td>
+            <td>Public road, sidewalk, or pedestrian path</td>
+          </tr>
+          <tr>
+            <td><strong>Parking</strong></td>
+            <td>Parking lot, underground garage, or parking structure</td>
+          </tr>
+          <tr>
+            <td><strong>Store / Mall</strong></td>
+            <td>Commercial area, shopping center, or retail environment</td>
+          </tr>
+          <tr>
+            <td><strong>Metro</strong></td>
+            <td>Metro station, platform, or underground passage</td>
+          </tr>
+          <tr>
+            <td><strong>Bus stop</strong></td>
+            <td>Bus stop, bus shelter, or transit interchange</td>
+          </tr>
+          <tr>
+            <td><strong>Park</strong></td>
+            <td>Public park, garden, green space, or playground</td>
+          </tr>
+          <tr>
+            <td><strong>Restaurant / Bar</strong></td>
+            <td>Food and drink establishment, terrace, or nightlife venue</td>
+          </tr>
+          <tr>
+            <td><strong>Building</strong></td>
+            <td>Residential building entrance, lobby, hallway, or stairwell</td>
+          </tr>
+          <tr>
+            <td><strong>Other</strong></td>
+            <td>Any context not covered above (user can specify in free text)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Urban context data helps identify <strong>spatial safety patterns</strong> &mdash; for example,
+        whether incidents cluster around transit stations, parking areas, or parks at specific times.
+        This information is used in neighborhood safety scoring and city-level analytics.
+      </p>
+    </section>
+
+    <!-- 6. Community Verification System -->
+    <section class="section" id="verification">
+      <p class="section-number">Section 06</p>
+      <h2>Community Verification System</h2>
+      <p>
+        Brume relies on community participation to validate the accuracy and relevance of safety
+        reports. Multiple mechanisms work together to establish trust.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Confirm &amp; Refute</h3>
+      <p>
+        Any user can <strong>confirm</strong> or <strong>refute</strong> an existing report. This
+        crowdsourced validation creates a confirmation score for each pin:
+      </p>
+      <ul>
+        <li>Reports with more confirmations are displayed more prominently and carry greater weight in danger scoring.</li>
+        <li>Reports with a high refutation ratio may be visually de-emphasized or flagged for review.</li>
+        <li>Users can only vote once per pin, preventing manipulation.</li>
+      </ul>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Identity Verification</h3>
+      <p>
+        Users can optionally verify their identity through a third-party provider (Veriff). Verified
+        users receive a visible badge on their profile. Reports from verified users carry
+        <strong>additional weight</strong> in the confirmation system, as their identity has been
+        independently confirmed.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Impact Score &amp; Milestones</h3>
+      <p>
+        Brume tracks each user's positive contribution to community safety through an impact scoring
+        system. Points are earned for:
+      </p>
+      <ul>
+        <li>Creating reports that receive community confirmations</li>
+        <li>Confirming or refuting other users' reports</li>
+        <li>Participating in community discussions</li>
+        <li>Maintaining reporting streaks (consecutive days of activity)</li>
+        <li>Completing guardian challenges (weekly community goals)</li>
+      </ul>
+      <p>
+        Milestones are awarded at key thresholds and visible on the user's profile, incentivizing
+        consistent, quality participation.
+      </p>
+    </section>
+
+    <!-- 7. Danger-Aware Routing Algorithm -->
+    <section class="section" id="routing">
+      <p class="section-number">Section 07</p>
+      <h2>Danger-Aware Routing Algorithm</h2>
+      <p>
+        Brume's trip planner does not just find the fastest route &mdash; it evaluates each route's
+        safety profile using community-reported data. Here is how the algorithm works.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Route Corridor Analysis</h3>
+      <p>
+        For each candidate route returned by the routing engine, Brume samples up to <strong>20
+        evenly-spaced waypoints</strong> along the path. At each waypoint, it checks for unresolved
+        safety reports within a <strong>200-meter radius</strong>. This creates a "corridor" of
+        safety awareness around the entire route.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Severity-Weighted Scoring</h3>
+      <p>
+        Not all incidents carry equal weight. The danger score is computed as follows:
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Report Type</th>
+            <th>Weight</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Standard report</td>
+            <td><strong>1 point</strong></td>
+            <td>Base weight for any unresolved incident near the route</td>
+          </tr>
+          <tr>
+            <td>Emergency / SOS report</td>
+            <td><strong>3 points</strong></td>
+            <td>Emergency reports signal active, high-severity danger</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The total danger score is the sum of all weighted incidents detected within the route
+        corridor. Higher scores indicate routes that pass through areas with more reported incidents.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Time Decay &amp; Night Filtering</h3>
+      <p>
+        The algorithm only considers <strong>recent, unresolved reports</strong>. Resolved incidents
+        are excluded entirely. When traveling at night, the algorithm can optionally filter to
+        only consider night-time reports (incidents that occurred between 22:00 and 06:00), providing
+        time-relevant safety scoring.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Alternative Route Generation</h3>
+      <p>
+        The routing engine (OSRM) generates <strong>up to 3 alternative routes</strong> for each
+        trip. Each route is independently scored for danger, and users see all options ranked by
+        both travel time and safety. Available transport modes include:
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Routing Engine</th>
+            <th>Danger Scoring</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Walk</strong></td>
+            <td>OSRM (foot profile)</td>
+            <td>Full corridor analysis with alternatives</td>
+          </tr>
+          <tr>
+            <td><strong>Bike</strong></td>
+            <td>OSRM (bike profile)</td>
+            <td>Full corridor analysis with alternatives</td>
+          </tr>
+          <tr>
+            <td><strong>Drive</strong></td>
+            <td>OSRM (driving profile)</td>
+            <td>Full corridor analysis with alternatives</td>
+          </tr>
+          <tr>
+            <td><strong>Transit</strong></td>
+            <td>IDFM official schedules</td>
+            <td>No danger rerouting (fixed transit lines)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Why no danger rerouting for transit?</strong> Public transit follows fixed routes and
+        schedules. Brume cannot suggest alternative metro lines in the same way it suggests alternative
+        walking paths. Instead, transit routes display nearby incidents along the line for awareness.
+      </div>
+    </section>
+
+    <!-- 8. Data Freshness & Lifecycle -->
+    <section class="section" id="data-freshness">
+      <p class="section-number">Section 08</p>
+      <h2>Data Freshness &amp; Lifecycle</h2>
+      <p>
+        Safety data is inherently time-sensitive. A report from 30 minutes ago is far more actionable
+        than one from 3 days ago. Brume uses multiple mechanisms to reflect data freshness.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Time-Based Visual Styling</h3>
+      <p>
+        Pins on the map are styled to visually communicate recency. Recent reports appear with
+        stronger visual presence (larger, more opaque, pulsing for emergencies), while older reports
+        are progressively de-emphasized.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Filter Options</h3>
+      <p>
+        Users can filter the map by report age to focus on the most relevant data:
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Filter</th>
+            <th>Shows Reports From</th>
+            <th>Best For</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>&lt; 1 hour</strong></td>
+            <td>Last 60 minutes</td>
+            <td>Real-time situational awareness</td>
+          </tr>
+          <tr>
+            <td><strong>&lt; 6 hours</strong></td>
+            <td>Last 6 hours</td>
+            <td>Current-session safety overview</td>
+          </tr>
+          <tr>
+            <td><strong>Today</strong></td>
+            <td>Since midnight</td>
+            <td>Daily safety picture</td>
+          </tr>
+          <tr>
+            <td><strong>Any</strong></td>
+            <td>All available reports</td>
+            <td>Pattern analysis and historical context</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">SOS Alert Expiry</h3>
+      <p>
+        SOS emergency alerts are designed for immediate, time-critical situations. If an SOS is not
+        manually resolved by the user or a responder, it <strong>auto-expires after 2 hours</strong>.
+        This prevents stale emergency markers from persisting on the map and causing unnecessary alarm.
+      </p>
+
+      <h3 style="font-size: 0.95rem; font-weight: 800; margin: 20px 0 8px;">Historical Data Retention</h3>
+      <p>
+        While the active map focuses on recent data, historical reports are retained in the database
+        for pattern analysis, neighborhood safety scoring, and trend computation. Older reports are
+        anonymized after 12 months in accordance with the privacy policy.
+      </p>
+    </section>
+
+    <!-- 9. Privacy by Design -->
+    <section class="section" id="privacy">
+      <p class="section-number">Section 09</p>
+      <h2>Privacy by Design</h2>
+      <p>
+        Brume is built with privacy as a foundational principle, not an afterthought. Safety
+        information and personal privacy are not mutually exclusive &mdash; here is how they coexist.
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Principle</th>
+            <th>Implementation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>No precise home addresses</strong></td>
+            <td>Brume does not store or infer users' home locations. Reports are placed at user-selected map points, not derived from home address data.</td>
+          </tr>
+          <tr>
+            <td><strong>Active-only location</strong></td>
+            <td>GPS location is only accessed when the app is actively in use (map view, trip navigation, SOS). No background tracking occurs outside of active sessions.</td>
+          </tr>
+          <tr>
+            <td><strong>Approximate report locations</strong></td>
+            <td>Reports are placed at the point the user taps on the map, which may be approximate. The system does not snap reports to exact addresses.</td>
+          </tr>
+          <tr>
+            <td><strong>No real-name requirement</strong></td>
+            <td>Users choose a display name freely. Identity verification is entirely optional and does not expose real names to other users.</td>
+          </tr>
+          <tr>
+            <td><strong>GDPR-compliant processing</strong></td>
+            <td>All data processing has a lawful basis (consent, contract, or legitimate interest). Users can access, rectify, export, or delete their data at any time.</td>
+          </tr>
+          <tr>
+            <td><strong>EU data residency</strong></td>
+            <td>All primary data is stored in European Union data centers. Third-party processors comply with GDPR or have adequate safeguards.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        For full details on data collection, retention, and your rights, see the
+        <a href="/privacy" style="color: var(--accent); font-weight: 700; text-decoration: none;">Privacy Policy</a>.
+      </p>
+    </section>
+
+    <!-- 10. Limitations & Disclaimer -->
+    <section class="section" id="limitations">
+      <p class="section-number">Section 10</p>
+      <h2>Limitations &amp; Disclaimer</h2>
+      <p>
+        Brume is a powerful community tool, but it has important limitations that every user should
+        understand.
+      </p>
+      <ul>
+        <li>
+          <strong>Not a replacement for emergency services.</strong> Brume is a supplementary
+          awareness tool. In case of immediate danger, always call your local emergency number:
+          <strong>112</strong> (EU), <strong>911</strong> (US), <strong>999</strong> (UK),
+          or <strong>15 / 17 / 18</strong> (France).
+        </li>
+        <li>
+          <strong>Community-dependent accuracy.</strong> Report accuracy and coverage depend
+          entirely on community participation. Areas with fewer active users will have fewer
+          reports, which does not necessarily mean those areas are safer.
+        </li>
+        <li>
+          <strong>No independent verification.</strong> Brume does not independently verify
+          individual incident reports. While the community confirmation system helps surface
+          reliable data, individual reports reflect the subjective perception of the reporter.
+        </li>
+        <li>
+          <strong>Indicative safety scores.</strong> Danger scores, neighborhood ratings, and
+          route safety assessments are <strong>indicative, not absolute guarantees</strong>.
+          A low danger score does not guarantee safety, and a high score does not mean danger
+          is certain.
+        </li>
+        <li>
+          <strong>Temporal limitations.</strong> Safety conditions change rapidly. A location
+          that was flagged an hour ago may be safe now, and vice versa. Always exercise personal
+          judgment regardless of what the map shows.
+        </li>
+        <li>
+          <strong>Reporting bias.</strong> Certain types of incidents may be underreported (e.g.,
+          harassment) or overreported (e.g., perceived suspicious activity). Brume data reflects
+          community reporting patterns, which may not perfectly mirror actual crime statistics.
+        </li>
+      </ul>
+      <div class="callout">
+        <strong>Stay safe.</strong> Brume is designed to augment your situational awareness, not
+        replace it. Trust your instincts, stay alert, and never hesitate to contact emergency
+        services when you feel unsafe.
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <footer class="footer">
+      &copy; 2026 Brume by DBEK. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

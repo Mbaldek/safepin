@@ -145,7 +145,7 @@ export default function TermsPage() {
             <h2 className="text-base font-black mb-2">14. Contact</h2>
             <p>
               DBEK, 75 rue de Lourmel, 75015 Paris, France.<br />
-              Email: <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>
+              Email: <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>
             </p>
           </section>
         </div>

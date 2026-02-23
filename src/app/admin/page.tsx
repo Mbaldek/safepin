@@ -1862,7 +1862,7 @@ export default function AdminPage() {
         {activeTab === 'spaces'     && <SafeSpacesTab />}
       </main>
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400">Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:kovaapp@pm.me" className="hover:text-gray-600">kovaapp@pm.me</a></p>
+        <p className="text-xs text-gray-400">Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:brumeapp@pm.me" className="hover:text-gray-600">brumeapp@pm.me</a></p>
       </footer>
     </div>
   );

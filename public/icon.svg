@@ -4,6 +4,6 @@
   <!-- Shield shape -->
   <path d="M256 72L96 128v128c0 120 69.5 200.5 160 240 90.5-39.5 160-120 160-240V128L256 72z" fill="white" opacity="0.18"/>
   <path d="M256 72L96 128v128c0 120 69.5 200.5 160 240 90.5-39.5 160-120 160-240V128L256 72z" stroke="white" stroke-width="8" fill="none" opacity="0.6"/>
-  <!-- K letter -->
-  <text x="256" y="330" text-anchor="middle" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-weight="900" font-size="240" fill="white">K</text>
+  <!-- B letter -->
+  <text x="256" y="330" text-anchor="middle" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-weight="900" font-size="240" fill="white">B</text>
 </svg>

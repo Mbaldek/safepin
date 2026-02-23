@@ -5,12 +5,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function KovaShield({ size = 48 }: { size?: number }) {
+function BrumeShield({ size = 48 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.2" />
       <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.5" fill="none" />
-      <text x="16" y="21" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">K</text>
+      <text x="16" y="21" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">B</text>
     </svg>
   );
 }
@@ -49,7 +49,7 @@ const STEPS: Step[] = [
   },
 ];
 
-const STORAGE_KEY = 'kova_onboarding_done';
+const STORAGE_KEY = 'brume_onboarding_done';
 
 export function useOnboardingDone(): [boolean, () => void] {
   const [done, setDone] = useState(() => {
@@ -113,7 +113,7 @@ export default function OnboardingOverlay({ onDone }: { onDone: () => void }) {
             className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg"
             style={{ background: 'linear-gradient(135deg, rgba(244,63,94,0.1), rgba(244,63,94,0.25))', border: '1.5px solid rgba(244,63,94,0.3)' }}
           >
-            {current.icon === 'shield' ? <KovaShield size={44} /> : <span className="text-4xl">{current.icon}</span>}
+            {current.icon === 'shield' ? <BrumeShield size={44} /> : <span className="text-4xl">{current.icon}</span>}
           </motion.div>
         </AnimatePresence>
 

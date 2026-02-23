@@ -34,8 +34,9 @@ The name stands for a shield — the app's core promise is to help women move th
 - Auto-enables safe spaces layer during active emergency
 
 ### 4. Safe Trip Planner
-- Enter departure/destination, choose transport mode (walk, bike, drive, transit)
+- Enter departure/destination, choose transport mode (walk, bike, drive, **transit**)
 - OSRM routing engine returns up to 3 alternatives
+- **Paris public transit** via IDFM Navitia API (metro, RER, bus, tram) with step-by-step journey UI
 - Each route scored for danger based on proximity to active pins
 - **Automatic rerouting**: if the safest route passes a danger pin, Brume computes a bypass waypoint 380m away and re-queries a detour (accepted only if danger improves and duration penalty ≤ 50%)
 - Route labels: Safest (green), Balanced (amber), Fastest (blue)
@@ -53,6 +54,9 @@ The name stands for a shield — the app's core promise is to help women move th
 ### 6. Safe Spaces Directory
 - Database of pharmacies, hospitals, police stations, cafes, and shelters
 - User-submitted suggestions with upvote system
+- **Partner safe spaces** with tiered badges (basic / premium), opening hours, photos, contact info
+- Data-driven map styling: gold markers for premium partners, blue for basic, green for regular
+- Admin CRUD interface for partner management
 - Green shield markers on the map (toggleable layer)
 - Auto-shown during SOS emergencies
 - "Navigate to nearest" during active trips
@@ -75,6 +79,9 @@ The name stands for a shield — the app's core promise is to help women move th
 - 4 trust levels: Watcher (0+) → Reporter (50+) → Guardian (200+) → Sentinel (500+)
 - 11 milestone achievements (First Report, Watchful Eye, Trusted Verifier, Path Finder, etc.)
 - Expertise tags: Night Owl, Transit Guardian, First Responder, Neighborhood Expert
+- **Daily streaks** with milestone rewards at 3, 7, 14, 30, 60, 100 days
+- **Weekly challenges** (gamified tasks: confirm reports, file incidents, save routes)
+- **Engagement events** tracking for analytics
 - Weekly activity sparkline on profile
 
 ### 10. Content Moderation
@@ -135,10 +142,11 @@ In the moments when safety matters most (underground metro, poor signal areas), 
 - Offline banner shows pending report count
 
 ### Internationalization Strategy
-Brume launched with French (Paris-first) and English. The `next-intl` setup with middleware-based locale detection means:
+Brume supports **30 languages** with full UI translation. The `next-intl` setup with cookie-based locale detection means:
 - URL structure stays clean (no `/en/` prefix for default locale)
 - Emergency numbers are locale-aware (French: 15/17/18/112)
-- All 500+ UI strings are externalized in structured JSON
+- All 500+ UI strings are externalized in structured JSON across 16 namespaces
+- Core namespaces (common, nav, emergency) fully translated in all 30 locales
 - Adding a new language requires only a new `messages/{locale}.json` file
 
 ---
@@ -152,7 +160,7 @@ Brume launched with French (Paris-first) and English. The `next-intl` setup with
 | **Styling** | Tailwind CSS v4 | Utility-first styling with CSS variables for theming |
 | **Animation** | Framer Motion | Sheet transitions, spring physics, AnimatePresence |
 | **State** | Zustand | Lightweight store with localStorage persistence |
-| **Maps** | Mapbox GL JS + react-map-gl | Vector tiles, clustering, custom layers, GeoJSON |
+| **Maps** | Mapbox GL JS | Vector tiles, clustering, custom layers, GeoJSON |
 | **Routing** | OSRM (public API) | Multi-modal route calculation with alternatives |
 | **Database** | Supabase (PostgreSQL) | Row-level security, real-time subscriptions, storage |
 | **Auth** | Supabase Auth | Email/password, Google OAuth, JWT tokens |
@@ -165,7 +173,8 @@ Brume launched with French (Paris-first) and English. The `next-intl` setup with
 | **i18n** | next-intl | Locale routing, message bundles, server/client translation |
 | **Offline** | Service Worker + IndexedDB | Cache-first assets, offline pin queue, background sync |
 | **PWA** | Web App Manifest | Installable, standalone display, maskable icons |
-| **Testing** | Vitest + Testing Library | Unit tests (39 tests), jsdom environment |
+| **Transit** | IDFM Navitia API | Paris public transit routing (metro, RER, bus, tram) |
+| **Testing** | Vitest + Testing Library | Unit tests (121 tests, 9 suites), jsdom environment |
 | **CI** | GitHub Actions | Lint, typecheck, and test on push/PR |
 | **Icons** | Lucide React | Consistent icon set across the app |
 | **Toasts** | Sonner | Non-blocking notification toasts |
@@ -192,7 +201,7 @@ Brume launched with French (Paris-first) and English. The `next-intl` setup with
 │  └─────────┘  └──────────┘  └──────────┘  └──────────┘ │
 ├─────────────────────────────────────────────────────────┤
 │                    Middleware Layer                       │
-│         Rate Limiting · Locale Routing (en/fr)           │
+│     Rate Limiting · Locale Routing (30 languages)        │
 ├─────────────────────────────────────────────────────────┤
 │                  Service Worker (sw.js)                   │
 │     Cache-first · Offline Queue · Background Sync        │
@@ -215,13 +224,14 @@ Brume launched with French (Paris-first) and English. The `next-intl` setup with
 
 ---
 
-## Database: 25+ Tables
+## Database: 30+ Tables
 
 **Core:** pins, profiles, comments, notifications
 **Social:** trusted_contacts, communities, community_messages, community_stories, dm_conversations, direct_messages
 **Routes:** saved_routes, trip_logs, safety_buddies
 **Safety:** safe_spaces, safe_space_votes, place_notes, emergency_dispatches, emergency_sessions, live_sessions
-**Engagement:** pin_votes, user_reports, user_milestones
+**Engagement:** pin_votes, user_reports, user_milestones, engagement_events
+**Gamification:** challenges, user_challenges
 **Billing:** subscriptions, invoices, pro_waitlist
 **System:** push_subscriptions, admin_params
 
@@ -244,14 +254,14 @@ All tables use Row-Level Security (RLS) policies enforced at the database level.
 
 ## Testing
 
-- **39 unit tests** across 6 test suites (Vitest + Testing Library)
+- **121 unit tests** across 9 test suites (Vitest + Testing Library)
 - Mocked Supabase, Mapbox, next-intl, and Framer Motion
-- Tests cover: trust levels, score computation, milestone detection, trend calculation, emergency button, filter bar, notifications
+- Tests cover: trust levels, score computation, milestone detection, trend calculation, emergency button, filter bar, notifications, streaks, transit routing, safe space detail
 - CI pipeline: lint → typecheck → test on every push/PR
 
 ---
 
-## Sprint History (42 sprints)
+## Sprint History (51 sprints)
 
 | Sprint | Feature |
 |--------|---------|
@@ -268,4 +278,13 @@ All tables use Row-Level Security (RLS) policies enforced at the database level.
 | S39 | Time-based safety + historical trends |
 | S40 | Safe spaces directory |
 | S41 | Accessibility (WCAG 2.1 AA) |
-| S42 | Testing foundation |
+| S42 | Testing foundation (39 tests) |
+| S43 | Auth callback fix (PKCE code exchange), login page i18n (30 locales) |
+| S44 | Partner Safe Spaces (admin CRUD, partner tiers, data-driven map styling) |
+| S45 | Streaks + verification nudges + engagement events tracking |
+| S46 | Transit routing (IDFM Navitia API, step-by-step metro/RER/bus/tram UI) |
+| S47 | Expanded test coverage (121 tests across 9 suites) |
+| S48 | Performance: lazy loading (next/dynamic), Zustand selectors, image optimization |
+| S49 | Guardian challenges (weekly gamified tasks with point rewards) |
+| S50 | SOS responder system (community response to emergencies) |
+| S51 | Audio check-in (voice memos for safety sessions) |

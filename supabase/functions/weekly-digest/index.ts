@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
       // This is a simplified version — in production, use the web-push npm package via esm.sh
       const { default: webpush } = await import("npm:web-push@3.6.7");
       webpush.setVapidDetails(
-        "mailto:kovaapp@pm.me",
+        "mailto:brumeapp@pm.me",
         vapidPublicKey,
         vapidPrivateKey
       );

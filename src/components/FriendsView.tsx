@@ -248,7 +248,7 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
   }
 
   async function shareInvite() {
-    const url = typeof window !== 'undefined' ? window.location.origin : 'https://kovaapp.io';
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://brumeapp.io';
     const text = `Join me on Brume — a community safety app. ${url}`;
     if (navigator.share) {
       await navigator.share({ title: 'Brume', text, url }).catch(() => {});

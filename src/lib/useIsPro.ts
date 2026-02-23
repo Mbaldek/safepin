@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 
-const LS_KEY = 'kova_is_pro';
+const LS_KEY = 'brume_is_pro';
 
 export function useIsPro(): { isPro: boolean; plan: string | null; loading: boolean } {
   const userId = useStore((s) => s.userId);

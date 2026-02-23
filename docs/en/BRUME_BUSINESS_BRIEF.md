@@ -2,7 +2,7 @@
 
 **Company:** DBEK
 **Headquarters:** 75 rue de Lourmel, 75015 Paris, France
-**Contact:** kovaapp@pm.me
+**Contact:** brumeapp@pm.me
 **Platform:** PWA (Progressive Web App)
 **Production URL:** [safepin-pearl.vercel.app](https://safepin-pearl.vercel.app)
 **Tagline:** *A safer world, mapped by women — for women.*
@@ -159,7 +159,7 @@ Additional engagement mechanics:
 | Backend | Supabase (PostgreSQL + Auth + Realtime + Storage + Edge Functions) |
 | Maps | Mapbox GL JS v3 (direct integration, no wrapper) |
 | Routing | OSRM |
-| Transit | Overpass API (OpenStreetMap) |
+| Transit | IDFM Navitia API (Paris public transit routing) |
 | Live Video | LiveKit (WebRTC) |
 | Payments | Stripe (Checkout, Webhooks, Portal) |
 | Push | Web Push API + VAPID |
@@ -209,7 +209,7 @@ The landing page has been redesigned with:
 
 ---
 
-## 11. Feature Overview (29 Features)
+## 11. Feature Overview (32+ Features)
 
 | # | Feature | Description |
 |---|---------|-------------|
@@ -242,6 +242,9 @@ The landing page has been redesigned with:
 | 27 | Simulation Engine | Admin tool for demo data and load testing |
 | 28 | Identity Verification | Veriff-powered identity confirmation |
 | 29 | Legal Pages | Privacy Policy, Terms of Service, Cookie Policy |
+| 30 | Partner Safe Spaces | Tiered partner program for verified safe locations |
+| 31 | Daily Streaks | Streak tracking with milestone rewards at 3, 7, 14, 30, 60, 100 days |
+| 32 | Transit Routing | Paris public transit via IDFM Navitia API (metro, RER, bus, tram) |
 
 ---
 

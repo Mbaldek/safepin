@@ -31,7 +31,7 @@ export default function Home() {
   return (
     <div className="min-h-dvh flex items-center justify-center">
       <div className="text-2xl font-extrabold tracking-tight animate-pulse" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
-        KO<span style={{ color: 'var(--accent)' }}>V</span>A
+        Br<span style={{ color: 'var(--accent)' }}>u</span>me
       </div>
     </div>
   );

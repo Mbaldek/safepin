@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Guide — Brume</title>
+  <meta name="description" content="Comprehensive user guide for Brume, the community safety PWA." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #f43f5e;
+      --accent-light: rgba(244, 63, 94, 0.10);
+      --bg: #ffffff;
+      --bg-secondary: #f8f8fa;
+      --text: #1a1a2e;
+      --text-secondary: #555568;
+      --text-muted: #8888a0;
+      --border: #e8e8ee;
+      --code-bg: #f1f1f5;
+      --kbd-bg: #e8e8ee;
+      --kbd-border: #d0d0d8;
+      --shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0f;
+        --bg-secondary: #12121a;
+        --text: #e8e8f0;
+        --text-secondary: #a0a0b8;
+        --text-muted: #6a6a80;
+        --border: #1e1e2a;
+        --code-bg: #16161e;
+        --kbd-bg: #1a1a24;
+        --kbd-border: #2a2a38;
+        --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      }
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Layout ────────────────────────────────────────────────── */
+    .wrapper {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    /* ─── Back link ─────────────────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      margin-bottom: 2.5rem;
+      transition: opacity 0.15s;
+    }
+    .back-link:hover { opacity: 0.75; }
+    .back-link svg { width: 16px; height: 16px; }
+
+    /* ─── Hero ──────────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-light);
+      padding: 0.3rem 0.85rem;
+      border-radius: 100px;
+      margin-bottom: 1rem;
+    }
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+    .hero p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ─── Table of Contents ─────────────────────────────────────── */
+    .toc {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 3rem;
+    }
+    .toc-title {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
+    }
+    .toc ol {
+      list-style: none;
+      counter-reset: toc-counter;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.15rem 1.5rem;
+    }
+    @media (max-width: 500px) {
+      .toc ol { grid-template-columns: 1fr; }
+    }
+    .toc li {
+      counter-increment: toc-counter;
+    }
+    .toc li a {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.4rem 0;
+      transition: color 0.15s;
+    }
+    .toc li a:hover { color: var(--accent); }
+    .toc li a::before {
+      content: counter(toc-counter, decimal-leading-zero);
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      min-width: 1.5rem;
+    }
+
+    /* ─── Section ───────────────────────────────────────────────── */
+    .section {
+      margin-bottom: 3rem;
+      scroll-margin-top: 2rem;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+    .section-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: var(--accent-light);
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+    .section h2 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .section h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .section p {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ─── Lists ─────────────────────────────────────────────────── */
+    .section ul, .section ol {
+      margin: 0.5rem 0 1rem 1.2rem;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+    }
+    .section li {
+      margin-bottom: 0.35rem;
+    }
+    .section li strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* ─── Info Cards ────────────────────────────────────────────── */
+    .info-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+    }
+    .info-card p {
+      margin-bottom: 0;
+    }
+    .info-card.warning {
+      border-left: 3px solid #f59e0b;
+    }
+    .info-card.tip {
+      border-left: 3px solid var(--accent);
+    }
+
+    /* ─── Inline code & kbd ─────────────────────────────────────── */
+    code {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.82em;
+      background: var(--code-bg);
+      padding: 0.15em 0.45em;
+      border-radius: 6px;
+    }
+    kbd {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.78em;
+      font-weight: 700;
+      background: var(--kbd-bg);
+      border: 1px solid var(--kbd-border);
+      padding: 0.15em 0.5em;
+      border-radius: 6px;
+      box-shadow: 0 1px 0 var(--kbd-border);
+    }
+
+    /* ─── Severity pills ────────────────────────────────────────── */
+    .severity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin: 0.75rem 0 1rem;
+    }
+    .severity-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+    }
+    .severity-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ─── Category chips ────────────────────────────────────────── */
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0.5rem 0 1rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.7rem;
+      border-radius: 100px;
+      color: var(--text-secondary);
+    }
+
+    /* ─── Steps ─────────────────────────────────────────────────── */
+    .steps {
+      counter-reset: step-counter;
+      list-style: none;
+      margin: 0.75rem 0 1rem 0;
+      padding-left: 0;
+    }
+    .steps li {
+      counter-increment: step-counter;
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step-counter);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--accent);
+      background: var(--accent-light);
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .steps li span {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+    }
+    .steps li span strong {
+      color: var(--text);
+    }
+
+    /* ─── Mode row ──────────────────────────────────────────────── */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin: 0.75rem 0 1rem;
+    }
+    .mode-card {
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      border-radius: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+    }
+    .mode-card .emoji { font-size: 1.4rem; display: block; margin-bottom: 0.25rem; }
+    .mode-card .label { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); }
+
+    /* ─── Divider ───────────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 3rem 0;
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 2rem 0 1rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+    footer p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- Back link -->
+    <a href="/map" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+      </svg>
+      Back to Brume
+    </a>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">User Guide</div>
+      <h1>Brume User Guide</h1>
+      <p>Everything you need to know about staying safe and protecting your community with Brume.</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <nav class="toc" aria-label="Table of Contents">
+      <p class="toc-title">Contents</p>
+      <ol>
+        <li><a href="#getting-started">Getting Started</a></li>
+        <li><a href="#the-map">The Map</a></li>
+        <li><a href="#reporting">Reporting an Incident</a></li>
+        <li><a href="#filters">Filters</a></li>
+        <li><a href="#emergency-sos">Emergency SOS</a></li>
+        <li><a href="#trip-planner">Trip Planner</a></li>
+        <li><a href="#place-notes">Place Notes</a></li>
+        <li><a href="#communities">Communities</a></li>
+        <li><a href="#direct-messages">Direct Messages</a></li>
+        <li><a href="#notifications">Notifications</a></li>
+        <li><a href="#my-brume">My Brume</a></li>
+        <li><a href="#settings">Settings</a></li>
+        <li><a href="#offline-mode">Offline Mode</a></li>
+        <li><a href="#accessibility-privacy">Accessibility &amp; Privacy</a></li>
+      </ol>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- 1. Getting Started -->
+    <!-- ============================================================ -->
+    <section id="getting-started" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128640;</div>
+        <h2>Getting Started</h2>
+      </div>
+
+      <h3>What is Brume?</h3>
+      <p>
+        Brume is a community safety Progressive Web App (PWA). It lets you report real-time safety incidents on an interactive map,
+        plan danger-aware routes, trigger emergency alerts, and connect with a network of people committed to keeping their neighborhood safe.
+        Install it on any device straight from the browser &mdash; no app store required.
+      </p>
+
+      <h3>Creating an account</h3>
+      <p>You can sign up using any of the following methods:</p>
+      <ul>
+        <li><strong>Email &amp; password</strong> &mdash; provide a display name, email, and a secure password.</li>
+        <li><strong>Google OAuth</strong> &mdash; tap <em>Continue with Google</em> for one-tap sign-in.</li>
+        <li><strong>Apple OAuth</strong> &mdash; tap <em>Continue with Apple</em> to sign in with your Apple ID.</li>
+        <li><strong>Magic link</strong> &mdash; enter your email and receive a passwordless login link.</li>
+      </ul>
+
+      <h3>First-time onboarding</h3>
+      <p>
+        When you first open Brume, a brief walkthrough introduces you to the core features: dropping pins on the map,
+        using the SOS emergency button, and joining communities. You will also be asked to grant location permission so Brume
+        can show incidents near you and enable all location-based features.
+      </p>
+
+      <div class="info-card tip">
+        <p><strong>Tip:</strong> Install Brume to your home screen for the best experience. Your browser will prompt you automatically, or you can tap the install banner that appears at the bottom of the map.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 2. The Map -->
+    <!-- ============================================================ -->
+    <section id="the-map" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128506;</div>
+        <h2>The Map</h2>
+      </div>
+
+      <p>
+        The map is the heart of Brume. It displays all reported safety incidents in real time, powered by Supabase Realtime.
+        When another user drops a pin anywhere in the world, it appears on your map instantly &mdash; no need to refresh.
+      </p>
+
+      <h3>Understanding pins</h3>
+      <p>
+        Each pin on the map represents a reported incident. Pins are color-coded by severity level so you can assess the situation at a glance:
+      </p>
+      <div class="severity-grid">
+        <div class="severity-pill">
+          <span class="severity-dot" style="background: #10b981;"></span>
+          Mild
+        </div>
+        <div class="severity-pill">
+          <span class="severity-dot" style="background: #f59e0b;"></span>
+          Moderate
+        </div>
+        <div class="severity-pill">
+          <span class="severity-dot" style="background: #f43f5e;"></span>
+          Danger
+        </div>
+      </div>
+      <p>
+        Emergency SOS pins are displayed with a pulsing red marker and have the highest visual priority on the map.
+      </p>
+
+      <h3>Marker clustering</h3>
+      <p>
+        When the map is zoomed out, nearby pins are grouped into clusters showing a count badge. Zoom in to reveal individual incidents.
+        Clusters help keep the map readable in high-density areas.
+      </p>
+
+      <h3>Real-time updates</h3>
+      <p>
+        Brume subscribes to live database changes via Supabase Realtime. New pins, confirmations, resolutions, and emergency alerts
+        all appear on the map as they happen. A live SOS session will show the person's trail moving across the map in real time.
+      </p>
+
+      <h3>Additional map layers</h3>
+      <p>
+        Open the Layer Panel to toggle overlays such as the neighborhood safety score heatmap and safe space markers (pharmacies, hospitals, police stations, shelters, and partner locations).
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 3. Reporting an Incident -->
+    <!-- ============================================================ -->
+    <section id="reporting" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128220;</div>
+        <h2>Reporting an Incident</h2>
+      </div>
+
+      <p>
+        Reporting is the core action in Brume. Every pin you drop helps others stay informed and safe.
+      </p>
+
+      <h3>How to report</h3>
+      <ol class="steps">
+        <li><span>Tap the <strong>+</strong> button at the center of the bottom navigation, or tap directly on the map to place the pin at a specific location.</span></li>
+        <li><span>Select a <strong>category</strong> for the incident.</span></li>
+        <li><span>Choose the <strong>severity level</strong> &mdash; Mild, Moderate, or Danger.</span></li>
+        <li><span>Pick the <strong>environment</strong> (how you were traveling) and the <strong>urban context</strong> (where it happened).</span></li>
+        <li><span>Add a <strong>description</strong> with details about what occurred.</span></li>
+        <li><span>Optionally attach up to <strong>5 media files</strong> (photos, videos, or audio recordings).</span></li>
+        <li><span>Tap <strong>Submit</strong>. Your report is live instantly.</span></li>
+      </ol>
+
+      <h3>Incident categories</h3>
+      <div class="chip-row">
+        <span class="chip">&#128552; Harassment</span>
+        <span class="chip">&#128065; Stalking</span>
+        <span class="chip">&#127761; Dark area</span>
+        <span class="chip">&#9889; Aggression</span>
+        <span class="chip">&#127866; Intoxicated</span>
+        <span class="chip">&#9888;&#65039; Other</span>
+      </div>
+
+      <h3>Environments</h3>
+      <div class="chip-row">
+        <span class="chip">&#128694; On foot</span>
+        <span class="chip">&#128647; Transit</span>
+        <span class="chip">&#128652; Bus</span>
+        <span class="chip">&#128690; Cycling</span>
+        <span class="chip">&#128663; Vehicle</span>
+        <span class="chip">&#127968; Indoor</span>
+      </div>
+
+      <h3>Urban contexts</h3>
+      <div class="chip-row">
+        <span class="chip">&#128739;&#65039; Street</span>
+        <span class="chip">&#127359;&#65039; Parking</span>
+        <span class="chip">&#127978; Store / Mall</span>
+        <span class="chip">&#128647; Metro</span>
+        <span class="chip">&#128652; Bus stop</span>
+        <span class="chip">&#127795; Park</span>
+        <span class="chip">&#127869;&#65039; Restaurant / Bar</span>
+        <span class="chip">&#127970; Building</span>
+        <span class="chip">&#128205; Other</span>
+      </div>
+
+      <h3>Offline reporting</h3>
+      <p>
+        No internet? No problem. If you are offline when you submit a report, Brume saves it to a local queue (IndexedDB).
+        When your connection is restored, all queued reports are automatically submitted in the background. A badge on the map tab shows
+        how many reports are waiting to sync.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 4. Filters -->
+    <!-- ============================================================ -->
+    <section id="filters" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128301;</div>
+        <h2>Filters</h2>
+      </div>
+
+      <p>
+        The filter bar lets you narrow down which incidents appear on the map. Tap the sliders icon in the top area of the map to expand the filter panel.
+      </p>
+
+      <h3>Available filters</h3>
+      <ul>
+        <li><strong>Severity</strong> &mdash; Show all pins, or only Mild, Moderate, or Danger.</li>
+        <li><strong>Time of day</strong> &mdash; Any time, Morning, Afternoon, Evening, or Night.</li>
+        <li><strong>Age</strong> &mdash; Show all pins, or only those from the last 1 hour, 6 hours, or today.</li>
+        <li><strong>Urban context</strong> &mdash; Filter by location type (Street, Parking, Metro, Park, etc.).</li>
+        <li><strong>Confirmed only</strong> &mdash; Toggle to show only pins that have been confirmed by other users.</li>
+        <li><strong>Live only</strong> &mdash; Toggle to show only active emergency SOS pins.</li>
+      </ul>
+
+      <div class="info-card tip">
+        <p><strong>Tip:</strong> Combine filters to get a precise view. For example, enable <em>Danger</em> + <em>Night</em> + <em>last 6h</em> to see the most recent serious incidents reported at night.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 5. Emergency SOS -->
+    <!-- ============================================================ -->
+    <section id="emergency-sos" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#127384;</div>
+        <h2>Emergency SOS</h2>
+      </div>
+
+      <p>
+        The SOS button is your lifeline. It is always visible on the map as a red button. When you activate it, Brume broadcasts a live emergency to everyone nearby and to your trusted contacts.
+      </p>
+
+      <h3>How to activate</h3>
+      <ol class="steps">
+        <li><span><strong>Press and hold</strong> the SOS button on the map view.</span></li>
+        <li><span>A <strong>5-second countdown</strong> begins. Keep holding to confirm.</span></li>
+        <li><span>When the countdown reaches zero, your emergency is <strong>live</strong>. A pin appears on the map with a pulsing red marker.</span></li>
+      </ol>
+
+      <h3>What happens when SOS is active</h3>
+      <ul>
+        <li><strong>Live trail</strong> &mdash; Your GPS location is broadcast in real time. Other users see your trail moving on the map. A new trail point is logged every 30+ meters or every 45+ seconds.</li>
+        <li><strong>Trusted contacts notified</strong> &mdash; An emergency dispatch is sent to your trusted contacts via SMS and push notification, including your current coordinates.</li>
+        <li><strong>Community broadcast</strong> &mdash; Nearby Brume users see the SOS alert and can tap "I'm on my way" to let you know help is coming.</li>
+        <li><strong>Auto-escalation</strong> &mdash; If you do not cancel or resolve the emergency within a set period, the system automatically escalates the alert.</li>
+        <li><strong>Live tracking link</strong> &mdash; A shareable link is generated so anyone (even without the app) can follow your location at <code>/track/[sessionId]</code>.</li>
+      </ul>
+
+      <h3>Canceling an SOS</h3>
+      <p>
+        To cancel, tap the active SOS button again and confirm. All emergency pins and trail data are marked as resolved, and your contacts are notified that you are safe.
+      </p>
+
+      <div class="info-card warning">
+        <p><strong>Important:</strong> The SOS feature is designed for genuine emergencies. If you are in immediate danger, always also contact your local emergency services (112, 911, etc.).</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 6. Trip Planner -->
+    <!-- ============================================================ -->
+    <section id="trip-planner" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128506;</div>
+        <h2>Trip Planner</h2>
+      </div>
+
+      <p>
+        The Trip Planner helps you get from A to B while avoiding danger zones. Access it from the <strong>Trip</strong> tab in the bottom navigation.
+      </p>
+
+      <h3>Travel modes</h3>
+      <div class="mode-grid">
+        <div class="mode-card">
+          <span class="emoji">&#128694;</span>
+          <span class="label">Walk</span>
+        </div>
+        <div class="mode-card">
+          <span class="emoji">&#128692;</span>
+          <span class="label">Bike</span>
+        </div>
+        <div class="mode-card">
+          <span class="emoji">&#128663;</span>
+          <span class="label">Drive</span>
+        </div>
+        <div class="mode-card">
+          <span class="emoji">&#128647;</span>
+          <span class="label">Transit</span>
+        </div>
+      </div>
+
+      <h3>Planning a trip</h3>
+      <ol class="steps">
+        <li><span>Type your <strong>destination</strong> in the search bar. Autocomplete suggestions will appear.</span></li>
+        <li><span>Select a <strong>travel mode</strong> (Walk, Bike, Drive, or Transit).</span></li>
+        <li><span>Brume calculates routes via <strong>OSRM</strong> (Open Source Routing Machine) and displays multiple options ranked by <strong>danger score</strong>.</span></li>
+        <li><span>Each route card shows estimated <strong>duration</strong>, <strong>distance</strong>, and a danger rating. Expand a card to see step-by-step directions.</span></li>
+        <li><span>Tap <strong>Go</strong> to start the trip. A live timer and ETA countdown appear on screen.</span></li>
+      </ol>
+
+      <h3>Danger-aware routing</h3>
+      <p>
+        Brume scores each route by checking how many active incident pins fall within 200 meters of the path. Routes with fewer nearby
+        incidents are ranked higher. The safest option is clearly highlighted. Night-time incidents receive extra weight during evening hours.
+      </p>
+
+      <h3>Paris transit (IDFM / Navitia)</h3>
+      <p>
+        For users in the Paris region, the Transit mode connects to the IDFM Navitia API to provide real metro, bus, RER, and tram directions
+        with accurate departure times, line identifiers, and transfer instructions.
+      </p>
+
+      <h3>Favorite routes</h3>
+      <p>
+        Tap the bookmark icon on any route to save it as a favorite. Your saved routes are stored and accessible from the Saved panel,
+        complete with trip count, last-used date, and an up-to-date danger score. You can also share routes publicly so others can
+        upvote and benefit from your safe paths.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 7. Place Notes -->
+    <!-- ============================================================ -->
+    <section id="place-notes" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128204;</div>
+        <h2>Place Notes</h2>
+      </div>
+
+      <p>
+        Place Notes are personal annotations you can drop anywhere on the map &mdash; your own private safety journal.
+      </p>
+
+      <h3>Creating a note</h3>
+      <ol class="steps">
+        <li><span><strong>Long-press</strong> (hold for 2 seconds) on any location on the map.</span></li>
+        <li><span>The Place Note sheet opens with the address automatically filled in via reverse geocoding.</span></li>
+        <li><span>Choose an <strong>emoji marker</strong> from the selection (pin, warning, lightbulb, heart, home, food, tree, lock, walk, star).</span></li>
+        <li><span>Add a <strong>name</strong> and a <strong>note</strong> describing the place.</span></li>
+        <li><span>Optionally mark it as a <strong>favorite</strong>.</span></li>
+        <li><span>Tap <strong>Save</strong>. Your note appears on the map as a personal marker.</span></li>
+      </ol>
+
+      <p>
+        Place Notes are <strong>private by default</strong>. Only you can see them. They are great for marking well-lit shortcuts, places to avoid, your go-to safe spots, or anything else worth remembering.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 8. Communities -->
+    <!-- ============================================================ -->
+    <section id="communities" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128101;</div>
+        <h2>Communities</h2>
+      </div>
+
+      <p>
+        Communities are Brume's social layer &mdash; a digital neighborhood watch. Access them from the <strong>Community</strong> tab.
+      </p>
+
+      <h3>Types of communities</h3>
+      <ul>
+        <li><strong>Communities</strong> &mdash; Larger, public or private safety groups for neighborhoods, campuses, or cities. They can contain sub-groups.</li>
+        <li><strong>Groups</strong> &mdash; Smaller, focused groups (e.g., "Night Joggers" or "Campus Watch"). Groups can exist inside a parent community or standalone.</li>
+      </ul>
+
+      <h3>What you can do</h3>
+      <ul>
+        <li><strong>Browse and join</strong> existing communities. Private ones require approval from the owner.</li>
+        <li><strong>Create your own</strong> community or group with a name, description, and emoji avatar.</li>
+        <li><strong>Group chat</strong> &mdash; Each community has a real-time chat powered by Supabase Realtime.</li>
+        <li><strong>Stories</strong> &mdash; Post photos or videos that appear in the stories row at the top of the community feed. Stories keep the community engaged.</li>
+        <li><strong>Neighborhood feed</strong> &mdash; See recent safety activity and discussion from the neighborhoods you are a part of.</li>
+      </ul>
+
+      <div class="info-card tip">
+        <p><strong>Tip:</strong> Think of communities as a modern neighborhood watch. Create one for your street, apartment building, or university campus to keep everyone informed.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 9. Direct Messages -->
+    <!-- ============================================================ -->
+    <section id="direct-messages" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128172;</div>
+        <h2>Direct Messages</h2>
+      </div>
+
+      <p>
+        Brume includes a built-in direct messaging system so you can communicate privately with other users.
+      </p>
+
+      <h3>Friends</h3>
+      <p>
+        Before sending a DM, add someone as a friend. You can search for users by name and send a friend request.
+        Once accepted, you can start a conversation. The Friends tab (inside the Community section) shows your friends list
+        and any pending requests.
+      </p>
+
+      <h3>Messaging features</h3>
+      <ul>
+        <li><strong>Real-time delivery</strong> &mdash; Messages appear instantly, powered by Supabase Realtime subscriptions.</li>
+        <li><strong>Rich media</strong> &mdash; Send text, images, videos, or audio messages.</li>
+        <li><strong>Read receipts</strong> &mdash; See when your messages have been read via the last-read timestamp.</li>
+        <li><strong>Unread indicators</strong> &mdash; Conversations with unread messages are highlighted in your inbox.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 10. Notifications -->
+    <!-- ============================================================ -->
+    <section id="notifications" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128276;</div>
+        <h2>Notifications</h2>
+      </div>
+
+      <p>
+        Brume keeps you informed without overwhelming you. Tap the bell icon on the map to open the Notifications panel.
+      </p>
+
+      <h3>Notification types</h3>
+      <ul>
+        <li><strong>&#127384; Emergency (SOS)</strong> &mdash; Nearby SOS alerts. These are <strong>always on</strong> and cannot be muted.</li>
+        <li><strong>&#128205; Nearby pins</strong> &mdash; New incident reports within your configured alert radius.</li>
+        <li><strong>&#128077; Votes &amp; confirmations</strong> &mdash; When someone confirms one of your reported pins.</li>
+        <li><strong>&#128172; Comments</strong> &mdash; Replies and discussion on pins you follow.</li>
+        <li><strong>&#9989; Resolved</strong> &mdash; When a pin you follow is marked as resolved.</li>
+        <li><strong>&#127942; Milestones</strong> &mdash; Badge achievements and level-ups.</li>
+        <li><strong>&#128202; Digest</strong> &mdash; Periodic safety summaries for your area.</li>
+      </ul>
+
+      <h3>Configuring notifications</h3>
+      <p>In Settings, you can adjust:</p>
+      <ul>
+        <li><strong>Alert radius</strong> &mdash; Set the distance (in meters) for nearby incident alerts. Default is 1,000 m.</li>
+        <li><strong>Nearby pins</strong> &mdash; Toggle on/off.</li>
+        <li><strong>Followed pin activity</strong> &mdash; Toggle on/off.</li>
+        <li><strong>Milestones</strong> &mdash; Toggle on/off.</li>
+        <li><strong>Quiet hours</strong> &mdash; Set a window (e.g., 22:00 &ndash; 07:00) during which non-emergency notifications are silenced.</li>
+      </ul>
+
+      <div class="info-card warning">
+        <p><strong>Note:</strong> SOS alerts from nearby users are <strong>always delivered</strong>, even during quiet hours. Safety comes first.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 11. My Brume -->
+    <!-- ============================================================ -->
+    <section id="my-brume" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128737;</div>
+        <h2>My Brume</h2>
+      </div>
+
+      <p>
+        The <strong>My Brume</strong> hub is your personal dashboard. Access it from the shield icon in the bottom navigation.
+      </p>
+
+      <h3>Tabs</h3>
+      <ul>
+        <li><strong>Feed</strong> &mdash; Your recent activity: pins you have created, trips completed, and community interactions.</li>
+        <li><strong>Favorites</strong> &mdash; Saved routes, favorite place notes, and bookmarked pins.</li>
+        <li><strong>Stats</strong> &mdash; Activity statistics, trip logs, distance traveled, and a trend sparkline showing your engagement over time.</li>
+        <li><strong>Profile</strong> &mdash; Your display name, member-since date, and account settings.</li>
+      </ul>
+
+      <h3>Levels &amp; impact score</h3>
+      <p>
+        Brume calculates an impact score based on your contributions: pins reported, votes cast, comments posted, routes planned,
+        trips completed, communities joined, and streaks maintained. As your score grows, you level up and unlock new badges.
+      </p>
+
+      <h3>Badges &amp; milestones</h3>
+      <p>
+        Earn badges for achievements like your first report, first SOS, reaching vote milestones, maintaining daily streaks,
+        and more. A toast notification celebrates each milestone as you earn it. View all your badges in the Profile tab.
+      </p>
+
+      <h3>Guardian Challenges</h3>
+      <p>
+        Weekly challenges encourage engagement: cast a certain number of votes, submit reports, plan routes, or maintain a streak.
+        Each completed challenge earns reward points toward your impact score.
+      </p>
+
+      <h3>Expertise tags</h3>
+      <p>
+        Based on your activity patterns, Brume automatically assigns expertise tags (e.g., "Night Reporter", "Route Planner", "Community Leader")
+        that appear on your profile.
+      </p>
+
+      <h3>Verification</h3>
+      <p>
+        Verify your identity to earn a verified badge. Verified users' reports carry more weight in the community trust system.
+      </p>
+
+      <h3>Trusted contacts</h3>
+      <p>
+        Add trusted contacts who will be automatically notified when you trigger an SOS. Manage your trusted circle from the My Brume hub.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 12. Settings -->
+    <!-- ============================================================ -->
+    <section id="settings" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#9881;&#65039;</div>
+        <h2>Settings</h2>
+      </div>
+
+      <p>
+        Open Settings from the gear icon in the My Brume profile tab. Settings are organized into sections:
+      </p>
+
+      <h3>Account</h3>
+      <ul>
+        <li><strong>Display name</strong> &mdash; Change how your name appears to other users.</li>
+        <li><strong>Email</strong> &mdash; View or update your email address.</li>
+        <li><strong>Sign out</strong> &mdash; Log out of your account.</li>
+        <li><strong>Delete account</strong> &mdash; Permanently remove your account and all associated data.</li>
+      </ul>
+
+      <h3>Preferences</h3>
+      <ul>
+        <li><strong>Language</strong> &mdash; Brume supports 30+ languages. Switch at any time.</li>
+        <li><strong>Notifications</strong> &mdash; Configure alert radius, quiet hours, and per-type toggles (see <a href="#notifications">Notifications</a> section).</li>
+      </ul>
+
+      <h3>Privacy &amp; Security</h3>
+      <ul>
+        <li><strong>Location sharing</strong> &mdash; Control when and how your location is used.</li>
+        <li><strong>Data export</strong> &mdash; Request a copy of all your data (GDPR right of access).</li>
+        <li><strong>Location history</strong> &mdash; View or clear your stored location history.</li>
+      </ul>
+
+      <h3>Subscription (Brume Pro)</h3>
+      <ul>
+        <li><strong>Plan details</strong> &mdash; View your current plan (Free or Pro), billing period, and status.</li>
+        <li><strong>Upgrade / Manage</strong> &mdash; Subscribe to Brume Pro for advanced features. Payments are handled securely via Stripe.</li>
+        <li><strong>Invoices</strong> &mdash; View and download past invoices as PDF.</li>
+        <li><strong>Cancel</strong> &mdash; Cancel your subscription at any time. Access continues until the end of the billing period.</li>
+      </ul>
+
+      <h3>About</h3>
+      <ul>
+        <li>Links to the <a href="/terms">Terms of Service</a>, <a href="/privacy">Privacy Policy</a>, and <a href="/cookies">Cookie Policy</a>.</li>
+        <li>App version and build information.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 13. Offline Mode -->
+    <!-- ============================================================ -->
+    <section id="offline-mode" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128268;</div>
+        <h2>Offline Mode</h2>
+      </div>
+
+      <p>
+        Brume is designed to work even without an internet connection. As a Progressive Web App, it uses a service worker to cache essential assets and an IndexedDB-backed offline queue for data.
+      </p>
+
+      <h3>How it works</h3>
+      <ul>
+        <li><strong>Service worker caching</strong> &mdash; The app shell, fonts, icons, and core JavaScript are cached after your first visit. You can open Brume at any time, even without internet.</li>
+        <li><strong>Offline report queue</strong> &mdash; When you submit a report while offline, it is saved to a local IndexedDB database (including media attachments as blobs). A badge on the map tab shows the number of queued reports.</li>
+        <li><strong>Background sync</strong> &mdash; When your connection is restored, queued reports are automatically uploaded to the server. You will see a confirmation toast for each synced report.</li>
+      </ul>
+
+      <h3>Offline banner</h3>
+      <p>
+        When Brume detects you are offline, a subtle banner appears at the top of the screen to let you know. It disappears automatically when the connection is restored.
+      </p>
+
+      <div class="info-card tip">
+        <p><strong>Tip:</strong> If you often move through areas with poor connectivity, report incidents as you encounter them. Brume will queue everything and sync when you are back online.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 14. Accessibility & Privacy -->
+    <!-- ============================================================ -->
+    <section id="accessibility-privacy" class="section">
+      <div class="section-header">
+        <div class="section-icon">&#128274;</div>
+        <h2>Accessibility &amp; Privacy</h2>
+      </div>
+
+      <h3>Accessibility</h3>
+      <ul>
+        <li><strong>Keyboard navigation</strong> &mdash; All interactive elements are keyboard-accessible with proper focus management and focus trapping in modals.</li>
+        <li><strong>Screen reader support</strong> &mdash; Semantic HTML, ARIA labels, and proper dialog roles are used throughout the app.</li>
+        <li><strong>Dark mode</strong> &mdash; Brume automatically adapts to your system preference (light or dark) and also offers a manual toggle.</li>
+        <li><strong>Responsive design</strong> &mdash; Brume works seamlessly on phones, tablets, and desktops.</li>
+        <li><strong>Internationalization</strong> &mdash; 30+ languages are supported with full UI translation via next-intl.</li>
+      </ul>
+
+      <h3>Privacy</h3>
+      <ul>
+        <li><strong>GDPR compliant</strong> &mdash; Brume is built with European privacy standards at its core. You have full rights to access, rectify, and delete your data.</li>
+        <li><strong>No third-party tracking</strong> &mdash; Brume does not use Google Analytics, Facebook Pixel, or any third-party tracking scripts. Your activity stays between you and Brume.</li>
+        <li><strong>Data stored in the EU</strong> &mdash; All user data is stored on Supabase infrastructure with data residency in the European Union.</li>
+        <li><strong>Minimal data collection</strong> &mdash; Brume only collects what is necessary to provide the service: your reports, location (when permitted), profile, and interactions.</li>
+        <li><strong>Location control</strong> &mdash; You choose when to share your location. It is only used for showing nearby incidents, routing, and emergency features.</li>
+        <li><strong>Delete your account</strong> &mdash; At any time, go to Settings and tap <em>Delete account</em> to permanently remove all your data. This action is irreversible.</li>
+      </ul>
+
+      <h3>Content moderation</h3>
+      <p>
+        Brume includes a reporting system for inappropriate content. You can flag any pin, message, story, or user as spam, false report, offensive, or duplicate.
+        Reports are reviewed by the moderation team. Users who repeatedly violate community standards may be shadow-banned.
+      </p>
+
+      <div class="info-card tip">
+        <p><strong>Your safety, your data.</strong> Brume is built by DBEK with a privacy-first philosophy. We believe community safety should never come at the cost of personal privacy.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Footer -->
+    <!-- ============================================================ -->
+    <footer>
+      <p>&copy; 2026 Brume by DBEK. All rights reserved.</p>
+    </footer>
+
+  </div>
+</body>
+</html>

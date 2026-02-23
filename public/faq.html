@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ — Brume</title>
+  <meta name="description" content="Frequently asked questions about Brume, the community safety PWA." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent: #f43f5e;
+      --accent-hover: #e11d48;
+      --bg: #ffffff;
+      --bg-secondary: #f8f8fa;
+      --text: #18181b;
+      --text-secondary: #52525b;
+      --border: #e4e4e7;
+      --summary-hover: #fafafa;
+      --radius: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0f;
+        --bg-secondary: #12121a;
+        --text: #f4f4f5;
+        --text-secondary: #a1a1aa;
+        --border: #27272a;
+        --summary-hover: #1a1a24;
+      }
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ---- Back link ---- */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 32px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+
+    .back-link:hover {
+      opacity: 0.8;
+    }
+
+    .back-link svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ---- Header ---- */
+    .hero {
+      padding: 48px 0 40px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span {
+      color: var(--accent);
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ---- Category sections ---- */
+    .faq-section {
+      margin-bottom: 48px;
+    }
+
+    .faq-section h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ---- Accordion items ---- */
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    details[open] {
+      border-color: var(--accent);
+    }
+
+    summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::marker {
+      content: '';
+    }
+
+    summary:hover {
+      background: var(--summary-hover);
+    }
+
+    summary::after {
+      content: '';
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-left: 16px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      transition: transform 0.2s ease;
+    }
+
+    details[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .answer {
+      padding: 0 20px 18px;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    .answer strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .answer code {
+      background: var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      text-align: center;
+      padding: 48px 0 40px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 480px) {
+      .container {
+        padding: 0 16px;
+      }
+
+      .hero {
+        padding: 36px 0 32px;
+      }
+
+      .hero h1 {
+        font-size: 1.75rem;
+      }
+
+      .hero p {
+        font-size: 0.95rem;
+      }
+
+      summary {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+      }
+
+      .answer {
+        padding: 0 16px 16px;
+        font-size: 0.88rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Back to app -->
+    <a href="/map" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Brume
+    </a>
+
+    <!-- Hero -->
+    <header class="hero">
+      <h1>Frequently Asked <span>Questions</span></h1>
+      <p>Everything you need to know about Brume, the community safety network.</p>
+    </header>
+
+    <!-- ===================== General ===================== -->
+    <section class="faq-section">
+      <h2>General</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>What is Brume?</summary>
+          <div class="answer">
+            Brume is a <strong>community safety network</strong> that lets you report incidents, stay informed about what is happening around you, and help each other — all in real time. Think of it as a living safety map powered by the people who use it.
+          </div>
+        </details>
+
+        <details>
+          <summary>Is Brume free?</summary>
+          <div class="answer">
+            Yes. All core features are completely free to use. <strong>Brume Pro</strong> is coming soon and will introduce advanced features for users who want even more from the platform.
+          </div>
+        </details>
+
+        <details>
+          <summary>What cities does Brume work in?</summary>
+          <div class="answer">
+            Brume works <strong>worldwide</strong>. You can report incidents and view the safety map from anywhere. Transit routing is currently available for <strong>Paris</strong> (powered by IDFM Navitia). Walk, bike, and drive routing works everywhere via OSRM.
+          </div>
+        </details>
+
+        <details>
+          <summary>Is Brume available on iOS and Android?</summary>
+          <div class="answer">
+            Brume is a <strong>Progressive Web App (PWA)</strong>, which means you install it directly from your browser — no app store needed. Once installed, it works just like a native app with its own icon, full-screen mode, and offline support.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ===================== Safety & Reporting ===================== -->
+    <section class="faq-section">
+      <h2>Safety &amp; Reporting</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>How do I report an incident?</summary>
+          <div class="answer">
+            Tap the <strong>+</strong> button on the map, fill in the details (type of incident, description, severity), and submit. Reports also work offline — they are queued and automatically synced when you are back online.
+          </div>
+        </details>
+
+        <details>
+          <summary>What happens after I report?</summary>
+          <div class="answer">
+            Your report appears as a <strong>pin on the map</strong> visible to nearby users. Other people can confirm the incident, add their own stories, or follow it for updates. The more confirmations a pin receives, the higher its trust score.
+          </div>
+        </details>
+
+        <details>
+          <summary>Can I report anonymously?</summary>
+          <div class="answer">
+            Your <strong>display name</strong> is shown alongside reports, but you can set any display name you like. No real name, phone number, or government ID is required to use Brume.
+          </div>
+        </details>
+
+        <details>
+          <summary>What is the SOS button?</summary>
+          <div class="answer">
+            The SOS button is an <strong>emergency broadcast</strong> feature. Press and hold it for 5 seconds to activate. Once triggered, your live location trail appears on every nearby user's map, and your trusted contacts are immediately notified.
+          </div>
+        </details>
+
+        <details>
+          <summary>What if I accidentally trigger SOS?</summary>
+          <div class="answer">
+            There is a <strong>5-second countdown</strong> before SOS activates, giving you time to cancel. If it does activate by mistake, you can cancel it at any time from the active SOS panel.
+          </div>
+        </details>
+
+        <details>
+          <summary>How do I verify my identity?</summary>
+          <div class="answer">
+            Go to <strong>My Brume &gt; Profile</strong> and follow the verification steps. Verified users receive a badge next to their name, which increases trust in their reports and interactions.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ===================== Privacy & Data ===================== -->
+    <section class="faq-section">
+      <h2>Privacy &amp; Data</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>What data does Brume collect?</summary>
+          <div class="answer">
+            Brume collects your <strong>location</strong> (only while using the app), the reports you create, and basic profile information. There is no third-party tracking, no analytics scripts, and no advertising SDKs.
+          </div>
+        </details>
+
+        <details>
+          <summary>Where is my data stored?</summary>
+          <div class="answer">
+            All data is stored on <strong>EU servers</strong> via Supabase (PostgreSQL). The infrastructure is fully <strong>GDPR compliant</strong>.
+          </div>
+        </details>
+
+        <details>
+          <summary>Can I delete my account?</summary>
+          <div class="answer">
+            Yes. Go to <strong>Settings &gt; Privacy &amp; Data &gt; Delete my account</strong>. This will permanently remove your profile, reports, and all associated data.
+          </div>
+        </details>
+
+        <details>
+          <summary>Does Brume sell my data?</summary>
+          <div class="answer">
+            <strong>No. Never.</strong> Brume has no third-party analytics, no ads, and no data sales. Your data belongs to you.
+          </div>
+        </details>
+
+        <details>
+          <summary>What cookies does Brume use?</summary>
+          <div class="answer">
+            Only <strong>essential cookies</strong>: authentication session, language preference, and theme preference. No tracking or marketing cookies. For full details, see our Cookie Policy.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ===================== Trip Planner ===================== -->
+    <section class="faq-section">
+      <h2>Trip Planner</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>How does the trip planner work?</summary>
+          <div class="answer">
+            Enter your destination, choose a transport mode (walk, bike, drive, or transit), and view available routes with safety information overlaid. Start a guided trip and get real-time ETA, turn-by-turn directions, and safety alerts along the way.
+          </div>
+        </details>
+
+        <details>
+          <summary>What is danger-aware routing?</summary>
+          <div class="answer">
+            For <strong>walk and bike modes</strong>, Brume checks whether your route passes through areas with recent incidents. If it does, the app suggests <strong>safer alternative routes</strong> so you can avoid those zones.
+          </div>
+        </details>
+
+        <details>
+          <summary>Does transit routing work outside Paris?</summary>
+          <div class="answer">
+            Transit routing currently supports <strong>Paris only</strong>, powered by the IDFM Navitia API. Walk, bike, and drive routing works everywhere in the world via OSRM. More transit cities are planned.
+          </div>
+        </details>
+
+        <details>
+          <summary>Can I save favorite routes?</summary>
+          <div class="answer">
+            Yes. Tap the <strong>heart icon</strong> on any route card to save it to your favorites for quick access later.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ===================== Communities ===================== -->
+    <section class="faq-section">
+      <h2>Communities</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>How do I join a community?</summary>
+          <div class="answer">
+            Go to the <strong>Communities</strong> tab, browse or search for groups near you, and request to join. Community admins will review your request.
+          </div>
+        </details>
+
+        <details>
+          <summary>Can I create my own community?</summary>
+          <div class="answer">
+            Yes. You can create a <strong>private safety group</strong> for your neighborhood, campus, workplace, or any other group. Invite members and manage the community from the admin panel.
+          </div>
+        </details>
+
+        <details>
+          <summary>What are place notes?</summary>
+          <div class="answer">
+            Place notes are <strong>personal markers</strong> you can drop on the map. Long-press for 2 seconds anywhere on the map to create one. They are <strong>private by default</strong> — only you can see them unless you choose to share.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ===================== Technical ===================== -->
+    <section class="faq-section">
+      <h2>Technical</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>Does Brume work offline?</summary>
+          <div class="answer">
+            Yes. Reports created while offline are <strong>queued locally</strong> and automatically synced to the server when your connection is restored. The map and previously loaded data remain accessible offline as well.
+          </div>
+        </details>
+
+        <details>
+          <summary>How do I enable notifications?</summary>
+          <div class="answer">
+            Brume will prompt you to enable notifications when relevant. You can also manage them manually under <strong>Settings &gt; Notifications</strong>. Note that <strong>SOS alerts are always on</strong> and cannot be disabled for safety reasons.
+          </div>
+        </details>
+
+        <details>
+          <summary>How do I install the app?</summary>
+          <div class="answer">
+            <strong>On iOS:</strong> Open Brume in Safari, tap the Share button, then tap "Add to Home Screen."<br />
+            <strong>On Android:</strong> Open Brume in Chrome and tap "Install app" from the menu or the prompt banner.<br />
+            <strong>On desktop:</strong> Click the install icon in your browser's address bar.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      &copy; 2026 Brume by DBEK. All rights reserved.
+    </footer>
+
+  </div>
+</body>
+</html>

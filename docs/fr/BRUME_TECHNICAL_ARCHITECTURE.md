@@ -19,7 +19,7 @@ src/
 │       ├── push-notify/    # Envoi direct de push notifications
 │       ├── stripe/         # Facturation (checkout, webhook, portail)
 │       └── verify/         # Verification d'identite (demarrage, webhook)
-├── components/             # 49 composants React
+├── components/             # 51 composants React
 │   ├── MapView.tsx         # Carte Mapbox GL JS
 │   ├── EmergencyButton.tsx # Systeme SOS
 │   ├── ReportSheet.tsx     # Signalement d'incidents
@@ -28,6 +28,7 @@ src/
 │   ├── CommunityView.tsx   # Communautes + quartiers
 │   ├── MyKovaView.tsx      # Profil + hub de statistiques
 │   ├── SettingsSheet.tsx   # Parametres + facturation + mentions legales
+│   ├── SafeSpaceDetailSheet.tsx # Vue détaillée des lieux sûrs partenaires
 │   ├── ... (46 autres)
 ├── lib/                    # Utilitaires partages & services
 │   ├── utils.ts            # timeAgo, variantes haversine, springTransition
@@ -39,6 +40,8 @@ src/
 │   ├── milestones.ts       # Definitions des accomplissements
 │   ├── stripe.ts           # Configuration du client Stripe
 │   ├── offlineQueue.ts     # File d'attente hors-ligne IndexedDB
+│   ├── streaks.ts          # Suivi des séries quotidiennes avec jalons
+│   ├── transit.ts          # Intégration API IDFM Navitia pour les transports parisiens
 │   ├── useIsPro.ts         # Hook d'abonnement Pro
 │   └── useFocusTrap.ts     # Piege de focus pour l'accessibilite
 ├── stores/                 # Gestion d'etat
@@ -48,7 +51,7 @@ src/
 │   ├── routing.ts          # 30 definitions de locales + type Locale
 │   └── request.ts          # getRequestConfig avec deepMerge en repli
 ├── messages/               # Fichiers de traduction (30 locales)
-│   ├── en.json             # Anglais (complet — 274 lignes, 16 namespaces)
+│   ├── en.json             # Anglais (complet — ~300+ lignes, 19 namespaces)
 │   ├── fr.json             # Francais (complet)
 │   ├── es.json, zh.json... # 28 autres locales (common + nav + emergency traduits)
 └── proxy.ts                # Proxy Next.js 16 : limitation de debit + cookie de locale
@@ -67,6 +70,7 @@ src/
 | Cartographie | Mapbox GL JS | v3 | Cartes interactives (integration directe, sans bibliotheque wrapper) |
 | Moteur de routage | OSRM | — | Calcul d'itineraires pieton/velo/voiture |
 | Donnees de transport | Overpass API | — | Donnees metro/bus/tram OpenStreetMap |
+| Transports en commun | API IDFM Navitia | — | Itinéraires métro/RER/bus/tram parisiens |
 | Video en direct | LiveKit | — | Diffusion WebRTC |
 | Paiements | Stripe | — | Checkout, Webhooks, portail de facturation |
 | Push | Web Push API | — | Notifications VAPID |
@@ -145,7 +149,7 @@ Messages transmis au NextIntlClientProvider
 ```
 
 ### Fichiers de messages
-- `en.json` : Complet (274 lignes, 16 namespaces : common, nav, emergency, report, detail, filters, layers, trip, settings, notifications, mykova, community, offline, moderation, safeSpaces, install)
+- `en.json` : Complet (~300+ lignes, 19 namespaces : common, nav, emergency, report, detail, filters, layers, trip, settings, notifications, mykova, community, offline, moderation, safeSpaces, install, streaks, challenges, transit)
 - 28 autres locales : Cles principales traduites (common : 13, nav : 4, emergency : 13). Le reste est repris de l'anglais via deepMerge.
 
 ### Detection de la locale (proxy.ts)
@@ -207,7 +211,7 @@ Le webhook utilise une verification de signature en mode fail-closed (secret man
 
 | Table | Fonction |
 |---|---|
-| profiles | Profils utilisateurs (display_name, avatar_url, score de confiance, verification, is_admin, referral_code) |
+| profiles | Profils utilisateurs (display_name, avatar_url, score de confiance, verification, is_admin, referral_code, champs de séries) |
 | pins | Signalements d'incidents de securite (categorie, severite, lat/lng, votes, is_emergency, is_simulated) |
 | pin_comments | Commentaires en temps reel sur les pins |
 | subscriptions | Enregistrements d'abonnements Stripe |
@@ -229,6 +233,10 @@ Le webhook utilise une verification de signature en mode fail-closed (secret man
 | trip_log | Historique des trajets effectues |
 | safety_buddies | Planification de binomes sur itineraire |
 | admin_params | Parametres de configuration de la plateforme |
+| safe_spaces | Lieux sûrs partenaires (nom, lat/lng, catégorie, champs partenaires) |
+| engagement_events | Suivi des activités utilisateur pour l'analytique et les séries |
+| challenges | Définitions des défis hebdomadaires gamifiés |
+| user_challenges | Progression des utilisateurs sur les défis |
 | flag_reports | Signalements de contenu par les utilisateurs |
 
 ## 9. Routes API

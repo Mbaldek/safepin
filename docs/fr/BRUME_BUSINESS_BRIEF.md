@@ -2,7 +2,7 @@
 
 **Entreprise :** DBEK
 **Siège social :** 75 rue de Lourmel, 75015 Paris, France
-**Contact :** kovaapp@pm.me
+**Contact :** brumeapp@pm.me
 **Plateforme :** PWA (Progressive Web App)
 **URL de production :** [safepin-pearl.vercel.app](https://safepin-pearl.vercel.app)
 **Slogan :** *Un monde plus sûr, cartographié par les femmes — pour les femmes.*
@@ -157,9 +157,9 @@ Mécanismes d'engagement supplémentaires :
 | Frontend | Next.js 16, React 19, TypeScript |
 | Styles | Tailwind CSS v4, Framer Motion |
 | Backend | Supabase (PostgreSQL + Auth + Realtime + Storage + Edge Functions) |
-| Cartes | Mapbox GL JS v3 (intégration directe, sans wrapper) |
+| Cartes | Mapbox GL JS v3 (intégration directe) |
 | Itinéraires | OSRM |
-| Transports | Overpass API (OpenStreetMap) |
+| Transports en commun | API IDFM Navitia — Itinéraires en transport public parisien |
 | Vidéo en direct | LiveKit (WebRTC) |
 | Paiements | Stripe (Checkout, Webhooks, Portal) |
 | Push | Web Push API + VAPID |
@@ -209,7 +209,7 @@ La page d'accueil a été repensée avec :
 
 ---
 
-## 11. Vue d'ensemble des fonctionnalités (29 fonctionnalités)
+## 11. Vue d'ensemble des fonctionnalités (32+ fonctionnalités)
 
 | # | Fonctionnalité | Description |
 |---|----------------|-------------|
@@ -242,6 +242,9 @@ La page d'accueil a été repensée avec :
 | 27 | Moteur de simulation | Outil administrateur pour les données de démonstration et les tests de charge |
 | 28 | Vérification d'identité | Confirmation d'identité propulsée par Veriff |
 | 29 | Pages légales | Politique de confidentialité, Conditions d'utilisation, Politique de cookies |
+| 30 | Lieux sûrs partenaires | Programme partenaire avec lieux de sécurité vérifiés |
+| 31 | Séries quotidiennes | Suivi des séries avec récompenses aux jalons 3, 7, 14, 30, 60, 100 jours |
+| 32 | Itinéraires en transport | Transport public parisien via l'API IDFM Navitia (métro, RER, bus, tram) |
 
 ---
 

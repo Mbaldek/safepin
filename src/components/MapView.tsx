@@ -464,7 +464,7 @@ export default function MapView() {
       }
     });
 
-    // Long-press (600 ms) → open Place Note sheet
+    // Long-press (2 s) → open Place Note sheet
     map.current.on('mousedown', (e) => {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
       longPressTimer.current = setTimeout(() => {
@@ -474,7 +474,7 @@ export default function MapView() {
         if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
           store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         }
-      }, 600);
+      }, 2000);
     });
     const cancelLong = () => {
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }

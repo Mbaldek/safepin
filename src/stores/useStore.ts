@@ -46,6 +46,32 @@ function saveLS(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
 }
 
+// One-time migration: copy kova_* localStorage keys to brume_* so existing users keep their data
+if (typeof window !== 'undefined' && !localStorage.getItem('brume_keys_migrated')) {
+  const renames: [string, string][] = [
+    ['kova_active_trip', 'brume_active_trip'],
+    ['kova_fav_routes', 'brume_fav_routes'],
+    ['brume_fav_places', 'brume_fav_places'],
+    ['brume_followed_pins', 'brume_followed_pins'],
+    ['brume_notif_settings', 'brume_notif_settings'],
+    ['brume_milestones', 'brume_milestones'],
+    ['kova-theme', 'brume-theme'],
+    ['kova_install_dismissed', 'brume_install_dismissed'],
+    ['kova_session_count', 'brume_session_count'],
+    ['kova_is_pro', 'brume_is_pro'],
+    ['kova_onboarding_done', 'brume_onboarding_done'],
+    ['kova_push_dismissed', 'brume_push_dismissed'],
+    ['kova_last_session_ts', 'brume_last_session_ts'],
+  ];
+  for (const [oldKey, newKey] of renames) {
+    const val = localStorage.getItem(oldKey);
+    if (val !== null && localStorage.getItem(newKey) === null) {
+      localStorage.setItem(newKey, val);
+    }
+  }
+  localStorage.setItem('brume_keys_migrated', '1');
+}
+
 type Store = {
   // Auth
   userId: string | null;
@@ -282,18 +308,18 @@ export const useStore = create<Store>((set) => ({
   setSelectedPlaceNote: (note) => set({ selectedPlaceNote: note }),
 
   // Place note favorites
-  favPlaceIds: loadLS<string[]>('kova_fav_places', []),
+  favPlaceIds: loadLS<string[]>('brume_fav_places', []),
   toggleFavPlace: (id) =>
     set((state) => {
       const has = state.favPlaceIds.includes(id);
       const next = has ? state.favPlaceIds.filter((x) => x !== id) : [...state.favPlaceIds, id];
-      saveLS('kova_fav_places', next);
+      saveLS('brume_fav_places', next);
       return { favPlaceIds: next };
     }),
   deletePlaceNote: (id) =>
     set((state) => {
       const next = state.favPlaceIds.filter((x) => x !== id);
-      saveLS('kova_fav_places', next);
+      saveLS('brume_fav_places', next);
       return { placeNotes: state.placeNotes.filter((n) => n.id !== id), favPlaceIds: next };
     }),
 
@@ -302,12 +328,12 @@ export const useStore = create<Store>((set) => ({
   setTripPrefill: (p) => set({ tripPrefill: p }),
 
   // Followed pins
-  followedPinIds: loadLS<string[]>('kova_followed_pins', []),
+  followedPinIds: loadLS<string[]>('brume_followed_pins', []),
   toggleFollowPin: (id) =>
     set((state) => {
       const has = state.followedPinIds.includes(id);
       const next = has ? state.followedPinIds.filter((x) => x !== id) : [...state.followedPinIds, id];
-      saveLS('kova_followed_pins', next);
+      saveLS('brume_followed_pins', next);
       return { followedPinIds: next };
     }),
 
@@ -321,19 +347,19 @@ export const useStore = create<Store>((set) => ({
     set((state) => ({ liveSessions: state.liveSessions.map((s) => s.id === session.id ? session : s) })),
 
   // Notification settings
-  notifSettings: loadLS<NotifSettings>('kova_notif_settings', DEFAULT_NOTIF_SETTINGS),
+  notifSettings: loadLS<NotifSettings>('brume_notif_settings', DEFAULT_NOTIF_SETTINGS),
   setNotifSettings: (s) => {
-    saveLS('kova_notif_settings', s);
+    saveLS('brume_notif_settings', s);
     set({ notifSettings: s });
   },
 
   // Achieved milestones
-  achievedMilestones: loadLS<string[]>('kova_milestones', []),
+  achievedMilestones: loadLS<string[]>('brume_milestones', []),
   addAchievedMilestone: (key) =>
     set((state) => {
       if (state.achievedMilestones.includes(key)) return {};
       const next = [...state.achievedMilestones, key];
-      saveLS('kova_milestones', next);
+      saveLS('brume_milestones', next);
       return { achievedMilestones: next };
     }),
 

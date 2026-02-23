@@ -125,7 +125,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
       setOfflineQueueCount(count);
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
         const reg = await navigator.serviceWorker.ready;
-        await (reg as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync.register('kova-sync-pins');
+        await (reg as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync.register('brume-sync-pins');
       }
       toast.success(t('queued'));
       setActiveSheet('none');

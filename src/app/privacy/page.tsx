@@ -15,7 +15,7 @@ export default function PrivacyPage() {
             <p>
               Brume is operated by DBEK, a company registered in France at 75 rue de Lourmel, 75015 Paris, France.
               Brume provides a community-powered safety mapping and navigation platform (&ldquo;the Service&rdquo;).
-              For questions about this policy, contact us at <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>.
+              For questions about this policy, contact us at <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>.
             </p>
           </section>
 
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
               <li><strong>Withdraw consent:</strong> At any time, without affecting prior processing.</li>
             </ul>
             <p className="mt-2">
-              To exercise these rights, email <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>.
+              To exercise these rights, email <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>.
               We respond within 30 days.
             </p>
           </section>
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
             <h2 className="text-base font-black mb-2">11. Contact & Supervisory Authority</h2>
             <p>
               Data controller: DBEK, 75 rue de Lourmel, 75015 Paris, France.<br />
-              Email: <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a><br />
+              Email: <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a><br />
               You may also lodge a complaint with the French data protection authority:
               CNIL, 3 Place de Fontenoy, 75007 Paris (<a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>www.cnil.fr</a>).
             </p>

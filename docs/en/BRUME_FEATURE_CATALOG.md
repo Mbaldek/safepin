@@ -38,6 +38,9 @@ Complete reference for every feature in the Brume safety platform.
 30. [Identity Verification](#30-identity-verification)
 31. [Legal Pages](#31-legal-pages)
 32. [Landing Page](#32-landing-page)
+33. [Partner Safe Spaces](#33-partner-safe-spaces)
+34. [Daily Streaks](#34-daily-streaks)
+35. [Transit Routing](#35-transit-routing)
 
 ---
 
@@ -471,6 +474,11 @@ See [Friends & Direct Messages](#11-friends--direct-messages) below.
 - Visual level progress bar (current -> next level)
 - Current level badge with emoji and color
 - Points breakdown
+
+**Daily Streak Display:**
+- Current streak count with streak emoji
+- Longest streak record
+- Streak emoji escalates with streak length (see [Daily Streaks](#34-daily-streaks))
 
 **7-Day Activity Sparkline:**
 - Bar chart of daily contribution over past week
@@ -1233,7 +1241,7 @@ Three full legal pages served as standalone routes:
 - Wired from Settings -> Legal section via `window.open()`
 - Also linked from Landing Page footer
 - Company: DBEK, Paris, France
-- Contact: kovaapp@pm.me
+- Contact: brumeapp@pm.me
 
 ---
 
@@ -1307,13 +1315,104 @@ Tabbed interface with 3 tabs:
 
 ---
 
+## 33. Partner Safe Spaces
+**Component:** `SafeSpaceDetailSheet.tsx`
+**Admin Tab:** Safe Spaces (in Tower Control)
+
+### Partner Tiers
+| Tier | Map Color | Benefits |
+|---|---|---|
+| Regular | Green | Standard safe space marker |
+| Basic Partner | Blue | Verified badge, contact info displayed |
+| Premium Partner | Gold | Featured marker, full profile (hours, photos, description, website) |
+
+### Partner Fields
+- Address, phone, contact name
+- Description and website URL
+- Photo gallery (multiple URLs)
+- Opening hours (per-day schedule)
+- Partner tier (basic / premium)
+- Partner since date
+
+### Admin Interface
+- Dedicated "Safe Spaces" tab in Tower Control
+- CRUD operations for partner safe spaces
+- Toggle partner status and tier
+- Add/edit opening hours and photos
+
+### Map Integration
+- Data-driven Mapbox styling differentiates partner tiers
+- Gold markers for premium, blue for basic, green for regular
+- Click any safe space to open detail bottom sheet
+- Upvote system for community validation
+
+---
+
+## 34. Daily Streaks
+**File:** `src/lib/streaks.ts`
+**Store:** `useStore.ts` (currentStreak, longestStreak, setStreakInfo)
+
+### How Streaks Work
+- Every day you open Brume and perform an action, your streak increments
+- Missing a day resets the streak to 0
+- Longest streak is tracked separately
+
+### Streak Milestones
+| Days | Emoji | Reward |
+|---|---|---|
+| 3 | 🔥 | "Getting started" toast |
+| 7 | ⚡ | "Week warrior" toast |
+| 14 | 💪 | "Two-week champion" toast |
+| 30 | 🏆 | "Monthly guardian" toast |
+| 60 | 👑 | "Sixty-day sentinel" toast |
+| 100 | 💎 | "Century protector" toast |
+
+### Engagement Events
+All user actions are logged to the `engagement_events` table:
+- signup, login, pin_created, vote_cast, comment_posted, route_planned, sos_triggered, verification_started, verification_completed, streak_milestone
+
+### Verification Nudge
+- Users who haven't verified their identity see a nudge banner 2-7 days after signup
+- Nudge appears in the VerificationView component
+- Dismissible, non-blocking
+
+---
+
+## 35. Transit Routing
+**File:** `src/lib/transit.ts`
+**Component:** `TripView.tsx` (transit mode)
+
+### Paris Public Transit Integration
+Uses the IDFM (Ile-de-France Mobilites) Navitia API for real-time transit routing in Paris.
+
+### Supported Modes
+| Mode | Icon | Description |
+|---|---|---|
+| Metro | 🚇 | Paris metro lines |
+| RER | 🚆 | Regional express rail |
+| Bus | 🚌 | Bus routes |
+| Tram | 🚊 | Tram lines |
+| Walking | 🚶 | Transfer segments |
+
+### Journey UI
+- Step-by-step journey breakdown with line badges
+- Transfer count and total duration
+- Departure/arrival times for each segment
+- Color-coded by transit line
+- Duration formatting: "25 min" or "1h 05"
+
+### Fallback
+When no IDFM API key is configured, generates a synthetic walk→metro→walk route for development/demo purposes.
+
+---
+
 ## Architecture Summary
 
 ### Technology Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 15, React 19, TypeScript |
+| Frontend | Next.js 16, React 19, TypeScript |
 | Styling | Tailwind CSS |
 | Maps | Mapbox GL JS |
 | Database | Supabase (PostgreSQL) |
@@ -1325,6 +1424,7 @@ Tabbed interface with 3 tabs:
 | Payments | Stripe (Checkout, Webhooks, Customer Portal) |
 | Identity | Veriff |
 | Routing Engine | OSRM |
+| Transit Routing | IDFM Navitia API |
 | Geocoding | Mapbox Geocoding API |
 | POI Data | Overpass API (OpenStreetMap) |
 | Internationalization | next-intl v4 |
@@ -1363,6 +1463,9 @@ Tabbed interface with 3 tabs:
 | `weekly_challenges` | Weekly challenge definitions and progress |
 | `reports` | User-submitted flag reports |
 | `admin_parameters` | Admin-configurable platform parameters |
+| `engagement_events` | User action logs for streaks and analytics |
+| `challenges` | Challenge definitions |
+| `user_challenges` | Per-user challenge progress |
 
 ### Edge Functions
 
@@ -1377,4 +1480,4 @@ Tabbed interface with 3 tabs:
 
 *Brume -- Community-powered urban safety.*
 *Company: DBEK, Paris, France*
-*Contact: kovaapp@pm.me*
+*Contact: brumeapp@pm.me*

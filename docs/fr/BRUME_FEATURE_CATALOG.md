@@ -38,6 +38,9 @@ Reference complete de chaque fonctionnalite de la plateforme de securite Brume.
 30. [Verification d'identite](#30-verification-didentite)
 31. [Pages juridiques](#31-pages-juridiques)
 32. [Page d'accueil](#32-page-daccueil)
+33. [Lieux sûrs partenaires](#33-lieux-surs-partenaires)
+34. [Séries quotidiennes](#34-series-quotidiennes)
+35. [Itinéraires en transport](#35-itineraires-en-transport)
 
 ---
 
@@ -484,6 +487,9 @@ Voir [Amis et messages directs](#11-amis-et-messages-directs) ci-dessous.
 | Signalements actifs | Signalements actuellement en cours |
 | Commentaires | Nombre total de commentaires rediges |
 | Notes de lieu | Marque-pages personnels crees |
+
+**Affichage de la serie quotidienne :**
+- Serie actuelle, plus longue serie et emoji de serie
 
 **Sections supplementaires :**
 - Gestion du Cercle de confiance
@@ -1233,7 +1239,7 @@ Trois pages juridiques completes servies en tant que routes autonomes :
 - Accessibles depuis Parametres -> section Mentions legales via `window.open()`
 - Egalement liees depuis le pied de page de la Page d'accueil
 - Societe : DBEK, Paris, France
-- Contact : kovaapp@pm.me
+- Contact : brumeapp@pm.me
 
 ---
 
@@ -1307,13 +1313,119 @@ Interface a onglets avec 3 onglets :
 
 ---
 
+## 33. Lieux sûrs partenaires
+
+**Composant :** `SafeSpaceDetailSheet.tsx`
+**Onglet admin :** Lieux sûrs (dans Tower Control)
+
+### Niveaux partenaires
+
+| Niveau | Couleur carte | Avantages |
+|---|---|---|
+| Standard | Vert | Marqueur de lieu sûr classique |
+| Partenaire basique | Bleu | Badge vérifié, coordonnées affichées |
+| Partenaire premium | Or | Marqueur mis en avant, profil complet (horaires, photos, description, site web) |
+
+### Champs partenaires
+
+- Adresse, téléphone, nom du contact
+- Description et URL du site web
+- Galerie de photos (URLs multiples)
+- Horaires d'ouverture (planning par jour)
+- Niveau partenaire (basique / premium)
+- Date de partenariat
+
+### Interface d'administration
+
+- Onglet dédié "Lieux sûrs" dans Tower Control
+- Opérations CRUD pour les lieux sûrs partenaires
+- Bascule statut partenaire et niveau
+- Ajout/modification des horaires et photos
+
+### Intégration cartographique
+
+- Style Mapbox piloté par les données pour différencier les niveaux partenaires
+- Marqueurs or pour les premium, bleu pour les basiques, vert pour les standards
+- Cliquer sur un lieu sûr pour ouvrir la fiche détaillée en bottom sheet
+- Système de votes positifs pour la validation communautaire
+
+---
+
+## 34. Séries quotidiennes
+
+**Fichier :** `src/lib/streaks.ts`
+**Store :** `useStore.ts` (currentStreak, longestStreak, setStreakInfo)
+
+### Fonctionnement des séries
+
+- Chaque jour où vous ouvrez Brume et effectuez une action, votre série s'incrémente
+- Manquer un jour remet la série à 0
+- La plus longue série est suivie séparément
+
+### Jalons de séries
+
+| Jours | Emoji | Récompense |
+|---|---|---|
+| 3 | 🔥 | Toast "Bien parti" |
+| 7 | ⚡ | Toast "Guerrier de la semaine" |
+| 14 | 💪 | Toast "Champion de la quinzaine" |
+| 30 | 🏆 | Toast "Gardien mensuel" |
+| 60 | 👑 | Toast "Sentinelle des 60 jours" |
+| 100 | 💎 | Toast "Protecteur centenaire" |
+
+### Événements d'engagement
+
+Toutes les actions utilisateur sont journalisées dans la table `engagement_events` :
+- signup, login, pin_created, vote_cast, comment_posted, route_planned, sos_triggered, verification_started, verification_completed, streak_milestone
+
+### Incitation à la vérification
+
+- Les utilisateurs non vérifiés voient une bannière incitative 2 à 7 jours après l'inscription
+- La bannière apparaît dans le composant VerificationView
+- Masquable et non bloquante
+
+---
+
+## 35. Itinéraires en transport
+
+**Fichier :** `src/lib/transit.ts`
+**Composant :** `TripView.tsx` (mode transport)
+
+### Intégration des transports publics parisiens
+
+Utilise l'API IDFM (Île-de-France Mobilités) Navitia pour le calcul d'itinéraires en transport en commun en temps réel à Paris.
+
+### Modes pris en charge
+
+| Mode | Icône | Description |
+|---|---|---|
+| Métro | 🚇 | Lignes de métro parisien |
+| RER | 🚆 | Réseau express régional |
+| Bus | 🚌 | Lignes de bus |
+| Tramway | 🚊 | Lignes de tramway |
+| Marche | 🚶 | Segments de correspondance |
+
+### Interface du trajet
+
+- Décomposition étape par étape du trajet avec badges de ligne
+- Nombre de correspondances et durée totale
+- Heures de départ/arrivée pour chaque segment
+- Code couleur par ligne de transport
+- Formatage de la durée : "25 min" ou "1h 05"
+
+### Repli
+
+Lorsqu'aucune clé API IDFM n'est configurée, génère un itinéraire synthétique marche→métro→marche à des fins de développement/démonstration.
+
+---
+
 ## Resume de l'architecture
 
 ### Pile technologique
 
 | Couche | Technologie |
 |---|---|
-| Frontend | Next.js 15, React 19, TypeScript |
+| Frontend | Next.js 16, React 19, TypeScript |
 | Style | Tailwind CSS |
 | Cartographie | Mapbox GL JS |
 | Base de donnees | Supabase (PostgreSQL) |
@@ -1327,6 +1439,7 @@ Interface a onglets avec 3 onglets :
 | Moteur de routage | OSRM |
 | Geocodage | Mapbox Geocoding API |
 | Donnees POI | Overpass API (OpenStreetMap) |
+| Transports en commun | API IDFM Navitia (Ile-de-France Mobilites) |
 | Internationalisation | next-intl v4 |
 | PWA | Service Worker, Web Push API, IndexedDB |
 | Hebergement | Vercel |
@@ -1363,6 +1476,9 @@ Interface a onglets avec 3 onglets :
 | `weekly_challenges` | Definitions et progression des defis hebdomadaires |
 | `reports` | Signalements soumis par les utilisateurs |
 | `admin_parameters` | Parametres de la plateforme configurables par l'administrateur |
+| `engagement_events` | Journal des actions utilisateur pour le suivi des series et de l'engagement |
+| `challenges` | Definitions des defis (quotidiens et hebdomadaires) |
+| `user_challenges` | Progression et accomplissement des defis par utilisateur |
 
 ### Edge Functions
 
@@ -1377,4 +1493,4 @@ Interface a onglets avec 3 onglets :
 
 *Brume -- Securite urbaine portee par la communaute.*
 *Societe : DBEK, Paris, France*
-*Contact : kovaapp@pm.me*
+*Contact : brumeapp@pm.me*

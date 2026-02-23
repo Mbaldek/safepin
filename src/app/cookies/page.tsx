@@ -45,7 +45,7 @@ export default function CookiesPage() {
                     <td className="py-2">1 year</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td className="py-2 pr-3 font-mono">kova_theme</td>
+                    <td className="py-2 pr-3 font-mono">brume_theme</td>
                     <td className="py-2 pr-3">Stores your dark/light theme preference</td>
                     <td className="py-2 pr-3">Functional</td>
                     <td className="py-2">1 year</td>
@@ -61,9 +61,9 @@ export default function CookiesPage() {
               In addition to cookies, Brume uses browser local storage for app functionality:
             </p>
             <ul className="list-disc ml-5 space-y-1">
-              <li><strong>kova_active_trip:</strong> Persists active trip navigation state.</li>
-              <li><strong>kova_last_session_ts:</strong> Tracks when you last visited (for session briefing).</li>
-              <li><strong>kova_notifications_enabled:</strong> Push notification preference.</li>
+              <li><strong>brume_active_trip:</strong> Persists active trip navigation state.</li>
+              <li><strong>brume_last_session_ts:</strong> Tracks when you last visited (for session briefing).</li>
+              <li><strong>brume_notifications_enabled:</strong> Push notification preference.</li>
               <li><strong>Offline queue (IndexedDB):</strong> Stores reports created while offline for later sync.</li>
             </ul>
           </section>
@@ -105,7 +105,7 @@ export default function CookiesPage() {
             <h2 className="text-base font-black mb-2">7. Contact</h2>
             <p>
               If you have questions about our use of cookies, contact us at{' '}
-              <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>.
+              <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>.
             </p>
           </section>
         </div>

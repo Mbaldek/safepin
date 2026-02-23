@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { springTransition, haversineMetersLngLat } from '@/lib/utils';
 import { geocodeForward } from '@/lib/geocode';
-import { fetchTransitRoute, TransitRoute, TransitStep, formatTransitDuration, getLineIcon } from '@/lib/transit';
+import { fetchTransitRoute, TransitRoute, formatTransitDuration, getLineIcon } from '@/lib/transit';
 
 type Phase = 'idle' | 'searching' | 'selecting' | 'active';
 type Mode  = 'walk' | 'bike' | 'drive' | 'transit';
@@ -24,14 +24,6 @@ type TripState = {
   startedAt: number;
   expiresAt: number;
 };
-
-const DURATION_OPTIONS = [
-  { label: '15 min', ms: 15 * 60_000 },
-  { label: '30 min', ms: 30 * 60_000 },
-  { label: '1 hr',   ms:  1 * 3_600_000 },
-  { label: '2 hr',   ms:  2 * 3_600_000 },
-  { label: '4 hr',   ms:  4 * 3_600_000 },
-];
 
 const MODES: { id: Mode; emoji: string; label: string; soon?: boolean }[] = [
   { id: 'walk',    emoji: '🚶', label: 'Walk'    },
@@ -47,7 +39,7 @@ const OSRM_PROFILES: Record<Mode, string> = {
   transit: 'foot', // proxy until transit data is integrated
 };
 
-const STORAGE_KEY = 'kova_active_trip';
+const STORAGE_KEY = 'brume_active_trip';
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return '0:00';
@@ -236,7 +228,6 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [destination, setDest]           = useState('');
   const [destCoords, setDestCoords]      = useState<[number, number] | null>(null);
   const [mode, setMode]                  = useState<Mode>('walk');
-  const [durationMs, setDuration]        = useState(30 * 60_000);
   const [options, setOptions]            = useState<RouteOption[]>([]);
   const [trip, setTrip]                  = useState<TripState | null>(null);
   const [now, setNow]                    = useState(Date.now());
@@ -244,7 +235,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [activeOpt, setActiveOpt]        = useState<RouteOption | null>(null);
   const [nightOnly, setNightOnly]        = useState(false);
   const [transitRoutes, setTransitRoutes] = useState<TransitRoute[]>([]);
-  const [selectedTransitIdx, setSelectedTransitIdx] = useState(0);
+  const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
   const locationHistoryRef               = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // My saved routes
@@ -252,7 +243,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   const [showSaved, setShowSaved]     = useState(false);
 
   // Favourite routes — persisted in localStorage
-  const FAV_KEY = 'kova_fav_routes';
+  const FAV_KEY = 'brume_fav_routes';
   const [favIds, setFavIds] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(FAV_KEY);
@@ -383,6 +374,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
           duration: r.totalDuration,
           distance: 0,
         }));
+        setOptions(routeOptions);
         setPendingRoutes(routeOptions);
       }
       setPhase('selecting');
@@ -446,10 +438,11 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   }
 
   function selectRoute(opt: RouteOption) {
+    const routeDurationMs = Math.max(opt.duration * 1000 * 1.25, 5 * 60_000);
     const tripState: TripState = {
       destination: destination.trim(),
       startedAt:   Date.now(),
-      expiresAt:   Date.now() + durationMs,
+      expiresAt:   Date.now() + routeDurationMs,
     };
     setTrip(tripState);
     setActiveOpt(opt);
@@ -527,7 +520,8 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       style={{
         backgroundColor: 'var(--bg-secondary)',
         boxShadow: '0 -10px 40px var(--bg-overlay)',
-        maxHeight: '72dvh',
+        maxHeight: phase === 'selecting' ? '40dvh' : '72dvh',
+        transition: 'max-height 0.3s ease-in-out',
       }}
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
       transition={springTransition}
@@ -604,122 +598,134 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            {/* Route cards */}
-            {options.map((opt) => (
-              <div
-                key={opt.id}
-                className="rounded-2xl overflow-hidden"
-                style={{ border: `2px solid ${opt.color}33`, backgroundColor: 'var(--bg-card)' }}
-              >
+            {/* Route cards (expandable) */}
+            {options.map((opt) => {
+              const isExpanded = expandedRouteId === opt.id;
+              const transitRoute = opt.id.startsWith('transit-')
+                ? transitRoutes[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
+                : null;
+
+              return (
                 <div
-                  className="px-4 py-2 flex items-center justify-between gap-2"
-                  style={{ backgroundColor: `${opt.color}18` }}
+                  key={opt.id}
+                  className="rounded-2xl overflow-hidden"
+                  style={{ border: `2px solid ${opt.color}33`, backgroundColor: 'var(--bg-card)' }}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black" style={{ color: opt.color }}>{opt.label}</span>
-                    {opt.rerouted && (
-                      <span
-                        className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}
-                      >
-                        {'↺ ' + t('rerouted')}
-                      </span>
-                    )}
-                  </div>
-                  <DangerBadge score={opt.dangerScore} />
-                </div>
-                <div className="px-4 py-3 flex items-center gap-3">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
-                      {fmtDur(opt.duration)}
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>
-                  </div>
-                  {opt.dangerScore > 0 && (
-                    <p className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
-                      {opt.dangerScore} risk {opt.dangerScore === 1 ? 'point' : 'points'} nearby
-                    </p>
-                  )}
-                  <div className="ml-auto flex items-center gap-1.5">
-                    <button
-                      onClick={() => saveRoute(opt)}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-80"
-                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-                      title="Save route"
-                    >
-                      <BookmarkPlus size={14} style={{ color: 'var(--text-muted)' }} />
-                    </button>
-                    <button
-                      onClick={() => selectRoute(opt)}
-                      className="px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
-                      style={{ backgroundColor: opt.color, color: '#fff' }}
-                    >
-                      Select
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* See on map hint */}
-            <p className="text-center text-xs pb-1" style={{ color: 'var(--text-muted)' }}>
-              Routes are visible on the map behind this sheet
-            </p>
-
-            {/* Transit route steps */}
-            {mode === 'transit' && transitRoutes.length > 0 && phase === 'selecting' && (
-              <div className="space-y-2 mt-3">
-                {/* Route selector tabs */}
-                <div className="flex gap-1">
-                  {transitRoutes.map((r, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setSelectedTransitIdx(i); }}
-                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition"
-                      style={{
-                        backgroundColor: selectedTransitIdx === i ? 'var(--accent)' : 'var(--bg-card)',
-                        color: selectedTransitIdx === i ? '#fff' : 'var(--text-muted)',
-                      }}
-                    >
-                      {formatTransitDuration(r.totalDuration)} · {r.transfers} {r.transfers === 1 ? 'transfer' : 'transfers'}
-                    </button>
-                  ))}
-                </div>
-                {/* Step-by-step */}
-                <div className="rounded-2xl p-3 space-y-2" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                  {transitRoutes[selectedTransitIdx]?.steps.map((step, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <div className="text-base mt-0.5">{getLineIcon(step.mode)}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          {step.mode !== 'walking' && step.line && (
-                            <span
-                              className="px-1.5 py-0.5 rounded text-[0.6rem] font-black text-white"
-                              style={{ backgroundColor: step.lineColor || 'var(--accent)' }}
-                            >
-                              {step.line}
-                            </span>
-                          )}
-                          <span className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                            {step.mode === 'walking' ? `Walk to ${step.to}` : `${step.from} → ${step.to}`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                            {formatTransitDuration(step.duration)}
-                          </span>
-                          {step.stops && step.stops > 0 && (
-                            <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                              · {step.stops} stops
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  <div
+                    className="px-3 py-1.5 flex items-center justify-between gap-2"
+                    style={{ backgroundColor: `${opt.color}18` }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black" style={{ color: opt.color }}>{opt.label}</span>
+                      {opt.rerouted && (
+                        <span
+                          className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                          style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}
+                        >
+                          {'↺ ' + t('rerouted')}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <DangerBadge score={opt.dangerScore} />
+                  </div>
+
+                  {/* Summary row — tappable to expand */}
+                  <div
+                    className="px-3 py-2 flex items-center gap-3 cursor-pointer"
+                    onClick={() => setExpandedRouteId(isExpanded ? null : opt.id)}
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+                        {fmtDur(opt.duration)}
+                      </span>
+                      {opt.distance > 0 && (
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>
+                      )}
+                      {transitRoute && (
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          {transitRoute.transfers} {transitRoute.transfers === 1 ? 'transfer' : 'transfers'}
+                        </span>
+                      )}
+                    </div>
+                    {opt.dangerScore > 0 && (
+                      <p className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
+                        {opt.dangerScore} risk {opt.dangerScore === 1 ? 'point' : 'points'} nearby
+                      </p>
+                    )}
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {isExpanded ? '▲' : '▼'}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); saveRoute(opt); }}
+                        className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-80"
+                        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                        title="Save route"
+                      >
+                        <BookmarkPlus size={14} style={{ color: 'var(--text-muted)' }} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); selectRoute(opt); }}
+                        className="px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
+                        style={{ backgroundColor: opt.color, color: '#fff' }}
+                      >
+                        Select
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+                      {transitRoute ? (
+                        <div className="space-y-2">
+                          {transitRoute.steps.map((step, i) => (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <div className="text-base mt-0.5">{getLineIcon(step.mode)}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  {step.mode !== 'walking' && step.line && (
+                                    <span
+                                      className="px-1.5 py-0.5 rounded text-[0.6rem] font-black text-white"
+                                      style={{ backgroundColor: step.lineColor || 'var(--accent)' }}
+                                    >
+                                      {step.line}
+                                    </span>
+                                  )}
+                                  <span className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                                    {step.mode === 'walking' ? `Walk to ${step.to}` : `${step.from} → ${step.to}`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                    {formatTransitDuration(step.duration)}
+                                  </span>
+                                  {step.stops && step.stops > 0 && (
+                                    <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                      · {step.stops} stops
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
+                          <p>{fmtDur(opt.duration)} · {fmtDist(opt.distance)}</p>
+                          {opt.dangerScore > 0 && (
+                            <p>{opt.dangerScore} incident{opt.dangerScore !== 1 ? 's' : ''} reported near this route</p>
+                          )}
+                          {opt.rerouted && (
+                            <p style={{ color: '#6366f1' }}>This route was rerouted to avoid a danger zone</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })}
           </div>
         )}
 
@@ -751,7 +757,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                     {trip.destination}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Stay safe{userProfile?.display_name ? `, ${userProfile.display_name}` : ''}
+                    Stay safe{userProfile?.display_name ? `, ${userProfile.display_name}` : ''} · ETA {new Date(trip.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                   {isSharingLocation && (
                     <span className="inline-flex items-center gap-1 mt-1.5 text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
@@ -1006,29 +1012,6 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 />
               </div>
             </button>
-
-            {/* Duration */}
-            <div>
-              <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                {t('duration')}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {DURATION_OPTIONS.map(({ label, ms }) => (
-                  <button
-                    key={label}
-                    onClick={() => setDuration(ms)}
-                    className="px-3 py-1.5 rounded-full text-xs font-bold transition"
-                    style={{
-                      backgroundColor: durationMs === ms ? 'var(--accent)' : 'var(--bg-card)',
-                      color:           durationMs === ms ? '#fff'          : 'var(--text-muted)',
-                      border:          durationMs === ms ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Smart Alerts indicator */}
             {savedRoutes.length > 0 && (

@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const LS_DISMISSED = 'kova_install_dismissed';
-const LS_SESSION_COUNT = 'kova_session_count';
+const LS_DISMISSED = 'brume_install_dismissed';
+const LS_SESSION_COUNT = 'brume_session_count';
 const MIN_SESSIONS = 3;
 
 export default function InstallPrompt() {

@@ -8,7 +8,7 @@ import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe, HelpCircle, BookOpen, BarChart3 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_NOTIF_SETTINGS, type Subscription, type Invoice } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
@@ -352,16 +352,12 @@ export default function SettingsSheet({ onClose }: Props) {
             )}
           </div>
 
-          {/* ── Level 1 menu ─────────────────────────────────────────── */}
-          <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          {/* ── Group A — Preferences ──────────────────────────────── */}
+          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Preferences</p>
+          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
             {([
-              { id: 'account',       label: 'Account',              subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
-              { id: 'notifications', label: 'Notifications',        subtitle: 'Alerts, radius, quiet hours',                        icon: <Bell size={16} /> },
-              { id: 'privacy',       label: 'Privacy & Data',       subtitle: 'Analytics, GDPR, delete account',                    icon: <Database size={16} /> },
-              { id: 'billing',       label: 'Subscription',         subtitle: 'Free plan · Brume Pro coming soon',                icon: <CreditCard size={16} /> },
-              { id: 'legal',         label: 'Legal',                subtitle: 'Privacy policy, ToS, GDPR',                         icon: <FileText size={16} /> },
-              { id: 'security',      label: 'Security',             subtitle: '2FA, sessions, sign out',                           icon: <Shield size={16} /> },
-              { id: 'admin',         label: 'Admin — Tower Control', subtitle: 'Moderation & parameters',                           icon: <LayoutDashboard size={16} /> },
+              { id: 'notifications', label: 'Notifications', subtitle: 'Alerts, radius, quiet hours', icon: <Bell size={16} /> },
+              { id: 'account',       label: 'Account',       subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
             ] as { id: Section; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
               <button
                 key={id}
@@ -377,6 +373,88 @@ export default function SettingsSheet({ onClose }: Props) {
                 <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               </button>
             ))}
+          </div>
+
+          {/* ── Group B — Help & Information ──────────────────────── */}
+          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Help & Information</p>
+          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            {([
+              { label: 'User Guide',          subtitle: 'How to use Brume',          icon: <BookOpen size={16} />,   href: '/guide.html' },
+              { label: 'FAQ',                  subtitle: 'Frequently asked questions', icon: <HelpCircle size={16} />, href: '/faq.html' },
+              { label: 'Methodology & Data',   subtitle: 'How safety scores work',    icon: <BarChart3 size={16} />,  href: '/methodology.html' },
+            ]).map(({ label, subtitle, icon, href }) => (
+              <button
+                key={label}
+                onClick={() => window.open(href, '_blank')}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <span style={{ color: 'var(--accent)' }}>{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                </div>
+                <ExternalLink size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+
+          {/* ── Group C — Subscription ────────────────────────────── */}
+          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Subscription</p>
+          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            <button
+              onClick={() => setSection('billing')}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-60"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <span style={{ color: 'var(--accent)' }}><CreditCard size={16} /></span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Subscription</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>Free plan · Brume Pro coming soon</p>
+              </div>
+              <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            </button>
+          </div>
+
+          {/* ── Group D — Privacy & Security ──────────────────────── */}
+          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Privacy & Security</p>
+          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            {([
+              { id: 'privacy',  label: 'Privacy & Data', subtitle: 'Analytics, GDPR, delete account', icon: <Database size={16} /> },
+              { id: 'security', label: 'Security',       subtitle: '2FA, sessions, sign out',         icon: <Shield size={16} /> },
+              { id: 'legal',    label: 'Legal',           subtitle: 'Privacy policy, ToS, GDPR',       icon: <FileText size={16} /> },
+            ] as { id: Section; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
+              <button
+                key={id}
+                onClick={() => setSection(id)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <span style={{ color: 'var(--accent)' }}>{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                </div>
+                <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+
+          {/* ── Group E — Admin ───────────────────────────────────── */}
+          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Admin</p>
+          <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            <button
+              onClick={() => setSection('admin')}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-60"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <span style={{ color: 'var(--accent)' }}><LayoutDashboard size={16} /></span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Admin — Tower Control</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>Moderation & parameters</p>
+              </div>
+              <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            </button>
           </div>
 
             </motion.div>
@@ -615,7 +693,7 @@ export default function SettingsSheet({ onClose }: Props) {
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                 You have the right to access, rectify, and erase your personal data. You may also
                 object to or restrict its processing, and request data portability. To exercise
-                these rights, contact us at <span style={{ color: 'var(--accent)' }}>kovaapp@pm.me</span>.
+                these rights, contact us at <span style={{ color: 'var(--accent)' }}>brumeapp@pm.me</span>.
               </p>
             </div>
             <Row
@@ -660,7 +738,7 @@ export default function SettingsSheet({ onClose }: Props) {
                 Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
               </p>
               <p className="text-[0.6rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                <a href="mailto:kovaapp@pm.me" style={{ color: 'var(--accent)' }}>kovaapp@pm.me</a>
+                <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>
               </p>
             </div>
           </Section>

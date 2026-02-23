@@ -5,7 +5,7 @@
 import { motion } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 
-const LS_KEY = 'kova_push_dismissed';
+const LS_KEY = 'brume_push_dismissed';
 
 export function shouldShowPushOptIn(): boolean {
   if (typeof window === 'undefined') return false;

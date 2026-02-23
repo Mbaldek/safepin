@@ -1,6 +1,6 @@
 // public/sw.js — Brume service worker with offline support
 
-const CACHE_NAME = 'kova-v1';
+const CACHE_NAME = 'brume-v1';
 const STATIC_ASSETS = [
   '/icon.svg',
   '/icon-192.png',
@@ -95,7 +95,7 @@ self.addEventListener('fetch', (event) => {
 
 // ── Background Sync: flush offline pin queue ─────────────────────────────────
 
-const OFFLINE_DB = 'kova_offline';
+const OFFLINE_DB = 'brume_offline';
 const OFFLINE_STORE = 'pending_pins';
 
 function openOfflineDB() {
@@ -200,7 +200,7 @@ async function syncPendingPins() {
 }
 
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'kova-sync-pins') {
+  if (event.tag === 'brume-sync-pins') {
     event.waitUntil(syncPendingPins());
   }
 });
@@ -214,7 +214,7 @@ self.addEventListener('push', (event) => {
       body: data.body || 'Emergency alert in your area',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      tag: 'kova-emergency',
+      tag: 'brume-emergency',
       renotify: true,
       data: { url: data.url || '/map' },
       vibrate: [200, 100, 200, 100, 400],

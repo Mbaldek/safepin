@@ -19,7 +19,7 @@ src/
 │       ├── push-notify/    # Direct push notification sending
 │       ├── stripe/         # Billing (checkout, webhook, portal)
 │       └── verify/         # Identity verification (start, webhook)
-├── components/             # 49 React components
+├── components/             # 51 React components
 │   ├── MapView.tsx         # Mapbox GL JS map
 │   ├── EmergencyButton.tsx # SOS system
 │   ├── ReportSheet.tsx     # Incident reporting
@@ -28,6 +28,7 @@ src/
 │   ├── CommunityView.tsx   # Communities + neighborhoods
 │   ├── MyKovaView.tsx      # Profile + stats hub
 │   ├── SettingsSheet.tsx   # Settings + billing + legal
+│   ├── SafeSpaceDetailSheet.tsx # Partner safe space detail view
 │   ├── ... (46 more)
 ├── lib/                    # Shared utilities & services
 │   ├── utils.ts            # timeAgo, haversine variants, springTransition
@@ -39,6 +40,8 @@ src/
 │   ├── milestones.ts       # Achievement definitions
 │   ├── stripe.ts           # Stripe client config
 │   ├── offlineQueue.ts     # IndexedDB offline queue
+│   ├── streaks.ts          # Daily streak tracking with milestones
+│   ├── transit.ts          # IDFM Navitia API integration for Paris transit
 │   ├── useIsPro.ts         # Pro subscription hook
 │   └── useFocusTrap.ts     # Accessibility focus trap
 ├── stores/                 # State management
@@ -48,9 +51,13 @@ src/
 │   ├── routing.ts          # 30 locale definitions + Locale type
 │   └── request.ts          # getRequestConfig with deepMerge fallback
 ├── messages/               # Translation files (30 locales)
-│   ├── en.json             # English (complete — 274 lines, 16 namespaces)
+│   ├── en.json             # English (complete — ~300+ lines, 19 namespaces)
 │   ├── fr.json             # French (complete)
 │   ├── es.json, zh.json... # 28 other locales (common + nav + emergency translated)
+├── __tests__/              # Test suite
+│   ├── streaks.test.ts     # Streak tracking unit tests
+│   ├── transit.test.ts     # Transit API integration tests
+│   └── SafeSpaceDetail.test.tsx # Safe space detail component tests
 └── proxy.ts                # Next.js 16 proxy: rate limiting + locale cookie
 ```
 
@@ -67,6 +74,7 @@ src/
 | Maps | Mapbox GL JS | v3 | Interactive maps (direct, no wrapper library) |
 | Routing Engine | OSRM | — | Walking/biking/driving route calculation |
 | Transit Data | Overpass API | — | OpenStreetMap metro/bus/tram data |
+| Transit Routing | IDFM Navitia API | — | Paris metro/RER/bus/tram routing |
 | Live Video | LiveKit | — | WebRTC broadcasting |
 | Payments | Stripe | — | Checkout, Webhooks, Billing Portal |
 | Push | Web Push API | — | VAPID-based notifications |
@@ -145,7 +153,7 @@ Messages provided to NextIntlClientProvider
 ```
 
 ### Message Files
-- `en.json`: Complete (274 lines, 16 namespaces: common, nav, emergency, report, detail, filters, layers, trip, settings, notifications, mykova, community, offline, moderation, safeSpaces, install)
+- `en.json`: Complete (~300+ lines, 19 namespaces: common, nav, emergency, report, detail, filters, layers, trip, settings, notifications, mykova, community, offline, moderation, safeSpaces, install, streaks, transit, engagement)
 - 28 other locales: Core keys translated (common: 13, nav: 4, emergency: 13). Rest falls back to English via deepMerge.
 
 ### Locale Detection (proxy.ts)
@@ -207,7 +215,7 @@ Webhook uses fail-closed signature verification (missing secret = reject).
 
 | Table | Purpose |
 |---|---|
-| profiles | User profiles (display_name, avatar_url, trust score, verification, is_admin, referral_code) |
+| profiles | User profiles (display_name, avatar_url, trust score, verification, is_admin, referral_code, current_streak, longest_streak, last_active_date) |
 | pins | Safety incident reports (category, severity, lat/lng, votes, is_emergency, is_simulated) |
 | pin_comments | Real-time comments on pins |
 | subscriptions | Stripe subscription records |
@@ -229,6 +237,10 @@ Webhook uses fail-closed signature verification (missing secret = reject).
 | trip_log | Completed trip records |
 | safety_buddies | Route-based buddy matching schedules |
 | admin_params | Platform configuration parameters |
+| safe_spaces | Partner safe spaces (name, lat/lng, category, partner fields) |
+| engagement_events | User activity tracking for analytics and streaks |
+| challenges | Weekly gamified challenge definitions |
+| user_challenges | User progress on challenges |
 | flag_reports | User-submitted content flags |
 
 ## 9. API Routes

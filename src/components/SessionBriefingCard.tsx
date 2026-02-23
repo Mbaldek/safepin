@@ -10,7 +10,7 @@ import { MapPin, Navigation, X } from 'lucide-react';
 import { haversineMeters } from '@/lib/utils';
 
 const DISMISS_MS = 15_000;
-const LS_KEY = 'kova_last_session_ts';
+const LS_KEY = 'brume_last_session_ts';
 const NEARBY_RADIUS_M = 1000;
 
 type BriefingData = {
