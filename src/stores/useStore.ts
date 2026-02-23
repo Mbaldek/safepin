@@ -217,6 +217,10 @@ type Store = {
   showIncidentsList: boolean;
   setShowIncidentsList: (v: boolean) => void;
 
+  // Walk With Me panel
+  showWalkWithMe: boolean;
+  setShowWalkWithMe: (v: boolean) => void;
+
   // Safe Spaces (Sprint 40)
   safeSpaces: SafeSpace[];
   setSafeSpaces: (spaces: SafeSpace[]) => void;
@@ -406,6 +410,10 @@ export const useStore = create<Store>((set) => ({
   // Incidents list overlay
   showIncidentsList: false,
   setShowIncidentsList: (v) => set({ showIncidentsList: v }),
+
+  // Walk With Me panel
+  showWalkWithMe: false,
+  setShowWalkWithMe: (v) => set({ showWalkWithMe: v }),
 
   // Safe Spaces
   safeSpaces: [],

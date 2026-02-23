@@ -199,7 +199,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
   const [transitRoutes, setTransitRoutes] = useState<TransitRoute[]>([]);
   const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [nightOnly, setNightOnly] = useState(false);
+  const nightOnly = false; // night-only scoring removed from UI
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-search when destination changes (debounced 800ms)
@@ -549,25 +549,6 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
               ))}
             </div>
           </div>
-
-          {/* Night-only toggle */}
-          <button
-            onClick={() => setNightOnly(!nightOnly)}
-            className="w-full py-2.5 rounded-2xl font-bold text-xs flex items-center justify-between px-4 transition"
-            style={{
-              backgroundColor: nightOnly ? 'rgba(99,102,241,0.10)' : 'var(--bg-card)',
-              border: nightOnly ? '1.5px solid #6366f1' : '1px solid var(--border)',
-              color: nightOnly ? '#6366f1' : 'var(--text-muted)',
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm">🌙</span>
-              {t('planForNight')}
-            </div>
-            <div className="w-9 h-5 rounded-full relative transition-colors" style={{ backgroundColor: nightOnly ? '#6366f1' : 'var(--border)' }}>
-              <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: nightOnly ? '18px' : '2px' }} />
-            </div>
-          </button>
 
           {/* Search button */}
           <button

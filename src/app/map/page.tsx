@@ -102,6 +102,7 @@ export default function MapPage() {
     activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     tripNudge,
+    showWalkWithMe, setShowWalkWithMe,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -204,7 +205,7 @@ export default function MapPage() {
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
-  const [showWalkWithMe, setShowWalkWithMe] = useState(false);
+  // showWalkWithMe is now in the Zustand store (shared with TripView)
   const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 

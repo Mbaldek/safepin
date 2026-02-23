@@ -4,16 +4,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
 import { Pin, UserReport, AdminParam, LiveSession, SafeSpace } from '@/types';
-
-// ─── Supabase client (uses service role via anon key — add RLS policies or use service key) ──
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+import { supabase } from '@/lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

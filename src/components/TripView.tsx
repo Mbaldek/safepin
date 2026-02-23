@@ -56,6 +56,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setActiveTab,
     currentStreak,
     setTripNudge,
+    setShowWalkWithMe,
   } = useStore();
   const t = useTranslations('trip');
 
@@ -479,23 +480,24 @@ export default function TripView({ onClose }: { onClose: () => void }) {
         {/* ── IDLE: Hub ──────────────────────────────────────────────── */}
         {escortState === 'IDLE' && !showSaved && (
           <div className="flex flex-col gap-4 pt-1">
-            {/* Plan a Route — main CTA */}
+            {/* Walk With Me — main CTA */}
             <button
-              onClick={() => setEscortState('PLANNING')}
+              onClick={() => { onClose(); setShowWalkWithMe(true); }}
               className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]"
               style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(244,63,94,0.25)' }}
             >
-              📍 {t('planRoute')}
+              🚶 {t('walkWithMe')}
             </button>
 
             {/* Quick Actions row */}
             <div className="flex gap-2">
               <button
-                onClick={() => { onClose(); setActiveTab('map'); /* WalkWithMe is accessed from map */ }}
+                onClick={() => setEscortState('PLANNING')}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold transition active:scale-[0.98]"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
               >
-                🚶 {t('walkWithMe')}
+                <Route size={13} strokeWidth={2.5} style={{ color: 'var(--accent)' }} />
+                {t('planRoute')}
               </button>
               <button
                 onClick={() => setShowSaved(true)}
