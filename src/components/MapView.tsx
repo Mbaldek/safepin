@@ -1000,9 +1000,10 @@ export default function MapView() {
     if (!m || !mapReady || !layersReady) return;
 
     if (!showSafeSpaces) {
-      if (m.getLayer(SAFE_LABEL))  m.removeLayer(SAFE_LABEL);
-      if (m.getLayer(SAFE_CIRCLE)) m.removeLayer(SAFE_CIRCLE);
-      if (m.getSource(SAFE_SRC))   m.removeSource(SAFE_SRC);
+      if (m.getLayer(SAFE_LABEL))   m.removeLayer(SAFE_LABEL);
+      if (m.getLayer(SAFE_PARTNER)) m.removeLayer(SAFE_PARTNER);
+      if (m.getLayer(SAFE_CIRCLE))  m.removeLayer(SAFE_CIRCLE);
+      if (m.getSource(SAFE_SRC))    m.removeSource(SAFE_SRC);
       return;
     }
 
@@ -1034,22 +1035,66 @@ export default function MapView() {
     }
 
     m.addSource(SAFE_SRC, { type: 'geojson', data: geojson });
+
+    // Generate drop-pin images for partner spaces (once)
+    if (!m.hasImage('pin-premium')) {
+      const mkPin = (color: string) => {
+        const s = 48;
+        const c = document.createElement('canvas');
+        c.width = s; c.height = s;
+        const ctx = c.getContext('2d')!;
+        // Drop-pin body
+        ctx.beginPath();
+        ctx.arc(s / 2, s * 0.38, s * 0.32, Math.PI, 0);
+        ctx.quadraticCurveTo(s * 0.82, s * 0.55, s / 2, s * 0.92);
+        ctx.quadraticCurveTo(s * 0.18, s * 0.55, s * 0.18, s * 0.38);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Inner white dot
+        ctx.beginPath();
+        ctx.arc(s / 2, s * 0.38, s * 0.14, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        return { width: s, height: s, data: new Uint8Array(ctx.getImageData(0, 0, s, s).data) };
+      };
+      m.addImage('pin-premium', mkPin('#f59e0b'));
+      m.addImage('pin-basic', mkPin('#3b82f6'));
+    }
+
+    // Non-partner: green circles
     m.addLayer({
       id: SAFE_CIRCLE,
       type: 'circle',
       source: SAFE_SRC,
+      filter: ['!', ['get', 'isPartner']],
       paint: {
-        'circle-radius': ['case', ['get', 'isPartner'], 9, 7],
-        'circle-color': ['case',
-          ['==', ['get', 'partnerTier'], 'premium'], '#f59e0b',
-          ['==', ['get', 'partnerTier'], 'basic'], '#3b82f6',
-          '#22c55e'
-        ],
-        'circle-stroke-width': ['case', ['get', 'isPartner'], 3, 2],
+        'circle-radius': 7,
+        'circle-color': '#22c55e',
+        'circle-stroke-width': 2,
         'circle-stroke-color': '#fff',
         'circle-opacity': 0.9,
       },
     });
+
+    // Partner: drop-pin icons
+    m.addLayer({
+      id: SAFE_PARTNER,
+      type: 'symbol',
+      source: SAFE_SRC,
+      filter: ['get', 'isPartner'],
+      layout: {
+        'icon-image': ['case', ['==', ['get', 'partnerTier'], 'premium'], 'pin-premium', 'pin-basic'],
+        'icon-size': 0.7,
+        'icon-anchor': 'bottom',
+        'icon-allow-overlap': true,
+      },
+    });
+
+    // Labels for all safe spaces
     m.addLayer({
       id: SAFE_LABEL,
       type: 'symbol',
@@ -1058,26 +1103,32 @@ export default function MapView() {
       layout: {
         'text-field': ['get', 'name'],
         'text-size': 10,
-        'text-offset': [0, 1.4],
+        'text-offset': ['case', ['get', 'isPartner'], ['literal', [0, 0.4]], ['literal', [0, 1.4]]],
         'text-anchor': 'top',
         'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
       },
       paint: {
-        'text-color': '#22c55e',
+        'text-color': ['case', ['get', 'isPartner'],
+          ['case', ['==', ['get', 'partnerTier'], 'premium'], '#f59e0b', '#3b82f6'],
+          '#22c55e'],
         'text-halo-color': '#fff',
         'text-halo-width': 1.5,
       },
     });
 
-    m.on('click', SAFE_CIRCLE, (e) => {
+    const handleSafeClick = (e: mapboxgl.MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.id;
       if (id) {
         const space = safeSpaces.find(s => s.id === id);
         if (space) setSelectedSafeSpace(space);
       }
-    });
+    };
+    m.on('click', SAFE_CIRCLE, handleSafeClick);
+    m.on('click', SAFE_PARTNER, handleSafeClick);
     m.on('mouseenter', SAFE_CIRCLE, () => { m.getCanvas().style.cursor = 'pointer'; });
     m.on('mouseleave', SAFE_CIRCLE, () => { m.getCanvas().style.cursor = ''; });
+    m.on('mouseenter', SAFE_PARTNER, () => { m.getCanvas().style.cursor = 'pointer'; });
+    m.on('mouseleave', SAFE_PARTNER, () => { m.getCanvas().style.cursor = ''; });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSafeSpaces, safeSpaces, mapReady, layersReady]);
 

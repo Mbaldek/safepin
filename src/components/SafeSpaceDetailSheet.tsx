@@ -55,7 +55,7 @@ function getTodayKey(): string {
 }
 
 export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
-  const { userId } = useStore();
+  const { userId, setTripPrefill, setActiveTab } = useStore();
   const t = useTranslations('safeSpaces');
 
   const [hasVoted, setHasVoted] = useState(false);
@@ -111,8 +111,12 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
 
   function openDirections() {
     if (!space) return;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${space.lat},${space.lng}`;
-    window.open(url, '_blank', 'noopener');
+    setTripPrefill({
+      destination: space.name,
+      destCoords: [space.lng, space.lat],
+    });
+    setActiveTab('trip');
+    onClose();
   }
 
   const todayKey = getTodayKey();
@@ -361,7 +365,7 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                 style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               >
                 <Navigation size={15} />
-                Get Directions
+                Plan Route
               </button>
 
               {/* ── Close ────────────────────────────────────────────────── */}
