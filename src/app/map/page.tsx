@@ -15,7 +15,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List } from 'lucide-react';
+import { Bell, Search, Menu, X, List, MessageCircle } from 'lucide-react';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import ReportSheet from '@/components/ReportSheet';
@@ -42,6 +42,7 @@ const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false
 const SettingsSheet = dynamic(() => import('@/components/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
+const CommunityView = dynamic(() => import('@/components/CommunityView'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -207,6 +208,7 @@ export default function MapPage() {
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [showCommunityShortcut, setShowCommunityShortcut] = useState(false);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
   const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
@@ -242,7 +244,7 @@ export default function MapPage() {
   }, [router, setUserProfile, setUserId]);
 
   // Fetch unread DM count periodically
-  const { setUnreadDmCount } = useStore();
+  const { unreadDmCount, setUnreadDmCount } = useStore();
   useEffect(() => {
     if (!userId) return;
     async function fetchUnread() {
@@ -679,6 +681,26 @@ export default function MapPage() {
                 </span>
               )}
             </button>
+            {/* Community messages shortcut — stacked above + and SOS */}
+            {userId && (
+              <button
+                onClick={() => setShowCommunityShortcut(true)}
+                className="absolute bottom-40 right-5.5 w-11 h-11 rounded-full flex items-center justify-center z-50 transition hover:scale-105 active:scale-95 shadow-md"
+                style={{
+                  backgroundColor: unreadDmCount > 0 ? 'rgba(16,185,129,0.15)' : 'var(--bg-card)',
+                  border: `1px solid ${unreadDmCount > 0 ? 'rgba(16,185,129,0.4)' : 'var(--border)'}`,
+                }}
+                aria-label="Messages"
+              >
+                <MessageCircle size={18} style={{ color: unreadDmCount > 0 ? '#10b981' : 'var(--text-muted)' }} />
+                {unreadDmCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full"
+                    style={{ backgroundColor: 'var(--accent)', border: '2px solid var(--bg-primary)' }}
+                  />
+                )}
+              </button>
+            )}
             {/* Report button — stacked above SOS on the right */}
             <button
               onClick={() => setActiveSheet('report')}
@@ -795,6 +817,13 @@ export default function MapPage() {
             userId={userId}
             onClose={() => setShowWalkWithMe(false)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ── Community shortcut overlay ─────────────────────────────── */}
+      <AnimatePresence>
+        {showCommunityShortcut && (
+          <CommunityView key="community-shortcut" onClose={() => setShowCommunityShortcut(false)} />
         )}
       </AnimatePresence>
 
