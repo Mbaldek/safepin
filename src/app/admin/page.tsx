@@ -6,8 +6,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
-import { Pin, UserReport, AdminParam, LiveSession, SafeSpace } from '@/types';
+import { Pin, UserReport, AdminParam, LiveSession, SafeSpace, DayHours } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { geocodeForward } from '@/lib/geocode';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1348,8 +1349,14 @@ function SimulationTab() {
 const SAFE_SPACE_TYPES = ['pharmacy', 'hospital', 'police', 'cafe', 'shelter'] as const;
 const PARTNER_TIERS = ['basic', 'premium'] as const;
 const DAYS_OF_WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+const MINUTES = ['00', '15', '30', '45'];
 
 type SpaceFilter = 'all' | 'pharmacy' | 'hospital' | 'police' | 'cafe' | 'shelter';
+type LocalPhoto = { file: File; preview: string };
+type GeoSuggestion = { place_name: string; label: string; sublabel: string; coords: [number, number] };
+
+const EMPTY_DAY: DayHours = { closed: false, open: '09:00', close: '18:00' };
 
 const EMPTY_SPACE_FORM = {
   name: '',
@@ -1359,12 +1366,62 @@ const EMPTY_SPACE_FORM = {
   contact_name: '',
   description: '',
   website: '',
-  opening_hours: Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, ''])) as Record<string, string>,
+  opening_hours: Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, { ...EMPTY_DAY }])) as Record<string, DayHours>,
   is_partner: true,
   partner_tier: 'basic' as 'basic' | 'premium',
   lat: 0,
   lng: 0,
 };
+
+function parseLegacyHours(hours: Record<string, string | DayHours>): Record<string, DayHours> {
+  return Object.fromEntries(
+    DAYS_OF_WEEK.map((d) => {
+      const val = hours[d];
+      if (!val) return [d, { closed: true }];
+      if (typeof val === 'object') return [d, val as DayHours];
+      const parts = (val as string).split('-');
+      if (parts.length === 2) return [d, { closed: false, open: parts[0].trim(), close: parts[1].trim() }];
+      return [d, { closed: (val as string).toLowerCase() === 'closed', open: '09:00', close: '18:00' }];
+    })
+  );
+}
+
+function parseCsv(text: string): Record<string, string>[] {
+  const lines = text.split('\n').filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  function splitLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { if (inQ && line[i + 1] === '"') { current += '"'; i++; } else { inQ = !inQ; } }
+      else if (line[i] === ',' && !inQ) { result.push(current.trim()); current = ''; }
+      else { current += line[i]; }
+    }
+    result.push(current.trim());
+    return result;
+  }
+  const headers = splitLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const vals = splitLine(line);
+    return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? '']));
+  });
+}
+
+function validateCsvRows(rows: Record<string, string>[]): string[] {
+  const errors: string[] = [];
+  rows.forEach((row, i) => {
+    const n = i + 2;
+    if (!row.name?.trim()) errors.push(`Row ${n}: missing name`);
+    if (row.type && !SAFE_SPACE_TYPES.includes(row.type as (typeof SAFE_SPACE_TYPES)[number])) {
+      errors.push(`Row ${n}: invalid type "${row.type}"`);
+    }
+    if (row.partner_tier && !PARTNER_TIERS.includes(row.partner_tier as (typeof PARTNER_TIERS)[number])) {
+      errors.push(`Row ${n}: invalid partner_tier "${row.partner_tier}"`);
+    }
+  });
+  return errors;
+}
 
 function SafeSpacesTab() {
   const [spaces, setSpaces] = useState<SafeSpace[]>([]);
@@ -1383,6 +1440,130 @@ function SafeSpacesTab() {
   // Inline editing
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ ...EMPTY_SPACE_FORM });
+
+  // Photo upload
+  const [addPhotos, setAddPhotos] = useState<LocalPhoto[]>([]);
+  const addPhotoRef = useRef<HTMLInputElement>(null);
+  const [editPhotos, setEditPhotos] = useState<LocalPhoto[]>([]);
+  const editPhotoRef = useRef<HTMLInputElement>(null);
+  const [editExistingUrls, setEditExistingUrls] = useState<string[]>([]);
+
+  // Address geocoding
+  const [addGeoResults, setAddGeoResults] = useState<GeoSuggestion[]>([]);
+  const [addGeoLoading, setAddGeoLoading] = useState(false);
+  const [addGeoOpen, setAddGeoOpen] = useState(false);
+  const addGeoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editGeoResults, setEditGeoResults] = useState<GeoSuggestion[]>([]);
+  const [editGeoLoading, setEditGeoLoading] = useState(false);
+  const [editGeoOpen, setEditGeoOpen] = useState(false);
+  const editGeoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // CSV import
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvProgress, setCsvProgress] = useState(0);
+
+  // Geocoding helper
+  function geocodeAddress(
+    query: string,
+    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+    setResults: (r: GeoSuggestion[]) => void,
+    setGeoLoading: (l: boolean) => void,
+  ) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!query.trim() || query.length < 2) { setResults([]); setGeoLoading(false); return; }
+    setGeoLoading(true);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=5&language=fr,en`,
+        );
+        const data = await res.json();
+        setResults((data.features ?? []).map((f: { place_name: string; geometry: { coordinates: [number, number] } }) => ({
+          place_name: f.place_name,
+          label: f.place_name.split(',')[0],
+          sublabel: f.place_name.split(',').slice(1).join(',').trim(),
+          coords: f.geometry.coordinates,
+        })));
+      } catch { setResults([]); }
+      finally { setGeoLoading(false); }
+    }, 300);
+  }
+
+  // Photo helpers
+  function handlePhotoFiles(
+    e: React.ChangeEvent<HTMLInputElement>,
+    photos: LocalPhoto[],
+    setPhotos: React.Dispatch<React.SetStateAction<LocalPhoto[]>>,
+    existingCount: number,
+  ) {
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - photos.length - existingCount;
+    if (remaining <= 0) { toast.error('Max 5 photos'); return; }
+    const toAdd = files.slice(0, remaining).map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    setPhotos((prev) => [...prev, ...toAdd]);
+    e.target.value = '';
+  }
+
+  async function uploadPhotos(photos: LocalPhoto[], spaceId: string): Promise<string[]> {
+    const urls: string[] = [];
+    for (const photo of photos) {
+      const fileName = `safe-spaces/${spaceId}/${Date.now()}-${photo.file.name}`;
+      const { error: upErr } = await supabase.storage.from('pin-photos').upload(fileName, photo.file);
+      if (upErr) { toast.error(`Upload failed: ${photo.file.name}`); continue; }
+      const { data: urlData } = supabase.storage.from('pin-photos').getPublicUrl(fileName);
+      urls.push(urlData.publicUrl);
+    }
+    return urls;
+  }
+
+  // CSV helpers
+  function downloadCsvTemplate() {
+    const headers = ['name','type','address','phone','contact_name','description','website','is_partner','partner_tier','opening_hours_json'];
+    const example = [
+      'Pharmacie Centrale','pharmacy','12 Rue de Rivoli, Paris','+33 1 42 00 00 00','Marie Dupont','Open 7/7','https://example.com',
+      'true','premium',
+      JSON.stringify({ mon:{closed:false,open:'09:00',close:'19:00'}, tue:{closed:false,open:'09:00',close:'19:00'}, wed:{closed:false,open:'09:00',close:'19:00'}, thu:{closed:false,open:'09:00',close:'19:00'}, fri:{closed:false,open:'09:00',close:'19:00'}, sat:{closed:false,open:'10:00',close:'17:00'}, sun:{closed:true} }),
+    ];
+    const csv = headers.join(',') + '\n' + example.map((v) => v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v).join(',');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'safe-spaces-template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleCsvImport() {
+    setCsvImporting(true); setCsvProgress(0);
+    let inserted = 0;
+    for (let i = 0; i < csvRows.length; i++) {
+      const row = csvRows[i];
+      setCsvProgress(Math.round(((i + 1) / csvRows.length) * 100));
+      let lat = 0, lng = 0;
+      if (row.address?.trim()) {
+        const coords = await geocodeForward(row.address.trim());
+        if (coords) { lng = coords[0]; lat = coords[1]; }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      let opening_hours = null;
+      if (row.opening_hours_json?.trim()) { try { opening_hours = JSON.parse(row.opening_hours_json); } catch { /* skip */ } }
+      const { error } = await supabase.from('safe_spaces').insert({
+        name: row.name.trim(), type: (row.type?.trim() || 'pharmacy') as SafeSpace['type'],
+        address: row.address?.trim() || null, phone: row.phone?.trim() || null,
+        contact_name: row.contact_name?.trim() || null, description: row.description?.trim() || null,
+        website: row.website?.trim() || null, opening_hours, lat, lng,
+        is_partner: row.is_partner?.toLowerCase() === 'true',
+        partner_tier: (row.partner_tier?.trim() as 'basic' | 'premium') || null,
+        partner_since: row.is_partner?.toLowerCase() === 'true' ? new Date().toISOString() : null,
+        source: 'user' as const, verified: true, upvotes: 0, photo_urls: [],
+      });
+      if (!error) inserted++;
+    }
+    toast.success(`Imported ${inserted}/${csvRows.length} safe spaces`);
+    setCsvImporting(false); setCsvRows([]); setCsvErrors([]); setShowCsvImport(false); load();
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1410,6 +1591,7 @@ function SafeSpacesTab() {
   // Add partner safe space
   async function handleAdd() {
     if (!addForm.name.trim()) { toast.error('Name is required'); return; }
+    if (!addForm.lat && !addForm.lng) { toast.error('Please select an address'); return; }
     setAddLoading(true);
     try {
       const row = {
@@ -1420,7 +1602,7 @@ function SafeSpacesTab() {
         contact_name: addForm.contact_name.trim() || null,
         description: addForm.description.trim() || null,
         website: addForm.website.trim() || null,
-        opening_hours: Object.values(addForm.opening_hours).some((v) => v.trim()) ? addForm.opening_hours : null,
+        opening_hours: Object.values(addForm.opening_hours).some((dh) => !(dh as DayHours).closed) ? addForm.opening_hours : null,
         is_partner: addForm.is_partner,
         partner_tier: addForm.is_partner ? addForm.partner_tier : null,
         partner_since: addForm.is_partner ? new Date().toISOString() : null,
@@ -1429,12 +1611,17 @@ function SafeSpacesTab() {
         source: 'user' as const,
         verified: true,
         upvotes: 0,
-        photo_urls: [],
+        photo_urls: [] as string[],
       };
-      const { error } = await supabase.from('safe_spaces').insert(row);
+      const { data, error } = await supabase.from('safe_spaces').insert(row).select('id').single();
       if (error) throw error;
+      if (addPhotos.length > 0 && data) {
+        const urls = await uploadPhotos(addPhotos, data.id);
+        if (urls.length > 0) await supabase.from('safe_spaces').update({ photo_urls: urls }).eq('id', data.id);
+      }
       toast.success('Safe space added');
       setAddForm({ ...EMPTY_SPACE_FORM });
+      setAddPhotos([]);
       setShowAddForm(false);
       load();
     } catch {
@@ -1456,19 +1643,23 @@ function SafeSpacesTab() {
       description: space.description ?? '',
       website: space.website ?? '',
       opening_hours: space.opening_hours
-        ? { ...Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, ''])), ...space.opening_hours }
-        : Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, ''])),
+        ? parseLegacyHours(space.opening_hours)
+        : Object.fromEntries(DAYS_OF_WEEK.map((d) => [d, { ...EMPTY_DAY }])),
       is_partner: space.is_partner,
       partner_tier: space.partner_tier ?? 'basic',
       lat: space.lat,
       lng: space.lng,
     });
+    setEditExistingUrls(space.photo_urls ?? []);
+    setEditPhotos([]);
   }
 
   // Save edit
   async function handleSaveEdit(id: string) {
     if (!editForm.name.trim()) { toast.error('Name is required'); return; }
     try {
+      const newUrls = editPhotos.length > 0 ? await uploadPhotos(editPhotos, id) : [];
+      const allUrls = [...editExistingUrls, ...newUrls];
       const updates = {
         name: editForm.name.trim(),
         type: editForm.type,
@@ -1477,17 +1668,20 @@ function SafeSpacesTab() {
         contact_name: editForm.contact_name.trim() || null,
         description: editForm.description.trim() || null,
         website: editForm.website.trim() || null,
-        opening_hours: Object.values(editForm.opening_hours).some((v) => v.trim()) ? editForm.opening_hours : null,
+        opening_hours: Object.values(editForm.opening_hours).some((dh) => !(dh as DayHours).closed) ? editForm.opening_hours : null,
         is_partner: editForm.is_partner,
         partner_tier: editForm.is_partner ? editForm.partner_tier : null,
         partner_since: editForm.is_partner ? new Date().toISOString() : null,
         lat: editForm.lat,
         lng: editForm.lng,
+        photo_urls: allUrls,
       };
       const { error } = await supabase.from('safe_spaces').update(updates).eq('id', id);
       if (error) throw error;
       toast.success('Safe space updated');
       setEditingId(null);
+      setEditPhotos([]);
+      setEditExistingUrls([]);
       load();
     } catch {
       toast.error('Failed to update safe space');
@@ -1518,6 +1712,12 @@ function SafeSpacesTab() {
   function renderFormFields(
     form: typeof EMPTY_SPACE_FORM,
     setForm: (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void,
+    geo: { results: GeoSuggestion[]; loading: boolean; open: boolean; setOpen: (v: boolean) => void; timer: React.MutableRefObject<ReturnType<typeof setTimeout> | null>; setResults: (r: GeoSuggestion[]) => void; setLoading: (l: boolean) => void },
+    photos: LocalPhoto[],
+    setPhotos: React.Dispatch<React.SetStateAction<LocalPhoto[]>>,
+    photoRef: React.RefObject<HTMLInputElement | null>,
+    existingUrls?: string[],
+    setExistingUrls?: React.Dispatch<React.SetStateAction<string[]>>,
   ) {
     return (
       <div className="space-y-4">
@@ -1543,15 +1743,53 @@ function SafeSpacesTab() {
               {SAFE_SPACE_TYPES.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
             </select>
           </div>
-          {/* Address */}
+          {/* Partner tier */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Partner Tier</label>
+            <select
+              value={form.partner_tier}
+              onChange={(e) => setForm((f) => ({ ...f, partner_tier: e.target.value as 'basic' | 'premium' }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"
+            >
+              {PARTNER_TIERS.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            </select>
+          </div>
+          {/* Address with autocomplete */}
+          <div className="relative sm:col-span-2 lg:col-span-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Address *</label>
             <input
               value={form.address}
-              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, address: e.target.value }));
+                geocodeAddress(e.target.value, geo.timer, geo.setResults, geo.setLoading);
+                geo.setOpen(true);
+              }}
+              onFocus={() => geo.results.length > 0 && geo.setOpen(true)}
+              onBlur={() => setTimeout(() => geo.setOpen(false), 150)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-              placeholder="Street address"
+              placeholder="Start typing an address..."
             />
+            {form.lat !== 0 && form.lng !== 0 && (
+              <p className="text-xs text-gray-400 mt-1">Coordinates: {form.lat.toFixed(6)}, {form.lng.toFixed(6)}</p>
+            )}
+            {geo.open && (geo.loading || geo.results.length > 0) && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                {geo.loading ? (
+                  <div className="px-3 py-2 text-xs text-gray-400">Searching...</div>
+                ) : geo.results.map((r, i) => (
+                  <button key={i} type="button"
+                    onMouseDown={() => {
+                      setForm((f) => ({ ...f, address: r.place_name, lat: r.coords[1], lng: r.coords[0] }));
+                      geo.setOpen(false); geo.setResults([]);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                  >
+                    <span className="font-medium text-gray-800">{r.label}</span>
+                    {r.sublabel && <span className="text-gray-400 text-xs ml-1">{r.sublabel}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {/* Phone */}
           <div>
@@ -1583,39 +1821,6 @@ function SafeSpacesTab() {
               placeholder="https://..."
             />
           </div>
-          {/* Lat */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
-            <input
-              type="number"
-              step="any"
-              value={form.lat}
-              onChange={(e) => setForm((f) => ({ ...f, lat: Number(e.target.value) }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-            />
-          </div>
-          {/* Lng */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
-            <input
-              type="number"
-              step="any"
-              value={form.lng}
-              onChange={(e) => setForm((f) => ({ ...f, lng: Number(e.target.value) }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-            />
-          </div>
-          {/* Partner tier */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Partner Tier</label>
-            <select
-              value={form.partner_tier}
-              onChange={(e) => setForm((f) => ({ ...f, partner_tier: e.target.value as 'basic' | 'premium' }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"
-            >
-              {PARTNER_TIERS.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-            </select>
-          </div>
         </div>
         {/* Description */}
         <div>
@@ -1630,30 +1835,129 @@ function SafeSpacesTab() {
         </div>
         {/* Is partner checkbox */}
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={form.is_partner}
+          <input type="checkbox" checked={form.is_partner}
             onChange={(e) => setForm((f) => ({ ...f, is_partner: e.target.checked }))}
-            className="rounded"
-            id="partner-checkbox"
-          />
+            className="rounded" id="partner-checkbox" />
           <label htmlFor="partner-checkbox" className="text-sm text-gray-700 font-medium">Is Partner</label>
+        </div>
+        {/* Photos */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-2">
+            Photos ({(existingUrls?.length ?? 0) + photos.length}/5)
+          </label>
+          {existingUrls && existingUrls.length > 0 && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {existingUrls.map((url, i) => (
+                <div key={url} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setExistingUrls?.((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600">x</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {photos.length > 0 && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {photos.map((p, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                  <img src={p.preview} alt="" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600">x</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {(existingUrls?.length ?? 0) + photos.length < 5 && (
+            <label className="inline-flex items-center gap-2 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors text-sm text-gray-500">
+              + Add photos
+              <input ref={photoRef} type="file" accept="image/*" multiple className="hidden"
+                onChange={(e) => handlePhotoFiles(e, photos, setPhotos, existingUrls?.length ?? 0)} />
+            </label>
+          )}
         </div>
         {/* Opening hours */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">Opening Hours</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {DAYS_OF_WEEK.map((day) => (
-              <div key={day} className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-8 uppercase">{day}</span>
-                <input
-                  value={form.opening_hours[day] ?? ''}
-                  onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: e.target.value } }))}
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-gray-400"
-                  placeholder="09:00-18:00"
-                />
-              </div>
-            ))}
+          <div className="space-y-1.5">
+            {DAYS_OF_WEEK.map((day) => {
+              const dh = form.opening_hours[day] as DayHours;
+              const hasBreak = !!dh.breakStart;
+              return (
+                <div key={day} className="border border-gray-200 rounded-lg p-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-gray-600 w-8 uppercase">{day}</span>
+                    <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+                      <input type="checkbox" checked={dh.closed} className="rounded"
+                        onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, closed: e.target.checked } } }))} />
+                      Closed
+                    </label>
+                    {!dh.closed && (
+                      <>
+                        <div className="flex items-center gap-0.5">
+                          <select value={dh.open?.split(':')[0] ?? '09'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                            onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, open: `${e.target.value}:${dh.open?.split(':')[1] ?? '00'}` } } }))}>
+                            {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                          </select>
+                          <span className="text-gray-400 text-xs">:</span>
+                          <select value={dh.open?.split(':')[1] ?? '00'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                            onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, open: `${dh.open?.split(':')[0] ?? '09'}:${e.target.value}` } } }))}>
+                            {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                        </div>
+                        <span className="text-gray-400 text-xs">to</span>
+                        <div className="flex items-center gap-0.5">
+                          <select value={dh.close?.split(':')[0] ?? '18'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                            onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, close: `${e.target.value}:${dh.close?.split(':')[1] ?? '00'}` } } }))}>
+                            {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                          </select>
+                          <span className="text-gray-400 text-xs">:</span>
+                          <select value={dh.close?.split(':')[1] ?? '00'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                            onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, close: `${dh.close?.split(':')[0] ?? '18'}:${e.target.value}` } } }))}>
+                            {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                        </div>
+                        <button type="button" className="text-xs text-gray-400 hover:text-gray-600 transition-colors ml-auto"
+                          onClick={() => setForm((f) => ({
+                            ...f, opening_hours: { ...f.opening_hours, [day]: hasBreak
+                              ? { closed: dh.closed, open: dh.open, close: dh.close }
+                              : { ...dh, breakStart: '12:00', breakEnd: '13:00' } },
+                          }))}>
+                          {hasBreak ? '- Break' : '+ Break'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {!dh.closed && hasBreak && (
+                    <div className="flex items-center gap-2 mt-1.5 ml-10">
+                      <span className="text-xs text-gray-400">Break:</span>
+                      <div className="flex items-center gap-0.5">
+                        <select value={dh.breakStart?.split(':')[0] ?? '12'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                          onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, breakStart: `${e.target.value}:${dh.breakStart?.split(':')[1] ?? '00'}` } } }))}>
+                          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                        </select>
+                        <span className="text-gray-400 text-xs">:</span>
+                        <select value={dh.breakStart?.split(':')[1] ?? '00'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                          onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, breakStart: `${dh.breakStart?.split(':')[0] ?? '12'}:${e.target.value}` } } }))}>
+                          {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <span className="text-gray-400 text-xs">to</span>
+                      <div className="flex items-center gap-0.5">
+                        <select value={dh.breakEnd?.split(':')[0] ?? '13'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                          onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, breakEnd: `${e.target.value}:${dh.breakEnd?.split(':')[1] ?? '00'}` } } }))}>
+                          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+                        </select>
+                        <span className="text-gray-400 text-xs">:</span>
+                        <select value={dh.breakEnd?.split(':')[1] ?? '00'} className="border border-gray-300 rounded px-1 py-0.5 text-xs bg-white"
+                          onChange={(e) => setForm((f) => ({ ...f, opening_hours: { ...f.opening_hours, [day]: { ...dh, breakEnd: `${dh.breakEnd?.split(':')[0] ?? '13'}:${e.target.value}` } } }))}>
+                          {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1682,6 +1986,12 @@ function SafeSpacesTab() {
             Partners only
           </label>
           <button
+            onClick={() => setShowCsvImport((v) => !v)}
+            className="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            {showCsvImport ? 'Close CSV' : 'CSV Import'}
+          </button>
+          <button
             onClick={() => setShowAddForm((v) => !v)}
             className="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
           >
@@ -1690,11 +2000,117 @@ function SafeSpacesTab() {
         </div>
       </div>
 
+      {/* CSV Import panel */}
+      {showCsvImport && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+          <h3 className="text-sm font-bold text-gray-700">CSV Bulk Import</h3>
+          <div className="flex items-center gap-3">
+            <button onClick={downloadCsvTemplate}
+              className="px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+              Download Template
+            </button>
+            <label className="px-3 py-2 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer">
+              Upload CSV
+              <input type="file" accept=".csv" className="hidden" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const text = ev.target?.result as string;
+                  const rows = parseCsv(text);
+                  const errors = validateCsvRows(rows);
+                  setCsvRows(rows);
+                  setCsvErrors(errors);
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+              }} />
+            </label>
+          </div>
+
+          {csvRows.length > 0 && (
+            <div className="space-y-3">
+              {/* Errors */}
+              {csvErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-xs font-bold text-red-700 mb-1">Validation Errors ({csvErrors.length})</p>
+                  <ul className="text-xs text-red-600 space-y-0.5 max-h-32 overflow-y-auto">
+                    {csvErrors.map((err, i) => <li key={i}>{err}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Analysis */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-xs font-bold text-gray-700 mb-2">Preview — {csvRows.length} row{csvRows.length > 1 ? 's' : ''} detected</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b border-gray-200">
+                        <th className="pb-1 pr-3">#</th>
+                        <th className="pb-1 pr-3">Name</th>
+                        <th className="pb-1 pr-3">Type</th>
+                        <th className="pb-1 pr-3">Address</th>
+                        <th className="pb-1">Partner</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvRows.slice(0, 5).map((row, i) => (
+                        <tr key={i} className="border-b border-gray-100">
+                          <td className="py-1 pr-3 text-gray-400">{i + 1}</td>
+                          <td className="py-1 pr-3 font-medium text-gray-800">{row.name || '—'}</td>
+                          <td className="py-1 pr-3 text-gray-600">{row.type || '—'}</td>
+                          <td className="py-1 pr-3 text-gray-500 max-w-[200px] truncate">{row.address || '—'}</td>
+                          <td className="py-1 text-gray-600">{row.is_partner || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {csvRows.length > 5 && <p className="text-xs text-gray-400 mt-1">...and {csvRows.length - 5} more rows</p>}
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              {csvImporting && (
+                <div className="space-y-1">
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-gray-900 rounded-full transition-all duration-300" style={{ width: `${csvProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-500">Importing... {csvProgress}%</p>
+                </div>
+              )}
+
+              {/* Confirm */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCsvImport}
+                  disabled={csvErrors.length > 0 || csvImporting}
+                  className="px-4 py-2 text-xs font-bold bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-40 transition-colors"
+                >
+                  Confirm Import ({csvRows.length} rows)
+                </button>
+                <button
+                  onClick={() => { setCsvRows([]); setCsvErrors([]); }}
+                  className="px-4 py-2 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Add form (inline) */}
       {showAddForm && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h3 className="text-sm font-bold text-gray-700 mb-4">Add Partner Safe Space</h3>
-          {renderFormFields(addForm, setAddForm as (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void)}
+          {renderFormFields(
+            addForm,
+            setAddForm as (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void,
+            { results: addGeoResults, loading: addGeoLoading, open: addGeoOpen, setOpen: setAddGeoOpen, timer: addGeoTimer, setResults: setAddGeoResults, setLoading: setAddGeoLoading },
+            addPhotos, setAddPhotos, addPhotoRef,
+          )}
           <div className="flex items-center gap-2 mt-4">
             <button
               onClick={handleAdd}
@@ -1736,7 +2152,13 @@ function SafeSpacesTab() {
                       <td colSpan={7} className="px-4 py-4">
                         <div className="space-y-3">
                           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Editing: {space.name}</p>
-                          {renderFormFields(editForm, setEditForm as (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void)}
+                          {renderFormFields(
+                            editForm,
+                            setEditForm as (fn: (prev: typeof EMPTY_SPACE_FORM) => typeof EMPTY_SPACE_FORM) => void,
+                            { results: editGeoResults, loading: editGeoLoading, open: editGeoOpen, setOpen: setEditGeoOpen, timer: editGeoTimer, setResults: setEditGeoResults, setLoading: setEditGeoLoading },
+                            editPhotos, setEditPhotos, editPhotoRef,
+                            editExistingUrls, setEditExistingUrls,
+                          )}
                           <div className="flex items-center gap-2 pt-2">
                             <button onClick={() => handleSaveEdit(space.id)} className="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors">Save</button>
                             <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>

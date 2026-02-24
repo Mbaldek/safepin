@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ExternalLink, Phone, MapPin, Clock, Globe, ThumbsUp, Navigation, X, User, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { SafeSpace } from '@/types';
+import { SafeSpace, DayHours } from '@/types';
 import { toast } from 'sonner';
 
 type Props = {
@@ -27,6 +27,27 @@ const TYPE_EMOJI: Record<SafeSpace['type'], string> = {
 };
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+// Also match short keys from admin form
+const SHORT_TO_LONG: Record<string, string> = { mon: 'monday', tue: 'tuesday', wed: 'wednesday', thu: 'thursday', fri: 'friday', sat: 'saturday', sun: 'sunday' };
+
+function formatDayHours(val: string | DayHours | undefined): string {
+  if (!val) return 'Closed';
+  if (typeof val === 'string') return val;
+  if (val.closed) return 'Closed';
+  const base = `${val.open ?? '09:00'} – ${val.close ?? '18:00'}`;
+  if (val.breakStart && val.breakEnd) return `${base} (break ${val.breakStart}–${val.breakEnd})`;
+  return base;
+}
+
+function normalizeHoursKeys(hours: Record<string, string | DayHours>): Record<string, string | DayHours> {
+  const out: Record<string, string | DayHours> = { ...hours };
+  for (const [short, long] of Object.entries(SHORT_TO_LONG)) {
+    if (out[short] !== undefined && out[long] === undefined) {
+      out[long] = out[short];
+    }
+  }
+  return out;
+}
 
 function getTodayKey(): string {
   const d = new Date().getDay(); // 0=Sun
@@ -200,48 +221,52 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
               )}
 
               {/* ── Opening hours ───────────────────────────────────────── */}
-              {space.opening_hours && Object.keys(space.opening_hours).length > 0 && (
-                <div className="mb-3">
-                  <button
-                    onClick={() => setHoursExpanded((v) => !v)}
-                    className="flex items-center gap-2.5 w-full text-left"
-                  >
-                    <Clock size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                        {space.opening_hours[todayKey]
-                          ? `Today: ${space.opening_hours[todayKey]}`
-                          : 'Opening hours'}
-                      </span>
-                    </div>
-                    {hoursExpanded
-                      ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
-                      : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
-                  </button>
-
-                  {hoursExpanded && (
-                    <div
-                      className="mt-2 ml-6 rounded-xl p-3 space-y-1.5"
-                      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              {space.opening_hours && Object.keys(space.opening_hours).length > 0 && (() => {
+                const nh = normalizeHoursKeys(space.opening_hours);
+                const todayVal = nh[todayKey];
+                return (
+                  <div className="mb-3">
+                    <button
+                      onClick={() => setHoursExpanded((v) => !v)}
+                      className="flex items-center gap-2.5 w-full text-left"
                     >
-                      {DAY_KEYS.map((day) => (
-                        <div
-                          key={day}
-                          className="flex items-center justify-between text-xs"
-                          style={{ color: day === todayKey ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                        >
-                          <span className={day === todayKey ? 'font-bold' : 'font-medium'}>
-                            {day.charAt(0).toUpperCase() + day.slice(1)}
-                          </span>
-                          <span className={day === todayKey ? 'font-bold' : ''}>
-                            {space.opening_hours![day] ?? 'Closed'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                      <Clock size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                          {todayVal !== undefined
+                            ? `Today: ${formatDayHours(todayVal)}`
+                            : 'Opening hours'}
+                        </span>
+                      </div>
+                      {hoursExpanded
+                        ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
+                        : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
+                    </button>
+
+                    {hoursExpanded && (
+                      <div
+                        className="mt-2 ml-6 rounded-xl p-3 space-y-1.5"
+                        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                      >
+                        {DAY_KEYS.map((day) => (
+                          <div
+                            key={day}
+                            className="flex items-center justify-between text-xs"
+                            style={{ color: day === todayKey ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                          >
+                            <span className={day === todayKey ? 'font-bold' : 'font-medium'}>
+                              {day.charAt(0).toUpperCase() + day.slice(1)}
+                            </span>
+                            <span className={day === todayKey ? 'font-bold' : ''}>
+                              {formatDayHours(nh[day])}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* ── Phone ───────────────────────────────────────────────── */}
               {space.phone && (

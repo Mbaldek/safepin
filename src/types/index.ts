@@ -240,6 +240,14 @@ export type AdminParam = {
   updated_at: string;
 };
 
+export type DayHours = {
+  closed: boolean;
+  open?: string;   // "HH:MM"
+  close?: string;  // "HH:MM"
+  breakStart?: string;
+  breakEnd?: string;
+};
+
 export type SafeSpace = {
   id: string;
   lat: number;
@@ -258,7 +266,7 @@ export type SafeSpace = {
   description: string | null;
   website: string | null;
   photo_urls: string[];
-  opening_hours: Record<string, string> | null;
+  opening_hours: Record<string, string | DayHours> | null;
   is_partner: boolean;
   partner_since: string | null;
   partner_tier: 'basic' | 'premium' | null;
