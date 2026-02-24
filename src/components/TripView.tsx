@@ -309,12 +309,10 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
-      className="sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl lg:top-2 lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl"
+      className="sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl max-h-[72dvh] lg:top-2 lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:max-h-none lg:rounded-2xl"
       style={{
         backgroundColor: 'var(--bg-secondary)',
         boxShadow: '0 -10px 40px var(--bg-overlay)',
-        maxHeight: '72dvh',
-        transition: 'max-height 0.3s ease-in-out',
       }}
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
       transition={springTransition}
@@ -350,7 +348,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       )}
 
       {/* Scrollable content */}
-      <div className="overflow-y-auto px-5 pb-8 lg:flex-1 min-h-0">
+      <div className="overflow-y-auto px-5 pb-4 lg:flex-1 min-h-0">
 
         {/* ── PLANNING (RoutePlannerForm) ────────────────────────────── */}
         {escortState === 'PLANNING' && (
