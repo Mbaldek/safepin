@@ -17,8 +17,7 @@
   "nav": {
     "map": "Karta",
     "trip": "Resa",
-    "community": "Gemenskap",
-    "myKova": "My Brume"
+    "me": "Jag"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Logga in först",
     "description": "NÖDLARM — Jag behöver hjälp",
     "cancelCountdown": "AVBRYT",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Snabbval",
     "numbers": {
       "samu": "SAMU",

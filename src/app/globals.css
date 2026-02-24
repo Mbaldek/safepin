@@ -49,6 +49,7 @@
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 17px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   background-color: var(--bg-primary);
@@ -90,6 +91,12 @@ body {
 }
 .emergency-btn-pulse {
   animation: emergency-btn-glow 2s ease-in-out infinite;
+}
+
+/* SOS red flash overlay */
+@keyframes flash-fade {
+  0%   { opacity: 0.6; }
+  100% { opacity: 0; }
 }
 
 /* Pin drop animation for new realtime pins */

@@ -17,8 +17,7 @@
   "nav": {
     "map": "Map",
     "trip": "Trip",
-    "community": "Community",
-    "myKova": "My Brume"
+    "me": "Me"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Sign in first",
     "description": "EMERGENCY ALERT — I need help",
     "cancelCountdown": "CANCEL",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Quick dial",
     "numbers": {
       "samu": "SAMU",
@@ -88,7 +88,9 @@
     "files": "{count} {count, plural, one {file} other {files}}",
     "pinRemoved": "Pin removed — 3 users confirmed it has cleared",
     "failedResolve": "Failed to resolve",
-    "markedResolved": "Marked as resolved"
+    "markedResolved": "Marked as resolved",
+    "more": "More",
+    "resolve": "Resolve"
   },
   "filters": {
     "title": "Map Filters",
@@ -229,12 +231,13 @@
   },
   "mykova": {
     "title": "My Brume",
-    "feed": "Feed",
-    "favorites": "Favorites",
-    "profile": "Profile",
+    "activity": "Activity",
+    "saved": "Saved",
     "stats": "Stats",
     "trustScore": "Trust score",
     "reports": "Reports",
+    "level": "Level",
+    "thanks": "Thanks",
     "votes": "Votes",
     "comments": "Comments",
     "thisWeek": "This week",
@@ -243,7 +246,9 @@
     "reportIncident": "Report an incident",
     "planFirstTrip": "Plan your first trip",
     "locationHistory": "Location history",
-    "noActivity": "No activity yet"
+    "noActivity": "No activity yet",
+    "community": "Community",
+    "communityDesc": "Groups, neighbourhoods & messages"
   },
   "community": {
     "title": "Communities",

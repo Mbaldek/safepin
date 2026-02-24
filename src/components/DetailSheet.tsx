@@ -71,6 +71,7 @@ export default function DetailSheet() {
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [hasThanked, setHasThanked] = useState(false);
   const [thanksCount, setThanksCount] = useState(0);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (!selectedPin) return;
@@ -243,7 +244,7 @@ export default function DetailSheet() {
         role="dialog"
         aria-modal="true"
         aria-label="Incident details"
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-3xl z-[201] max-h-[88dvh] overflow-y-auto"
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-2xl z-[201] max-h-[88dvh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
@@ -297,70 +298,6 @@ export default function DetailSheet() {
               >
                 <Share2 size={15} />
               </button>
-              {/* Follow button */}
-              {userId && (
-                <button
-                  onClick={() => {
-                    toggleFollowPin(selectedPin.id);
-                    toast.success(isFollowed ? t('unfollowSuccess') : t('followSuccess'));
-                  }}
-                  className="p-2 rounded-full transition"
-                  style={{
-                    backgroundColor: isFollowed ? 'rgba(var(--accent-rgb),0.12)' : 'var(--bg-card)',
-                    border: `1px solid ${isFollowed ? 'var(--accent)' : 'var(--border)'}`,
-                    color: isFollowed ? 'var(--accent)' : 'var(--text-muted)',
-                  }}
-                  aria-label={isFollowed ? t('unfollow') : t('follow')}
-                  title={isFollowed ? t('unfollow') : t('follow')}
-                >
-                  {isFollowed ? <BellOff size={15} /> : <Bell size={15} />}
-                </button>
-              )}
-
-              {/* Flag / report button */}
-              {userId && !isOwner && (
-                <button
-                  onClick={() => setShowFlagModal(true)}
-                  className="p-2 rounded-full transition"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
-                  aria-label={t('report')}
-                  title={t('report')}
-                >
-                  <Flag size={15} />
-                </button>
-              )}
-
-              {/* Live button */}
-              {userId && !isResolved && !activeSession && (
-                <button
-                  onClick={() => setShowBroadcaster(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide transition"
-                  style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
-                >
-                  <Radio size={13} />
-                  {t('goLive')}
-                </button>
-              )}
-              {activeSession && !isOwner && (
-                <button
-                  onClick={() => setShowViewer(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide transition"
-                  style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
-                  {t('watchLive')}
-                </button>
-              )}
-              {activeSession && isOwner && (
-                <button
-                  onClick={() => setShowBroadcaster(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide"
-                  style={{ backgroundColor: 'rgba(244,63,94,0.2)', border: '1px solid #f43f5e', color: '#f43f5e' }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
-                  {t('live')}
-                </button>
-              )}
 
               <span
                 className="text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
@@ -436,13 +373,12 @@ export default function DetailSheet() {
             </div>
           )}
 
-          {/* ── Action row ────────────────────────────────────────────── */}
+          {/* ── Primary actions: Confirm + Deny (large, always visible) ── */}
           <div className="flex gap-2 mb-3">
-            {/* Confirm */}
             <button
               onClick={() => vote('confirm')}
               disabled={!userId || votingInFlight}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition flex-1 justify-center disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-3.5 rounded-xl text-base font-bold transition flex-1 justify-center disabled:opacity-50"
               style={
                 myVoteType === 'confirm'
                   ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.6)' }
@@ -452,12 +388,11 @@ export default function DetailSheet() {
               👍 {confirms.length > 0 ? confirms.length : ''} {t('stillThere')}
             </button>
 
-            {/* Deny / cleared */}
             {!isResolved && (
               <button
                 onClick={() => vote('deny')}
                 disabled={!userId || votingInFlight}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition flex-1 justify-center disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-3.5 rounded-xl text-base font-bold transition flex-1 justify-center disabled:opacity-50"
                 style={
                   myVoteType === 'deny'
                     ? { backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1.5px solid rgba(245,158,11,0.6)' }
@@ -468,32 +403,55 @@ export default function DetailSheet() {
               </button>
             )}
 
-            {/* Resolve (owner only) */}
-            {!isResolved && isOwner && (
-              <button
-                onClick={resolvePin}
-                disabled={resolving}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-40"
-                style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.4)' }}
-              >
-                ✅
-              </button>
-            )}
             {isResolved && (
               <div
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold"
+                className="flex items-center gap-2 px-4 py-3.5 rounded-xl text-base font-bold flex-1 justify-center"
                 style={{ backgroundColor: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
               >
                 ✅ {t('resolved')}
               </div>
             )}
+          </div>
 
-            {/* Thank reporter (not own pin) */}
+          {/* ── Secondary actions: Comment, Follow, Thank (compact row) ── */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setChatExpanded((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition flex-1 justify-center"
+              style={{
+                backgroundColor: chatExpanded ? 'rgba(56,189,248,0.12)' : 'var(--bg-card)',
+                color: chatExpanded ? '#38bdf8' : 'var(--text-muted)',
+                border: `1px solid ${chatExpanded ? 'rgba(56,189,248,0.4)' : 'var(--border)'}`,
+              }}
+            >
+              <MessageCircle size={14} />
+              {t('messages')}{chatCount > 0 ? ` · ${chatCount}` : ''}
+            </button>
+
+            {userId && (
+              <button
+                onClick={() => {
+                  toggleFollowPin(selectedPin.id);
+                  toast.success(isFollowed ? t('unfollowSuccess') : t('followSuccess'));
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
+                style={{
+                  backgroundColor: isFollowed ? 'rgba(244,63,94,0.12)' : 'var(--bg-card)',
+                  color: isFollowed ? 'var(--accent)' : 'var(--text-muted)',
+                  border: `1px solid ${isFollowed ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+                aria-label={isFollowed ? t('unfollow') : t('follow')}
+              >
+                {isFollowed ? <BellOff size={14} /> : <Bell size={14} />}
+                {isFollowed ? t('unfollow') : t('follow')}
+              </button>
+            )}
+
             {!isOwner && userId && (
               <button
                 onClick={thankReporter}
                 disabled={hasThanked}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-60"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition disabled:opacity-60"
                 style={
                   hasThanked
                     ? { backgroundColor: 'rgba(236,72,153,0.12)', color: '#ec4899', border: '1.5px solid rgba(236,72,153,0.5)' }
@@ -504,6 +462,89 @@ export default function DetailSheet() {
               </button>
             )}
           </div>
+
+          {/* ── Tertiary actions: collapsed "More" ── */}
+          {userId && (
+            <div className="mb-3">
+              <button
+                onClick={() => setShowMore((v) => !v)}
+                className="w-full flex items-center justify-between py-2 transition-opacity hover:opacity-70"
+              >
+                <span className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                  {t('more') || 'More'}
+                </span>
+                {showMore
+                  ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
+                  : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+                }
+              </button>
+
+              {showMore && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {/* Go Live */}
+                  {!isResolved && !activeSession && (
+                    <button
+                      onClick={() => setShowBroadcaster(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
+                      style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
+                    >
+                      <Radio size={13} />
+                      {t('goLive')}
+                    </button>
+                  )}
+
+                  {/* Watch Live */}
+                  {activeSession && !isOwner && (
+                    <button
+                      onClick={() => setShowViewer(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
+                      style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
+                      {t('watchLive')}
+                    </button>
+                  )}
+
+                  {/* Resume Live (owner) */}
+                  {activeSession && isOwner && (
+                    <button
+                      onClick={() => setShowBroadcaster(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
+                      style={{ backgroundColor: 'rgba(244,63,94,0.2)', border: '1px solid #f43f5e', color: '#f43f5e' }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
+                      {t('live')}
+                    </button>
+                  )}
+
+                  {/* Flag / Report */}
+                  {!isOwner && (
+                    <button
+                      onClick={() => setShowFlagModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
+                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                      aria-label={t('report')}
+                    >
+                      <Flag size={13} />
+                      {t('report')}
+                    </button>
+                  )}
+
+                  {/* Resolve (owner only) */}
+                  {!isResolved && isOwner && (
+                    <button
+                      onClick={resolvePin}
+                      disabled={resolving}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40"
+                      style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.4)' }}
+                    >
+                      ✅ {t('resolve') || 'Resolve'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── SOS Broadcast (S50) + Audio Check-in (S51) — emergency pins only ── */}
           {selectedPin.is_emergency && !isResolved && (
@@ -600,25 +641,7 @@ export default function DetailSheet() {
           {/* Divider */}
           <div className="mt-5" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
 
-          {/* ── Collapsible Chat ─────────────────────────────────────── */}
-          {/* Toggle header — always visible */}
-          <button
-            onClick={() => setChatExpanded((v) => !v)}
-            className="w-full flex items-center justify-between py-3 transition-opacity hover:opacity-70"
-          >
-            <div className="flex items-center gap-2">
-              <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} />
-              <span className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                {t('messages')}{chatCount > 0 ? ` · ${chatCount}` : ''}
-              </span>
-            </div>
-            {chatExpanded
-              ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
-              : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
-            }
-          </button>
-
-          {/* Always mounted: loads message count in background even when collapsed */}
+          {/* ── Chat (toggle via secondary Comment button) ── */}
           <PinChat
             pinId={selectedPin.id}
             userId={userId}

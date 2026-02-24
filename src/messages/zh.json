@@ -17,8 +17,7 @@
   "nav": {
     "map": "地图",
     "trip": "出行",
-    "community": "社区",
-    "myKova": "My Brume"
+    "me": "我"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "请先登录",
     "description": "紧急警报——我需要帮助",
     "cancelCountdown": "取消",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "快速拨号",
     "numbers": {
       "samu": "急救中心",

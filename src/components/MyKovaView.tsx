@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Rss, Star, BarChart2, User, ChevronRight, ChevronDown, ChevronUp,
+  Rss, Star, BarChart2, ChevronRight, ChevronDown, ChevronUp,
   Navigation, Trash2, Pencil, Check, X, Radio,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
 import TrustedCircleCard from '@/components/TrustedCircleCard';
+import CommunityView from '@/components/CommunityView';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
 import LocationHistoryViewer from '@/components/LocationHistoryViewer';
@@ -129,7 +130,7 @@ function SkeletonList({ rows }: { rows: number }) {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type MyKovaTab = 'feed' | 'favorites' | 'stats' | 'profile';
+type MyKovaTab = 'activity' | 'saved' | 'stats';
 type PinFilter = 'all' | 'active' | 'resolved';
 
 // ─── Root component ──────────────────────────────────────────────────────────
@@ -146,11 +147,12 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const t = useTranslations('mykova');
 
   // ─── Sub-tab state ──────────────────────────────────────────────────────
-  const [activeSubTab, setActiveSubTab] = useState<MyKovaTab>('stats');
+  const [activeSubTab, setActiveSubTab] = useState<MyKovaTab>('activity');
+  const [showCommunity, setShowCommunity] = useState(false);
 
   // Consume deep-link on mount
   useEffect(() => {
-    if (myKovaInitialTab && ['feed', 'favorites', 'stats', 'profile'].includes(myKovaInitialTab)) {
+    if (myKovaInitialTab && ['activity', 'saved', 'stats'].includes(myKovaInitialTab)) {
       setActiveSubTab(myKovaInitialTab as MyKovaTab);
       setMyKovaInitialTab(null);
     }
@@ -302,7 +304,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     const { error } = await supabase.from('profiles').upsert({ id: userId, display_name: trimmed });
     setSaving(false);
     didSaveRef.current = false;
-    if (error) { toast.error(`Save failed: ${error.message}`); return; }
+    if (error) { toast.error('Could not save your name. Try again.'); return; }
     setUserProfile({ ...(userProfile ?? { id: userId, display_name: null, created_at: new Date().toISOString() }), display_name: trimmed });
     setEditing(false);
     toast.success('Name updated');
@@ -318,11 +320,11 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     const ext = file.name.split('.').pop() ?? 'jpg';
     const path = `${userId}/avatar.${ext}`;
     const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-    if (upErr) { toast.error('Upload failed'); setAvatarUploading(false); return; }
+    if (upErr) { toast.error('Could not upload photo. Try again.'); setAvatarUploading(false); return; }
     const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
     const avatar_url = urlData.publicUrl + '?t=' + Date.now();
     const { error: dbErr } = await supabase.from('profiles').update({ avatar_url }).eq('id', userId);
-    if (dbErr) { toast.error('Failed to save photo'); setAvatarUploading(false); return; }
+    if (dbErr) { toast.error('Photo uploaded but could not save. Try again.'); setAvatarUploading(false); return; }
     setUserProfile({ ...(userProfile ?? { id: userId, display_name: null, created_at: new Date().toISOString() }), avatar_url });
     toast.success('Profile photo updated');
     setAvatarUploading(false);
@@ -378,10 +380,9 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   // ─── Render ────────────────────────────────────────────────────────────
 
   const SUB_TABS: { id: MyKovaTab; label: string; Icon: React.ElementType }[] = [
-    { id: 'feed',      label: t('feed'),      Icon: Rss      },
-    { id: 'favorites', label: t('favorites'), Icon: Star     },
+    { id: 'activity',  label: t('activity'),  Icon: Rss      },
+    { id: 'saved',     label: t('saved'),     Icon: Star     },
     { id: 'stats',     label: t('stats'),     Icon: BarChart2 },
-    { id: 'profile',   label: t('profile'),   Icon: User     },
   ];
 
   return (
@@ -399,7 +400,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         key="mykova-sheet"
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201 flex flex-col overflow-hidden"
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden"
         style={{ backgroundColor: 'var(--bg-primary)', maxHeight: '85dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}
       >
         {/* Drag handle */}
@@ -410,6 +411,89 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         {/* Title */}
         <div className="px-5 pt-1 pb-3 shrink-0">
           <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
+        </div>
+
+        {/* Always-visible profile card */}
+        <div className="px-4 pb-3 shrink-0">
+          <div className="flex items-center gap-3 rounded-2xl p-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0 relative group"
+              style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+              title="Change photo"
+            >
+              {userProfile?.avatar_url ? (
+                <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : avatarUploading ? (
+                <span className="text-xs animate-pulse">...</span>
+              ) : initial}
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+            <div className="flex-1 min-w-0">
+              {editing ? (
+                <div className="flex items-center gap-1.5">
+                  <input ref={inputRef} value={nameInput} onChange={(e) => setNameInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } if (e.key === 'Escape') cancelEdit(); }}
+                    placeholder="Your name..."
+                    className="flex-1 text-sm font-bold outline-none rounded-lg px-2 py-1 min-w-0"
+                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--accent)', color: 'var(--text-primary)' }} />
+                  <button onClick={saveName} disabled={saving} className="p-1 rounded-lg" style={{ color: '#10b981' }}><Check size={14} /></button>
+                  <button onClick={cancelEdit} className="p-1 rounded-lg" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
+                </div>
+              ) : (
+                <button onClick={startEditing} className="flex items-center gap-1 group">
+                  <span className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>{displayName ?? 'Set your name'}</span>
+                  <Pencil size={10} className="opacity-0 group-hover:opacity-60 transition" style={{ color: 'var(--text-muted)' }} />
+                </button>
+              )}
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[0.6rem] font-black px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: level.color + '18', color: level.color }}>
+                  {level.emoji} {level.label}
+                </span>
+                {userProfile?.verification_status === 'approved' && (
+                  <span className="text-[0.6rem] font-bold" style={{ color: '#10b981' }}>✅ Verified</span>
+                )}
+              </div>
+            </div>
+            <span className="text-xl font-black shrink-0" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{trustScore}</span>
+          </div>
+
+          {/* Quick stats row */}
+          <div className="flex gap-2 mt-2">
+            {[
+              { label: t('reports'), value: myReports.length, emoji: '📋' },
+              { label: t('level'), value: level.label, emoji: level.emoji },
+              { label: t('votes'), value: confirmedVotes, emoji: '👍' },
+            ].map(({ label, value, emoji }) => (
+              <div key={label} className="flex-1 rounded-xl py-2 flex flex-col items-center gap-0.5"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <span className="text-sm">{emoji}</span>
+                <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{value}</span>
+                <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Trusted Circle */}
+          <div className="mt-2">
+            <TrustedCircleCard userId={userId} compact />
+          </div>
+
+          {/* Community access */}
+          <button
+            onClick={() => setShowCommunity(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition active:opacity-70 mt-2"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            <span className="text-lg">💬</span>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('community')}</p>
+              <p className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>{t('communityDesc')}</p>
+            </div>
+            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+          </button>
         </div>
 
         {/* Sub-tab selector */}
@@ -440,9 +524,9 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <AnimatePresence mode="wait">
 
-            {/* ═══ FEED TAB ═══ */}
-            {activeSubTab === 'feed' && (
-              <motion.div key="feed" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-3">
+            {/* ═══ ACTIVITY TAB ═══ */}
+            {activeSubTab === 'activity' && (
+              <motion.div key="activity" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-3">
                 {followedPins.length === 0 && feedNotifs.length === 0 ? (
                   <EmptyState emoji="📡" title="Nothing here yet" body="Follow pins on the map to see their activity here" ctaLabel={t('browseMap')} onCta={() => setActiveTab('map')} />
                 ) : (
@@ -508,9 +592,9 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
               </motion.div>
             )}
 
-            {/* ═══ FAVORITES TAB ═══ */}
-            {activeSubTab === 'favorites' && (
-              <motion.div key="favorites" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4">
+            {/* ═══ SAVED TAB ═══ */}
+            {activeSubTab === 'saved' && (
+              <motion.div key="saved" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4">
                 {favPlaces.length === 0 && savedRoutes.length === 0 && !routesLoading ? (
                   <EmptyState emoji="⭐" title="No favorites yet" body="Star places on the map or save routes from the Trip planner" ctaLabel={t('explorePlaces')} onCta={() => setActiveTab('map')} />
                 ) : (
@@ -619,8 +703,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   )}
                 </div>
 
-                <TrustedCircleCard userId={userId} compact />
-
                 {/* Weekly Challenges — S48 */}
                 <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                   <ChallengesSection userId={userId} />
@@ -628,96 +710,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
                 {/* Referral — S49 */}
                 <ReferralSection userId={userId} />
-              </motion.div>
-            )}
-
-            {/* ═══ PROFILE TAB ═══ */}
-            {activeSubTab === 'profile' && (
-              <motion.div key="profile" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-5">
-
-                {/* Avatar + name + verification */}
-                <div className="flex flex-col items-center gap-3 pt-2">
-                  <div className="relative">
-                    <button
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={avatarUploading}
-                      className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-3xl font-black text-white shadow-lg relative group"
-                      style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)', boxShadow: '0 8px 24px rgba(244,63,94,0.35)' }}
-                      title="Change profile photo"
-                    >
-                      {userProfile?.avatar_url ? (
-                        <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : avatarUploading ? (
-                        <span className="text-sm animate-pulse">⏳</span>
-                      ) : initial}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">
-                        <span className="text-xs font-bold text-white">📷</span>
-                      </div>
-                    </button>
-                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                    <div className="absolute -bottom-1 -right-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.55rem] font-black border-2"
-                      style={{ backgroundColor: level.color + '18', color: level.color, borderColor: 'var(--bg-primary)' }}>
-                      {level.emoji} {level.label}
-                    </div>
-                  </div>
-
-                  {editing ? (
-                    <div className="flex flex-col items-center gap-2 w-full max-w-65">
-                      <input ref={inputRef} value={nameInput} onChange={(e) => setNameInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } if (e.key === 'Escape') cancelEdit(); }}
-                        placeholder="Your name…"
-                        className="w-full text-center text-lg font-bold outline-none rounded-xl px-3 py-1.5"
-                        style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)', color: 'var(--text-primary)' }} />
-                      <div className="flex gap-2 w-full">
-                        <button onClick={cancelEdit} className="flex-1 py-1.5 rounded-xl text-sm font-bold transition hover:opacity-80"
-                          style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>Cancel</button>
-                        <button onClick={saveName} disabled={saving} className="flex-1 py-1.5 rounded-xl text-sm font-bold transition hover:opacity-80 disabled:opacity-50"
-                          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>{saving ? 'Saving…' : 'Save'}</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button onClick={startEditing} className="flex items-center gap-1.5 group">
-                      <span className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{displayName ?? 'Set your name'}</span>
-                      <span className="text-sm opacity-0 group-hover:opacity-60 transition" style={{ color: 'var(--text-muted)' }}>✏️</span>
-                    </button>
-                  )}
-
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{userEmail}</p>
-                  {userProfile?.created_at && (
-                    <p className="text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                      Member since {joinedDate(userProfile.created_at)}
-                    </p>
-                  )}
-
-                  {expertiseTags.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1.5">
-                      {expertiseTags.map((tag) => (
-                        <span key={tag.label} className="text-[0.6rem] font-black px-2.5 py-1 rounded-full"
-                          style={{ backgroundColor: tag.color + '18', color: tag.color, border: `1px solid ${tag.color}40` }}>
-                          {tag.emoji} {tag.label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {userProfile?.verification_status === 'approved' ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black"
-                      style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.3)' }}>
-                      ✅ Verified identity
-                    </div>
-                  ) : userProfile?.verification_status === 'pending' ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                      style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1.5px solid rgba(245,158,11,0.3)' }}>
-                      ⏳ Verification under review
-                    </div>
-                  ) : (
-                    <button onClick={() => setShowVerification(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition hover:opacity-80"
-                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1.5px solid var(--border)' }}>
-                      🪪 Verify your identity
-                    </button>
-                  )}
-                </div>
 
                 {/* ── Location History ─────────────────────────── */}
                 <button
@@ -746,7 +738,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   </button>
                   {expandedSections.has('pins') && (
                     <div className="space-y-2 mt-1">
-                      {/* Filter chips */}
                       <div className="flex gap-1.5">
                         {(['all', 'active', 'resolved'] as PinFilter[]).map((f) => (
                           <button key={f} onClick={() => setPinFilter(f)}
@@ -986,6 +977,12 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
       <AnimatePresence>
         {showLocationHistory && (
           <LocationHistoryViewer userId={userId} onClose={() => setShowLocationHistory(false)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCommunity && (
+          <CommunityView key="community-overlay" onClose={() => setShowCommunity(false)} />
         )}
       </AnimatePresence>
     </>

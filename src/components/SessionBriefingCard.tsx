@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { MapPin, Navigation, X } from 'lucide-react';
 import { haversineMeters } from '@/lib/utils';
 
-const DISMISS_MS = 15_000;
+const DISMISS_MS = 8_000;
 const LS_KEY = 'brume_last_session_ts';
 const NEARBY_RADIUS_M = 1000;
 
@@ -124,9 +124,8 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
             <span className="text-lg">📍</span>
             <div>
               <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
-                {data.newPins} new report{data.newPins > 1 ? 's' : ''} near you
+                {data.newPins} report{data.newPins > 1 ? 's' : ''} nearby
               </p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Since your last visit</p>
             </div>
           </div>
           <button onClick={onDismiss} className="p-1 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
@@ -145,31 +144,9 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
     );
   }
 
-  // Calm area
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[180] rounded-2xl p-3.5 shadow-lg"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">💚</span>
-          <div>
-            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Your area is calm</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No recent reports nearby — stay safe!</p>
-          </div>
-        </div>
-        <button onClick={onDismiss} className="p-1 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-          <X size={12} style={{ color: 'var(--text-muted)' }} />
-        </button>
-      </div>
-      <ProgressBar progress={progress} color="var(--border)" fill="#10b981" />
-    </motion.div>
-  );
+  // No actionable info — dismiss silently
+  onDismiss();
+  return null;
 }
 
 function ProgressBar({ progress, color, fill }: { progress: number; color: string; fill: string }) {

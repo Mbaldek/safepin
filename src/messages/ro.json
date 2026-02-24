@@ -17,8 +17,7 @@
   "nav": {
     "map": "Hartă",
     "trip": "Traseu",
-    "community": "Comunitate",
-    "myKova": "My Brume"
+    "me": "Eu"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Conectează-te mai întâi",
     "description": "ALERTĂ DE URGENȚĂ — Am nevoie de ajutor",
     "cancelCountdown": "ANULEAZĂ",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Apel rapid",
     "numbers": {
       "samu": "SAMU",

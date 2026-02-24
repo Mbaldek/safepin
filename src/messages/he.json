@@ -17,8 +17,7 @@
   "nav": {
     "map": "מפה",
     "trip": "מסלול",
-    "community": "קהילה",
-    "myKova": "My Brume"
+    "me": "אני"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "התחבר/י תחילה",
     "description": "התראת חירום — אני צריך/ה עזרה",
     "cancelCountdown": "ביטול",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "חיוג מהיר",
     "numbers": {
       "samu": "SAMU",

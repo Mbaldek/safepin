@@ -45,6 +45,10 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [count, setCount] = useState(5);
   const [dispatchResults, setDispatchResults] = useState<DispatchResult[]>([]);
+  const [showFlash, setShowFlash] = useState(false);
+  const safeHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [safeHoldProgress, setSafeHoldProgress] = useState(0);
+  const safeHoldAnimRef = useRef<number | null>(null);
 
   // Refs — don't cause re-renders, safe inside callbacks/intervals
   const locationRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -118,7 +122,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       : Infinity;
 
     // Only create a new trail pin if moved enough AND enough time has passed
-    if (timeSinceLast < TRAIL_MIN_TIME_MS && distSinceLast < TRAIL_MIN_DIST_M) return;
+    if (timeSinceLast < TRAIL_MIN_TIME_MS || distSinceLast < TRAIL_MIN_DIST_M) return;
 
     lastPinTimeRef.current = now;
     lastPinLocRef.current = newLoc;
@@ -152,7 +156,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
 
     if (error) {
       console.error('Emergency alert insert error:', error);
-      toast.error(`Failed to send alert: ${error.message}`);
+      toast.error('Could not send the alert. Check your connection and try again.');
       setPhase('idle');
       return;
     }
@@ -191,7 +195,33 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       );
     }
 
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 2000);
     setPhase('active');
+  }
+
+  // ─── "I'm Safe" long-press handlers ────────────────────────────────────────
+  function handleSafePointerDown(e: React.PointerEvent | React.TouchEvent) {
+    e.preventDefault();
+    const start = Date.now();
+    safeHoldAnimRef.current = requestAnimationFrame(function tick() {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(elapsed / 1000, 1);
+      setSafeHoldProgress(pct);
+      if (pct < 1) {
+        safeHoldAnimRef.current = requestAnimationFrame(tick);
+      }
+    });
+    safeHoldRef.current = setTimeout(() => {
+      setSafeHoldProgress(0);
+      resolve();
+    }, 1000);
+  }
+
+  function handleSafePointerUp() {
+    if (safeHoldRef.current) { clearTimeout(safeHoldRef.current); safeHoldRef.current = null; }
+    if (safeHoldAnimRef.current) { cancelAnimationFrame(safeHoldAnimRef.current); safeHoldAnimRef.current = null; }
+    setSafeHoldProgress(0);
   }
 
   // ─── Countdown ───────────────────────────────────────────────────────────────
@@ -257,12 +287,27 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
     toast.success(`✅ ${t('resolved')}`);
   }
 
+  // ─── Check trusted contacts count and warn if none ─────────────────────────
+  async function checkContactsAndStart() {
+    const { count } = await supabase
+      .from('trusted_contacts')
+      .select('*', { count: 'exact', head: true })
+      .or(`user_id.eq.${userId},contact_user_id.eq.${userId}`)
+      .eq('status', 'accepted');
+
+    if (count === 0) {
+      toast.warning(t('noTrustedContacts'));
+    }
+
+    startCountdown();
+  }
+
   // ─── Tap the button ──────────────────────────────────────────────────────────
   function handleTap() {
     if (!userId) { toast.error(t('signInFirst')); return; }
 
     if (locationRef.current) {
-      startCountdown();
+      checkContactsAndStart();
       return;
     }
 
@@ -272,7 +317,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         locationRef.current = loc;
         setUserLocation(loc);
-        startCountdown();
+        checkContactsAndStart();
       },
       () => { toast.error(t('locationRequired')); },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -310,11 +355,11 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
               <a
                 key={num}
                 href={`tel:${num}`}
-                className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-center"
+                className="flex flex-col items-center gap-1 px-5 py-4 rounded-2xl text-center min-w-[64px]"
                 style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
               >
-                <span className="text-base font-black leading-none">{num}</span>
-                <span className="text-[0.55rem] font-bold uppercase tracking-wide">{label}</span>
+                <span className="text-2xl font-black leading-none">{num}</span>
+                <span className="text-[0.6rem] font-bold uppercase tracking-wide">{label}</span>
               </a>
             ))}
           </div>
@@ -340,33 +385,55 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           style={{ backgroundColor: '#ef4444' }}
         >
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm">🆘 {t('alertActive')}</p>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              {dispatchResults.length > 0 && (
+                <p className="text-xs font-bold mt-0.5" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Alerting: {dispatchResults.map((r) => r.contact_name ?? 'Contact').join(', ')}
+                </p>
+              )}
+              <p className="text-[0.6rem] mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 {t('locationUpdating')}
               </p>
             </div>
+            {/* "I'm Safe" — hold 1 second to confirm */}
             <button
-              onClick={resolve}
-              className="px-3 py-1.5 rounded-full bg-white font-bold text-xs transition hover:opacity-90 flex-shrink-0"
+              onPointerDown={handleSafePointerDown}
+              onPointerUp={handleSafePointerUp}
+              onPointerCancel={handleSafePointerUp}
+              onContextMenu={(e) => e.preventDefault()}
+              className="relative px-4 py-2.5 rounded-full bg-white font-bold text-xs shrink-0 overflow-hidden select-none touch-none"
               style={{ color: '#ef4444' }}
             >
-              ✅ {t('imSafe')}
+              {/* Hold progress bar */}
+              {safeHoldProgress > 0 && (
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    backgroundColor: 'rgba(239,68,68,0.15)',
+                    width: `${safeHoldProgress * 100}%`,
+                    transition: 'none',
+                  }}
+                />
+              )}
+              <span className="relative z-10">
+                {safeHoldProgress > 0 ? 'Hold…' : `✅ ${t('imSafe')}`}
+              </span>
             </button>
           </div>
-          {/* Delivery status */}
-          {dispatchResults.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {dispatchResults.map((r) => (
-                <span key={r.contact_id}
-                  className="flex items-center gap-1 text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
-                  {r.status === 'sent' ? '✓' : '…'} {r.contact_name ?? 'Contact'}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
+      )}
+
+      {/* ── Red flash overlay after SOS triggers ──────────────────── */}
+      {showFlash && (
+        <div
+          className="absolute inset-0 z-[500] pointer-events-none"
+          style={{
+            backgroundColor: '#ef4444',
+            opacity: 0.6,
+            animation: 'flash-fade 2s ease-out forwards',
+          }}
+        />
       )}
 
       {/* ── Emergency FAB ────────────────────────────────────────── */}

@@ -17,8 +17,7 @@
   "nav": {
     "map": "Carte",
     "trip": "Trajet",
-    "community": "Communauté",
-    "myKova": "Mon Brume"
+    "me": "Moi"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Connectez-vous d'abord",
     "description": "ALERTE D'URGENCE — J'ai besoin d'aide",
     "cancelCountdown": "ANNULER",
+    "noTrustedContacts": "Vous n'avez aucun contact de confiance — votre alerte sera visible sur la carte, mais personne ne sera notifié directement",
     "quickDial": "Appel rapide",
     "numbers": {
       "samu": "SAMU",
@@ -88,7 +88,9 @@
     "files": "{count} {count, plural, one {fichier} other {fichiers}}",
     "pinRemoved": "Pin supprimé — 3 utilisateurs ont confirmé qu'il a disparu",
     "failedResolve": "Échec de la résolution",
-    "markedResolved": "Marqué comme résolu"
+    "markedResolved": "Marqué comme résolu",
+    "more": "Plus",
+    "resolve": "Résoudre"
   },
   "filters": {
     "title": "Filtres de carte",
@@ -229,12 +231,13 @@
   },
   "mykova": {
     "title": "Mon Brume",
-    "feed": "Fil",
-    "favorites": "Favoris",
-    "profile": "Profil",
+    "activity": "Activité",
+    "saved": "Sauvegardé",
     "stats": "Statistiques",
     "trustScore": "Score de confiance",
     "reports": "Signalements",
+    "level": "Niveau",
+    "thanks": "Mercis",
     "votes": "Votes",
     "comments": "Commentaires",
     "thisWeek": "Cette semaine",
@@ -243,9 +246,10 @@
     "reportIncident": "Signaler un incident",
     "planFirstTrip": "Planifier votre premier trajet",
     "locationHistory": "Historique de position",
-    "noActivity": "Aucune activité"
+    "noActivity": "Aucune activité",
+    "community": "Communauté",
+    "communityDesc": "Groupes, quartiers & messages"
   },
-  "community": {
     "title": "Communautés",
     "create": "Créer une communauté",
     "join": "Rejoindre",
@@ -292,7 +296,6 @@
     "partner": "Partenaire",
     "premiumPartner": "Partenaire Premium",
     "verified": "Vérifié",
-    "community": "Communauté",
     "openNow": "Ouvert",
     "closed": "Fermé",
     "todayHours": "Aujourd'hui",

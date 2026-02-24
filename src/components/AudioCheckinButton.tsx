@@ -85,7 +85,7 @@ export default function AudioCheckinButton({ userId, sessionType, sessionId }: P
 
       timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
     } catch {
-      toast.error('Microphone access denied');
+      toast.error('Microphone access needed — check your settings');
     }
   }, []);
 

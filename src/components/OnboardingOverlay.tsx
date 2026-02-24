@@ -26,26 +26,14 @@ const STEPS: Step[] = [
   {
     icon: 'shield',
     title: 'Welcome to Brume',
-    body: 'Your community safety network. Report incidents, stay informed, and look out for each other — all in real time.',
-    cta: 'Get started',
-  },
-  {
-    icon: '📍',
-    title: 'Drop a pin',
-    body: 'Tap the + button on the map to report a safety incident. Add a description, severity level, and optional photo.',
+    body: 'See what\u2019s around you. Report in 30 seconds. SOS in one tap.',
     cta: 'Next',
   },
   {
     icon: '🆘',
-    title: 'Emergency mode',
-    body: 'Hold the red SOS button to broadcast a live emergency alert. Your trail appears on everyone\'s map in real time.',
-    cta: 'Next',
-  },
-  {
-    icon: '💬',
-    title: 'Communities & messages',
-    body: 'Join or create private groups, share stories, and send direct messages — just like a neighborhood watch, but smarter.',
-    cta: 'Start exploring',
+    title: 'Your safety button',
+    body: 'In danger? Hold the red SOS button. It alerts your trusted contacts and calls for help — instantly.',
+    cta: 'Got it',
   },
 ];
 
@@ -84,7 +72,7 @@ export default function OnboardingOverlay({ onDone }: { onDone: () => void }) {
       style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
     >
       <div
-        className="w-full max-w-[440px] mx-auto rounded-t-3xl px-6 pt-8 pb-10 flex flex-col items-center gap-5"
+        className="w-full max-w-[440px] mx-auto rounded-t-2xl px-6 pt-8 pb-10 flex flex-col items-center gap-5"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
       >
         {/* Step dots */}

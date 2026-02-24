@@ -17,8 +17,7 @@
   "nav": {
     "map": "Harita",
     "trip": "Yolculuk",
-    "community": "Topluluk",
-    "myKova": "My Brume"
+    "me": "Ben"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Önce giriş yapın",
     "description": "ACİL UYARI — Yardıma ihtiyacım var",
     "cancelCountdown": "İPTAL",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Hızlı arama",
     "numbers": {
       "samu": "SAMU",

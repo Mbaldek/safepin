@@ -17,8 +17,7 @@
   "nav": {
     "map": "Kort",
     "trip": "Rejse",
-    "community": "Fællesskab",
-    "myKova": "My Brume"
+    "me": "Mig"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Log ind først",
     "description": "NØDALARM — Jeg har brug for hjælp",
     "cancelCountdown": "ANNULLER",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Hurtigopkald",
     "numbers": {
       "samu": "SAMU",

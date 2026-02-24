@@ -309,7 +309,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
-      className={`sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl ${escortState !== 'IDLE' || showSaved ? 'lg:top-2' : ''}`}
+      className={`sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl ${escortState !== 'IDLE' || showSaved ? 'lg:top-2' : ''}`}
       style={{
         backgroundColor: 'var(--bg-secondary)',
         boxShadow: '0 -10px 40px var(--bg-overlay)',

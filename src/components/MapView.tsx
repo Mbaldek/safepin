@@ -388,7 +388,7 @@ export default function MapView() {
   const [showHospital, setShowHospital]   = useState(false);
   const [showPolice, setShowPolice]       = useState(false);
   const [poiLoading, setPOILoading]       = useState(false);
-  const [showHeatmap, setShowHeatmap]     = useState(true);
+  const [showHeatmap, setShowHeatmap]     = useState(false);
   const [showScores, setShowScores]       = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
@@ -436,7 +436,7 @@ export default function MapView() {
       longPressTimer.current = setTimeout(() => {
         longPressTimer.current = null;
         const store = useStore.getState();
-        const blockedTab = store.activeTab === 'trip' || store.activeTab === 'mykova' || store.activeTab === 'community' || store.showIncidentsList;
+        const blockedTab = store.activeTab === 'trip' || store.activeTab === 'me' || store.showIncidentsList;
         if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
           store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         }
@@ -451,7 +451,7 @@ export default function MapView() {
     // Also handle mobile long-press via contextmenu
     map.current.on('contextmenu', (e) => {
       const store = useStore.getState();
-      const blockedTab = store.activeTab === 'trip' || store.activeTab === 'mykova' || store.activeTab === 'community' || store.showIncidentsList;
+      const blockedTab = store.activeTab === 'trip' || store.activeTab === 'me' || store.showIncidentsList;
       if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
         store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       }

@@ -34,12 +34,10 @@ import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
-import MapContextCard from '@/components/MapContextCard';
 import InstallPrompt from '@/components/InstallPrompt';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
-const CommunityView = dynamic(() => import('@/components/CommunityView'), { ssr: false });
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
@@ -282,7 +280,7 @@ export default function MapPage() {
         .select('*')
         .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
         .order('created_at', { ascending: false });
-      if (error) { toast.error('Failed to load pins'); return; }
+      if (error) { toast.error('Could not load reports. Try refreshing.'); return; }
       let result = (data as Pin[]) || [];
       if (!showSimulated) {
         result = result.filter((p) => !p.is_simulated);
@@ -641,7 +639,7 @@ export default function MapPage() {
       </div>
 
       {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'community' && activeTab !== 'mykova' ? 'hidden' : 'flex flex-col'}`}>
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' ? 'hidden' : 'flex flex-col'}`}>
         <MapView />
         <FilterBar />
         <EmergencyButton userId={userId} />
@@ -691,7 +689,6 @@ export default function MapPage() {
           </>
         )}
         {/* Map contextual card — shows area info */}
-        {activeTab === 'map' && !showBriefing && <MapContextCard />}
 
         {/* TripHUD — persistent map overlay during active trip */}
         <AnimatePresence>
@@ -726,18 +723,11 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Community sheet — overlays the map when on community tab */}
+        {/* Me tab — profile, trusted circle, community */}
         <AnimatePresence>
-          {activeTab === 'community' && (
-            <CommunityView key="community-sheet" onClose={() => setActiveTab('map')} />
-          )}
-        </AnimatePresence>
-
-        {/* My Brume — merged dashboard + profile */}
-        <AnimatePresence>
-          {activeTab === 'mykova' && userId && (
+          {activeTab === 'me' && userId && (
             <MyKovaView
-              key="mykova-sheet"
+              key="me-sheet"
               userId={userId}
               userEmail={userEmail}
               onClose={() => setActiveTab('map')}

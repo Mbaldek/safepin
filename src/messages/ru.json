@@ -17,8 +17,7 @@
   "nav": {
     "map": "Карта",
     "trip": "Маршрут",
-    "community": "Сообщество",
-    "myKova": "My Brume"
+    "me": "Я"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Сначала войдите",
     "description": "ЭКСТРЕННОЕ ОПОВЕЩЕНИЕ — Мне нужна помощь",
     "cancelCountdown": "ОТМЕНА",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Быстрый вызов",
     "numbers": {
       "samu": "Скорая",

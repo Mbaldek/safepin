@@ -17,8 +17,7 @@
   "nav": {
     "map": "Karte",
     "trip": "Reise",
-    "community": "Community",
-    "myKova": "My Brume"
+    "me": "Ich"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "Bitte zuerst anmelden",
     "description": "NOTFALLALARM — Ich brauche Hilfe",
     "cancelCountdown": "ABBRECHEN",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "Schnellwahl",
     "numbers": {
       "samu": "SAMU",

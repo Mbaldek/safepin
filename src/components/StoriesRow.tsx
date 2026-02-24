@@ -202,7 +202,7 @@ export default function StoriesRow({ communityId }: { communityId: string }) {
       {pendingFile && (
         <div className="fixed inset-0 z-[400] flex items-end"
           style={{ backgroundColor: 'var(--bg-overlay)' }}>
-          <div className="w-full max-w-[440px] mx-auto rounded-t-3xl p-5"
+          <div className="w-full max-w-[440px] mx-auto rounded-t-2xl p-5"
             style={{ backgroundColor: 'var(--bg-secondary)' }}>
             <p className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
               {pendingFile.type.startsWith('video') ? '📹' : '📷'} {pendingFile.name}

@@ -52,7 +52,7 @@ export default function PlaceNotePopup({ note, onClose }: Props) {
 
       {/* Popup card */}
       <motion.div
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201"
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201"
         style={{ backgroundColor: 'var(--bg-secondary)', boxShadow: '0 -10px 40px var(--bg-overlay)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}

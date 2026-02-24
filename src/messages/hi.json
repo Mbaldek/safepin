@@ -17,8 +17,7 @@
   "nav": {
     "map": "नक्शा",
     "trip": "यात्रा",
-    "community": "समुदाय",
-    "myKova": "My Brume"
+    "me": "मैं"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "पहले साइन इन करें",
     "description": "आपातकालीन अलर्ट — मुझे मदद चाहिए",
     "cancelCountdown": "रद्द करें",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "त्वरित कॉल",
     "numbers": {
       "samu": "एम्बुलेंस",

@@ -3,21 +3,20 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Map, Navigation, Users, Shield, type LucideIcon } from 'lucide-react';
+import { MapPin, Navigation, User, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTranslations } from 'next-intl';
 
-type Tab = 'map' | 'trip' | 'community' | 'mykova';
+type Tab = 'map' | 'trip' | 'me';
 
-const TAB_KEYS: { id: Tab; key: 'map' | 'trip' | 'community' | 'myKova'; Icon: LucideIcon }[] = [
-  { id: 'map',       key: 'map',       Icon: Map        },
-  { id: 'trip',      key: 'trip',      Icon: Navigation },
-  { id: 'community', key: 'community', Icon: Users      },
-  { id: 'mykova',    key: 'myKova',    Icon: Shield     },
+const TAB_KEYS: { id: Tab; key: 'map' | 'trip' | 'me'; Icon: LucideIcon }[] = [
+  { id: 'map',  key: 'map',  Icon: MapPin     },
+  { id: 'trip', key: 'trip', Icon: Navigation },
+  { id: 'me',   key: 'me',   Icon: User       },
 ];
 
 export default function BottomNav() {
-  const { activeTab, setActiveTab, pins, offlineQueueCount, unreadDmCount } = useStore();
+  const { activeTab, setActiveTab, pins, unreadDmCount } = useStore();
   const t = useTranslations('nav');
 
   const emergencyCount = pins.filter((p) => {
@@ -44,8 +43,7 @@ export default function BottomNav() {
         const label = t(key);
         const badge =
           id === 'map' && emergencyCount > 0 ? emergencyCount :
-          id === 'community' && unreadDmCount > 0 ? unreadDmCount : 0;
-        const offlineBadge = id === 'map' && offlineQueueCount > 0;
+          id === 'me' && unreadDmCount > 0 ? unreadDmCount : 0;
 
         return (
           <button
@@ -69,17 +67,9 @@ export default function BottomNav() {
             {badge > 0 && (
               <span
                 className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1 z-10"
-                style={{ backgroundColor: id === 'community' ? 'var(--accent)' : '#ef4444', color: '#fff' }}
+                style={{ backgroundColor: id === 'me' ? 'var(--accent)' : '#ef4444', color: '#fff' }}
               >
                 {badge}
-              </span>
-            )}
-            {!badge && offlineBadge && (
-              <span
-                className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1 z-10"
-                style={{ backgroundColor: '#f59e0b', color: '#fff' }}
-              >
-                {offlineQueueCount}
               </span>
             )}
 

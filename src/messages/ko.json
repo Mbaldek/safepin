@@ -17,8 +17,7 @@
   "nav": {
     "map": "지도",
     "trip": "여행",
-    "community": "커뮤니티",
-    "myKova": "My Brume"
+    "me": "나"
   },
   "emergency": {
     "button": "SOS",
@@ -32,6 +31,7 @@
     "signInFirst": "먼저 로그인하세요",
     "description": "긴급 알림 — 도움이 필요합니다",
     "cancelCountdown": "취소",
+    "noTrustedContacts": "You have no trusted contacts — your alert will still be visible on the map, but nobody will be notified directly",
     "quickDial": "빠른 전화",
     "numbers": {
       "samu": "SAMU",
