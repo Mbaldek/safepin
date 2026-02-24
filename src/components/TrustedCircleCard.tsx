@@ -2,14 +2,15 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { TrustedContact } from '@/types';
 import { toast } from 'sonner';
-import { UserPlus, X, Check, Radio, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserPlus, X, Check, Radio, MapPin, ChevronDown, ChevronUp, Heart } from 'lucide-react';
+import { useContactPresence } from '@/lib/usePresence';
 
-type ContactRow = TrustedContact & { display_name: string | null };
+type ContactRow = TrustedContact & { display_name: string | null; contact_user_id: string };
 type InviteRow  = TrustedContact & { sender_name: string | null };
 
 const COLORS = ['#f43f5e','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
@@ -30,26 +31,35 @@ function Avatar({ name, size = 36 }: { name: string | null; size?: number }) {
   );
 }
 
+const PRESENCE_COLORS = { online: '#22c55e', recent: '#f59e0b', offline: '#9ca3af' };
+const CHECKIN_COOLDOWN = 60 * 60 * 1000; // 1 hour
 const MAX_VISIBLE = 5;
 
 export default function TrustedCircleCard({
   userId,
   onSeeOnMap,
+  compact = false,
 }: {
   userId: string;
   onSeeOnMap?: () => void;
+  compact?: boolean;
 }) {
-  const { addNotification, isSharingLocation } = useStore();
+  const { addNotification, isSharingLocation, watchedLocations } = useStore();
   const [contacts, setContacts]               = useState<ContactRow[]>([]);
   const [pendingReceived, setPendingReceived] = useState<InviteRow[]>([]);
   const [pendingSent, setPendingSent]         = useState<TrustedContact[]>([]);
   const [showAdd, setShowAdd]                 = useState(false);
   const [showAll, setShowAll]                 = useState(false);
   const [searchQuery, setSearchQuery]         = useState('');
-  const [searchResult, setSearchResult]       = useState<{ id: string; display_name: string | null } | null>(null);
+  const [searchResults, setSearchResults]     = useState<{ id: string; display_name: string | null }[]>([]);
   const [searching, setSearching]             = useState(false);
   const [inviting, setInviting]               = useState(false);
   const [loading, setLoading]                 = useState(true);
+  const [checkingIn, setCheckingIn]           = useState(false);
+
+  // Presence tracking
+  const contactIds = useMemo(() => contacts.map((c) => c.contact_user_id), [contacts]);
+  const presenceMap = useContactPresence(contactIds);
 
   const loadContacts = useCallback(async () => {
     const { data, error } = await supabase
@@ -75,7 +85,7 @@ export default function TrustedCircleCard({
     for (const row of data) {
       if (row.status === 'accepted') {
         const cid = row.user_id === userId ? row.contact_id : row.user_id;
-        acc.push({ ...row, display_name: nameMap[cid] ?? null });
+        acc.push({ ...row, display_name: nameMap[cid] ?? null, contact_user_id: cid });
       } else if (row.status === 'pending') {
         if (row.contact_id === userId) recv.push({ ...row, sender_name: nameMap[row.user_id] ?? null });
         else sent.push(row);
@@ -115,33 +125,31 @@ export default function TrustedCircleCard({
   async function searchByName() {
     if (!searchQuery.trim()) return;
     setSearching(true);
-    setSearchResult(null);
+    setSearchResults([]);
     const { data } = await supabase
       .from('profiles')
       .select('id, display_name')
-      .ilike('display_name', searchQuery.trim())
+      .ilike('display_name', `%${searchQuery.trim()}%`)
       .neq('id', userId)
-      .limit(1)
-      .single();
-    setSearchResult(data ?? null);
+      .limit(5);
+    setSearchResults(data ?? []);
     setSearching(false);
   }
 
-  async function sendInvite() {
-    if (!searchResult) return;
+  async function sendInviteTo(target: { id: string; display_name: string | null }) {
     setInviting(true);
     const { error } = await supabase.from('trusted_contacts').insert({
       user_id: userId,
-      contact_id: searchResult.id,
+      contact_id: target.id,
     });
     setInviting(false);
     if (error) {
       toast.error(error.code === '23505' ? 'Already invited or in your circle' : 'Could not send invite');
       return;
     }
-    toast.success(`Invite sent to ${searchResult.display_name ?? 'user'}`);
+    toast.success(`Invite sent to ${target.display_name ?? 'user'}`);
     setSearchQuery('');
-    setSearchResult(null);
+    setSearchResults([]);
     setShowAdd(false);
     loadContacts();
   }
@@ -152,7 +160,7 @@ export default function TrustedCircleCard({
       .update({ status: accept ? 'accepted' : 'declined' })
       .eq('id', id);
     if (error) { toast.error('Failed to respond'); return; }
-    toast.success(accept ? 'Added to Trusted Circle ✓' : 'Invite declined');
+    toast.success(accept ? 'Added to Trusted Circle' : 'Invite declined');
     loadContacts();
   }
 
@@ -161,12 +169,131 @@ export default function TrustedCircleCard({
     loadContacts();
   }
 
+  async function checkInWithCircle() {
+    // Rate limit: 1 per hour
+    const lastCheckin = localStorage.getItem('brume_last_checkin');
+    if (lastCheckin && Date.now() - Number(lastCheckin) < CHECKIN_COOLDOWN) {
+      const minsLeft = Math.ceil((CHECKIN_COOLDOWN - (Date.now() - Number(lastCheckin))) / 60_000);
+      toast.error(`You can check in again in ${minsLeft} min`);
+      return;
+    }
+
+    setCheckingIn(true);
+    const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', userId).single();
+    const senderName = profile?.display_name ?? 'Someone';
+
+    // Send a DM to each trusted contact
+    let sent = 0;
+    for (const contact of contacts) {
+      const cid = contact.contact_user_id;
+      // Find or create conversation
+      const [u1, u2] = [userId, cid].sort();
+      let { data: convo } = await supabase
+        .from('dm_conversations')
+        .select('id')
+        .eq('user1_id', u1)
+        .eq('user2_id', u2)
+        .single();
+
+      if (!convo) {
+        const { data: newConvo } = await supabase
+          .from('dm_conversations')
+          .insert({ user1_id: u1, user2_id: u2 })
+          .select('id')
+          .single();
+        convo = newConvo;
+      }
+      if (!convo) continue;
+
+      await supabase.from('direct_messages').insert({
+        conversation_id: convo.id,
+        sender_id: userId,
+        content: `🛡️ ${senderName} checked in — they're safe`,
+        content_type: 'text',
+      });
+      await supabase.from('dm_conversations').update({
+        last_message: `🛡️ ${senderName} checked in`,
+        last_message_sender_id: userId,
+        last_message_at: new Date().toISOString(),
+      }).eq('id', convo.id);
+      sent++;
+    }
+
+    localStorage.setItem('brume_last_checkin', String(Date.now()));
+    setCheckingIn(false);
+    toast.success(`Check-in sent to ${sent} contact${sent !== 1 ? 's' : ''}`);
+  }
+
   if (loading) return null;
 
   const isEmpty = contacts.length === 0 && pendingSent.length === 0 && pendingReceived.length === 0;
   const visibleContacts = showAll ? contacts : contacts.slice(0, MAX_VISIBLE);
   const hasMore = contacts.length > MAX_VISIBLE;
+  const onlineCount = contactIds.filter((id) => presenceMap[id]?.status === 'online').length;
 
+  // ─── Compact mode for My Brume ────────────────────────────────────────────
+  if (compact) {
+    return (
+      <div
+        className="rounded-2xl p-3.5 flex flex-col gap-2.5"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🛡️</span>
+            <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Trusted Circle</p>
+            {contacts.length > 0 && (
+              <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                {contacts.length}
+              </span>
+            )}
+          </div>
+          {onlineCount > 0 && (
+            <span className="flex items-center gap-1 text-[0.55rem] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+              {onlineCount} online
+            </span>
+          )}
+        </div>
+        {contacts.length > 0 ? (
+          <div className="flex items-center gap-1.5">
+            {/* Avatar stack */}
+            <div className="flex -space-x-2">
+              {contacts.slice(0, 6).map((c) => (
+                <div key={c.id} className="relative">
+                  <Avatar name={c.display_name} size={28} />
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border"
+                    style={{
+                      backgroundColor: PRESENCE_COLORS[presenceMap[c.contact_user_id]?.status ?? 'offline'],
+                      borderColor: 'var(--bg-card)',
+                    }}
+                  />
+                </div>
+              ))}
+              {contacts.length > 6 && (
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[0.5rem] font-black"
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                  +{contacts.length - 6}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>No contacts yet</p>
+        )}
+        {pendingReceived.length > 0 && (
+          <p className="text-[0.55rem] font-bold" style={{ color: '#f43f5e' }}>
+            {pendingReceived.length} pending invite{pendingReceived.length > 1 ? 's' : ''}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ─── Full mode ────────────────────────────────────────────────────────────
   return (
     <div
       className="rounded-2xl p-4 flex flex-col gap-3"
@@ -196,7 +323,7 @@ export default function TrustedCircleCard({
           )}
         </div>
         <button
-          onClick={() => { setShowAdd(!showAdd); setSearchQuery(''); setSearchResult(null); }}
+          onClick={() => { setShowAdd(!showAdd); setSearchQuery(''); setSearchResults([]); }}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition hover:opacity-80"
           style={{
             backgroundColor: showAdd ? 'var(--accent)' : 'var(--bg-secondary)',
@@ -215,12 +342,12 @@ export default function TrustedCircleCard({
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
         >
           <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-            Invite by display name
+            Search by name
           </p>
           <div className="flex gap-2">
             <input
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setSearchResult(null); }}
+              onChange={(e) => { setSearchQuery(e.target.value); setSearchResults([]); }}
               onKeyDown={(e) => { if (e.key === 'Enter') searchByName(); }}
               placeholder="e.g. Marie, Alex…"
               className="flex-1 text-sm rounded-xl px-3 py-2 outline-none"
@@ -235,27 +362,31 @@ export default function TrustedCircleCard({
               {searching ? '…' : 'Find'}
             </button>
           </div>
-          {searchResult && (
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center gap-2.5">
-                <Avatar name={searchResult.display_name} size={28} />
-                <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {searchResult.display_name ?? 'Unknown'}
-                </span>
-              </div>
-              <button
-                onClick={sendInvite}
-                disabled={inviting}
-                className="px-3 py-1.5 rounded-xl text-xs font-black transition disabled:opacity-50"
-                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-              >
-                {inviting ? '…' : 'Invite'}
-              </button>
+          {searchResults.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              {searchResults.map((r) => (
+                <div key={r.id} className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={r.display_name} size={28} />
+                    <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {r.display_name ?? 'Unknown'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => sendInviteTo(r)}
+                    disabled={inviting}
+                    className="px-3 py-1.5 rounded-xl text-xs font-black transition disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                  >
+                    {inviting ? '…' : 'Invite'}
+                  </button>
+                </div>
+              ))}
             </div>
           )}
-          {searchQuery.trim() && !searchResult && !searching && (
+          {searchQuery.trim() && searchResults.length === 0 && !searching && (
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              No user found · check the exact name
+              No user found
             </p>
           )}
         </div>
@@ -320,33 +451,50 @@ export default function TrustedCircleCard({
       {/* Contact list */}
       {contacts.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          {visibleContacts.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between px-3 py-2 rounded-xl"
-              style={{ backgroundColor: 'var(--bg-secondary)' }}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  <Avatar name={c.display_name} size={32} />
-                  <span
-                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-                    style={{ backgroundColor: '#22c55e', borderColor: 'var(--bg-secondary)' }}
-                  />
-                </div>
-                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {c.display_name ?? 'Unknown'}
-                </p>
-              </div>
-              <button
-                onClick={() => removeContact(c.id)}
-                className="w-6 h-6 rounded-full flex items-center justify-center transition hover:opacity-70"
-                style={{ backgroundColor: 'var(--bg-card)' }}
+          {visibleContacts.map((c) => {
+            const presence = presenceMap[c.contact_user_id];
+            const isSharing = !!watchedLocations[c.contact_user_id];
+            return (
+              <div
+                key={c.id}
+                className="flex items-center justify-between px-3 py-2 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-secondary)' }}
               >
-                <X size={11} style={{ color: 'var(--text-muted)' }} />
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative shrink-0">
+                    <Avatar name={c.display_name} size={32} />
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+                      style={{
+                        backgroundColor: PRESENCE_COLORS[presence?.status ?? 'offline'],
+                        borderColor: 'var(--bg-secondary)',
+                      }}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                        {c.display_name ?? 'Unknown'}
+                      </p>
+                      {isSharing && (
+                        <MapPin size={10} strokeWidth={2.5} style={{ color: '#3b82f6' }} className="shrink-0" />
+                      )}
+                    </div>
+                    {presence && presence.status !== 'online' && presence.label && (
+                      <p className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>{presence.label}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => removeContact(c.id)}
+                  className="w-6 h-6 rounded-full flex items-center justify-center transition hover:opacity-70 shrink-0"
+                  style={{ backgroundColor: 'var(--bg-card)' }}
+                >
+                  <X size={11} style={{ color: 'var(--text-muted)' }} />
+                </button>
+              </div>
+            );
+          })}
           {/* Pending sent */}
           {pendingSent.map((s) => (
             <div
@@ -386,6 +534,15 @@ export default function TrustedCircleCard({
       {/* Action buttons */}
       {contacts.length > 0 && (
         <div className="flex gap-2">
+          <button
+            onClick={checkInWithCircle}
+            disabled={checkingIn}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition active:scale-[0.98] disabled:opacity-50"
+            style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}
+          >
+            <Heart size={12} strokeWidth={2.5} />
+            {checkingIn ? 'Sending…' : 'Check in'}
+          </button>
           {onSeeOnMap && (
             <button
               onClick={onSeeOnMap}

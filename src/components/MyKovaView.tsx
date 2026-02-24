@@ -18,7 +18,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
-import TrustedCircleSection from '@/components/TrustedCircleSection';
+import TrustedCircleCard from '@/components/TrustedCircleCard';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
 import LocationHistoryViewer from '@/components/LocationHistoryViewer';
@@ -619,7 +619,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   )}
                 </div>
 
-                <TrustedCircleSection userId={userId} />
+                <TrustedCircleCard userId={userId} compact />
 
                 {/* Weekly Challenges — S48 */}
                 <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>

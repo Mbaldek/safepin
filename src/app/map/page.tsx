@@ -11,6 +11,7 @@ import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { checkMilestones, type MilestoneStats } from '@/lib/milestones';
 import { updateStreak } from '@/lib/streaks';
+import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -106,6 +107,9 @@ export default function MapPage() {
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
+
+  // Presence heartbeat — updates last_seen_at every 2 min
+  usePresenceHeartbeat(userId);
 
   // Clear pending route options whenever the user leaves the trip tab
   useEffect(() => {
