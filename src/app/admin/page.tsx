@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Toaster } from 'sonner';
 import { Pin, UserReport, AdminParam, LiveSession, SafeSpace, DayHours } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { useStore } from '@/stores/useStore';
 import { geocodeForward } from '@/lib/geocode';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1180,7 +1181,8 @@ function SimulationTab() {
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      toast.success(`Seeded ${data.users_created} users + ${data.pins_created} pins`);
+      useStore.getState().setShowSimulated(true);
+      toast.success(`Seeded ${data.users_created} users & ${data.pins_created} pins — visible on map`);
       loadStats();
     } catch (err) {
       toast.error(`Seed failed: ${err}`);
@@ -1194,6 +1196,7 @@ function SimulationTab() {
     const newVal = !simActive;
     await supabase.from('admin_params').update({ value: String(newVal) }).eq('key', 'simulation_active');
     setSimActive(newVal);
+    if (newVal) useStore.getState().setShowSimulated(true);
     toast.success(newVal ? 'Simulation started' : 'Simulation stopped');
     if (!newVal && tickRef.current) {
       clearInterval(tickRef.current);
