@@ -309,7 +309,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
-      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl z-201 flex flex-col overflow-hidden"
+      className="sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-3xl lg:top-2 lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl"
       style={{
         backgroundColor: 'var(--bg-secondary)',
         boxShadow: '0 -10px 40px var(--bg-overlay)',
@@ -320,7 +320,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       transition={springTransition}
     >
       {/* Drag handle */}
-      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0 lg:hidden" style={{ backgroundColor: 'var(--border)' }} />
 
       {/* Header — shown for idle, active, completed */}
       {escortState !== 'PLANNING' && (
