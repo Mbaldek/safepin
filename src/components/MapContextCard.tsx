@@ -90,7 +90,7 @@ export default function MapContextCard() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="absolute bottom-20 left-3 right-20 z-[170] rounded-2xl px-3.5 py-2.5 shadow-md flex items-center gap-3"
+        className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[170] rounded-2xl px-3.5 py-2.5 shadow-md flex items-center gap-3"
         style={{
           backgroundColor: 'color-mix(in srgb, var(--bg-card) 95%, transparent)',
           border: `1px solid ${card.color}30`,

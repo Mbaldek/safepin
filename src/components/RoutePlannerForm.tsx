@@ -40,6 +40,14 @@ const MODE_COLORS: Record<Mode, string> = {
   walk: '#22c55e', bike: '#3b82f6', drive: '#f59e0b', transit: '#6366f1',
 };
 
+// Shade variants per mode: index 0 = safest (dark), 1 = balanced, 2 = fastest (light)
+const MODE_SHADES: Record<Mode, string[]> = {
+  walk:    ['#16a34a', '#22c55e', '#86efac'],
+  bike:    ['#2563eb', '#3b82f6', '#93c5fd'],
+  drive:   ['#d97706', '#f59e0b', '#fcd34d'],
+  transit: ['#4f46e5', '#6366f1', '#a5b4fc'],
+};
+
 const OSRM_PROFILES: Record<Mode, string> = {
   walk: 'foot', bike: 'bike', drive: 'driving', transit: 'foot',
 };
@@ -160,7 +168,7 @@ async function fetchRouteOptions(
   return scored.slice(0, n).map((r, i) => ({
     id: `${mode}-${i}`,
     label: n === 1 ? 'Safest' : labels[i] ?? `Route ${i + 1}`,
-    color: modeColor,
+    color: MODE_SHADES[mode]?.[i] ?? modeColor,
     coords: r.coords,
     duration: r.duration,
     distance: r.distance,
@@ -275,7 +283,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
             const routeOptions: RouteOption[] = routes.map((r, i) => ({
               id: `transit-${i}`,
               label: `Option ${i + 1}`,
-              color: MODE_COLORS.transit,
+              color: MODE_SHADES.transit[i % MODE_SHADES.transit.length] ?? MODE_COLORS.transit,
               coords: r.coords,
               dangerScore: 0,
               duration: r.totalDuration,
@@ -464,7 +472,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                           <div className="px-3 py-2 flex items-center gap-2 cursor-pointer" onClick={() => setExpandedRouteId(isDetailExpanded ? null : opt.id)}>
                             <div className="flex flex-col min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-black" style={{ color: modeColor }}>
+                                <span className="text-xs font-black" style={{ color: opt.color }}>
                                   {transitRoute
                                     ? `dep ${fmtTime(transitRoute.departureTime)}`
                                     : opt.label}
