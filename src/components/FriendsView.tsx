@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Send, UserPlus, Search } from 'lucide-react';
+import { ArrowLeft, Send, UserPlus, Search, Shield } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { DMConversation, DirectMessage } from '@/types';
@@ -53,6 +53,7 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [allFriendships, setAllFriendships] = useState<FriendshipRow[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
+  const [trustedIds, setTrustedIds] = useState<Set<string>>(new Set());
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,6 +105,16 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
       requesterId: r.requester_id,
       requesterName: profileMap.get(r.requester_id) ?? null,
     })));
+
+    // Fetch trusted circle membership
+    const { data: tcRows } = await supabase
+      .from('trusted_contacts')
+      .select('user_id, contact_id')
+      .eq('status', 'accepted')
+      .or(`user_id.eq.${userId},contact_id.eq.${userId}`);
+    const tcIds = new Set((tcRows ?? []).map((r) => r.user_id === userId ? r.contact_id : r.user_id));
+    setTrustedIds(tcIds);
+
     setLoadingFriends(false);
   }, [userId]);
 
@@ -531,23 +542,33 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
               </div>
             ) : (
               <div className="flex flex-col">
-                {friends.map((f) => (
-                  <button key={f.friendshipId} onClick={() => openChat(f)}
-                    className="flex items-center gap-3 px-4 py-3 w-full text-left transition active:opacity-70"
-                    style={{ borderBottom: '1px solid var(--border)' }}>
-                    <Avatar name={f.displayName} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {f.displayName ?? 'Anonymous'}
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tap to message</p>
-                    </div>
-                    <span className="text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                      Message
-                    </span>
-                  </button>
-                ))}
+                {friends.map((f) => {
+                  const isTrusted = trustedIds.has(f.userId);
+                  return (
+                    <button key={f.friendshipId} onClick={() => openChat(f)}
+                      className="flex items-center gap-3 px-4 py-3 w-full text-left transition active:opacity-70"
+                      style={{ borderBottom: '1px solid var(--border)' }}>
+                      <Avatar name={f.displayName} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                            {f.displayName ?? 'Anonymous'}
+                          </p>
+                          {isTrusted && (
+                            <Shield size={12} strokeWidth={2.5} className="shrink-0" style={{ color: '#f43f5e' }} />
+                          )}
+                        </div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          {isTrusted ? 'Trusted Circle' : 'Tap to message'}
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                        Message
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )
           )}

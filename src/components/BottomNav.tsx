@@ -17,7 +17,7 @@ const TAB_KEYS: { id: Tab; key: 'map' | 'trip' | 'community' | 'myKova'; Icon: L
 ];
 
 export default function BottomNav() {
-  const { activeTab, setActiveTab, pins, offlineQueueCount } = useStore();
+  const { activeTab, setActiveTab, pins, offlineQueueCount, unreadDmCount } = useStore();
   const t = useTranslations('nav');
 
   const emergencyCount = pins.filter((p) => {
@@ -42,7 +42,9 @@ export default function BottomNav() {
       {TAB_KEYS.map(({ id, key, Icon }) => {
         const isActive = activeTab === id;
         const label = t(key);
-        const badge = id === 'map' && emergencyCount > 0 ? emergencyCount : 0;
+        const badge =
+          id === 'map' && emergencyCount > 0 ? emergencyCount :
+          id === 'community' && unreadDmCount > 0 ? unreadDmCount : 0;
         const offlineBadge = id === 'map' && offlineQueueCount > 0;
 
         return (
@@ -67,7 +69,7 @@ export default function BottomNav() {
             {badge > 0 && (
               <span
                 className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1 z-10"
-                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                style={{ backgroundColor: id === 'community' ? 'var(--accent)' : '#ef4444', color: '#fff' }}
               >
                 {badge}
               </span>

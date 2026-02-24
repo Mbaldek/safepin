@@ -11,16 +11,20 @@ import { haversineMeters } from '@/lib/utils';
 import { geocodeReverse } from '@/lib/geocode';
 
 type Phase = 'idle' | 'countdown' | 'active';
+type DispatchResult = { contact_id: string; contact_name: string | null; status: string };
 
 // Minimum distance (metres) before a new trail pin is created
 const TRAIL_MIN_DIST_M = 30;
 
 // Dispatch SOS to trusted contacts via Edge Function
-async function dispatchToContacts(action: string, userId: string, pinId: string, lat: number, lng: number, displayName: string | null, sessionId: string) {
+async function dispatchToContacts(
+  action: string, userId: string, pinId: string,
+  lat: number, lng: number, displayName: string | null, sessionId: string,
+): Promise<{ dispatched: number; contacts: DispatchResult[] } | null> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/emergency-dispatch`, {
+    if (!session) return null;
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/emergency-dispatch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,7 +32,9 @@ async function dispatchToContacts(action: string, userId: string, pinId: string,
       },
       body: JSON.stringify({ action, user_id: userId, pin_id: pinId, lat, lng, display_name: displayName, session_id: sessionId }),
     });
-  } catch { /* Non-critical — don't block SOS flow */ }
+    if (res.ok) return await res.json();
+    return null;
+  } catch { return null; /* Non-critical — don't block SOS flow */ }
 }
 // Minimum time (ms) between two trail pins
 const TRAIL_MIN_TIME_MS = 45_000;
@@ -38,6 +44,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
   const t = useTranslations('emergency');
   const [phase, setPhase] = useState<Phase>('idle');
   const [count, setCount] = useState(5);
+  const [dispatchResults, setDispatchResults] = useState<DispatchResult[]>([]);
 
   // Refs — don't cause re-renders, safe inside callbacks/intervals
   const locationRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -158,7 +165,9 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
     const sessionId = crypto.randomUUID();
     dispatchSessionRef.current = sessionId;
     const displayName = useStore.getState().userProfile?.display_name ?? null;
-    dispatchToContacts('dispatch', userId, data.id, loc.lat, loc.lng, displayName, sessionId);
+    setDispatchResults([]);
+    dispatchToContacts('dispatch', userId, data.id, loc.lat, loc.lng, displayName, sessionId)
+      .then((res) => { if (res?.contacts) setDispatchResults(res.contacts); });
 
     // Escalation: re-dispatch after 15min if not resolved
     escalationTimerRef.current = setTimeout(() => {
@@ -327,22 +336,36 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       {/* ── "I'm safe" active banner ──────────────────────────────── */}
       {phase === 'active' && (
         <div
-          className="absolute top-0 left-0 right-0 z-[350] flex items-center justify-between px-4 py-3"
+          className="absolute top-0 left-0 right-0 z-[350] flex flex-col px-4 py-3 gap-2"
           style={{ backgroundColor: '#ef4444' }}
         >
-          <div>
-            <p className="text-white font-bold text-sm">🆘 {t('alertActive')}</p>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>
-              {t('locationUpdating')}
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white font-bold text-sm">🆘 {t('alertActive')}</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                {t('locationUpdating')}
+              </p>
+            </div>
+            <button
+              onClick={resolve}
+              className="px-3 py-1.5 rounded-full bg-white font-bold text-xs transition hover:opacity-90 flex-shrink-0"
+              style={{ color: '#ef4444' }}
+            >
+              ✅ {t('imSafe')}
+            </button>
           </div>
-          <button
-            onClick={resolve}
-            className="px-3 py-1.5 rounded-full bg-white font-bold text-xs transition hover:opacity-90 flex-shrink-0"
-            style={{ color: '#ef4444' }}
-          >
-            ✅ {t('imSafe')}
-          </button>
+          {/* Delivery status */}
+          {dispatchResults.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {dispatchResults.map((r) => (
+                <span key={r.contact_id}
+                  className="flex items-center gap-1 text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+                  {r.status === 'sent' ? '✓' : '…'} {r.contact_name ?? 'Contact'}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

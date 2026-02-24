@@ -249,6 +249,10 @@ type Store = {
   currentStreak: number;
   longestStreak: number;
   setStreakInfo: (current: number, longest: number) => void;
+
+  // Unread DM count (for Community tab badge)
+  unreadDmCount: number;
+  setUnreadDmCount: (n: number) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -451,6 +455,10 @@ export const useStore = create<Store>((set) => ({
   currentStreak: 0,
   longestStreak: 0,
   setStreakInfo: (current, longest) => set({ currentStreak: current, longestStreak: longest }),
+
+  // Unread DM count
+  unreadDmCount: 0,
+  setUnreadDmCount: (n) => set({ unreadDmCount: n }),
 }));
 
 // Shallow selectors for performance — prevent unnecessary re-renders

@@ -243,6 +243,29 @@ export default function MapPage() {
     });
   }, [router, setUserProfile, setUserId]);
 
+  // Fetch unread DM count periodically
+  const { setUnreadDmCount } = useStore();
+  useEffect(() => {
+    if (!userId) return;
+    async function fetchUnread() {
+      const { data } = await supabase
+        .from('dm_conversations')
+        .select('id, user1_id, user2_id, last_message_at, user1_last_read_at, user2_last_read_at, last_message_sender_id')
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+      if (!data) return;
+      let count = 0;
+      for (const c of data) {
+        if (!c.last_message_at || c.last_message_sender_id === userId) continue;
+        const readAt = c.user1_id === userId ? c.user1_last_read_at : c.user2_last_read_at;
+        if (!readAt || new Date(c.last_message_at) > new Date(readAt)) count++;
+      }
+      setUnreadDmCount(count);
+    }
+    fetchUnread();
+    const iv = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(iv);
+  }, [userId, setUnreadDmCount]);
+
   // Load pins (exclude hidden pins unless the user owns them; filter simulated client-side)
   const { showSimulated, setShowSimulated, pinsVersion } = useStore();
 
