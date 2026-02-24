@@ -1,55 +1,34 @@
 // src/app/api/simulation/tick/route.ts
-// POST: Simulate one tick of activity from simulated users.
+// POST: Simulate one tick of activity from simulated users using their personal places.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
-
-const HOTSPOTS = [
-  { lat: 48.8584, lng: 2.3474 },
-  { lat: 48.8809, lng: 2.3553 },
-  { lat: 48.8847, lng: 2.3493 },
-  { lat: 48.8675, lng: 2.3636 },
-  { lat: 48.8822, lng: 2.3374 },
-  { lat: 48.8533, lng: 2.3694 },
-  { lat: 48.8486, lng: 2.3960 },
-  { lat: 48.8714, lng: 2.3767 },
-];
-
-const CATEGORIES = ['harassment', 'stalking', 'dark_area', 'aggression', 'drunk', 'other'] as const;
-const SEVERITIES = ['low', 'med', 'high'] as const;
-const ENVIRONMENTS = ['foot', 'metro', 'bus', 'cycling', 'car', 'indoor'] as const;
-const URBAN_CONTEXTS = ['street', 'parking', 'store', 'metro', 'bus', 'park', 'restaurant', 'building'] as const;
-
-const COMMENTS = [
-  'Be careful around here, I saw the same thing yesterday.',
-  'This area is usually fine during the day.',
-  'I can confirm this, happened to me too.',
-  'Thanks for reporting, will avoid this spot tonight.',
-  'The lighting here is really bad after 9pm.',
-  'I walk here every day, first time seeing this.',
-  'Stay safe everyone.',
-  'Reported to local authorities as well.',
-];
-
-function pick<T>(arr: readonly T[] | T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function randomOffset(range = 0.005): number {
-  return (Math.random() - 0.5) * 2 * range;
-}
+import {
+  SIM_CATEGORIES, SIM_SEVERITIES, SIM_ENVIRONMENTS, SIM_URBAN_CONTEXTS, SIM_COMMENTS,
+  pick, pickActivityLocation, SimPlace,
+} from '@/lib/simulation-data';
 
 export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient();
 
-    // ── Fetch simulated users + active pins ──
-    const { data: simUsers } = await admin.from('profiles').select('id, name').eq('is_simulated', true).limit(100);
+    // ── Fetch simulated users with their places + active pins ──
+    const { data: simUsers } = await admin
+      .from('profiles')
+      .select('id, name, sim_places')
+      .eq('is_simulated', true)
+      .limit(100);
+
     if (!simUsers?.length) {
       return NextResponse.json({ actions: ['No simulated users found. Seed first.'] });
     }
 
-    const { data: simPins } = await admin.from('pins').select('id').eq('is_simulated', true).is('resolved_at', null).limit(100);
+    const { data: simPins } = await admin
+      .from('pins')
+      .select('id')
+      .eq('is_simulated', true)
+      .is('resolved_at', null)
+      .limit(100);
 
     // ── Pick 1-3 random actions ──
     const actionCount = 1 + Math.floor(Math.random() * 3);
@@ -57,21 +36,22 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < actionCount; i++) {
       const user = pick(simUsers);
+      const places: SimPlace[] = (user.sim_places as SimPlace[]) ?? [];
       const roll = Math.random();
 
       if (roll < 0.60 || !simPins?.length) {
-        // Create new pin
-        const hotspot = pick(HOTSPOTS);
+        // Create new pin near one of the user's places
+        const loc = pickActivityLocation(places);
         const isEmergency = Math.random() < 0.1;
         const { error } = await admin.from('pins').insert({
           user_id: user.id,
-          lat: hotspot.lat + randomOffset(),
-          lng: hotspot.lng + randomOffset(),
-          category: pick(CATEGORIES),
-          severity: pick(SEVERITIES),
+          lat: loc.lat,
+          lng: loc.lng,
+          category: pick(SIM_CATEGORIES),
+          severity: pick(SIM_SEVERITIES),
           description: '',
-          environment: pick(ENVIRONMENTS),
-          urban_context: pick(URBAN_CONTEXTS),
+          environment: pick(SIM_ENVIRONMENTS),
+          urban_context: pick(SIM_URBAN_CONTEXTS),
           is_emergency: isEmergency,
           is_simulated: true,
         });
@@ -92,7 +72,7 @@ export async function POST(req: NextRequest) {
           pin_id: pin.id,
           user_id: user.id,
           display_name: user.name,
-          content: pick(COMMENTS),
+          content: pick(SIM_COMMENTS),
         });
         if (!error) actions.push(`${user.name} commented on a pin`);
       }

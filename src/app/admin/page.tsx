@@ -1152,19 +1152,22 @@ function SimulationTab() {
   const [simActive, setSimActive] = useState(false);
   const [userCount, setUserCount] = useState(200);
   const [pinCount, setPinCount] = useState(500);
+  const [seedSafeSpaces, setSeedSafeSpaces] = useState(false);
+  const [safeSpaceCount, setSafeSpaceCount] = useState(100);
   const [interval, setIntervalMs] = useState(30000);
-  const [stats, setStats] = useState({ simUsers: 0, simPins: 0 });
+  const [stats, setStats] = useState({ simUsers: 0, simPins: 0, simSafeSpaces: 0 });
   const [tickLog, setTickLog] = useState<string[]>([]);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load stats + current state
   const loadStats = useCallback(async () => {
-    const [usersRes, pinsRes, paramRes] = await Promise.all([
+    const [usersRes, pinsRes, paramRes, spacesRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
       supabase.from('pins').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
       supabase.from('admin_params').select('value').eq('key', 'simulation_active').single(),
+      supabase.from('safe_spaces').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
     ]);
-    setStats({ simUsers: usersRes.count ?? 0, simPins: pinsRes.count ?? 0 });
+    setStats({ simUsers: usersRes.count ?? 0, simPins: pinsRes.count ?? 0, simSafeSpaces: spacesRes.count ?? 0 });
     setSimActive(paramRes.data?.value === 'true');
   }, []);
 
@@ -1179,12 +1182,16 @@ function SimulationTab() {
       const res = await fetch('/api/simulation/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ userCount, pinCount }),
+        body: JSON.stringify({ userCount, pinCount, seedSafeSpaces, safeSpaceCount }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       useStore.getState().setShowSimulated(true);
-      toast.success(`Seeded ${data.users_created} users & ${data.pins_created} pins — visible on map`);
+      toast.success(
+        `Seeded ${data.users_created} users, ${data.pins_created} pins` +
+        (data.safe_spaces_created ? `, ${data.safe_spaces_created} safe spaces` : '') +
+        ' — visible on map',
+      );
       loadStats();
     } catch (err) {
       toast.error(`Seed failed: ${err}`);
@@ -1238,11 +1245,11 @@ function SimulationTab() {
 
   // Cleanup all simulated data
   async function handleCleanup() {
-    if (!confirm(`Delete ALL simulated data?\n${stats.simUsers} users + ${stats.simPins} pins will be removed.`)) return;
+    if (!confirm(`Delete ALL simulated data?\n${stats.simUsers} users + ${stats.simPins} pins + ${stats.simSafeSpaces} safe spaces will be removed.`)) return;
     setLoading(true);
     try {
-      // Delete pins first (FK), then profiles
       await supabase.from('pins').delete().eq('is_simulated', true);
+      await supabase.from('safe_spaces').delete().eq('is_simulated', true);
       await supabase.from('profiles').delete().eq('is_simulated', true);
       toast.success('All simulated data deleted');
       loadStats();
@@ -1279,6 +1286,10 @@ function SimulationTab() {
           <p className="text-2xl font-black text-amber-600">{stats.simPins}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500 mb-1">Sim Safe Spaces</p>
+          <p className="text-2xl font-black text-amber-600">{stats.simSafeSpaces}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs font-medium text-gray-500 mb-1">Tick Interval</p>
           <p className="text-2xl font-black text-gray-700">{interval / 1000}s</p>
         </div>
@@ -1302,6 +1313,19 @@ function SimulationTab() {
             className="px-5 py-2.5 bg-amber-500 text-white font-bold text-sm rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors">
             {loading ? 'Seeding...' : 'Seed Paris'}
           </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 mt-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={seedSafeSpaces} onChange={(e) => setSeedSafeSpaces(e.target.checked)} className="w-4 h-4 accent-amber-500 rounded" />
+            <span className="text-sm font-medium text-gray-700">Seed partner safe spaces</span>
+          </label>
+          {seedSafeSpaces && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Count</label>
+              <input type="number" value={safeSpaceCount} onChange={(e) => setSafeSpaceCount(Number(e.target.value))}
+                className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -1338,9 +1362,9 @@ function SimulationTab() {
       <div className="bg-white rounded-xl border border-red-200 shadow-sm p-6">
         <h3 className="text-sm font-bold text-red-700 mb-2">Danger Zone</h3>
         <p className="text-xs text-gray-500 mb-4">
-          Delete all simulated users ({stats.simUsers}) and pins ({stats.simPins}). This cannot be undone.
+          Delete all simulated users ({stats.simUsers}), pins ({stats.simPins}), and safe spaces ({stats.simSafeSpaces}). This cannot be undone.
         </p>
-        <button onClick={handleCleanup} disabled={loading || (stats.simUsers === 0 && stats.simPins === 0)}
+        <button onClick={handleCleanup} disabled={loading || (stats.simUsers === 0 && stats.simPins === 0 && stats.simSafeSpaces === 0)}
           className="px-5 py-2.5 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
           {loading ? 'Deleting...' : 'Delete All Simulated Data'}
         </button>

@@ -254,9 +254,10 @@ export type SafeSpace = {
   lng: number;
   name: string;
   type: 'pharmacy' | 'hospital' | 'police' | 'cafe' | 'shelter';
-  source: 'overpass' | 'user';
+  source: 'overpass' | 'user' | 'simulated';
   verified: boolean;
   upvotes: number;
+  is_simulated?: boolean;
   created_by: string | null;
   created_at: string;
   // Partner fields (S44)
@@ -308,6 +309,7 @@ export type Profile = {
   name: string;
   is_shadow_banned?: boolean;
   is_simulated?: boolean;
+  sim_places?: Array<{ lat: number; lng: number; label: string; role: string }> | null;
   current_streak?: number;
   longest_streak?: number;
   last_active_date?: string | null;
