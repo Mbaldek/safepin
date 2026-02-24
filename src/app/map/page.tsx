@@ -737,7 +737,7 @@ export default function MapPage() {
             {userId && (
               <button
                 onClick={() => setShowCommunityShortcut(true)}
-                className="absolute bottom-6 left-4 w-11 h-11 rounded-full flex items-center justify-center z-50 transition hover:scale-105 active:scale-95 shadow-md"
+                className="absolute bottom-28 left-4 w-11 h-11 rounded-full flex items-center justify-center z-50 transition hover:scale-105 active:scale-95 shadow-md"
                 style={{
                   backgroundColor: unreadDmCount > 0 ? 'rgba(16,185,129,0.15)' : 'var(--bg-card)',
                   border: `1px solid ${unreadDmCount > 0 ? 'rgba(16,185,129,0.4)' : 'var(--border)'}`,
@@ -757,7 +757,7 @@ export default function MapPage() {
             <button
               onClick={openFilterPanel}
               aria-label="Map filters"
-              className="absolute bottom-28 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
+              className="absolute bottom-18 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
               style={{
                 backgroundColor: showFilterPanel || filterActiveCount > 0
                   ? 'var(--accent)'
@@ -783,7 +783,7 @@ export default function MapPage() {
             <button
               onClick={openLayerPanel}
               aria-label="Map layers"
-              className="absolute bottom-18 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
+              className="absolute bottom-6 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
               style={{
                 backgroundColor: showLayerPanel
                   ? 'var(--accent)'
