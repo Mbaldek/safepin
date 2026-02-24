@@ -239,20 +239,28 @@ export default function MapPage() {
     });
   }, [router, setUserProfile, setUserId]);
 
-  // Load pins (exclude hidden pins unless the user owns them; filter simulated by default)
-  const { showSimulated } = useStore();
+  // Load pins (exclude hidden pins unless the user owns them; filter simulated client-side)
+  const { showSimulated, setShowSimulated } = useStore();
+
+  // Auto-enable showSimulated via URL param (e.g. from admin "See on map")
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sim') === '1') setShowSimulated(true);
+  }, [setShowSimulated]);
+
   useEffect(() => {
     async function loadPins() {
-      let query = supabase
+      const { data, error } = await supabase
         .from('pins')
         .select('*')
-        .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`);
-      if (!showSimulated) {
-        query = query.or('is_simulated.is.null,is_simulated.eq.false');
-      }
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
+        .order('created_at', { ascending: false });
       if (error) { toast.error('Failed to load pins'); return; }
-      setPins((data as Pin[]) || []);
+      let result = (data as Pin[]) || [];
+      if (!showSimulated) {
+        result = result.filter((p) => !p.is_simulated);
+      }
+      setPins(result);
     }
     loadPins();
   }, [setPins, userId, showSimulated]);

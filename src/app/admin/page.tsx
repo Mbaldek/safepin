@@ -4,6 +4,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
 import { Pin, UserReport, AdminParam, LiveSession, SafeSpace, DayHours } from '@/types';
@@ -323,6 +324,7 @@ function PinsTab() {
                     <td className="px-4 py-3"><Badge color={statusColor(!!pin.resolved_at)}>{pin.resolved_at ? 'resolved' : 'active'}</Badge></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        <Link href={`/map?pin=${pin.id}${pin.is_simulated ? '&sim=1' : ''}`} target="_blank" className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">See on map</Link>
                         {!pin.resolved_at && <button onClick={() => handleResolve(pin.id)} className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors">Resolve</button>}
                         <button onClick={() => handleDelete(pin.id)} className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">Delete</button>
                       </div>
@@ -2243,9 +2245,9 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-400 leading-none mt-0.5">Brume Admin</p>
               </div>
             </div>
-            <a href="/map" className="text-xs text-gray-500 hover:text-gray-800 transition-colors">
+            <Link href="/map" className="text-xs text-gray-500 hover:text-gray-800 transition-colors">
               ← Back to app
-            </a>
+            </Link>
           </div>
 
           {/* Tabs */}
