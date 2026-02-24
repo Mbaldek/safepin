@@ -9,13 +9,13 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { Community, CommunityMessage } from '@/types';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, MessageCircle, MapPinned, Users, BookOpen, ChevronRight } from 'lucide-react';
 import StoriesRow from '@/components/StoriesRow';
 import FriendsView from '@/components/FriendsView';
 import NeighborhoodFeed from '@/components/NeighborhoodFeed';
+import TrustedCircleCard from '@/components/TrustedCircleCard';
 
-type View = 'list' | 'community-detail' | 'chat' | 'create';
-type CommTab = 'groups' | 'neighborhoods' | 'friends';
+type View = 'home' | 'list' | 'community-detail' | 'chat' | 'create' | 'messages' | 'neighborhoods';
 type CreateType = 'community' | 'group';
 
 import { timeAgo, springTransition } from '@/lib/utils';
@@ -119,8 +119,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
   const { userId, userProfile } = useStore();
 
   // Navigation
-  const [view, setView]       = useState<View>('list');
-  const [commTab, setCommTab] = useState<CommTab>('groups');
+  const [view, setView]       = useState<View>('home');
   const [chatFrom, setChatFrom] = useState<'list' | 'community-detail'>('list');
 
   // All top-level items (communities + standalone groups)
@@ -268,7 +267,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
     if (error) { toast.error('Failed to leave'); return; }
     setMyMemberships((prev) => { const s = new Set(prev); s.delete(item.id); return s; });
     setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: Math.max(0, c.member_count - 1) } : c));
-    if (selectedItem?.id === item.id) setView('list');
+    if (selectedItem?.id === item.id) setView('home');
     toast.success(`Left ${item.name}`);
   }
 
@@ -416,7 +415,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
             >
               <button
-                onClick={() => chatFrom === 'community-detail' ? setView('community-detail') : setView('list')}
+                onClick={() => chatFrom === 'community-detail' ? setView('community-detail') : setView('home')}
                 className="text-xl transition hover:opacity-60"
                 style={{ color: 'var(--text-muted)' }}
               >
@@ -550,9 +549,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                 onClick={() => setView('list')}
                 className="text-xl transition hover:opacity-60"
                 style={{ color: 'var(--text-muted)' }}
-              >
-                ←
-              </button>
+              >←</button>
               <span className="text-2xl">{communityDetailOf.avatar_emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
@@ -670,7 +667,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
             >
               <button
-                onClick={() => setView(createParentId ? 'community-detail' : 'list')}
+                onClick={() => setView(createParentId ? 'community-detail' : 'home')}
                 className="text-xl hover:opacity-60 transition"
                 style={{ color: 'var(--text-muted)' }}
               >
@@ -783,31 +780,116 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
         );
       })()}
 
-      {/* ── NEIGHBORHOODS VIEW ─────────────────────────────────────────── */}
-      {view === 'list' && commTab === 'neighborhoods' && (
-        <div className="flex flex-col flex-1 overflow-hidden p-4">
-          <NeighborhoodFeed />
-        </div>
-      )}
-
-      {/* ── FRIENDS VIEW ──────────────────────────────────────────────── */}
-      {view === 'list' && commTab === 'friends' && (
+      {/* ── HOME — Trusted Circle + More rows ────────────────────────── */}
+      {view === 'home' && (
         <div className="flex flex-col flex-1 overflow-hidden">
-          <FriendsView onBack={() => setCommTab('groups')} />
-        </div>
-      )}
-
-      {/* ── LIST VIEW ─────────────────────────────────────────────────── */}
-      {view === 'list' && commTab === 'groups' && (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Header */}
           <div
-            className="shrink-0 px-4 pt-3 pb-0"
+            className="shrink-0 flex items-center justify-between px-4 pt-3 pb-2"
+            style={{ backgroundColor: 'var(--bg-secondary)' }}
+          >
+            <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
+            <CloseBtn />
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-110 mx-auto w-full px-4 py-3 flex flex-col gap-4">
+              {/* Trusted Circle Card */}
+              {userId && (
+                <TrustedCircleCard
+                  userId={userId}
+                  onSeeOnMap={() => {
+                    onClose();
+                    useStore.getState().setActiveTab('map');
+                  }}
+                />
+              )}
+
+              {/* More section */}
+              <div>
+                <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+                  More
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {([
+                    { key: 'messages' as const, icon: MessageCircle, label: 'Messages', desc: 'Friends & direct messages', color: '#6366f1' },
+                    { key: 'neighborhoods' as const, icon: MapPinned, label: 'Neighbourhoods', desc: 'See what\'s happening nearby', color: '#f59e0b' },
+                    { key: 'list' as const, icon: Users, label: 'Groups & Communities', desc: `${myCommunities.length + myGroups.length} joined`, color: '#22c55e' },
+                  ] as const).map((row) => (
+                    <button
+                      key={row.key}
+                      onClick={() => setView(row.key)}
+                      className="flex items-center gap-3 px-3.5 py-3 rounded-xl transition active:scale-[0.98] text-left"
+                      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: `${row.color}12` }}
+                      >
+                        <row.icon size={16} strokeWidth={2} style={{ color: row.color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{row.label}</p>
+                        <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{row.desc}</p>
+                      </div>
+                      <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MESSAGES (Friends + DMs) ──────────────────────────────────── */}
+      {view === 'messages' && (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <FriendsView onBack={() => setView('home')} />
+        </div>
+      )}
+
+      {/* ── NEIGHBORHOODS VIEW ─────────────────────────────────────────── */}
+      {view === 'neighborhoods' && (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div
+            className="shrink-0 flex items-center gap-3 px-4 py-3"
+            style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
+          >
+            <button
+              onClick={() => setView('home')}
+              className="text-xl transition hover:opacity-60"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              ←
+            </button>
+            <h2 className="text-base font-black flex-1" style={{ color: 'var(--text-primary)' }}>Neighbourhoods</h2>
+            <CloseBtn />
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <NeighborhoodFeed />
+          </div>
+        </div>
+      )}
+
+      {/* ── GROUPS LIST VIEW ─────────────────────────────────────────── */}
+      {view === 'list' && (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div
+            className="shrink-0 px-4 pt-3 pb-3"
             style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
           >
             <div className="max-w-110 mx-auto w-full">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setView('home')}
+                    className="text-xl transition hover:opacity-60"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    ←
+                  </button>
+                  <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>Groups & Communities</h2>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <button
@@ -851,22 +933,6 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   </div>
                   <CloseBtn />
                 </div>
-              </div>
-              {/* Segment switcher */}
-              <div className="flex">
-                {(['groups', 'neighborhoods', 'friends'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setCommTab(tab)}
-                    className="flex-1 py-2.5 text-xs font-black transition"
-                    style={{
-                      color: commTab === tab ? 'var(--accent)' : 'var(--text-muted)',
-                      borderBottom: commTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-                    }}
-                  >
-                    {tab === 'groups' ? 'Groups' : tab === 'neighborhoods' ? 'Nearby' : 'Friends'}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
