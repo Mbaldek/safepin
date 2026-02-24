@@ -1187,6 +1187,7 @@ function SimulationTab() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       useStore.getState().setShowSimulated(true);
+      useStore.getState().bumpPinsVersion();
       toast.success(
         `Seeded ${data.users_created} users, ${data.pins_created} pins` +
         (data.safe_spaces_created ? `, ${data.safe_spaces_created} safe spaces` : '') +
@@ -1248,13 +1249,21 @@ function SimulationTab() {
     if (!confirm(`Delete ALL simulated data?\n${stats.simUsers} users + ${stats.simPins} pins + ${stats.simSafeSpaces} safe spaces will be removed.`)) return;
     setLoading(true);
     try {
-      await supabase.from('pins').delete().eq('is_simulated', true);
-      await supabase.from('safe_spaces').delete().eq('is_simulated', true);
-      await supabase.from('profiles').delete().eq('is_simulated', true);
-      toast.success('All simulated data deleted');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error('Not authenticated'); return; }
+      const res = await fetch('/api/simulation/cleanup', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      toast.success(
+        `Deleted ${data.deleted_users} users, ${data.deleted_pins} pins, ${data.deleted_safe_spaces} safe spaces`,
+      );
+      useStore.getState().bumpPinsVersion();
       loadStats();
-    } catch {
-      toast.error('Cleanup failed');
+    } catch (err) {
+      toast.error(`Cleanup failed: ${err}`);
     } finally {
       setLoading(false);
     }

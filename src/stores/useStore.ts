@@ -231,6 +231,10 @@ type Store = {
   showSimulated: boolean;
   setShowSimulated: (v: boolean) => void;
 
+  // Pins version counter — bump to trigger refetch from any page
+  pinsVersion: number;
+  bumpPinsVersion: () => void;
+
   // Deep-link into My Brume sub-tab (e.g. from Settings → Profile)
   myKovaInitialTab: string | null;
   setMyKovaInitialTab: (tab: string | null) => void;
@@ -424,6 +428,10 @@ export const useStore = create<Store>((set) => ({
   // Simulation toggle
   showSimulated: false,
   setShowSimulated: (v) => set({ showSimulated: v }),
+
+  // Pins version counter
+  pinsVersion: 0,
+  bumpPinsVersion: () => set((state) => ({ pinsVersion: state.pinsVersion + 1 })),
 
   // My Brume deep-link
   myKovaInitialTab: null,

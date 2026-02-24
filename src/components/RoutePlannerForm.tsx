@@ -1,11 +1,11 @@
 // src/components/RoutePlannerForm.tsx
-// Extracted route planner sub-form. Handles departure/destination, mode selection,
-// route search (OSRM + Transitous), and route card display with expandable transit steps.
+// Multi-mode route planner: fetches ALL transport modes in parallel,
+// displays grouped results with collapse/expand per mode.
 
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, BookmarkPlus, Map } from 'lucide-react';
+import { ArrowLeft, BookmarkPlus, Map, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useStore, RouteOption } from '@/stores/useStore';
 import { Pin } from '@/types';
 import AutocompleteInput from '@/components/AutocompleteInput';
@@ -36,6 +36,10 @@ const MODES: { id: Mode; emoji: string; label: string }[] = [
   { id: 'transit', emoji: '🚇', label: 'Transit' },
 ];
 
+const MODE_COLORS: Record<Mode, string> = {
+  walk: '#22c55e', bike: '#3b82f6', drive: '#f59e0b', transit: '#6366f1',
+};
+
 const OSRM_PROFILES: Record<Mode, string> = {
   walk: 'foot', bike: 'bike', drive: 'driving', transit: 'foot',
 };
@@ -61,17 +65,13 @@ function fmtTime(iso: string): string {
   } catch { return ''; }
 }
 
-function scoreDanger(coords: [number, number][], pins: Pin[], nightOnly = false): number {
+function scoreDanger(coords: [number, number][], pins: Pin[]): number {
   const step = Math.max(1, Math.floor(coords.length / 20));
   let score = 0;
   for (let i = 0; i < coords.length; i += step) {
     const [lng, lat] = coords[i];
     for (const pin of pins) {
       if (pin.resolved_at) continue;
-      if (nightOnly) {
-        const h = new Date(pin.created_at).getHours();
-        if (h >= 6 && h < 22) continue;
-      }
       const dx = (pin.lng - lng) * 111_320 * Math.cos((lat * Math.PI) / 180);
       const dy = (pin.lat - lat) * 110_540;
       if (Math.sqrt(dx * dx + dy * dy) < 200) score += pin.is_emergency ? 3 : 1;
@@ -124,13 +124,13 @@ function bypassWaypoint(closestPt: [number, number], pin: Pin): [number, number]
 }
 
 async function fetchRouteOptions(
-  from: [number, number], to: [number, number], mode: Mode, pins: Pin[], nightOnly = false,
+  from: [number, number], to: [number, number], mode: Mode, pins: Pin[],
 ): Promise<RouteOption[]> {
   const profile = OSRM_PROFILES[mode];
   const raw = await osrmRoutes([from, to], profile);
   if (raw.length === 0) return [];
 
-  const scored = raw.map((r) => ({ ...r, dangerScore: scoreDanger(r.coords, pins, nightOnly), rerouted: false }));
+  const scored = raw.map((r) => ({ ...r, dangerScore: scoreDanger(r.coords, pins), rerouted: false }));
   scored.sort((a, b) => a.dangerScore - b.dangerScore);
   const best = scored[0];
 
@@ -142,7 +142,7 @@ async function fetchRouteOptions(
         const reroutedRaw = await osrmRoutes([from, bypass, to], profile);
         if (reroutedRaw.length > 0) {
           const rerouted = reroutedRaw[0];
-          const reroutedScore = scoreDanger(rerouted.coords, pins, nightOnly);
+          const reroutedScore = scoreDanger(rerouted.coords, pins);
           const durationPenalty = rerouted.duration / best.duration;
           if (reroutedScore < best.dangerScore && durationPenalty <= 1.5) {
             scored[0] = { ...rerouted, dangerScore: reroutedScore, rerouted: true };
@@ -153,16 +153,14 @@ async function fetchRouteOptions(
     }
   }
 
+  const modeColor = MODE_COLORS[mode];
   const n = Math.min(scored.length, 3);
-  const LABEL_SETS: Record<number, Array<{ label: RouteOption['label']; color: string }>> = {
-    1: [{ label: 'Safest', color: '#22c55e' }],
-    2: [{ label: 'Safest', color: '#22c55e' }, { label: 'Fastest', color: '#3b82f6' }],
-    3: [{ label: 'Safest', color: '#22c55e' }, { label: 'Balanced', color: '#f59e0b' }, { label: 'Fastest', color: '#3b82f6' }],
-  };
+  const labels = ['Safest', 'Balanced', 'Fastest'];
 
   return scored.slice(0, n).map((r, i) => ({
-    id: String(i),
-    ...LABEL_SETS[n][i],
+    id: `${mode}-${i}`,
+    label: n === 1 ? 'Safest' : labels[i] ?? `Route ${i + 1}`,
+    color: modeColor,
     coords: r.coords,
     duration: r.duration,
     distance: r.distance,
@@ -183,6 +181,11 @@ function DangerBadge({ score }: { score: number }) {
   );
 }
 
+// ─── Types for multi-mode state ───────────────────────────────────────────────
+
+type RoutesByMode = Record<Mode, RouteOption[]>;
+type TransitByMode = Record<Mode, TransitRoute[]>;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function RoutePlannerForm({ onRouteSelected, onClose, initialDestination, initialDeparture, initialDestCoords, initialDepartureCoords }: Props) {
@@ -194,13 +197,26 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
   const [departureCoords, setDepartureCoords] = useState<[number, number] | null>(initialDepartureCoords ?? null);
   const [destination, setDest] = useState(initialDestination ?? '');
   const [destCoords, setDestCoords] = useState<[number, number] | null>(initialDestCoords ?? null);
-  const [mode, setMode] = useState<Mode>('walk');
-  const [options, setOptions] = useState<RouteOption[]>([]);
-  const [transitRoutes, setTransitRoutes] = useState<TransitRoute[]>([]);
-  const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const nightOnly = false; // night-only scoring removed from UI
+
+  // Multi-mode state
+  const [routesByMode, setRoutesByMode] = useState<RoutesByMode>({ walk: [], bike: [], drive: [], transit: [] });
+  const [transitRoutes, setTransitRoutes] = useState<TransitByMode>({ walk: [], bike: [], drive: [], transit: [] });
+  const [expandedModes, setExpandedModes] = useState<Set<Mode>>(new Set());
+  const [loadingModes, setLoadingModes] = useState<Set<Mode>>(new Set());
+  const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
+
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Update map pending routes when expanded modes change
+  useEffect(() => {
+    if (phase !== 'selecting') return;
+    const visibleRoutes: RouteOption[] = [];
+    for (const mode of expandedModes) {
+      visibleRoutes.push(...routesByMode[mode]);
+    }
+    setPendingRoutes(visibleRoutes.length > 0 ? visibleRoutes : null);
+  }, [expandedModes, routesByMode, phase, setPendingRoutes]);
 
   // Auto-search when destination changes (debounced 800ms)
   useEffect(() => {
@@ -240,40 +256,61 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
       return;
     }
 
-    if (mode === 'transit') {
-      const routes = await fetchTransitRoute(fromCoords, toCoords);
-      setTransitRoutes(routes);
-      if (routes.length > 0) {
-        const COLORS = ['#22c55e', '#6366f1', '#3b82f6', '#f59e0b', '#ef4444'];
-        const routeOptions: RouteOption[] = routes.map((r, i) => ({
-          id: `transit-${i}`,
-          label: `Option ${i + 1}` as RouteOption['label'],
-          color: COLORS[i % COLORS.length],
-          coords: r.coords,
-          dangerScore: 0,
-          duration: r.totalDuration,
-          distance: 0,
-        }));
-        setOptions(routeOptions);
-        setPendingRoutes(routeOptions);
-      }
-      setPhase('selecting');
-      return;
-    }
-
-    const opts = await fetchRouteOptions(fromCoords, toCoords, mode, pins, nightOnly).catch(() => []);
-    if (opts.length === 0) {
-      setError('No routes found. Try a different destination or transport mode.');
-      setPhase('form');
-      return;
-    }
-
-    setOptions(opts);
-    setPendingRoutes(opts);
+    // Reset state
+    const emptyRoutes: RoutesByMode = { walk: [], bike: [], drive: [], transit: [] };
+    const emptyTransit: TransitByMode = { walk: [], bike: [], drive: [], transit: [] };
+    setRoutesByMode(emptyRoutes);
+    setTransitRoutes(emptyTransit);
+    setLoadingModes(new Set(['walk', 'bike', 'drive', 'transit']));
+    setExpandedModes(new Set());
+    setExpandedRouteId(null);
     setPhase('selecting');
-  }, [departure, departureCoords, destination, destCoords, mode, nightOnly, pins, userLocation, setPendingRoutes]);
 
-  async function saveRoute(opt: RouteOption) {
+    // Fetch all modes in parallel, update progressively
+    const fetchMode = async (mode: Mode) => {
+      try {
+        if (mode === 'transit') {
+          const routes = await fetchTransitRoute(fromCoords!, toCoords);
+          if (routes.length > 0) {
+            const routeOptions: RouteOption[] = routes.map((r, i) => ({
+              id: `transit-${i}`,
+              label: `Option ${i + 1}`,
+              color: MODE_COLORS.transit,
+              coords: r.coords,
+              dangerScore: 0,
+              duration: r.totalDuration,
+              distance: 0,
+            }));
+            setRoutesByMode((prev) => ({ ...prev, transit: routeOptions }));
+            setTransitRoutes((prev) => ({ ...prev, transit: routes }));
+          }
+        } else {
+          const opts = await fetchRouteOptions(fromCoords!, toCoords, mode, pins);
+          if (opts.length > 0) {
+            setRoutesByMode((prev) => ({ ...prev, [mode]: opts }));
+          }
+        }
+      } catch { /* mode failed silently */ }
+      setLoadingModes((prev) => {
+        const next = new Set(prev);
+        next.delete(mode);
+        return next;
+      });
+    };
+
+    await Promise.allSettled(MODES.map((m) => fetchMode(m.id)));
+  }, [departure, departureCoords, destination, destCoords, pins, userLocation]);
+
+  function toggleMode(mode: Mode) {
+    setExpandedModes((prev) => {
+      const next = new Set(prev);
+      if (next.has(mode)) next.delete(mode);
+      else next.add(mode);
+      return next;
+    });
+  }
+
+  async function saveRoute(opt: RouteOption, mode: Mode) {
     if (!userProfile?.id) return;
     const name = destination.trim() || opt.label;
     const { error } = await supabase.from('saved_routes').upsert(
@@ -281,15 +318,14 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
       { onConflict: 'user_id,name' },
     );
     if (error) toast.error('Could not save route');
-    else toast.success('Route saved ✓');
+    else toast.success('Route saved');
   }
 
-  function handleSelect(opt: RouteOption) {
+  function handleSelect(opt: RouteOption, mode: Mode) {
     const transitRoute = opt.id.startsWith('transit-')
-      ? transitRoutes[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
+      ? transitRoutes.transit[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
       : null;
 
-    // Build per-segment colored route lines for transit
     if (transitRoute) {
       const segments = transitRoute.steps.map((step) => ({
         coords: step.coords,
@@ -308,9 +344,15 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
     setPhase('form');
     setPendingRoutes(null);
     setTransitSegments(null);
-    setOptions([]);
+    setRoutesByMode({ walk: [], bike: [], drive: [], transit: [] });
+    setTransitRoutes({ walk: [], bike: [], drive: [], transit: [] });
+    setExpandedModes(new Set());
+    setLoadingModes(new Set());
     setError(null);
   }
+
+  const totalRoutes = Object.values(routesByMode).reduce((s, r) => s + r.length, 0);
+  const anyLoading = loadingModes.size > 0;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -341,7 +383,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
         </button>
       </div>
 
-      {/* Searching */}
+      {/* Searching (initial) */}
       {phase === 'searching' && (
         <div className="flex flex-col items-center justify-center py-10 gap-4">
           <div
@@ -352,122 +394,167 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
         </div>
       )}
 
-      {/* Selecting — route cards */}
+      {/* Selecting — grouped by mode */}
       {phase === 'selecting' && (
-        <div className="flex flex-col gap-3">
-          {/* Trip summary bar */}
+        <div className="flex flex-col gap-2.5">
+          {/* Trip summary */}
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <span className="text-sm">📍</span>
             <div className="min-w-0 flex-1">
               {departure.trim() && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>From: <span className="font-bold">{departure.trim()}</span></p>}
               <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>To: {destination.trim()}</p>
             </div>
-            <span className="text-xs px-2 py-1 rounded-full font-bold shrink-0" style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}>
-              {MODES.find((m) => m.id === mode)?.emoji} {mode}
-            </span>
+            {anyLoading && (
+              <Loader2 size={14} className="animate-spin shrink-0" style={{ color: 'var(--text-muted)' }} />
+            )}
+            {!anyLoading && (
+              <span className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full shrink-0"
+                style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
+                {totalRoutes} routes
+              </span>
+            )}
           </div>
 
-          {/* Route cards */}
-          {options.map((opt) => {
-            const isExpanded = expandedRouteId === opt.id;
-            const transitRoute = opt.id.startsWith('transit-')
-              ? transitRoutes[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
-              : null;
+          {/* Mode groups */}
+          {MODES.map(({ id: mode, emoji, label }) => {
+            const routes = routesByMode[mode];
+            const isLoading = loadingModes.has(mode);
+            const isExpanded = expandedModes.has(mode);
+            const bestDuration = routes.length > 0 ? Math.min(...routes.map((r) => r.duration)) : 0;
+            const modeColor = MODE_COLORS[mode];
 
             return (
-              <div key={opt.id} className="rounded-2xl overflow-hidden" style={{ border: `2px solid ${opt.color}33`, backgroundColor: 'var(--bg-card)' }}>
-                <div className="px-3 py-1.5 flex items-center justify-between gap-2" style={{ backgroundColor: `${opt.color}18` }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black" style={{ color: opt.color }}>
-                      {transitRoute
-                        ? `Option ${parseInt(opt.id.replace('transit-', ''), 10) + 1} · dep ${fmtTime(transitRoute.departureTime)}`
-                        : opt.label}
+              <div key={mode} className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${isExpanded ? modeColor + '60' : 'var(--border)'}`, backgroundColor: 'var(--bg-card)' }}>
+                {/* Mode header — always visible */}
+                <button
+                  onClick={() => routes.length > 0 && toggleMode(mode)}
+                  disabled={routes.length === 0 && !isLoading}
+                  className="w-full px-3 py-2.5 flex items-center gap-2.5 transition"
+                  style={{ opacity: routes.length === 0 && !isLoading ? 0.4 : 1 }}
+                >
+                  <span className="text-lg">{emoji}</span>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{label}</p>
+                    <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                      {isLoading ? 'Calculating...' :
+                       routes.length === 0 ? 'No routes found' :
+                       `${routes.length} route${routes.length > 1 ? 's' : ''} · best ${fmtDur(bestDuration)}`}
+                    </p>
+                  </div>
+                  {isLoading && <Loader2 size={14} className="animate-spin shrink-0" style={{ color: modeColor }} />}
+                  {!isLoading && routes.length > 0 && (
+                    <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </span>
-                    {opt.rerouted && (
-                      <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}>
-                        {'↺ ' + t('rerouted')}
-                      </span>
-                    )}
-                  </div>
-                  {!transitRoute && <DangerBadge score={opt.dangerScore} />}
-                </div>
+                  )}
+                </button>
 
-                {/* Summary row — tappable to expand */}
-                <div className="px-3 py-2 flex items-center gap-3 cursor-pointer" onClick={() => setExpandedRouteId(isExpanded ? null : opt.id)}>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{fmtDur(opt.duration)}</span>
-                    {opt.distance > 0 && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>}
-                    {transitRoute && (
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {transitRoute.transfers} {transitRoute.transfers === 1 ? 'transfer' : 'transfers'}
-                        {transitRoute.arrivalTime && ` · arr ${fmtTime(transitRoute.arrivalTime)}`}
-                      </span>
-                    )}
-                  </div>
-                  <div className="ml-auto flex items-center gap-1.5">
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{isExpanded ? '▲' : '▼'}</span>
-                    <button onClick={(e) => { e.stopPropagation(); saveRoute(opt); }}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-80"
-                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }} title="Save route">
-                      <BookmarkPlus size={14} style={{ color: 'var(--text-muted)' }} />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleSelect(opt); }}
-                      className="px-4 py-2 rounded-xl text-xs font-black transition hover:opacity-90 active:scale-95"
-                      style={{ backgroundColor: opt.color, color: '#fff' }}>
-                      Start
-                    </button>
-                  </div>
-                </div>
+                {/* Expanded route cards */}
+                {isExpanded && routes.length > 0 && (
+                  <div className="px-2.5 pb-2.5 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+                    {routes.map((opt) => {
+                      const isDetailExpanded = expandedRouteId === opt.id;
+                      const transitRoute = opt.id.startsWith('transit-')
+                        ? transitRoutes.transit[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
+                        : null;
 
-                {/* Expanded transit step-by-step */}
-                {isExpanded && (
-                  <div className="px-3 pb-3 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
-                    {transitRoute ? (
-                      <div className="space-y-2">
-                        {transitRoute.steps.map((step, i) => (
-                          <div key={i} className="flex items-start gap-2.5">
-                            <div className="text-base mt-0.5">{getLineIcon(step.mode)}</div>
-                            <div className="flex-1 min-w-0">
+                      return (
+                        <div key={opt.id} className="rounded-xl mt-2" style={{ border: `1.5px solid ${modeColor}25`, backgroundColor: `${modeColor}06` }}>
+                          {/* Route summary row */}
+                          <div className="px-3 py-2 flex items-center gap-2 cursor-pointer" onClick={() => setExpandedRouteId(isDetailExpanded ? null : opt.id)}>
+                            <div className="flex flex-col min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
-                                {step.mode !== 'walking' && step.line && (
-                                  <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-black text-white"
-                                    style={{ backgroundColor: step.lineColor || 'var(--accent)' }}>
-                                    {step.line}
+                                <span className="text-xs font-black" style={{ color: modeColor }}>
+                                  {transitRoute
+                                    ? `dep ${fmtTime(transitRoute.departureTime)}`
+                                    : opt.label}
+                                </span>
+                                {opt.rerouted && (
+                                  <span className="text-[0.5rem] font-black px-1 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}>
+                                    ↺ rerouted
                                   </span>
                                 )}
-                                <span className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                                  {step.mode === 'walking' ? `Walk to ${step.to}` : `${step.from} → ${step.to}`}
-                                </span>
+                                {!transitRoute && <DangerBadge score={opt.dangerScore} />}
                               </div>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                  {formatTransitDuration(step.duration)}
-                                </span>
-                                {step.stops != null && step.stops > 0 && (
-                                  <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>· {step.stops} stops</span>
-                                )}
-                                {step.departureTime && step.mode !== 'walking' && (
+                                <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{fmtDur(opt.duration)}</span>
+                                {opt.distance > 0 && <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>}
+                                {transitRoute && (
                                   <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                    · dep {fmtTime(step.departureTime)}
-                                  </span>
-                                )}
-                                {step.headsign && (
-                                  <span className="text-[0.6rem] truncate" style={{ color: 'var(--text-muted)' }}>
-                                    → {step.headsign}
+                                    {transitRoute.transfers} transfer{transitRoute.transfers !== 1 ? 's' : ''}
                                   </span>
                                 )}
                               </div>
                             </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{isDetailExpanded ? '▲' : '▼'}</span>
+                              <button onClick={(e) => { e.stopPropagation(); saveRoute(opt, mode); }}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:opacity-80"
+                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }} title="Save route">
+                                <BookmarkPlus size={12} style={{ color: 'var(--text-muted)' }} />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); handleSelect(opt, mode); }}
+                                className="px-3 py-1.5 rounded-lg text-[0.65rem] font-black transition hover:opacity-90 active:scale-95"
+                                style={{ backgroundColor: modeColor, color: '#fff' }}>
+                                Start
+                              </button>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                        <p>{fmtDur(opt.duration)} · {fmtDist(opt.distance)}</p>
-                        {opt.dangerScore > 0 && <p>{opt.dangerScore} incident{opt.dangerScore !== 1 ? 's' : ''} reported near this route</p>}
-                        {opt.rerouted && <p style={{ color: '#6366f1' }}>This route was rerouted to avoid a danger zone</p>}
-                      </div>
-                    )}
+
+                          {/* Expanded details */}
+                          {isDetailExpanded && (
+                            <div className="px-3 pb-2.5 pt-1" style={{ borderTop: `1px solid ${modeColor}15` }}>
+                              {transitRoute ? (
+                                <div className="space-y-2">
+                                  {transitRoute.steps.map((step, i) => (
+                                    <div key={i} className="flex items-start gap-2.5">
+                                      <div className="text-base mt-0.5">{getLineIcon(step.mode)}</div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          {step.mode !== 'walking' && step.line && (
+                                            <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-black text-white"
+                                              style={{ backgroundColor: step.lineColor || 'var(--accent)' }}>
+                                              {step.line}
+                                            </span>
+                                          )}
+                                          <span className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                                            {step.mode === 'walking' ? `Walk to ${step.to}` : `${step.from} → ${step.to}`}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                            {formatTransitDuration(step.duration)}
+                                          </span>
+                                          {step.stops != null && step.stops > 0 && (
+                                            <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>· {step.stops} stops</span>
+                                          )}
+                                          {step.departureTime && step.mode !== 'walking' && (
+                                            <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                              · dep {fmtTime(step.departureTime)}
+                                            </span>
+                                          )}
+                                          {step.headsign && (
+                                            <span className="text-[0.6rem] truncate" style={{ color: 'var(--text-muted)' }}>
+                                              → {step.headsign}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
+                                  <p>{fmtDur(opt.duration)} · {fmtDist(opt.distance)}</p>
+                                  {opt.dangerScore > 0 && <p>{opt.dangerScore} incident{opt.dangerScore !== 1 ? 's' : ''} reported near this route</p>}
+                                  {opt.rerouted && <p style={{ color: '#6366f1' }}>This route was rerouted to avoid a danger zone</p>}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -528,29 +615,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
             />
           </div>
 
-          {/* Mode pills */}
-          <div>
-            <p className="text-[0.65rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Transport</p>
-            <div className="grid grid-cols-4 gap-2">
-              {MODES.map(({ id, emoji, label }) => (
-                <button
-                  key={id}
-                  onClick={() => setMode(id)}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-2xl transition"
-                  style={{
-                    backgroundColor: mode === id ? 'var(--accent)' : 'var(--bg-card)',
-                    border: mode === id ? '2px solid var(--accent)' : '1.5px solid var(--border)',
-                    color: mode === id ? '#fff' : 'var(--text-muted)',
-                  }}
-                >
-                  <span className="text-base leading-none">{emoji}</span>
-                  <span className="text-[0.6rem] font-bold leading-none">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search button */}
+          {/* Search button — no mode pills anymore */}
           <button
             onClick={findRoutes}
             disabled={!destination.trim()}

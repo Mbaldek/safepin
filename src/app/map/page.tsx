@@ -240,7 +240,7 @@ export default function MapPage() {
   }, [router, setUserProfile, setUserId]);
 
   // Load pins (exclude hidden pins unless the user owns them; filter simulated client-side)
-  const { showSimulated, setShowSimulated } = useStore();
+  const { showSimulated, setShowSimulated, pinsVersion } = useStore();
 
   // Auto-enable showSimulated via URL param (e.g. from admin "See on map")
   useEffect(() => {
@@ -263,7 +263,7 @@ export default function MapPage() {
       setPins(result);
     }
     loadPins();
-  }, [setPins, userId, showSimulated]);
+  }, [setPins, userId, showSimulated, pinsVersion]);
 
   // Deep link: ?pin=UUID → fly to pin and open detail sheet
   useEffect(() => {
@@ -484,6 +484,8 @@ export default function MapPage() {
         (payload) => handleNewPin(payload.new as Pin))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pins' },
         (payload) => updatePin(payload.new as Pin))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'pins' },
+        (payload) => { const old = payload.old as { id?: string }; if (old?.id) setPins(useStore.getState().pins.filter(p => p.id !== old.id)); })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_comments' },
         (payload) => handleNewComment(payload.new as { pin_id: string; display_name: string | null; content: string }))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_votes' },

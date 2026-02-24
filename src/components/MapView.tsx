@@ -391,6 +391,8 @@ export default function MapView() {
   const [showHeatmap, setShowHeatmap]     = useState(true);
   const [showScores, setShowScores]       = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
+  const prevPinIdsRef = useRef<Set<string>>(new Set());
+  const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
 
   // Initialize map
   useEffect(() => {
@@ -883,6 +885,26 @@ export default function MapView() {
     if (source) {
       source.setData(buildGeoJSON(regularPins));
     }
+
+    // Pin drop animation for newly arrived pins
+    const currentIds = new Set(regularPins.map((p) => p.id));
+    const prevIds = prevPinIdsRef.current;
+    if (prevIds.size > 0 && map.current) {
+      const m = map.current;
+      for (const pin of regularPins) {
+        if (prevIds.has(pin.id)) continue;
+        const color = SEVERITY[pin.severity as keyof typeof SEVERITY]?.color ?? '#f43f5e';
+        const el = document.createElement('div');
+        el.className = 'pin-drop';
+        el.style.cssText = `width:18px;height:18px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 2px 6px ${color}66;pointer-events:none;`;
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([pin.lng, pin.lat])
+          .addTo(m);
+        dropMarkersRef.current.push(marker);
+        setTimeout(() => { marker.remove(); }, 800);
+      }
+    }
+    prevPinIdsRef.current = currentIds;
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
   // Show / hide Paris transit station dots

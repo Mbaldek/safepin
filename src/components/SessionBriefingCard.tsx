@@ -79,7 +79,7 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -12 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="absolute top-3 left-3 right-3 z-[180] rounded-2xl p-3.5 shadow-lg"
+        className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[180] rounded-2xl p-3.5 shadow-lg"
         style={{ backgroundColor: '#ef4444', color: '#fff' }}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
@@ -116,7 +116,7 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -12 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="absolute top-3 left-3 right-3 z-[180] rounded-2xl p-3.5 shadow-lg"
+        className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[180] rounded-2xl p-3.5 shadow-lg"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
@@ -152,7 +152,7 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="absolute top-3 left-3 right-3 z-[180] rounded-2xl p-3.5 shadow-lg"
+      className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[180] rounded-2xl p-3.5 shadow-lg"
       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
     >
       <div className="flex items-start justify-between gap-2">
