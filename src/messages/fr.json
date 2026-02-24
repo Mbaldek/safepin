@@ -125,7 +125,9 @@
     "heatmap": "Ma carte thermique",
     "safetyScores": "Scores de sécurité",
     "safeSpaces": "Espaces sûrs",
-    "stations": "Gares"
+    "stations": "Gares",
+    "busStops": "Arrêts de bus",
+    "metroRER": "Métro / RER"
   },
   "trip": {
     "title": "Planifier un trajet",

@@ -1,7 +1,7 @@
 // src/__tests__/components/FilterBar.test.tsx
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import FilterBar from '@/components/FilterBar';
 import { useStore } from '@/stores/useStore';
 
@@ -19,16 +19,14 @@ describe('FilterBar', () => {
     });
   });
 
-  it('renders the filter trigger button', () => {
-    render(<FilterBar />);
-    const btn = screen.getByLabelText('Map filters');
-    expect(btn).toBeInTheDocument();
+  it('renders nothing when closed', () => {
+    const { container } = render(<FilterBar open={false} onClose={() => {}} />);
+    expect(container.innerHTML).toBe('');
   });
 
-  it('opens the filter panel on click', () => {
-    render(<FilterBar />);
-    fireEvent.click(screen.getByLabelText('Map filters'));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  it('renders the bottom sheet when open', () => {
+    render(<FilterBar open={true} onClose={() => {}} />);
+    expect(screen.getByText('title')).toBeInTheDocument();
   });
 
   it('shows clear all button when filters are active', () => {
@@ -42,8 +40,7 @@ describe('FilterBar', () => {
         timeOfDay: 'all',
       },
     });
-    render(<FilterBar />);
-    fireEvent.click(screen.getByLabelText('Map filters'));
+    render(<FilterBar open={true} onClose={() => {}} />);
     expect(screen.getByText('clearAll')).toBeInTheDocument();
   });
 });

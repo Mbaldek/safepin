@@ -426,7 +426,7 @@ export const useStore = create<Store>((set) => ({
   // Safe Spaces
   safeSpaces: [],
   setSafeSpaces: (spaces) => set({ safeSpaces: spaces }),
-  showSafeSpaces: false,
+  showSafeSpaces: true,
   setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
 
   // Simulation toggle

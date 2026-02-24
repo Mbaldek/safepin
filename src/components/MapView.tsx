@@ -4,10 +4,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { AnimatePresence } from 'framer-motion';
-import { Layers } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
-import LayerPanel from './LayerPanel';
 import { useTheme } from '@/stores/useTheme';
 import { SEVERITY, Pin } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
@@ -369,7 +366,31 @@ function addClusterLayers(m: mapboxgl.Map, isDark: boolean) {
   m.on('mouseleave', 'unclustered-point', () => { m.getCanvas().style.cursor = ''; });
 }
 
-export default function MapView() {
+export type MapViewProps = {
+  mapStyle: 'streets' | 'light' | 'dark';
+  showBus: boolean;
+  showMetroRER: boolean;
+  showPharmacy: boolean;
+  showHospital: boolean;
+  showPolice: boolean;
+  showHeatmap: boolean;
+  showScores: boolean;
+  onTransitLoadingChange?: (v: boolean) => void;
+  onPoiLoadingChange?: (v: boolean) => void;
+};
+
+export default function MapView({
+  mapStyle,
+  showBus,
+  showMetroRER,
+  showPharmacy,
+  showHospital,
+  showPolice,
+  showHeatmap,
+  showScores,
+  onTransitLoadingChange,
+  onPoiLoadingChange,
+}: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -380,16 +401,6 @@ export default function MapView() {
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
-  const [mapStyle, setMapStyle]           = useState<'streets' | 'light' | 'dark'>(theme === 'dark' ? 'dark' : 'streets');
-  const [showLayerPanel, setShowLayerPanel] = useState(false);
-  const [showStations, setShowStations]   = useState(false);
-  const [transitLoading, setTransitLoading] = useState(false);
-  const [showPharmacy, setShowPharmacy]   = useState(false);
-  const [showHospital, setShowHospital]   = useState(false);
-  const [showPolice, setShowPolice]       = useState(false);
-  const [poiLoading, setPOILoading]       = useState(false);
-  const [showHeatmap, setShowHeatmap]     = useState(false);
-  const [showScores, setShowScores]       = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -752,11 +763,6 @@ export default function MapView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, mapReady, layersReady]);
 
-  // Auto-follow app theme (unless user manually overrode via style picker)
-  useEffect(() => {
-    setMapStyle(theme === 'dark' ? 'dark' : 'streets');
-  }, [theme]);
-
   // Apply mapStyle to the actual Mapbox map — re-add cluster layers + transit after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
@@ -764,9 +770,19 @@ export default function MapView() {
     setLayersReady(false);
     map.current.once('style.load', () => {
       addClusterLayers(map.current!, mapStyle === 'dark');
-      if (showStations) {
+      const anyTransit = showBus || showMetroRER;
+      if (anyTransit) {
         fetchParisTransitStations()
-          .then(() => { if (map.current) addTransitLayer(map.current); })
+          .then(() => {
+            if (!map.current) return;
+            addTransitLayer(map.current);
+            const kinds: string[] = [];
+            if (showBus) kinds.push('bus');
+            if (showMetroRER) { kinds.push('metro', 'rer', 'tram'); }
+            const tf: mapboxgl.ExpressionSpecification = ['in', ['get', 'kind'], ['literal', kinds]];
+            if (map.current.getLayer(TRANSIT_CIRCLE)) map.current.setFilter(TRANSIT_CIRCLE, tf);
+            if (map.current.getLayer(TRANSIT_LABEL))  map.current.setFilter(TRANSIT_LABEL, tf);
+          })
           .catch((err: unknown) => console.warn('[Brume] Transit fetch failed:', err));
       }
       if (showPharmacy || showHospital || showPolice) {
@@ -907,30 +923,44 @@ export default function MapView() {
     prevPinIdsRef.current = currentIds;
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
-  // Show / hide Paris transit station dots
+  // Show / hide Paris transit station dots (Bus / Metro-RER split)
   useEffect(() => {
     const m = map.current;
     if (!m || !mapReady || !layersReady) return;
 
-    if (!showStations) {
+    const anyTransit = showBus || showMetroRER;
+
+    if (!anyTransit) {
       if (m.getLayer(TRANSIT_LABEL))  m.removeLayer(TRANSIT_LABEL);
       if (m.getLayer(TRANSIT_CIRCLE)) m.removeLayer(TRANSIT_CIRCLE);
       if (m.getSource(TRANSIT_SRC))   m.removeSource(TRANSIT_SRC);
       return;
     }
 
+    const kinds: string[] = [];
+    if (showBus) kinds.push('bus');
+    if (showMetroRER) { kinds.push('metro', 'rer', 'tram'); }
+    const filter: mapboxgl.ExpressionSpecification = ['in', ['get', 'kind'], ['literal', kinds]];
+
     if (transitCache) {
       addTransitLayer(m);
+      if (m.getLayer(TRANSIT_CIRCLE)) m.setFilter(TRANSIT_CIRCLE, filter);
+      if (m.getLayer(TRANSIT_LABEL))  m.setFilter(TRANSIT_LABEL, filter);
       return;
     }
 
-    setTransitLoading(true);
+    onTransitLoadingChange?.(true);
     fetchParisTransitStations()
-      .then(() => { if (map.current) addTransitLayer(map.current); })
+      .then(() => {
+        if (!map.current) return;
+        addTransitLayer(map.current);
+        if (map.current.getLayer(TRANSIT_CIRCLE)) map.current.setFilter(TRANSIT_CIRCLE, filter);
+        if (map.current.getLayer(TRANSIT_LABEL))  map.current.setFilter(TRANSIT_LABEL, filter);
+      })
       .catch((err: unknown) => console.warn('[Brume] Transit fetch failed:', err))
-      .finally(() => setTransitLoading(false));
+      .finally(() => onTransitLoadingChange?.(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showStations, mapReady, layersReady]);
+  }, [showBus, showMetroRER, mapReady, layersReady]);
 
   // Show / hide POI layers
   useEffect(() => {
@@ -954,7 +984,7 @@ export default function MapView() {
       return;
     }
 
-    setPOILoading(true);
+    onPoiLoadingChange?.(true);
     fetchParisPOIs()
       .then(() => {
         if (!map.current) return;
@@ -964,7 +994,7 @@ export default function MapView() {
         if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
       })
       .catch((err) => console.warn('[Brume] POI fetch failed:', err))
-      .finally(() => setPOILoading(false));
+      .finally(() => onPoiLoadingChange?.(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPharmacy, showHospital, showPolice, mapReady, layersReady]);
 
@@ -1159,63 +1189,6 @@ export default function MapView() {
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
-
-      {/* ── Map controls (right side, above bottom nav) ─────────────── */}
-      <div className="absolute left-3 bottom-22 z-50 flex flex-col items-start gap-2">
-
-        {/* Layer panel popover */}
-        <AnimatePresence>
-          {showLayerPanel && (
-            <LayerPanel
-              key="layer-panel"
-              mapStyle={mapStyle}
-              onStyleChange={(s) => { setMapStyle(s); }}
-              showStations={showStations}
-              onStationsToggle={() => setShowStations((v) => !v)}
-              transitLoading={transitLoading}
-              showPharmacy={showPharmacy}
-              onPharmacyToggle={() => setShowPharmacy((v) => !v)}
-              showHospital={showHospital}
-              onHospitalToggle={() => setShowHospital((v) => !v)}
-              showPolice={showPolice}
-              onPoliceToggle={() => setShowPolice((v) => !v)}
-              poiLoading={poiLoading}
-              showHeatmap={showHeatmap}
-              onHeatmapToggle={() => setShowHeatmap((v) => !v)}
-              showScores={showScores}
-              onScoresToggle={() => setShowScores((v) => !v)}
-              showSafeSpaces={showSafeSpaces}
-              onSafeSpacesToggle={() => setShowSafeSpaces(!showSafeSpaces)}
-              isAdmin={!!(userProfile as Record<string, unknown>)?.is_admin}
-              showSimulated={showSimulated}
-              onSimulatedToggle={() => setShowSimulated(!showSimulated)}
-              onClose={() => setShowLayerPanel(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Layers toggle button */}
-        <button
-          onClick={() => setShowLayerPanel((v) => !v)}
-          className="w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95"
-          style={{
-            backgroundColor: showLayerPanel
-              ? 'var(--accent)'
-              : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
-            border: '1px solid var(--border)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-          }}
-          title="Map layers"
-        >
-          <Layers
-            size={16}
-            strokeWidth={2}
-            style={{ color: showLayerPanel ? '#fff' : 'var(--text-muted)' }}
-          />
-        </button>
-
-      </div>
 
       <SafeSpaceDetailSheet space={selectedSafeSpace} onClose={() => setSelectedSafeSpace(null)} />
     </div>

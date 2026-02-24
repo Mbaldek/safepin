@@ -15,9 +15,11 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, MessageCircle } from 'lucide-react';
+import { Bell, Search, Menu, X, List, MessageCircle, SlidersHorizontal, Layers } from 'lucide-react';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
+import LayerPanel from '@/components/LayerPanel';
+import { useTheme } from '@/stores/useTheme';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -103,6 +105,8 @@ export default function MapPage() {
     setActiveRoute, setTransitSegments,
     tripNudge,
     showWalkWithMe, setShowWalkWithMe,
+    mapFilters,
+    showSafeSpaces, setShowSafeSpaces,
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone();
@@ -209,7 +213,45 @@ export default function MapPage() {
   const [showPushOptIn, setShowPushOptIn] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
   const [showCommunityShortcut, setShowCommunityShortcut] = useState(false);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
+
+  // Layer state (lifted from MapView so page can render LayerPanel bottom sheet)
+  const { theme } = useTheme();
+  const [mapStyle, setMapStyle] = useState<'streets' | 'light' | 'dark'>('streets');
+  const [showBus, setShowBus] = useState(false);
+  const [showMetroRER, setShowMetroRER] = useState(false);
+  const [showPharmacy, setShowPharmacy] = useState(false);
+  const [showHospital, setShowHospital] = useState(false);
+  const [showPolice, setShowPolice] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showScores, setShowScores] = useState(false);
+  const [transitLoading, setTransitLoading] = useState(false);
+  const [poiLoading, setPoiLoading] = useState(false);
+
+  // Auto-follow app theme for map style
+  useEffect(() => {
+    setMapStyle(theme === 'dark' ? 'dark' : 'streets');
+  }, [theme]);
+
+  // Filter active count for badge
+  const filterActiveCount = [
+    mapFilters.severity !== 'all',
+    mapFilters.age !== 'all',
+    mapFilters.urban !== 'all',
+    mapFilters.confirmedOnly,
+    mapFilters.timeOfDay !== 'all',
+  ].filter(Boolean).length;
+
+  function openFilterPanel() {
+    setShowFilterPanel(true);
+    setShowLayerPanel(false);
+  }
+  function openLayerPanel() {
+    setShowLayerPanel(true);
+    setShowFilterPanel(false);
+  }
   const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 
@@ -642,8 +684,18 @@ export default function MapPage() {
 
       {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
       <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' ? 'hidden' : 'flex flex-col'}`}>
-        <MapView />
-        <FilterBar />
+        <MapView
+          mapStyle={mapStyle}
+          showBus={showBus}
+          showMetroRER={showMetroRER}
+          showPharmacy={showPharmacy}
+          showHospital={showHospital}
+          showPolice={showPolice}
+          showHeatmap={showHeatmap}
+          showScores={showScores}
+          onTransitLoadingChange={setTransitLoading}
+          onPoiLoadingChange={setPoiLoading}
+        />
         <EmergencyButton userId={userId} />
 
         {/* Session briefing card — shown once per session on map tab */}
@@ -701,6 +753,51 @@ export default function MapPage() {
                 )}
               </button>
             )}
+            {/* Filter + Layers icon buttons — left of FAB column */}
+            <button
+              onClick={openFilterPanel}
+              aria-label="Map filters"
+              className="absolute bottom-40 right-18 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
+              style={{
+                backgroundColor: showFilterPanel || filterActiveCount > 0
+                  ? 'var(--accent)'
+                  : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
+                border: '1px solid var(--border)',
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              <SlidersHorizontal
+                size={15}
+                strokeWidth={2}
+                style={{ color: showFilterPanel || filterActiveCount > 0 ? '#fff' : 'var(--text-muted)' }}
+              />
+              {filterActiveCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-3.75 h-3.75 rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: '#fff', color: 'var(--accent)' }}
+                >
+                  {filterActiveCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={openLayerPanel}
+              aria-label="Map layers"
+              className="absolute bottom-28 right-18 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
+              style={{
+                backgroundColor: showLayerPanel
+                  ? 'var(--accent)'
+                  : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
+                border: '1px solid var(--border)',
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              <Layers
+                size={15}
+                strokeWidth={2}
+                style={{ color: showLayerPanel ? '#fff' : 'var(--text-muted)' }}
+              />
+            </button>
             {/* Report button — stacked above SOS on the right */}
             <button
               onClick={() => setActiveSheet('report')}
@@ -710,6 +807,38 @@ export default function MapPage() {
             </button>
           </>
         )}
+
+        {/* Filter bottom sheet */}
+        <FilterBar open={showFilterPanel} onClose={() => setShowFilterPanel(false)} />
+
+        {/* Layers bottom sheet */}
+        <LayerPanel
+          open={showLayerPanel}
+          onClose={() => setShowLayerPanel(false)}
+          mapStyle={mapStyle}
+          onStyleChange={setMapStyle}
+          showBus={showBus}
+          onBusToggle={() => setShowBus((v) => !v)}
+          showMetroRER={showMetroRER}
+          onMetroRERToggle={() => setShowMetroRER((v) => !v)}
+          transitLoading={transitLoading}
+          showPharmacy={showPharmacy}
+          onPharmacyToggle={() => setShowPharmacy((v) => !v)}
+          showHospital={showHospital}
+          onHospitalToggle={() => setShowHospital((v) => !v)}
+          showPolice={showPolice}
+          onPoliceToggle={() => setShowPolice((v) => !v)}
+          poiLoading={poiLoading}
+          showHeatmap={showHeatmap}
+          onHeatmapToggle={() => setShowHeatmap((v) => !v)}
+          showScores={showScores}
+          onScoresToggle={() => setShowScores((v) => !v)}
+          showSafeSpaces={showSafeSpaces}
+          onSafeSpacesToggle={() => setShowSafeSpaces(!showSafeSpaces)}
+          isAdmin={!!(userProfile as Record<string, unknown>)?.is_admin}
+          showSimulated={showSimulated}
+          onSimulatedToggle={() => setShowSimulated(!showSimulated)}
+        />
         {/* Map contextual card — shows area info */}
 
         {/* TripHUD — persistent map overlay during active trip */}

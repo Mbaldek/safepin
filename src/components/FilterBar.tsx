@@ -2,13 +2,12 @@
 
 'use client';
 
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useFocusTrap } from '@/lib/useFocusTrap';
-import { SlidersHorizontal } from 'lucide-react';
 import { useStore, type MapFilters } from '@/stores/useStore';
 import { SEVERITY, URBAN_CONTEXTS } from '@/types';
 import { useTranslations } from 'next-intl';
+import CollapsibleSection from '@/components/CollapsibleSection';
 
 const AGE_OPTIONS = [
   { id: 'all',   label: 'Any'   },
@@ -16,8 +15,6 @@ const AGE_OPTIONS = [
   { id: '6h',    label: '< 6h'  },
   { id: 'today', label: 'Today' },
 ];
-
-const springConfig = { type: 'spring', damping: 32, stiffness: 300, mass: 0.8 } as const;
 
 const TIME_OPTIONS = [
   { id: 'all'       as const, key: 'anyTime'    as const },
@@ -29,20 +26,9 @@ const TIME_OPTIONS = [
 
 const DEFAULT: MapFilters = { severity: 'all', age: 'all', urban: 'all', confirmedOnly: false, liveOnly: false, timeOfDay: 'all' };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+const springConfig = { type: 'spring', damping: 32, stiffness: 300, mass: 0.8 } as const;
 
-function Section({ label, children }: { label?: string; children: ReactNode }) {
-  return (
-    <div className="mb-4">
-      {label && (
-        <p className="text-[0.6rem] font-black tracking-widest uppercase mb-2" style={{ color: 'var(--text-muted)' }}>
-          {label}
-        </p>
-      )}
-      {children}
-    </div>
-  );
-}
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ChipRow({ children, wrap }: { children: ReactNode; wrap?: boolean }) {
   return (
@@ -76,12 +62,15 @@ function Chip({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function FilterBar() {
+type FilterBarProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
+export default function FilterBar({ open, onClose }: FilterBarProps) {
   const { mapFilters, setMapFilters } = useStore();
-  const [open, setOpen] = useState(false);
   const t = useTranslations('filters');
-  const closePanel = useCallback(() => setOpen(false), []);
-  const focusTrapRef = useFocusTrap(open, closePanel);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const activeCount = [
     mapFilters.severity !== 'all',
@@ -95,171 +84,183 @@ export default function FilterBar() {
     setMapFilters({ ...mapFilters, ...partial });
   }
 
+  function toggle(id: string) {
+    setExpanded(expanded === id ? null : id);
+  }
+
+  // Summary helpers
+  const severitySummary = mapFilters.severity === 'all'
+    ? 'All'
+    : SEVERITY[mapFilters.severity as keyof typeof SEVERITY]?.label ?? mapFilters.severity;
+
+  const ageSummary = AGE_OPTIONS.find((o) => o.id === mapFilters.age)?.label ?? 'Any';
+
+  const urbanSummary = mapFilters.urban === 'all'
+    ? 'Any'
+    : URBAN_CONTEXTS[mapFilters.urban as keyof typeof URBAN_CONTEXTS]?.label ?? mapFilters.urban;
+
+  const timeSummary = mapFilters.timeOfDay === 'all'
+    ? t('anyTime')
+    : t(mapFilters.timeOfDay as 'morning' | 'afternoon' | 'evening' | 'night');
+
   return (
-    <>
-      {/* ── Filter icon button ─────────────────────────────────────── */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Map filters"
-        className="absolute top-3 left-3 z-[60] w-9 h-9 flex items-center justify-center rounded-xl transition active:scale-95"
-        style={{
-          backgroundColor: open || activeCount > 0
-            ? 'var(--accent)'
-            : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
-          border: '1px solid var(--border)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-        }}
-      >
-        <SlidersHorizontal
-          size={16}
-          strokeWidth={2}
-          style={{ color: open || activeCount > 0 ? '#fff' : 'var(--text-muted)' }}
-        />
-        {activeCount > 0 && (
-          <span
-            className="absolute -top-1 -right-1 min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-            style={{ backgroundColor: '#fff', color: 'var(--accent)' }}
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Tap-away overlay */}
+          <motion.div
+            className="absolute inset-0 z-58"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{ backgroundColor: 'var(--bg-overlay)' }}
+            onClick={onClose}
+          />
+
+          {/* Bottom sheet */}
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 z-60 rounded-t-2xl max-h-[70vh] overflow-y-auto"
+            style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={springConfig}
           >
-            {activeCount}
-          </span>
-        )}
-      </button>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+            </div>
 
-      {/* ── Overlay + Panel ────────────────────────────────────────── */}
-      <AnimatePresence>
-        {open && (
-          <>
-            {/* Tap-away overlay */}
-            <motion.div
-              className="absolute inset-0 z-[55]"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              style={{ backgroundColor: 'var(--bg-overlay)' }}
-              onClick={() => setOpen(false)}
-            />
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-2">
+              <h3 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+                {t('title')}
+              </h3>
+              {activeCount > 0 && (
+                <button
+                  onClick={() => setMapFilters(DEFAULT)}
+                  className="text-xs font-bold transition hover:opacity-70"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  {t('clearAll')}
+                </button>
+              )}
+            </div>
 
-            {/* Filter panel */}
-            <motion.div
-              ref={focusTrapRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Map filters"
-              className="sheet-motion absolute top-0 left-0 bottom-0 z-56 rounded-r-3xl overflow-y-auto w-[82%] max-w-75"
-              style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
-              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-              transition={springConfig}
+            {/* Severity */}
+            <CollapsibleSection
+              label={t('severity')}
+              summary={severitySummary}
+              isActive={mapFilters.severity !== 'all'}
+              expanded={expanded === 'severity'}
+              onToggle={() => toggle('severity')}
             >
-              <div className="px-5 pt-14 pb-10">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
-                    {t('title')}
-                  </h3>
-                  {activeCount > 0 && (
-                    <button
-                      onClick={() => setMapFilters(DEFAULT)}
-                      className="text-xs font-bold transition hover:opacity-70"
-                      style={{ color: 'var(--accent)' }}
-                    >
-                      {t('clearAll')}
-                    </button>
-                  )}
-                </div>
-
-                {/* Severity */}
-                <Section label={t('severity')}>
-                  <ChipRow>
-                    <Chip active={mapFilters.severity === 'all'} onClick={() => patch({ severity: 'all' })}>
-                      All
-                    </Chip>
-                    {Object.entries(SEVERITY).map(([key, { label, emoji, color }]) => (
-                      <Chip
-                        key={key}
-                        active={mapFilters.severity === key}
-                        onClick={() => patch({ severity: key })}
-                        color={color}
-                      >
-                        {emoji} {label}
-                      </Chip>
-                    ))}
-                  </ChipRow>
-                </Section>
-
-                {/* Age */}
-                <Section label={t('age')}>
-                  <ChipRow>
-                    {AGE_OPTIONS.map(({ id, label }) => (
-                      <Chip key={id} active={mapFilters.age === id} onClick={() => patch({ age: id })}>
-                        {label}
-                      </Chip>
-                    ))}
-                  </ChipRow>
-                </Section>
-
-                {/* Urban context */}
-                <Section label={t('locationType')}>
-                  <ChipRow wrap>
-                    <Chip active={mapFilters.urban === 'all'} onClick={() => patch({ urban: 'all' })}>
-                      Any
-                    </Chip>
-                    {Object.entries(URBAN_CONTEXTS).map(([key, { label, emoji }]) => (
-                      <Chip
-                        key={key}
-                        active={mapFilters.urban === key}
-                        onClick={() => patch({ urban: key })}
-                      >
-                        {emoji} {label}
-                      </Chip>
-                    ))}
-                  </ChipRow>
-                </Section>
-
-                {/* Time of day */}
-                <Section label={t('timeOfDay')}>
-                  <ChipRow wrap>
-                    {TIME_OPTIONS.map(({ id, key }) => (
-                      <Chip key={id} active={mapFilters.timeOfDay === id} onClick={() => patch({ timeOfDay: id })}>
-                        {t(key)}
-                      </Chip>
-                    ))}
-                  </ChipRow>
-                </Section>
-
-                {/* Confirmed only */}
-                <Section>
-                  <button
-                    onClick={() => patch({ confirmedOnly: !mapFilters.confirmedOnly })}
-                    className="flex items-center justify-between w-full py-2.5 px-3 rounded-xl transition active:opacity-80"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              <ChipRow>
+                <Chip active={mapFilters.severity === 'all'} onClick={() => patch({ severity: 'all' })}>
+                  All
+                </Chip>
+                {Object.entries(SEVERITY).map(([key, { label, emoji, color }]) => (
+                  <Chip
+                    key={key}
+                    active={mapFilters.severity === key}
+                    onClick={() => patch({ severity: key })}
+                    color={color}
                   >
-                    <div className="text-left">
-                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                        {t('confirmedOnly')}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {t('confirmedDesc')}
-                      </p>
-                    </div>
-                    {/* iOS-style toggle */}
-                    <div
-                      className="relative w-11 h-6 rounded-full shrink-0 ml-4 transition-colors"
-                      style={{ backgroundColor: mapFilters.confirmedOnly ? 'var(--accent)' : 'var(--border)' }}
-                    >
-                      <motion.div
-                        className="absolute top-0.5 w-5 h-5 rounded-full shadow-sm"
-                        style={{ backgroundColor: '#fff' }}
-                        animate={{ left: mapFilters.confirmedOnly ? '22px' : '2px' }}
-                        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                      />
-                    </div>
-                  </button>
-                </Section>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+                    {emoji} {label}
+                  </Chip>
+                ))}
+              </ChipRow>
+            </CollapsibleSection>
+
+            {/* Age */}
+            <CollapsibleSection
+              label={t('age')}
+              summary={ageSummary}
+              isActive={mapFilters.age !== 'all'}
+              expanded={expanded === 'age'}
+              onToggle={() => toggle('age')}
+            >
+              <ChipRow>
+                {AGE_OPTIONS.map(({ id, label }) => (
+                  <Chip key={id} active={mapFilters.age === id} onClick={() => patch({ age: id })}>
+                    {label}
+                  </Chip>
+                ))}
+              </ChipRow>
+            </CollapsibleSection>
+
+            {/* Urban context */}
+            <CollapsibleSection
+              label={t('locationType')}
+              summary={urbanSummary}
+              isActive={mapFilters.urban !== 'all'}
+              expanded={expanded === 'urban'}
+              onToggle={() => toggle('urban')}
+            >
+              <ChipRow wrap>
+                <Chip active={mapFilters.urban === 'all'} onClick={() => patch({ urban: 'all' })}>
+                  Any
+                </Chip>
+                {Object.entries(URBAN_CONTEXTS).map(([key, { label, emoji }]) => (
+                  <Chip
+                    key={key}
+                    active={mapFilters.urban === key}
+                    onClick={() => patch({ urban: key })}
+                  >
+                    {emoji} {label}
+                  </Chip>
+                ))}
+              </ChipRow>
+            </CollapsibleSection>
+
+            {/* Time of day */}
+            <CollapsibleSection
+              label={t('timeOfDay')}
+              summary={timeSummary}
+              isActive={mapFilters.timeOfDay !== 'all'}
+              expanded={expanded === 'timeOfDay'}
+              onToggle={() => toggle('timeOfDay')}
+            >
+              <ChipRow wrap>
+                {TIME_OPTIONS.map(({ id, key }) => (
+                  <Chip key={id} active={mapFilters.timeOfDay === id} onClick={() => patch({ timeOfDay: id })}>
+                    {t(key)}
+                  </Chip>
+                ))}
+              </ChipRow>
+            </CollapsibleSection>
+
+            {/* Confirmed only — always visible */}
+            <div className="px-5 py-4">
+              <button
+                onClick={() => patch({ confirmedOnly: !mapFilters.confirmedOnly })}
+                className="flex items-center justify-between w-full py-2.5 px-3 rounded-xl transition active:opacity-80"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              >
+                <div className="text-left">
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                    {t('confirmedOnly')}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {t('confirmedDesc')}
+                  </p>
+                </div>
+                {/* iOS-style toggle */}
+                <div
+                  className="relative w-11 h-6 rounded-full shrink-0 ml-4 transition-colors"
+                  style={{ backgroundColor: mapFilters.confirmedOnly ? 'var(--accent)' : 'var(--border)' }}
+                >
+                  <motion.div
+                    className="absolute top-0.5 w-5 h-5 rounded-full shadow-sm"
+                    style={{ backgroundColor: '#fff' }}
+                    animate={{ left: mapFilters.confirmedOnly ? '22px' : '2px' }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                  />
+                </div>
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

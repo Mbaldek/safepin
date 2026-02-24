@@ -2,18 +2,23 @@
 
 'use client';
 
-import { motion } from 'framer-motion';
-import { X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useFocusTrap } from '@/lib/useFocusTrap';
+import CollapsibleSection from '@/components/CollapsibleSection';
 
 type MapStyle = 'streets' | 'light' | 'dark';
 
 type Props = {
+  open: boolean;
+  onClose: () => void;
   mapStyle: MapStyle;
   onStyleChange: (s: MapStyle) => void;
-  showStations: boolean;
-  onStationsToggle: () => void;
+  showBus: boolean;
+  onBusToggle: () => void;
+  showMetroRER: boolean;
+  onMetroRERToggle: () => void;
   transitLoading: boolean;
   showPharmacy: boolean;
   onPharmacyToggle: () => void;
@@ -28,7 +33,6 @@ type Props = {
   onScoresToggle: () => void;
   showSafeSpaces: boolean;
   onSafeSpacesToggle: () => void;
-  onClose: () => void;
   isAdmin?: boolean;
   showSimulated?: boolean;
   onSimulatedToggle?: () => void;
@@ -39,6 +43,8 @@ const STYLES: { id: MapStyle; label: string; emoji: string }[] = [
   { id: 'light',   label: 'Light',   emoji: '☀️' },
   { id: 'dark',    label: 'Dark',    emoji: '🌙' },
 ];
+
+const springConfig = { type: 'spring', damping: 32, stiffness: 300, mass: 0.8 } as const;
 
 function Toggle({ on, loading, onToggle, label, color, emoji }: {
   on: boolean; loading?: boolean; onToggle: () => void; label: string; color: string; emoji: string;
@@ -60,11 +66,11 @@ function Toggle({ on, loading, onToggle, label, color, emoji }: {
         <Loader2 size={13} className="animate-spin" style={{ color }} />
       ) : (
         <div
-          className="w-8 h-[18px] rounded-full relative transition-colors"
+          className="w-8 h-4.5 rounded-full relative transition-colors"
           style={{ backgroundColor: on ? color : 'var(--border)' }}
         >
           <div
-            className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-all"
+            className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-all"
             style={{ left: on ? '16px' : '2px' }}
           />
         </div>
@@ -75,102 +81,135 @@ function Toggle({ on, loading, onToggle, label, color, emoji }: {
 
 export default function LayerPanel(props: Props) {
   const t = useTranslations('layers');
-  const focusTrapRef = useFocusTrap(true, props.onClose);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  function toggle(id: string) {
+    setExpanded(expanded === id ? null : id);
+  }
+
+  const poiCount = [props.showPharmacy, props.showHospital, props.showPolice].filter(Boolean).length;
+  const transportCount = [props.showBus, props.showMetroRER].filter(Boolean).length;
+  const dataCount = [props.showHeatmap, props.showScores, props.showSafeSpaces].filter(Boolean).length;
+
   return (
-    <motion.div
-      ref={focusTrapRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Map layers"
-      className="rounded-2xl p-3 w-[210px]"
-      style={{
-        backgroundColor: 'color-mix(in srgb, var(--bg-primary) 92%, transparent)',
-        border: '1px solid var(--border)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-      }}
-      initial={{ opacity: 0, scale: 0.85, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.85, y: 10 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.6 }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <p className="text-[0.6rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-          Layers
-        </p>
-        <button onClick={props.onClose} className="p-1 rounded-full transition active:opacity-60">
-          <X size={12} style={{ color: 'var(--text-muted)' }} />
-        </button>
-      </div>
-
-      {/* Map style */}
-      <div className="flex gap-1 mb-3">
-        {STYLES.map(({ id, label, emoji }) => (
-          <button
-            key={id}
-            onClick={() => props.onStyleChange(id)}
-            className="flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl text-[0.6rem] font-bold transition"
-            style={{
-              backgroundColor: props.mapStyle === id ? 'var(--accent)' : 'transparent',
-              color: props.mapStyle === id ? '#fff' : 'var(--text-muted)',
-            }}
-          >
-            <span className="text-xs">{emoji}</span>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Divider */}
-      <div className="h-px mb-2" style={{ backgroundColor: 'var(--border)' }} />
-
-      {/* Safety POIs */}
-      <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
-        {t('safetyPOI')}
-      </p>
-      <div className="flex flex-col gap-0.5 mb-2">
-        <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label={t('pharmacies')} color="#10b981" emoji="💊" />
-        <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label={t('hospitals')} color="#ef4444" emoji="🏥" />
-        <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading}   label={t('police')}     color="#3b82f6" emoji="🚔" />
-      </div>
-
-      {/* Divider */}
-      <div className="h-px mb-2" style={{ backgroundColor: 'var(--border)' }} />
-
-      {/* Transport */}
-      <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
-        {t('transport')}
-      </p>
-      <div className="flex flex-col gap-0.5 mb-2">
-        <Toggle on={props.showStations} onToggle={props.onStationsToggle} loading={props.transitLoading && !props.showStations} label={t('stations')} color="#6366f1" emoji="🚉" />
-      </div>
-
-      {/* Divider */}
-      <div className="h-px mb-2" style={{ backgroundColor: 'var(--border)' }} />
-
-      {/* Data */}
-      <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: 'var(--text-muted)' }}>
-        {t('data')}
-      </p>
-      <div className="flex flex-col gap-0.5">
-        <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color="#f43f5e" emoji="🔥" />
-        <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" />
-        <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" />
-      </div>
-
-      {/* Admin — Simulated data toggle */}
-      {props.isAdmin && props.onSimulatedToggle && (
+    <AnimatePresence>
+      {props.open && (
         <>
-          <div className="h-px mt-2 mb-2" style={{ backgroundColor: 'var(--border)' }} />
-          <p className="text-[0.55rem] font-black uppercase tracking-widest px-1 mb-1" style={{ color: '#f59e0b' }}>
-            Admin
-          </p>
-          <div className="flex flex-col gap-0.5">
-            <Toggle on={!!props.showSimulated} onToggle={props.onSimulatedToggle} label="Simulated" color="#f59e0b" emoji="🤖" />
-          </div>
+          {/* Tap-away overlay */}
+          <motion.div
+            className="absolute inset-0 z-58"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{ backgroundColor: 'var(--bg-overlay)' }}
+            onClick={props.onClose}
+          />
+
+          {/* Bottom sheet */}
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 z-60 rounded-t-2xl max-h-[70vh] overflow-y-auto"
+            style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={springConfig}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+            </div>
+
+            {/* Header */}
+            <div className="px-5 pb-2">
+              <h3 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+                Layers
+              </h3>
+            </div>
+
+            {/* Map style — always visible */}
+            <div className="px-5 pb-3">
+              <div className="flex gap-1">
+                {STYLES.map(({ id, label, emoji }) => (
+                  <button
+                    key={id}
+                    onClick={() => props.onStyleChange(id)}
+                    className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl text-[0.65rem] font-bold transition"
+                    style={{
+                      backgroundColor: props.mapStyle === id ? 'var(--accent)' : 'var(--bg-card)',
+                      color: props.mapStyle === id ? '#fff' : 'var(--text-muted)',
+                      border: props.mapStyle === id ? 'none' : '1px solid var(--border)',
+                    }}
+                  >
+                    <span className="text-sm">{emoji}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Safety POIs */}
+            <CollapsibleSection
+              label={t('safetyPOI')}
+              summary={poiCount > 0 ? `${poiCount} active` : 'None'}
+              isActive={poiCount > 0}
+              expanded={expanded === 'poi'}
+              onToggle={() => toggle('poi')}
+            >
+              <div className="flex flex-col gap-0.5">
+                <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label={t('pharmacies')} color="#10b981" emoji="💊" />
+                <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label={t('hospitals')} color="#ef4444" emoji="🏥" />
+                <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading} label={t('police')}     color="#3b82f6" emoji="🚔" />
+              </div>
+            </CollapsibleSection>
+
+            {/* Transport */}
+            <CollapsibleSection
+              label={t('transport')}
+              summary={transportCount > 0 ? `${transportCount} active` : 'None'}
+              isActive={transportCount > 0}
+              expanded={expanded === 'transport'}
+              onToggle={() => toggle('transport')}
+            >
+              <div className="flex flex-col gap-0.5">
+                <Toggle on={props.showBus} onToggle={props.onBusToggle} loading={props.transitLoading && !props.showBus} label={t('busStops')} color="#f59e0b" emoji="🚌" />
+                <Toggle on={props.showMetroRER} onToggle={props.onMetroRERToggle} loading={props.transitLoading && !props.showMetroRER} label={t('metroRER')} color="#6366f1" emoji="🚇" />
+              </div>
+            </CollapsibleSection>
+
+            {/* Data */}
+            <CollapsibleSection
+              label={t('data')}
+              summary={dataCount > 0 ? `${dataCount} active` : 'None'}
+              isActive={dataCount > 0}
+              expanded={expanded === 'data'}
+              onToggle={() => toggle('data')}
+            >
+              <div className="flex flex-col gap-0.5">
+                <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color="#f43f5e" emoji="🔥" />
+                <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" />
+                <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" />
+              </div>
+            </CollapsibleSection>
+
+            {/* Admin — Simulated */}
+            {props.isAdmin && props.onSimulatedToggle && (
+              <CollapsibleSection
+                label="Admin"
+                summary={props.showSimulated ? '1 active' : 'None'}
+                isActive={!!props.showSimulated}
+                expanded={expanded === 'admin'}
+                onToggle={() => toggle('admin')}
+              >
+                <div className="flex flex-col gap-0.5">
+                  <Toggle on={!!props.showSimulated} onToggle={props.onSimulatedToggle} label="Simulated" color="#f59e0b" emoji="🤖" />
+                </div>
+              </CollapsibleSection>
+            )}
+
+            {/* Bottom spacing */}
+            <div className="h-4" />
+          </motion.div>
         </>
       )}
-    </motion.div>
+    </AnimatePresence>
   );
 }

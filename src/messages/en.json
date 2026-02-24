@@ -125,7 +125,9 @@
     "heatmap": "My heatmap",
     "safetyScores": "Safety scores",
     "safeSpaces": "Safe spaces",
-    "stations": "Stations"
+    "stations": "Stations",
+    "busStops": "Bus stops",
+    "metroRER": "Metro / RER"
   },
   "trip": {
     "title": "Plan a trip",
