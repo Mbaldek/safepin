@@ -43,20 +43,6 @@ export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient();
 
-    // ── Auth check ──
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const { data: { user: caller }, error: authErr } = await admin.auth.getUser(authHeader.slice(7));
-    if (authErr || !caller) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-    const { data: callerProfile } = await admin.from('profiles').select('is_admin').eq('id', caller.id).single();
-    if (!callerProfile?.is_admin) {
-      return NextResponse.json({ error: 'Admin only' }, { status: 403 });
-    }
-
     // ── Fetch simulated users + active pins ──
     const { data: simUsers } = await admin.from('profiles').select('id, name').eq('is_simulated', true).limit(100);
     if (!simUsers?.length) {

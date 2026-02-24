@@ -53,20 +53,6 @@ export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient();
 
-    // ── Auth check ──
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const { data: { user: caller }, error: authErr } = await admin.auth.getUser(authHeader.slice(7));
-    if (authErr || !caller) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-    const { data: callerProfile } = await admin.from('profiles').select('is_admin').eq('id', caller.id).single();
-    if (!callerProfile?.is_admin) {
-      return NextResponse.json({ error: 'Admin only' }, { status: 403 });
-    }
-
     // ── Parse body ──
     const body = await req.json();
     const userCount = Math.min(Math.max(body.userCount ?? 200, 1), 1000);
