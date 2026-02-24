@@ -1173,7 +1173,7 @@ function SimulationTab() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error('Not authenticated'); return; }
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/seed-paris`, {
+      const res = await fetch('/api/simulation/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ userCount, pinCount }),
@@ -1206,7 +1206,7 @@ function SimulationTab() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/simulate-activity`, {
+      const res = await fetch('/api/simulation/tick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ action: 'tick' }),
