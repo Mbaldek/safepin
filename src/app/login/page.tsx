@@ -53,6 +53,28 @@ export default function LoginPage() {
     router.push('/map');
   }
 
+  // ─── Beta bypass (anonymous sign-in) ─────────────
+  async function handleBetaLogin() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) { toast.error(error.message); setLoading(false); return; }
+      // Log beta access
+      console.info('[BETA]', new Date().toISOString(), 'anonymous_id=', data.user?.id);
+      if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          name: 'Beta Tester',
+        }, { onConflict: 'id' }).select().single();
+      }
+      router.push('/map');
+    } catch (err) {
+      console.error('Beta login failed:', err);
+      toast.error('Beta access unavailable');
+      setLoading(false);
+    }
+  }
+
   // ─── Invite code state ───────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
@@ -221,6 +243,14 @@ export default function LoginPage() {
               Dev
             </button>
           )}
+          <button
+            onClick={handleBetaLogin}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition hover:opacity-90 disabled:opacity-40"
+            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+          >
+            Beta
+          </button>
           <ThemeToggle />
         </div>
       </nav>

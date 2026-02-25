@@ -2340,7 +2340,8 @@ function InviteCodesTab() {
       setForm({ code: generateCode(), organization_name: '', description: '', max_uses: '100', expires_at: '' });
       setShowCreate(false);
       load();
-    } catch {
+    } catch (err) {
+      console.error('Invite code creation error:', err);
       toast.error('Failed to create invite code');
     } finally {
       setCreateLoading(false);
