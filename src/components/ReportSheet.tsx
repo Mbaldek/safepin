@@ -212,7 +212,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
         role="dialog"
         aria-modal="true"
         aria-label="Report incident"
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-2xl z-[201] max-h-[80dvh] overflow-y-auto"
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-2xl z-[201] max-h-[80dvh] overflow-y-auto lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           boxShadow: '0 -10px 40px var(--bg-overlay)',

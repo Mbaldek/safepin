@@ -400,7 +400,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         key="mykova-sheet"
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden"
+        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-95 lg:max-w-none lg:rounded-2xl"
         style={{ backgroundColor: 'var(--bg-primary)', maxHeight: '85dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}
       >
         {/* Drag handle */}
