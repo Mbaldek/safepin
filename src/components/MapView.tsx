@@ -396,6 +396,7 @@ export default function MapView({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const reportMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile } = useStore();
   const { theme } = useTheme();
@@ -487,6 +488,55 @@ export default function MapView({
     map.current.flyTo({ center: [mapFlyTo.lng, mapFlyTo.lat], zoom: mapFlyTo.zoom });
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
+
+  // Draggable marker for incident reporting
+  useEffect(() => {
+    if (!map.current || !mapReady) return;
+
+    const unsub = useStore.subscribe((state) => {
+      const m = map.current;
+      if (!m) return;
+      const coords = state.newPinCoords;
+      const isReport = state.activeSheet === 'report';
+
+      // Remove marker when report mode exits
+      if (!isReport || !coords) {
+        if (reportMarkerRef.current) {
+          reportMarkerRef.current.remove();
+          reportMarkerRef.current = null;
+        }
+        return;
+      }
+
+      // Create marker if it doesn't exist
+      if (!reportMarkerRef.current) {
+        const el = document.createElement('div');
+        el.className = 'report-pin-marker';
+        el.innerHTML = '<div class="report-pin-dot"></div><div class="report-pin-pulse"></div>';
+        reportMarkerRef.current = new mapboxgl.Marker({
+          element: el,
+          draggable: true,
+          anchor: 'center',
+        })
+          .setLngLat([coords.lng, coords.lat])
+          .addTo(m);
+
+        reportMarkerRef.current.on('dragend', () => {
+          const lngLat = reportMarkerRef.current!.getLngLat();
+          useStore.getState().setNewPinCoords({ lat: lngLat.lat, lng: lngLat.lng });
+        });
+      } else {
+        // Update position if coords changed externally (map click)
+        const cur = reportMarkerRef.current.getLngLat();
+        if (Math.abs(cur.lat - coords.lat) > 0.00001 || Math.abs(cur.lng - coords.lng) > 0.00001) {
+          reportMarkerRef.current.setLngLat([coords.lng, coords.lat]);
+        }
+      }
+    });
+
+    return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]);
 
   // Draw / clear trip route
   useEffect(() => {
