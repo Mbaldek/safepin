@@ -31,12 +31,10 @@
 
 ### Onboarding
 
-First-time users see a 4-step animated walkthrough:
+First-time users see a 2-step animated walkthrough:
 
-1. **Welcome to Brume** — what the app is about
-2. **How to drop a pin** — reporting incidents on the map
-3. **Emergency mode** — how the SOS system works
-4. **Communities & messaging** — connecting with others
+1. **Welcome to Brume** — what the app is about and how to report incidents
+2. **Stay safe** — SOS emergency system and community features
 
 Tap **Next** through each step or **Start exploring** on the last one. The walkthrough only appears once.
 
@@ -69,16 +67,20 @@ A bottom navigation bar with **4 tabs**:
 
 The main screen. A full-screen Mapbox map centered on your location showing incidents, safe spaces, and points of interest.
 
-### Map Layers (toggle via Layer Panel)
+### Map Layers (toggle via Layer Bottom Sheet)
 
 | Layer | Description |
 |-------|-------------|
 | **Incident pins** | Reported safety incidents, color-coded by severity |
-| **Safe spaces** | Pharmacies, hospitals, police stations, cafes, shelters |
-| **Transit stations** | Metro, RER, tram, bus stops (from OpenStreetMap) |
+| **Safe spaces** | Verified safe locations (on by default) |
+| **Pharmacies** | Nearby pharmacies (POI from OpenStreetMap) |
+| **Hospitals** | Nearby hospitals |
+| **Police stations** | Nearby police stations |
+| **Bus stops** | Paris bus stops (toggleable separately) |
+| **Metro / RER** | Metro, RER, and tram stations (toggleable separately) |
 | **Place notes** | Your personal bookmarked locations |
 | **Heatmap** | Location history visualization |
-| **Neighborhood scores** | Area danger scores overlaid on map |
+| **Safety scores** | Area safety scores overlaid on map |
 | **Watched contacts** | Real-time location of trusted friends sharing position |
 
 ### Map Interactions
@@ -91,13 +93,15 @@ The main screen. A full-screen Mapbox map centered on your location showing inci
 
 ### Filters
 
-A collapsible filter bar lets you narrow what's displayed:
+A filter bottom sheet (opened via the filter button on the left side of the map) lets you narrow what's displayed. Filters are organized into collapsible categories:
 
-- **Severity** — low / medium / high
-- **Age** — how recent the reports are
-- **Urban context** — street, parking, metro, park, etc.
-- **Confirmed only** — show only pins validated by the community
-- **Time of day** — filter by when incidents occurred
+- **Severity** — all / low / medium / high
+- **Age** — any / < 1h / < 6h / today
+- **Location type** — street, parking, metro, park, etc.
+- **Time of day** — any / morning / afternoon / evening / night
+- **Confirmed only** — toggle to show only pins validated by the community
+
+A "Clear all" button resets all filters when any are active.
 
 ### Session Briefing
 
@@ -168,15 +172,29 @@ Tap any pin to open its detail sheet:
 
 ### What You Can Do
 
+Actions are organized in a 3-tier hierarchy:
+
+**Primary** (always visible):
+
 | Action | Description |
 |--------|-------------|
 | **Confirm** (👍) | Validates the report — resets the 24h expiry timer |
 | **Deny** (👎) | Disputes the report — 3 consecutive denies auto-resolve the pin |
+
+**Secondary** (visible below primary):
+
+| Action | Description |
+|--------|-------------|
 | **Comment** | Real-time chat on the pin |
 | **Follow** | Get notified of updates on this pin |
+| **Thank Reporter** | Send appreciation to the person who reported |
+
+**Tertiary** (inside "More" menu):
+
+| Action | Description |
+|--------|-------------|
 | **Go Live** | Start a live video/audio broadcast from the pin location |
 | **Watch Live** | View someone else's live stream at this pin |
-| **Thank Reporter** | Send appreciation to the person who reported |
 | **Flag/Report** | Report inappropriate content |
 | **Resolve** | Pin owner can manually mark as resolved |
 
@@ -425,14 +443,17 @@ Brume uses Web Push (VAPID). You'll be asked to allow notifications on your firs
 
 ## My Brume — Profile & Settings
 
-### Profile Sections
+### Profile Card (Always Visible)
 
-| Section | Contents |
-|---------|----------|
-| **Feed** | Your pins, received comments, notification history, stories |
-| **Favorites** | Saved places, saved routes, favorite communities |
-| **Stats** | Contribution metrics, expertise tags, level, streaks, milestones |
-| **Profile** | Display name, avatar, verification status, bio |
+A persistent profile card is displayed above the tabs showing your avatar, display name, verification badge, expertise tags, and trust level.
+
+### Tabs
+
+| Tab | Contents |
+|-----|----------|
+| **Activity** | Your pins, received comments, notification history, trip history, SOS history |
+| **Saved** | Saved places, saved routes, location history (Pro) |
+| **Stats** | Contribution metrics, level, streaks, milestones, trusted circle, challenges, referrals |
 
 ### Stats & Gamification
 

@@ -69,8 +69,8 @@ Les épingles simulées sont **masquées par défaut** afin de ne pas polluer la
 Pour les afficher :
 
 1. Accédez à la **Carte**.
-2. Ouvrez le panneau **Calques**.
-3. Activez le toggle **"Simulé"**.
+2. Ouvrez la **bottom sheet Calques** (appuyez sur le bouton calques sur le côté gauche de la carte).
+3. Dépliez la section **Admin** et activez le toggle **"Simulé"**.
 
 > **Remarque :** Le toggle Simulé est réservé aux administrateurs et est stylisé en couleur ambre pour le distinguer clairement des calques de données réelles.
 
@@ -180,7 +180,7 @@ src/stores/useStore.ts → showSimulated: boolean
 | Problème | Cause | Solution |
 |----------|-------|----------|
 | Le bouton "Seed Paris" est désactivé | Vous n'êtes pas connecté en tant qu'administrateur | Vérifiez que votre profil a `is_admin: true` |
-| Les épingles n'apparaissent pas sur la carte | Le calque simulé est désactivé | Ouvrez le panneau Calques et activez le toggle "Simulé" |
+| Les épingles n'apparaissent pas sur la carte | Le calque simulé est désactivé | Ouvrez la bottom sheet Calques et activez le toggle "Simulé" dans la section Admin |
 | L'Edge Function renvoie une erreur 401 | JWT invalide ou expiré | Déconnectez-vous puis reconnectez-vous pour rafraîchir votre session |
 | Le peuplement est lent | Jeu de données volumineux demandé | Réduisez le nombre d'utilisateurs/épingles ou patientez — les peuplements importants peuvent prendre 30 à 60 secondes |
 | Le nettoyage échoue | Contrainte de clé étrangère | Cela ne devrait pas se produire avec l'ordre de nettoyage intégré. Si c'est le cas, relancez le nettoyage |

@@ -19,17 +19,20 @@ src/
 │       ├── push-notify/    # Direct push notification sending
 │       ├── stripe/         # Billing (checkout, webhook, portal)
 │       └── verify/         # Identity verification (start, webhook)
-├── components/             # 51 React components
-│   ├── MapView.tsx         # Mapbox GL JS map
+├── components/             # 52 React components
+│   ├── MapView.tsx         # Mapbox GL JS map (receives layer state as props)
 │   ├── EmergencyButton.tsx # SOS system
 │   ├── ReportSheet.tsx     # Incident reporting
-│   ├── DetailSheet.tsx     # Pin detail + voting
+│   ├── DetailSheet.tsx     # Pin detail + voting (3-tier action hierarchy)
+│   ├── FilterBar.tsx       # Filter bottom sheet with collapsible categories
+│   ├── LayerPanel.tsx      # Layer bottom sheet with collapsible sections
+│   ├── CollapsibleSection.tsx # Shared expand/collapse section component
 │   ├── TripView.tsx        # Route planner
 │   ├── CommunityView.tsx   # Communities + neighborhoods
-│   ├── MyKovaView.tsx      # Profile + stats hub
+│   ├── MyKovaView.tsx      # Profile card + 3-tab hub (Activity/Saved/Stats)
 │   ├── SettingsSheet.tsx   # Settings + billing + legal
 │   ├── SafeSpaceDetailSheet.tsx # Partner safe space detail view
-│   ├── ... (46 more)
+│   ├── ... (44 more)
 ├── lib/                    # Shared utilities & services
 │   ├── utils.ts            # timeAgo, haversine variants, springTransition
 │   ├── geocode.ts          # geocodeForward, geocodeReverse (Mapbox)

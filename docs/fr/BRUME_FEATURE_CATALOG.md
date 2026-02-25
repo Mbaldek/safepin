@@ -60,15 +60,13 @@ La carte interactive plein ecran Mapbox GL JS est le coeur de Brume. Elle affich
 | Alternatives | Jusqu'a 3 itineraires candidats pendant la planification | Active (pendant la planification) |
 | Cercle de confiance | Points bleus indiquant la position en temps reel des contacts de confiance | Desactive |
 | Notes de lieu | Emplacements personnels enregistres | Desactive |
-| Lignes de metro | Reseau du metro parisien (donnees Overpass API) | Desactive |
-| Lignes de RER | Lignes de RER d'Ile-de-France | Desactive |
-| Lignes de tramway | Lignes de tramway parisien | Desactive |
-| Lignes de bus | Principales lignes de bus parisiennes | Desactive |
+| Arrets de bus | Arrets de bus parisiens (depuis OpenStreetMap via Overpass API) | Desactive |
+| Metro / RER | Stations de metro, RER et tramway (depuis OpenStreetMap via Overpass API) | Desactive |
 | Pharmacies | Pharmacies a proximite (POI Overpass) | Desactive |
 | Hopitaux | Hopitaux a proximite | Desactive |
 | Commissariats | Commissariats a proximite | Desactive |
 | Historique de position | Carte thermique du parcours GPS personnel | Desactive (Pro uniquement) |
-| Lieux surs | Emplacements surs verifies | Desactive |
+| Lieux surs | Emplacements surs verifies | Active |
 | Scores de quartier | Superposition des scores de securite par zone | Desactive (Pro uniquement) |
 | Donnees simulees | Donnees fictives du moteur de simulation | Desactive (Admin uniquement) |
 
@@ -82,21 +80,30 @@ La carte interactive plein ecran Mapbox GL JS est le coeur de Brume. Elle affich
 
 ### Controles de la carte
 
-- **Barre de filtres :** Filtrer les signalements visibles par categorie, gravite, periode, environnement
+- **Bottom sheet de filtres :** Bottom sheet depliable avec filtres categories (gravite, anciennete, type de lieu, heure de la journee, confirmes uniquement). Ouvert via le bouton filtre sur la carte.
+- **Bottom sheet de calques :** Bottom sheet depliable pour activer/desactiver les couches de la carte (POI de securite, Transport, Donnees, Admin). Ouvert via le bouton calques sur la carte.
 - **Recherche d'adresse :** Mapbox Geocoding API avec autocompletion
 - **Panneau de contexte urbain :** Informations contextuelles sur la zone visible a l'ecran
 - **Pastille d'incidents proches :** Badge en haut a gauche affichant le nombre d'incidents actifs dans le champ de vision
 
 ### Disposition des boutons de la carte
 
-```
-[Pastille proches] [Filtres]                     [barre superieure]
+Disposition en deux colonnes separant les actions principales (droite) des controles secondaires (gauche) :
 
-[Couches]                                        [cote gauche]
-
-                                  [Signaler +]   [cote droit]
-                                  [   SOS    ]   [cote droit]
 ```
+[Pastille proches]                              [haut-gauche]
+
+[Filtres      ]                                 [colonne gauche, haut]
+[Calques      ]                                 [colonne gauche, milieu]
+[Communaute   ]                                 [colonne gauche, bas]
+
+                                  [Signaler +]  [colonne droite, haut]
+                                  [   SOS    ]  [colonne droite, bas]
+```
+
+- **Colonne gauche** (controles secondaires) : Filtres (36px), Calques (36px), Acces rapide communaute (44px)
+- **Colonne droite** (actions principales) : Bouton + Signaler (56px), SOS urgence (56px)
+- Les bottom sheets Filtres et Calques sont mutuellement exclusifs (ouvrir l'un ferme l'autre)
 
 ---
 
@@ -159,19 +166,33 @@ Lorsqu'aucune connexion reseau n'est detectee :
 - Compteurs de votes (confirmer / infirmer)
 - Nombre de commentaires
 
-### Actions interactives
+### Actions interactives (hierarchie a 3 niveaux)
+
+Les actions sont organisees en trois niveaux pour plus de clarte :
+
+**Actions principales** (toujours visibles) :
 
 | Action | Description |
 |---|---|
 | **Confirmer** | Voter que l'incident est reel -- incremente `votes_confirm`, prolonge la duree de vie du signalement |
 | **Infirmer** | Voter que l'incident n'est plus d'actualite -- incremente `votes_deny`. A 3 infirmations, le signalement est automatiquement resolu |
-| **Remercier** | Envoyer de la gratitude au signaleur -- bouton coeur rose, incremente `thanks_received` du signaleur |
-| **Suivre** | Ajouter ce signalement aux favoris pour recevoir les mises a jour -- sauvegarde dans localStorage, apparait dans le fil Mon Brume |
-| **Partager** | Partager via l'API Web Share native |
+
+**Actions secondaires** (visibles sous les actions principales) :
+
+| Action | Description |
+|---|---|
 | **Commenter** | Ajouter un commentaire textuel -- discussion en temps reel sur le signalement via Supabase Realtime |
+| **Suivre** | Ajouter ce signalement aux favoris pour recevoir les mises a jour -- sauvegarde dans localStorage, apparait dans le fil Mon Brume |
+| **Remercier** | Envoyer de la gratitude au signaleur -- bouton coeur rose, incremente `thanks_received` du signaleur |
+
+**Actions tertiaires** (dans le menu "Plus") :
+
+| Action | Description |
+|---|---|
 | **Passer en direct** | Lancer une diffusion video/audio LiveKit depuis cet emplacement |
 | **Regarder en direct** | Rejoindre un flux en direct actif sur ce signalement |
 | **Signaler** | Signaler comme spam, faux, offensant ou doublon |
+| **Resoudre** | Le proprietaire du signalement peut le marquer comme resolu manuellement |
 
 ### Complements pour les signalements d'urgence
 
@@ -455,18 +476,32 @@ Voir [Amis et messages directs](#11-amis-et-messages-directs) ci-dessous.
 **Composant :** `MyKovaView.tsx`
 **Acces :** Onglet Mon Brume dans la navigation inferieure
 
-### Quatre sous-onglets
+### Carte de profil (toujours visible)
 
-#### Fil d'actualite
+Une carte de profil persistante est affichee au-dessus des onglets :
+
+- Avatar avec possibilite d'envoi (stocke dans Supabase Storage)
+- Nom d'affichage
+- Badge de verification (voir [Verification d'identite](#30-verification-didentite))
+- Badges d'expertise (calcules automatiquement, jusqu'a 5)
+- Badge du niveau de confiance avec emoji et couleur
+
+### Trois sous-onglets
+
+#### Activite
 
 - Notifications recentes dans l'application (depuis la table `notifications`)
 - Fil des signalements suivis (signalements en favoris depuis localStorage)
+- Liste de mes signalements (modifiable, supprimable, depliable)
+- Historique des trajets (depliable)
+- Historique SOS (depliable)
 
-#### Favoris
+#### Sauvegardes
 
 - Notes de lieu favorites avec emoji
 - Itineraires sauvegardes -- appuyer pour charger dans le Planificateur de trajet
 - Gestion des favoris/suppressions
+- Visualiseur d'historique de position (Pro, depliable)
 
 #### Statistiques
 
@@ -474,6 +509,9 @@ Voir [Amis et messages directs](#11-amis-et-messages-directs) ci-dessous.
 - Barre de progression visuelle du niveau (actuel -> niveau suivant)
 - Badge du niveau actuel avec emoji et couleur
 - Decomposition des points
+
+**Affichage de la serie quotidienne :**
+- Serie actuelle, plus longue serie et emoji de serie
 
 **Graphique d'activite sur 7 jours :**
 - Diagramme en barres de la contribution quotidienne sur la semaine ecoulee
@@ -488,24 +526,10 @@ Voir [Amis et messages directs](#11-amis-et-messages-directs) ci-dessous.
 | Commentaires | Nombre total de commentaires rediges |
 | Notes de lieu | Marque-pages personnels crees |
 
-**Affichage de la serie quotidienne :**
-- Serie actuelle, plus longue serie et emoji de serie
-
 **Sections supplementaires :**
 - Gestion du Cercle de confiance
 - Defis hebdomadaires (voir [Defis hebdomadaires](#16-defis-hebdomadaires))
 - Systeme de parrainage (voir [Systeme de parrainage](#17-systeme-de-parrainage))
-
-#### Profil
-
-- Envoi d'avatar (stocke dans Supabase Storage)
-- Modification du nom d'affichage
-- Badge de verification (voir [Verification d'identite](#30-verification-didentite))
-- Badges d'expertise (calcules automatiquement, jusqu'a 5)
-- Visualiseur d'historique de position (Pro, depliable)
-- Liste de mes signalements (modifiable, supprimable, depliable)
-- Historique des trajets (depliable)
-- Historique SOS (depliable)
 - Bouton de deconnexion
 
 ---

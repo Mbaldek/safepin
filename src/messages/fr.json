@@ -394,6 +394,17 @@
     "cookiePolicy": "Politique des cookies",
     "magicLinkSuccess": "Lien magique envoyé ! Vérifiez votre boîte mail.",
     "accountCreated": "Compte créé ! Vérifiez votre email pour confirmer.",
-    "welcomeBack": "Bienvenue !"
+    "welcomeBack": "Bienvenue !",
+    "invite": {
+      "title": "Rejoindre avec un code d'invitation",
+      "placeholder": "Entrez le code",
+      "validating": "Vérification…",
+      "valid": "{org} — {spots} places restantes",
+      "invalid": "Code invalide ou expiré",
+      "full": "Ce code a atteint son nombre maximum d'utilisations",
+      "expired": "Ce code a expiré",
+      "redeemed": "Bienvenue ! Vous avez rejoint via {org}",
+      "alreadyUsed": "Vous avez déjà utilisé un code d'invitation"
+    }
   }
 }

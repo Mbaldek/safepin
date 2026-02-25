@@ -278,6 +278,23 @@ export default function MapPage() {
           }
         });
 
+        // Redeem pending invite code (from OAuth flow)
+        const urlInviteCode = new URLSearchParams(window.location.search).get('invite_code');
+        const storedInviteCode = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('brume_invite_code') : null;
+        const pendingCode = urlInviteCode || storedInviteCode;
+        if (pendingCode) {
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('brume_invite_code');
+          window.history.replaceState({}, '', window.location.pathname + (window.location.search.replace(/[?&]invite_code=[^&]*/g, '').replace(/^\?$/, '') || ''));
+          fetch('/api/invite/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: pendingCode }),
+          })
+            .then((r) => r.json())
+            .then((d) => { if (d.success) toast.success(`Welcome! You joined via ${d.organization_name}`); })
+            .catch(() => {});
+        }
+
         Notification.requestPermission().then((perm) => {
           if (perm === 'granted') registerPush(uid);
         });

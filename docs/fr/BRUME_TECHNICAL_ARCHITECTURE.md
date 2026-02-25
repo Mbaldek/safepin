@@ -19,17 +19,20 @@ src/
 │       ├── push-notify/    # Envoi direct de push notifications
 │       ├── stripe/         # Facturation (checkout, webhook, portail)
 │       └── verify/         # Verification d'identite (demarrage, webhook)
-├── components/             # 51 composants React
-│   ├── MapView.tsx         # Carte Mapbox GL JS
+├── components/             # 52 composants React
+│   ├── MapView.tsx         # Carte Mapbox GL JS (recoit l'etat des calques en props)
 │   ├── EmergencyButton.tsx # Systeme SOS
 │   ├── ReportSheet.tsx     # Signalement d'incidents
-│   ├── DetailSheet.tsx     # Detail d'un pin + votes
+│   ├── DetailSheet.tsx     # Detail d'un pin + votes (hierarchie d'actions a 3 niveaux)
+│   ├── FilterBar.tsx       # Bottom sheet de filtres avec categories depliables
+│   ├── LayerPanel.tsx      # Bottom sheet de calques avec sections depliables
+│   ├── CollapsibleSection.tsx # Composant partage de section depliable
 │   ├── TripView.tsx        # Planificateur d'itineraire
 │   ├── CommunityView.tsx   # Communautes + quartiers
-│   ├── MyKovaView.tsx      # Profil + hub de statistiques
+│   ├── MyKovaView.tsx      # Carte de profil + hub 3 onglets (Activite/Sauvegardes/Stats)
 │   ├── SettingsSheet.tsx   # Parametres + facturation + mentions legales
-│   ├── SafeSpaceDetailSheet.tsx # Vue détaillée des lieux sûrs partenaires
-│   ├── ... (46 autres)
+│   ├── SafeSpaceDetailSheet.tsx # Vue detaillee des lieux surs partenaires
+│   ├── ... (44 autres)
 ├── lib/                    # Utilitaires partages & services
 │   ├── utils.ts            # timeAgo, variantes haversine, springTransition
 │   ├── geocode.ts          # geocodeForward, geocodeReverse (Mapbox)

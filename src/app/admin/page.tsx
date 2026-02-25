@@ -2244,9 +2244,337 @@ function SafeSpacesTab() {
   );
 }
 
+// ─── Invite Codes Tab ──────────────────────────────────────────────────────────
+
+type InviteCode = {
+  id: string;
+  code: string;
+  organization_name: string;
+  description: string | null;
+  max_uses: number;
+  used_count: number;
+  is_active: boolean;
+  expires_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type InviteCodeUse = {
+  id: string;
+  invite_code_id: string;
+  user_id: string;
+  used_at: string;
+  profiles?: { display_name: string | null };
+};
+
+function generateCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 to avoid confusion
+  let code = '';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function InviteCodesTab() {
+  const [codes, setCodes] = useState<InviteCode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 20;
+
+  // Create form
+  const [showCreate, setShowCreate] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [form, setForm] = useState({
+    code: generateCode(),
+    organization_name: '',
+    description: '',
+    max_uses: '100',
+    expires_at: '',
+  });
+
+  // Expanded row (show users)
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [codeUsers, setCodeUsers] = useState<InviteCodeUse[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, count, error } = await supabase
+        .from('invite_codes')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+      if (error) throw error;
+      setCodes((data as InviteCode[]) ?? []);
+      setTotal(count ?? 0);
+    } catch {
+      toast.error('Failed to load invite codes');
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleCreate() {
+    if (!form.organization_name.trim()) { toast.error('Organization name required'); return; }
+    if (!form.code.trim()) { toast.error('Code required'); return; }
+    setCreateLoading(true);
+    try {
+      const { error } = await supabase.from('invite_codes').insert({
+        code: form.code.toUpperCase().trim(),
+        organization_name: form.organization_name.trim(),
+        description: form.description.trim() || null,
+        max_uses: parseInt(form.max_uses) || 100,
+        expires_at: form.expires_at || null,
+      });
+      if (error) {
+        if (error.code === '23505') toast.error('Code already exists');
+        else throw error;
+        setCreateLoading(false);
+        return;
+      }
+      toast.success('Invite code created');
+      setForm({ code: generateCode(), organization_name: '', description: '', max_uses: '100', expires_at: '' });
+      setShowCreate(false);
+      load();
+    } catch {
+      toast.error('Failed to create invite code');
+    } finally {
+      setCreateLoading(false);
+    }
+  }
+
+  async function toggleActive(code: InviteCode) {
+    const { error } = await supabase.from('invite_codes').update({ is_active: !code.is_active }).eq('id', code.id);
+    if (error) { toast.error('Failed to update'); return; }
+    setCodes((prev) => prev.map((c) => c.id === code.id ? { ...c, is_active: !c.is_active } : c));
+  }
+
+  async function loadUsers(codeId: string) {
+    if (expandedId === codeId) { setExpandedId(null); return; }
+    setExpandedId(codeId);
+    setUsersLoading(true);
+    try {
+      const { data } = await supabase
+        .from('invite_code_uses')
+        .select('id, invite_code_id, user_id, used_at, profiles(display_name)')
+        .eq('invite_code_id', codeId)
+        .order('used_at', { ascending: false });
+      setCodeUsers((data as unknown as InviteCodeUse[]) ?? []);
+    } catch {
+      toast.error('Failed to load users');
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  function exportCsv() {
+    const headers = ['code', 'organization', 'used_count', 'max_uses', 'is_active', 'expires_at', 'created_at'];
+    const rows = codes.map((c) => [
+      c.code, c.organization_name, c.used_count, c.max_uses, c.is_active,
+      c.expires_at || '', c.created_at,
+    ]);
+    const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'invite-codes.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyCode(code: string) {
+    navigator.clipboard.writeText(code);
+    toast.success('Code copied');
+  }
+
+  function codeStatus(c: InviteCode): { label: string; color: string } {
+    if (!c.is_active) return { label: 'Inactive', color: 'bg-gray-100 text-gray-500' };
+    if (c.expires_at && new Date(c.expires_at) < new Date()) return { label: 'Expired', color: 'bg-red-100 text-red-700' };
+    if (c.used_count >= c.max_uses) return { label: 'Full', color: 'bg-yellow-100 text-yellow-700' };
+    return { label: 'Active', color: 'bg-green-100 text-green-700' };
+  }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Invitation Codes</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Manage partner organization codes for B2B2C acquisition</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={exportCsv} className="px-3 py-2 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            Export CSV
+          </button>
+          <button onClick={() => setShowCreate(!showCreate)} className="px-3 py-2 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+            {showCreate ? 'Cancel' : '+ New Code'}
+          </button>
+        </div>
+      </div>
+
+      {/* Create form */}
+      {showCreate && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
+          <h3 className="text-sm font-bold text-gray-700">Create Invitation Code</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={form.code}
+                  onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) })}
+                  placeholder="ASSO2024"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg font-mono tracking-wider"
+                />
+                <button onClick={() => setForm({ ...form, code: generateCode() })} className="px-3 py-2 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">
+                  🎲
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Organization Name *</label>
+              <input
+                type="text"
+                value={form.organization_name}
+                onChange={(e) => setForm({ ...form, organization_name: e.target.value })}
+                placeholder="Association XYZ"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Max Uses</label>
+              <input
+                type="number"
+                value={form.max_uses}
+                onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
+                min={1}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Expires At (optional)</label>
+              <input
+                type="datetime-local"
+                value={form.expires_at}
+                onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Description (optional)</label>
+              <input
+                type="text"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Partnership with women's association for Q1 2026"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button onClick={handleCreate} disabled={createLoading} className="px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-40">
+              {createLoading ? 'Creating…' : 'Create Code'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {loading ? <Spinner /> : codes.length === 0 ? (
+          <div className="text-center py-12 text-sm text-gray-400">No invite codes yet</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3">Code</th>
+                  <th className="px-5 py-3">Organization</th>
+                  <th className="px-5 py-3">Used / Max</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Expires</th>
+                  <th className="px-5 py-3">Created</th>
+                  <th className="px-5 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {codes.map((c) => {
+                  const st = codeStatus(c);
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50/50">
+                      <td className="px-5 py-3">
+                        <button onClick={() => copyCode(c.code)} className="font-mono text-xs font-bold tracking-wider text-gray-900 hover:text-blue-600 transition-colors" title="Click to copy">
+                          {c.code}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3 text-gray-700">{c.organization_name}</td>
+                      <td className="px-5 py-3">
+                        <button onClick={() => loadUsers(c.id)} className="text-gray-700 hover:text-blue-600 transition-colors underline-offset-2 hover:underline">
+                          {c.used_count} / {c.max_uses}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3"><Badge color={st.color}>{st.label}</Badge></td>
+                      <td className="px-5 py-3 text-gray-500 text-xs">{c.expires_at ? fmt(c.expires_at) : '—'}</td>
+                      <td className="px-5 py-3 text-gray-500 text-xs">{fmt(c.created_at)}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => toggleActive(c)} className={`text-xs font-medium px-2 py-1 rounded ${c.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition-colors`}>
+                            {c.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button onClick={() => copyCode(c.code)} className="text-xs font-medium px-2 py-1 rounded bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
+                            Copy
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Expanded user list */}
+        {expandedId && (
+          <div className="border-t border-gray-200 bg-gray-50 px-5 py-4">
+            <h4 className="text-xs font-bold text-gray-600 mb-2">Users who redeemed this code</h4>
+            {usersLoading ? <Spinner /> : codeUsers.length === 0 ? (
+              <p className="text-xs text-gray-400">No users yet</p>
+            ) : (
+              <div className="space-y-1">
+                {codeUsers.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-700 font-medium">{u.profiles?.display_name || shortId(u.user_id)}</span>
+                    <span className="text-gray-400">{fmt(u.used_at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+            <span>Page {page + 1} of {totalPages} ({total} total)</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40">Prev</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40">Next</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation' | 'spaces';
+type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation' | 'spaces' | 'invite-codes';
 
 const TABS: { id: AdminTab; label: string; emoji: string }[] = [
   { id: 'overview',    label: 'Overview',    emoji: '📊' },
@@ -2258,6 +2586,7 @@ const TABS: { id: AdminTab; label: string; emoji: string }[] = [
   { id: 'live',        label: 'Live',        emoji: '📡' },
   { id: 'simulation',  label: 'Simulation',  emoji: '🤖' },
   { id: 'spaces',      label: 'Safe Spaces', emoji: '🛡️' },
+  { id: 'invite-codes', label: 'Invites',    emoji: '🎟️' },
 ];
 
 export default function AdminPage() {
@@ -2314,6 +2643,7 @@ export default function AdminPage() {
         {activeTab === 'live'       && <LiveTab />}
         {activeTab === 'simulation' && <SimulationTab />}
         {activeTab === 'spaces'     && <SafeSpacesTab />}
+        {activeTab === 'invite-codes' && <InviteCodesTab />}
       </main>
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:brumeapp@pm.me" className="hover:text-gray-600">brumeapp@pm.me</a></p>

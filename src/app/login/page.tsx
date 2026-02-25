@@ -2,11 +2,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { ChevronDown, Check, AlertCircle, Loader2 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 function getAppOrigin() {
@@ -39,31 +40,114 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [magicSent, setMagicSent] = useState(false);
 
+  // ─── Invite code state ───────────────────────────
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<null | {
+    valid: boolean;
+    organization_name?: string;
+    spots_remaining?: number;
+    reason?: string;
+  }>(null);
+  const inviteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Pre-fill from URL param (e.g. shared link with ?code=ASSO2024)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlCode = params.get('code');
+    if (urlCode) {
+      setInviteCode(urlCode.toUpperCase().trim());
+      setInviteOpen(true);
+    }
+  }, []);
+
+  const validateInviteCode = useCallback(async (code: string) => {
+    if (code.length < 3) { setInviteStatus(null); return; }
+    setInviteLoading(true);
+    try {
+      const res = await fetch('/api/invite/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      setInviteStatus(data);
+    } catch {
+      setInviteStatus({ valid: false, reason: 'error' });
+    }
+    setInviteLoading(false);
+  }, []);
+
+  // Debounced validation + auto-validate URL pre-fill
+  useEffect(() => {
+    if (inviteCode.length >= 3) {
+      if (inviteTimer.current) clearTimeout(inviteTimer.current);
+      inviteTimer.current = setTimeout(() => validateInviteCode(inviteCode), 500);
+    } else {
+      setInviteStatus(null);
+    }
+    return () => { if (inviteTimer.current) clearTimeout(inviteTimer.current); };
+  }, [inviteCode, validateInviteCode]);
+
+  /** Persist invite code before OAuth redirects */
+  function persistInviteCode() {
+    if (inviteCode && inviteStatus?.valid) {
+      sessionStorage.setItem('brume_invite_code', inviteCode.toUpperCase().trim());
+    }
+  }
+
+  function getCallbackUrl() {
+    const base = `${getAppOrigin()}/auth/callback`;
+    if (inviteCode && inviteStatus?.valid) {
+      return `${base}?invite_code=${encodeURIComponent(inviteCode.toUpperCase().trim())}`;
+    }
+    return base;
+  }
+
   async function handleGoogleSignIn() {
+    persistInviteCode();
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${getAppOrigin()}/auth/callback` },
+      options: { redirectTo: getCallbackUrl() },
     });
   }
 
   async function handleAppleSignIn() {
+    persistInviteCode();
     await supabase.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: `${getAppOrigin()}/auth/callback` },
+      options: { redirectTo: getCallbackUrl() },
     });
   }
 
   async function handleMagicLink() {
     if (!email.trim()) return;
+    persistInviteCode();
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${getAppOrigin()}/auth/callback` },
+      options: { emailRedirectTo: getCallbackUrl() },
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     setMagicSent(true);
     toast.success(t('magicLinkSuccess'));
+  }
+
+  async function redeemInviteCode() {
+    if (!inviteCode || !inviteStatus?.valid) return;
+    try {
+      const res = await fetch('/api/invite/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: inviteCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(t('invite.redeemed', { org: data.organization_name }));
+      }
+    } catch { /* silently fail — non-critical */ }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -77,11 +161,21 @@ export default function LoginPage() {
         options: { data: { name } },
       });
       if (error) { toast.error(error.message); setLoading(false); return; }
+      // Sign in immediately after signup
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInErr) {
+        toast.success(t('accountCreated'));
+        setMode('signin');
+        setLoading(false);
+        return;
+      }
+      await redeemInviteCode();
       toast.success(t('accountCreated'));
-      setMode('signin');
+      router.push('/map');
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { toast.error(error.message); setLoading(false); return; }
+      await redeemInviteCode();
       toast.success(t('welcomeBack'));
       router.push('/map');
     }
@@ -296,6 +390,67 @@ export default function LoginPage() {
               </button>
             </form>
           )}
+
+          {/* ─── Invite Code Section ──────────────────── */}
+          <div className="mt-4" style={{ borderTop: '1px solid var(--border)' }}>
+            <button
+              onClick={() => setInviteOpen(!inviteOpen)}
+              className="flex items-center justify-between w-full py-3"
+            >
+              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
+                🎟️ {t('invite.title')}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${inviteOpen ? 'rotate-180' : ''}`}
+                style={{ color: 'var(--text-muted)' }}
+              />
+            </button>
+            {inviteOpen && (
+              <div className="pb-3 space-y-2">
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20))}
+                  placeholder={t('invite.placeholder')}
+                  maxLength={20}
+                  className="w-full rounded-xl text-sm px-4 py-3 outline-none font-mono tracking-widest text-center"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                />
+                {inviteLoading && (
+                  <div className="flex items-center gap-1.5 justify-center">
+                    <Loader2 size={12} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+                    <span className="text-[0.65rem] font-bold" style={{ color: 'var(--text-muted)' }}>
+                      {t('invite.validating')}
+                    </span>
+                  </div>
+                )}
+                {!inviteLoading && inviteStatus?.valid && (
+                  <div className="flex items-center gap-1.5 justify-center">
+                    <Check size={12} style={{ color: '#22c55e' }} />
+                    <span className="text-[0.65rem] font-bold" style={{ color: '#22c55e' }}>
+                      {t('invite.valid', {
+                        org: inviteStatus.organization_name ?? '',
+                        spots: String(inviteStatus.spots_remaining ?? 0),
+                      })}
+                    </span>
+                  </div>
+                )}
+                {!inviteLoading && inviteStatus && !inviteStatus.valid && (
+                  <div className="flex items-center gap-1.5 justify-center">
+                    <AlertCircle size={12} style={{ color: 'var(--accent)' }} />
+                    <span className="text-[0.65rem] font-bold" style={{ color: 'var(--accent)' }}>
+                      {inviteStatus.reason === 'full'
+                        ? t('invite.full')
+                        : inviteStatus.reason === 'expired'
+                          ? t('invite.expired')
+                          : t('invite.invalid')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

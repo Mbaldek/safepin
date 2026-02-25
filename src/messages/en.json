@@ -396,6 +396,17 @@
     "cookiePolicy": "Cookie Policy",
     "magicLinkSuccess": "Magic link sent! Check your inbox.",
     "accountCreated": "Account created! Check your email to confirm.",
-    "welcomeBack": "Welcome back!"
+    "welcomeBack": "Welcome back!",
+    "invite": {
+      "title": "Join with an invitation code",
+      "placeholder": "Enter code",
+      "validating": "Checking…",
+      "valid": "{org} — {spots} spots remaining",
+      "invalid": "Invalid or expired code",
+      "full": "This code has reached its maximum uses",
+      "expired": "This code has expired",
+      "redeemed": "Welcome! You joined via {org}",
+      "alreadyUsed": "You have already redeemed an invitation code"
+    }
   }
 }

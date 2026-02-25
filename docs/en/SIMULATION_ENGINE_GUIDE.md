@@ -69,8 +69,8 @@ Simulated pins are **hidden by default** to avoid polluting the real safety map.
 To view them:
 
 1. Go to the **Map**.
-2. Open the **Layers** panel.
-3. Enable the **"Simulated"** toggle.
+2. Open the **Layers** bottom sheet (tap the layers button on the left side of the map).
+3. Expand the **Admin** section and enable the **"Simulated"** toggle.
 
 > **Note:** The Simulated toggle is admin-only and is styled with an amber color to clearly distinguish it from real data layers.
 
@@ -180,7 +180,7 @@ src/stores/useStore.ts → showSimulated: boolean
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | "Seed Paris" button is disabled | Not logged in as admin | Verify your profile has `is_admin: true` |
-| Pins do not appear on the map | Simulated layer is off | Open Layers panel and enable the "Simulated" toggle |
+| Pins do not appear on the map | Simulated layer is off | Open the Layers bottom sheet and enable the "Simulated" toggle in the Admin section |
 | Edge function returns 401 | Invalid or expired JWT | Log out and log back in to refresh your session |
 | Seeding is slow | Large dataset requested | Reduce user/pin count or wait — large seeds can take 30-60 seconds |
 | Cleanup fails | Foreign key constraint | This should not happen with the built-in cleanup order. If it does, try running the cleanup again |

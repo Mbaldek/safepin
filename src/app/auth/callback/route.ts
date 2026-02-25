@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/map';
+  const inviteCode = searchParams.get('invite_code');
 
   if (code) {
     const cookieStore = await cookies();
@@ -29,7 +30,10 @@ export async function GET(request: Request) {
     );
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const dest = inviteCode
+        ? `${origin}${next}${next.includes('?') ? '&' : '?'}invite_code=${encodeURIComponent(inviteCode)}`
+        : `${origin}${next}`;
+      return NextResponse.redirect(dest);
     }
   }
 

@@ -60,15 +60,13 @@ The full-screen interactive Mapbox GL JS map is the heart of Brume. It renders m
 | Route Alternatives | Up to 3 candidate routes during planning | On (during planning) |
 | Trusted Circle | Blue dots showing live locations of trusted contacts | Off |
 | Place Notes | Personal bookmarked locations | Off |
-| Metro Lines | Paris metro network (fetched from Overpass API) | Off |
-| RER Lines | Paris RER commuter rail lines | Off |
-| Tram Lines | Paris tram lines | Off |
-| Bus Lines | Major Paris bus routes | Off |
+| Bus Stops | Paris bus stops (from OpenStreetMap via Overpass API) | Off |
+| Metro / RER | Paris metro, RER, and tram stations (from OpenStreetMap via Overpass API) | Off |
 | Pharmacies | Nearby pharmacies (POI from Overpass) | Off |
 | Hospitals | Nearby hospitals | Off |
 | Police Stations | Nearby police stations | Off |
 | Location History | Personal GPS trail heatmap | Off (Pro only) |
-| Safe Spaces | Verified safe locations | Off |
+| Safe Spaces | Verified safe locations | On |
 | Neighborhood Scores | Safety score overlay by area | Off (Pro only) |
 | Simulated Data | Fake data from simulation engine | Off (Admin only) |
 
@@ -82,21 +80,30 @@ The full-screen interactive Mapbox GL JS map is the heart of Brume. It renders m
 
 ### Map Controls
 
-- **Filter Bar:** Filter visible pins by category, severity, time range, environment
+- **Filter Bottom Sheet:** Collapsible bottom sheet with categorized filters (severity, age, location type, time of day, confirmed only). Opened via filter button on map.
+- **Layer Bottom Sheet:** Collapsible bottom sheet for toggling map layers (Safety POIs, Transport, Data, Admin). Opened via layers button on map.
 - **Address Search:** Mapbox Geocoding API with autocomplete
 - **City Context Panel:** Contextual information about the current viewport area
 - **Nearby Incidents Pill:** Top-left badge showing count of active incidents within view
 
 ### Map Button Layout
 
-```
-[Nearby pill] [Filter]                     [top bar]
+Two-column layout separating primary actions (right) from secondary controls (left):
 
-[Layers]                                   [left side]
-
-                                  [Report +] [right side]
-                                  [  SOS   ] [right side]
 ```
+[Nearby pill]                              [top-left]
+
+[Filter    ]                               [left column, top]
+[Layers    ]                               [left column, middle]
+[Community ]                               [left column, bottom]
+
+                                  [Report +] [right column, top]
+                                  [  SOS   ] [right column, bottom]
+```
+
+- **Left column** (secondary controls): Filter (36px), Layers (36px), Community quick-access (44px)
+- **Right column** (primary actions): Report + FAB (56px), SOS emergency (56px)
+- Filter and Layers open mutually exclusive bottom sheets (opening one closes the other)
 
 ---
 
@@ -159,19 +166,33 @@ When no network connectivity is detected:
 - Vote counts (confirm / deny)
 - Comment count
 
-### Interactive Actions
+### Interactive Actions (3-Tier Hierarchy)
+
+Actions are organized into three tiers for clarity:
+
+**Primary Actions** (always visible):
 
 | Action | Description |
 |---|---|
 | **Confirm** | Vote that the incident is real -- increments `votes_confirm`, extends pin lifetime |
 | **Deny** | Vote that the incident is cleared -- increments `votes_deny`. At 3 denies, pin auto-resolves |
-| **Thank** | Send gratitude to the reporter -- pink heart button, increments reporter's `thanks_received` |
-| **Follow** | Bookmark this pin for updates -- saved to localStorage, appears in My Brume Feed |
-| **Share** | Share via native Web Share API |
+
+**Secondary Actions** (visible below primary):
+
+| Action | Description |
+|---|---|
 | **Comment** | Add a text comment -- real-time chat on the pin via Supabase Realtime |
+| **Follow** | Bookmark this pin for updates -- saved to localStorage, appears in My Brume Feed |
+| **Thank** | Send gratitude to the reporter -- pink heart button, increments reporter's `thanks_received` |
+
+**Tertiary Actions** (inside "More" overflow menu):
+
+| Action | Description |
+|---|---|
 | **Go Live** | Start a LiveKit video/audio broadcast from this location |
 | **Watch Live** | Join an active live stream on this pin |
 | **Flag** | Report as spam, false, offensive, or duplicate |
+| **Resolve** | Pin owner can manually mark as resolved |
 
 ### Emergency Pin Extras
 
@@ -455,18 +476,32 @@ See [Friends & Direct Messages](#11-friends--direct-messages) below.
 **Component:** `MyKovaView.tsx`
 **Access:** My Brume tab in bottom navigation
 
-### Four Sub-tabs
+### Profile Card (Always Visible)
 
-#### Feed
+A persistent profile card is displayed above the tabs:
+
+- Avatar with upload capability (stored in Supabase Storage)
+- Display name
+- Verification badge (see [Identity Verification](#30-identity-verification))
+- Expertise tags (auto-computed, up to 5)
+- Trust level badge with emoji and color
+
+### Three Sub-tabs
+
+#### Activity
 
 - Recent in-app notifications (from `notifications` table)
 - Followed pins feed (bookmarked pins from localStorage)
+- My Pins list (editable, deletable, collapsible)
+- Trip History (collapsible)
+- SOS History (collapsible)
 
-#### Favorites
+#### Saved
 
 - Starred place notes with emoji
 - Saved routes -- tap to load in Trip planner
 - Star/unstar/delete management
+- Location history viewer (Pro, collapsible)
 
 #### Stats
 
@@ -497,17 +532,6 @@ See [Friends & Direct Messages](#11-friends--direct-messages) below.
 - Trusted Circle management
 - Weekly Challenges (see [Weekly Challenges](#16-weekly-challenges))
 - Referral System (see [Referral System](#17-referral-system))
-
-#### Profile
-
-- Avatar upload (stored in Supabase Storage)
-- Display name editing
-- Verification badge (see [Identity Verification](#30-identity-verification))
-- Expertise tags (auto-computed, up to 5)
-- Location history viewer (Pro, collapsible)
-- My Pins list (editable, deletable, collapsible)
-- Trip History (collapsible)
-- SOS History (collapsible)
 - Sign Out button
 
 ---
