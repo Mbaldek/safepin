@@ -54,7 +54,9 @@
     "submit": "Submit report",
     "submitting": "Submitting…",
     "success": "Report submitted",
-    "queued": "Report queued — will submit when back online"
+    "queued": "Report queued — will submit when back online",
+    "loadingAddress": "Locating…",
+    "unknownAddress": "Unknown location"
   },
   "detail": {
     "emergencyAlert": "Emergency Alert",

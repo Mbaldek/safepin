@@ -5,14 +5,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
-import { X, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ArrowLeft, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
+import { CATEGORIES, REPORT_CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { enqueue, getCount } from '@/lib/offlineQueue';
 import { springTransition } from '@/lib/utils';
+import { geocodeReverse } from '@/lib/geocode';
 
 type LocalMedia = {
   file: File;
@@ -48,6 +49,8 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   const [loading, setLoading] = useState(false);
   const [isAutoLocation, setIsAutoLocation] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [addrLoading, setAddrLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-set location to current GPS position on mount
@@ -59,6 +62,16 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reverse geocode pin coords → address
+  useEffect(() => {
+    if (!newPinCoords) { setAddrLoading(false); return; }
+    setAddrLoading(true);
+    geocodeReverse(newPinCoords.lng, newPinCoords.lat)
+      .then((addr) => { if (addr) setAddress(addr); })
+      .catch(() => {})
+      .finally(() => setAddrLoading(false));
+  }, [newPinCoords]);
 
   function handleMediaAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -258,21 +271,28 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.15 }}
               >
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(CATEGORIES).map(([key, { label, emoji }]) => (
+                {/* Address indicator */}
+                <div className="flex items-center gap-1.5 mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
+                  <MapPin size={13} className="shrink-0" />
+                  <span className="text-xs truncate">
+                    {addrLoading ? t('loadingAddress') : address || t('unknownAddress')}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.entries(REPORT_CATEGORIES).map(([key, { label, emoji }]) => (
                     <button
                       key={key}
                       onClick={() => handleCategorySelect(key)}
-                      className="rounded-2xl p-5 text-center border-2 transition active:scale-95"
+                      className="rounded-xl p-2.5 text-center border-2 transition active:scale-95"
                       style={{
                         borderColor: category === key ? 'var(--accent)' : 'transparent',
                         backgroundColor: category === key ? 'var(--accent-glow)' : 'var(--bg-card)',
-                        minHeight: '80px',
                       }}
                     >
-                      <span className="text-3xl block mb-2">{emoji}</span>
+                      <span className="text-lg block mb-1">{emoji}</span>
                       <span
-                        className="text-sm font-bold"
+                        className="text-[0.65rem] font-bold leading-tight block"
                         style={{ color: category === key ? 'var(--accent)' : 'var(--text-primary)' }}
                       >
                         {label}

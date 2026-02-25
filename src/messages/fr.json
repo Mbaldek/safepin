@@ -54,7 +54,9 @@
     "submit": "Envoyer le signalement",
     "submitting": "Envoi en cours…",
     "success": "Signalement envoyé",
-    "queued": "Signalement en attente — sera envoyé une fois en ligne"
+    "queued": "Signalement en attente — sera envoyé une fois en ligne",
+    "loadingAddress": "Localisation…",
+    "unknownAddress": "Lieu inconnu"
   },
   "detail": {
     "emergencyAlert": "Alerte d'urgence",

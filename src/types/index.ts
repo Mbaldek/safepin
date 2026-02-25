@@ -10,7 +10,7 @@ export type Pin = {
   user_id: string;
   lat: number;
   lng: number;
-  category: 'harassment' | 'stalking' | 'dark_area' | 'aggression' | 'drunk' | 'other';
+  category: 'harassment' | 'stalking' | 'dark_area' | 'aggression' | 'drunk' | 'other' | 'theft' | 'verbal_abuse' | 'poor_lighting' | 'unsafe_road' | 'isolated' | 'suspicious';
   severity: 'low' | 'med' | 'high';
   description: string;
   photo_url: string | null;
@@ -423,10 +423,31 @@ export type AudioCheckin = {
 export const CATEGORIES = {
   harassment: { label: 'Harassment', emoji: '😰' },
   stalking: { label: 'Stalking', emoji: '👁' },
-  dark_area: { label: 'Dark area', emoji: '🌑' },
   aggression: { label: 'Aggression', emoji: '⚡' },
+  theft: { label: 'Theft', emoji: '💰' },
+  verbal_abuse: { label: 'Verbal abuse', emoji: '🗣️' },
+  poor_lighting: { label: 'Poor lighting', emoji: '🌑' },
+  dark_area: { label: 'Poor lighting', emoji: '🌑' }, // legacy alias
+  unsafe_road: { label: 'Unsafe road', emoji: '🚧' },
+  isolated: { label: 'Isolated area', emoji: '🏚️' },
   drunk: { label: 'Intoxicated', emoji: '🍺' },
+  suspicious: { label: 'Suspicious', emoji: '🔍' },
   other: { label: 'Other', emoji: '⚠️' },
+} as const;
+
+/** Categories shown in the report form (excludes legacy aliases) */
+export const REPORT_CATEGORIES = {
+  harassment: CATEGORIES.harassment,
+  stalking: CATEGORIES.stalking,
+  aggression: CATEGORIES.aggression,
+  theft: CATEGORIES.theft,
+  verbal_abuse: CATEGORIES.verbal_abuse,
+  poor_lighting: CATEGORIES.poor_lighting,
+  unsafe_road: CATEGORIES.unsafe_road,
+  isolated: CATEGORIES.isolated,
+  drunk: CATEGORIES.drunk,
+  suspicious: CATEGORIES.suspicious,
+  other: CATEGORIES.other,
 } as const;
 
 export const ENVIRONMENTS = {

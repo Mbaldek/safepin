@@ -903,6 +903,11 @@ export default function MapPage() {
             />
           )}
         </AnimatePresence>
+
+        {/* Report sheet — inside map container like other tab overlays */}
+        <AnimatePresence>
+          {activeSheet === 'report' && <ReportSheet key="report" userId={userId} />}
+        </AnimatePresence>
       </div>
 
       {/* SOS nearby banner */}
@@ -928,7 +933,6 @@ export default function MapPage() {
 
       {/* ── Sheets (top-level so they render over any tab) ─────────── */}
       <AnimatePresence>
-        {activeSheet === 'report' && <ReportSheet key="report" userId={userId} />}
         {activeSheet === 'detail' && <DetailSheet key="detail" />}
       </AnimatePresence>
 
