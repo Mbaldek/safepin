@@ -714,7 +714,7 @@ export default function MapPage() {
       </div>
 
       {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
-      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' ? 'hidden' : 'flex flex-col'}`}>
+      <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' && activeTab !== 'community' ? 'hidden' : 'flex flex-col'}`}>
         <MapView
           mapStyle={mapStyle}
           showBus={showBus}
