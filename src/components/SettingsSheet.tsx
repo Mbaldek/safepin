@@ -375,6 +375,26 @@ export default function SettingsSheet({ onClose }: Props) {
             ))}
           </div>
 
+          {/* ── Restart onboarding ───────────────────────────────── */}
+          <button
+            onClick={async () => {
+              localStorage.removeItem('brume_onboarding_done');
+              if (userId) {
+                await supabase.from('profiles').update({ onboarding_completed: false }).eq('id', userId);
+              }
+              window.location.reload();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl mb-4 text-left transition active:opacity-60"
+            style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+          >
+            <span className="text-base">🎓</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Restart onboarding tour</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Re-discover Brume features</p>
+            </div>
+            <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          </button>
+
           {/* ── Group B — Help & Information ──────────────────────── */}
           <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Help & Information</p>
           <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>

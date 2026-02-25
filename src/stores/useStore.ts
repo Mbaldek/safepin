@@ -138,6 +138,10 @@ type Store = {
     verified?: boolean;
     verification_status?: 'unverified' | 'pending' | 'approved' | 'declined' | null;
     verification_id?: string | null;
+    onboarding_completed?: boolean;
+    home_lat?: number | null;
+    home_lng?: number | null;
+    notification_radius?: number | null;
   } | null;
   setUserProfile: (p: {
     id: string;
@@ -147,6 +151,10 @@ type Store = {
     verified?: boolean;
     verification_status?: 'unverified' | 'pending' | 'approved' | 'declined' | null;
     verification_id?: string | null;
+    onboarding_completed?: boolean;
+    home_lat?: number | null;
+    home_lng?: number | null;
+    notification_radius?: number | null;
   } | null) => void;
 
   // Active trip route

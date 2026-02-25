@@ -408,5 +408,37 @@
       "redeemed": "Welcome! You joined via {org}",
       "alreadyUsed": "You have already redeemed an invitation code"
     }
+  },
+  "onboarding": {
+    "welcome": "Welcome to Brume",
+    "welcomeSub": "Your city, safer — together.",
+    "getStarted": "Let's get you set up",
+    "mapTitle": "See what's happening around you",
+    "mapBody": "Incidents reported by your community appear in real time.",
+    "reportTitle": "Report in 30 seconds",
+    "reportBody": "Spotted something? Tap a category to report it.",
+    "reportFeedback": "Got it! In the real app, this would be live on the map.",
+    "sosTitle": "Your safety button",
+    "sosBody": "Hold the red SOS button. Your trusted contacts are notified instantly.",
+    "sosDemo": "Don't worry, this is just a demo!",
+    "contactTitle": "Who has your back?",
+    "contactBody": "Add one person you trust. They'll be notified if you trigger SOS.",
+    "contactSkipNote": "You can add someone later in My Brume → Trusted Circle",
+    "contactPlaceholderName": "Name",
+    "contactPlaceholderInfo": "Phone or email",
+    "contactAdd": "Add {name} to my circle",
+    "contactInviteSent": "Invite sent! They'll join your circle when they sign up.",
+    "zoneTitle": "Where do you want alerts?",
+    "zoneBody": "Drag the map to center it on your neighborhood.",
+    "zoneSave": "Set my zone",
+    "zoneSkip": "Skip — use my current location",
+    "doneTitle": "You're all set!",
+    "doneFullSetup": "You're fully set up. Stay safe out there.",
+    "doneEnter": "Enter Brume",
+    "next": "Next",
+    "skip": "Skip for now",
+    "back": "Back",
+    "gotIt": "Got it",
+    "iUnderstand": "I understand"
   }
 }

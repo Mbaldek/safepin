@@ -30,7 +30,7 @@ import IncidentsView from '@/components/IncidentsView';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
-import OnboardingOverlay, { useOnboardingDone } from '@/components/OnboardingOverlay';
+import OnboardingFunnel, { useOnboardingDone } from '@/components/OnboardingFunnel';
 import PlaceNoteSheet from '@/components/PlaceNoteSheet';
 import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
@@ -109,7 +109,7 @@ export default function MapPage() {
     showSafeSpaces, setShowSafeSpaces,
   } = useStore();
 
-  const [onboardingDone, markOnboardingDone] = useOnboardingDone();
+  const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
 
   // Presence heartbeat — updates last_seen_at every 2 min
   usePresenceHeartbeat(userId);
@@ -1006,8 +1006,8 @@ export default function MapPage() {
       </AnimatePresence>
 
       {/* ── Onboarding overlay (first launch only) ─────────────────── */}
-      {!loading && !onboardingDone && (
-        <OnboardingOverlay onDone={markOnboardingDone} />
+      {!loading && !onboardingDone && userId && (
+        <OnboardingFunnel userId={userId} onDone={markOnboardingDone} />
       )}
 
       {/* ── Push notification opt-in ─────────────────────────────────── */}
