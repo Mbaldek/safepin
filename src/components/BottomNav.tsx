@@ -3,16 +3,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, User, type LucideIcon } from 'lucide-react';
+import { MapPin, MessageCircle, Navigation, User, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTranslations } from 'next-intl';
 
-type Tab = 'map' | 'trip' | 'me';
+type Tab = 'map' | 'community' | 'trip' | 'me';
 
-const TAB_KEYS: { id: Tab; key: 'map' | 'trip' | 'me'; Icon: LucideIcon }[] = [
-  { id: 'map',  key: 'map',  Icon: MapPin     },
-  { id: 'trip', key: 'trip', Icon: Navigation },
-  { id: 'me',   key: 'me',   Icon: User       },
+const TAB_KEYS: { id: Tab; key: 'map' | 'community' | 'trip' | 'me'; Icon: LucideIcon }[] = [
+  { id: 'map',       key: 'map',       Icon: MapPin        },
+  { id: 'community', key: 'community', Icon: MessageCircle },
+  { id: 'trip',      key: 'trip',      Icon: Navigation    },
+  { id: 'me',        key: 'me',        Icon: User          },
 ];
 
 export default function BottomNav() {
@@ -43,7 +44,7 @@ export default function BottomNav() {
         const label = t(key);
         const badge =
           id === 'map' && emergencyCount > 0 ? emergencyCount :
-          id === 'me' && unreadDmCount > 0 ? unreadDmCount : 0;
+          id === 'community' && unreadDmCount > 0 ? unreadDmCount : 0;
 
         return (
           <button
@@ -67,7 +68,7 @@ export default function BottomNav() {
             {badge > 0 && (
               <span
                 className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1 z-10"
-                style={{ backgroundColor: id === 'me' ? 'var(--accent)' : '#ef4444', color: '#fff' }}
+                style={{ backgroundColor: id === 'community' ? 'var(--accent)' : '#ef4444', color: '#fff' }}
               >
                 {badge}
               </span>

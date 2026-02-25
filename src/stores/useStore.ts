@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
 
 type Sheet = 'none' | 'report' | 'detail';
-type Tab = 'map' | 'trip' | 'me';
+type Tab = 'map' | 'community' | 'trip' | 'me';
 
 export type RouteOption = {
   id: string;

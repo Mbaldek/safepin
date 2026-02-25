@@ -40,6 +40,19 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [magicSent, setMagicSent] = useState(false);
 
+  // ─── Dev bypass ────────────────────────────────────
+  const devEmail = process.env.NEXT_PUBLIC_DEV_EMAIL;
+  const devPassword = process.env.NEXT_PUBLIC_DEV_PASSWORD;
+  const showDevLogin = !!devEmail && !!devPassword;
+
+  async function handleDevLogin() {
+    if (!devEmail || !devPassword) return;
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: devEmail, password: devPassword });
+    if (error) { toast.error(error.message); setLoading(false); return; }
+    router.push('/map');
+  }
+
   // ─── Invite code state ───────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
@@ -197,7 +210,19 @@ export default function LoginPage() {
             Br<span style={{ color: 'var(--accent)' }}>u</span>me
           </span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {showDevLogin && (
+            <button
+              onClick={handleDevLogin}
+              disabled={loading}
+              className="px-2.5 py-1 rounded-lg text-[0.6rem] font-bold transition hover:opacity-80 disabled:opacity-40"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            >
+              Dev
+            </button>
+          )}
+          <ThemeToggle />
+        </div>
       </nav>
 
       {/* ─── Hero ──────────────────────────────────── */}

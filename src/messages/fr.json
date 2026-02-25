@@ -16,6 +16,7 @@
   },
   "nav": {
     "map": "Carte",
+    "community": "Communaut\u00e9",
     "trip": "Trajet",
     "me": "Moi"
   },
@@ -437,6 +438,7 @@
     "skip": "Passer pour l'instant",
     "back": "Retour",
     "gotIt": "Compris",
-    "iUnderstand": "J'ai compris"
+    "iUnderstand": "J'ai compris",
+    "communityTooltip": "Votre cercle de confiance et vos communaut\u00e9s sont ici !"
   }
 }

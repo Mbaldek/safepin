@@ -118,7 +118,7 @@ export default function FilterBar({ open, onClose }: FilterBarProps) {
 
           {/* Bottom sheet */}
           <motion.div
-            className="absolute bottom-0 left-0 right-0 z-60 rounded-t-2xl max-h-[70vh] overflow-y-auto"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 z-60 rounded-t-2xl max-h-[70vh] overflow-y-auto"
             style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}

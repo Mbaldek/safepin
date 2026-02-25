@@ -15,7 +15,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, MessageCircle, SlidersHorizontal, Layers } from 'lucide-react';
+import { Bell, Search, Menu, X, List, SlidersHorizontal, Layers } from 'lucide-react';
 import MapView from '@/components/MapView';
 import FilterBar from '@/components/FilterBar';
 import LayerPanel from '@/components/LayerPanel';
@@ -37,6 +37,7 @@ import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/compone
 import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
 import InstallPrompt from '@/components/InstallPrompt';
+import CommunityTooltip from '@/components/CommunityTooltip';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
@@ -110,6 +111,20 @@ export default function MapPage() {
   } = useStore();
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
+  const justCompletedOnboardingRef = useRef(false);
+  const [showCommunityTooltip, setShowCommunityTooltip] = useState(false);
+
+  const handleOnboardingDone = useCallback(() => {
+    justCompletedOnboardingRef.current = true;
+    markOnboardingDone();
+  }, [markOnboardingDone]);
+
+  useEffect(() => {
+    if (justCompletedOnboardingRef.current && onboardingDone) {
+      setShowCommunityTooltip(true);
+      justCompletedOnboardingRef.current = false;
+    }
+  }, [onboardingDone]);
 
   // Presence heartbeat — updates last_seen_at every 2 min
   usePresenceHeartbeat(userId);
@@ -212,7 +227,6 @@ export default function MapPage() {
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
-  const [showCommunityShortcut, setShowCommunityShortcut] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
@@ -750,27 +764,7 @@ export default function MapPage() {
                 </span>
               )}
             </button>
-            {/* Community messages shortcut — left column */}
-            {userId && (
-              <button
-                onClick={() => setShowCommunityShortcut(true)}
-                className="absolute bottom-28 left-4 w-11 h-11 rounded-full flex items-center justify-center z-50 transition hover:scale-105 active:scale-95 shadow-md"
-                style={{
-                  backgroundColor: unreadDmCount > 0 ? 'rgba(16,185,129,0.15)' : 'var(--bg-card)',
-                  border: `1px solid ${unreadDmCount > 0 ? 'rgba(16,185,129,0.4)' : 'var(--border)'}`,
-                }}
-                aria-label="Messages"
-              >
-                <MessageCircle size={18} style={{ color: unreadDmCount > 0 ? '#10b981' : 'var(--text-muted)' }} />
-                {unreadDmCount > 0 && (
-                  <span
-                    className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full"
-                    style={{ backgroundColor: 'var(--accent)', border: '2px solid var(--bg-primary)' }}
-                  />
-                )}
-              </button>
-            )}
-            {/* Filter + Layers icon buttons — left column above community */}
+            {/* Filter + Layers icon buttons — left column */}
             <button
               onClick={openFilterPanel}
               aria-label="Map filters"
@@ -877,6 +871,13 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
+        {/* Community tab — trusted circle, groups, messages */}
+        <AnimatePresence>
+          {activeTab === 'community' && userId && (
+            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} />
+          )}
+        </AnimatePresence>
+
         {/* Trip sheet — overlays the map when on trip tab */}
         <AnimatePresence>
           {activeTab === 'trip' && (
@@ -966,12 +967,8 @@ export default function MapPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Community shortcut overlay ─────────────────────────────── */}
-      <AnimatePresence>
-        {showCommunityShortcut && (
-          <CommunityView key="community-shortcut" onClose={() => setShowCommunityShortcut(false)} />
-        )}
-      </AnimatePresence>
+      {/* Post-onboarding community tooltip */}
+      <CommunityTooltip show={showCommunityTooltip} />
 
       {/* ── Bottom navigation ──────────────────────────────────────── */}
       <BottomNav />
@@ -1007,7 +1004,7 @@ export default function MapPage() {
 
       {/* ── Onboarding overlay (first launch only) ─────────────────── */}
       {!loading && !onboardingDone && userId && (
-        <OnboardingFunnel userId={userId} onDone={markOnboardingDone} />
+        <OnboardingFunnel userId={userId} onDone={handleOnboardingDone} />
       )}
 
       {/* ── Push notification opt-in ─────────────────────────────────── */}
