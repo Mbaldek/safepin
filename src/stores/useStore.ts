@@ -437,9 +437,9 @@ export const useStore = create<Store>((set) => ({
   showSafeSpaces: true,
   setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
 
-  // Simulation toggle
-  showSimulated: false,
-  setShowSimulated: (v) => set({ showSimulated: v }),
+  // Simulation toggle (persisted so it survives page navigation)
+  showSimulated: loadLS('brume_show_simulated', false),
+  setShowSimulated: (v) => { saveLS('brume_show_simulated', v); set({ showSimulated: v }); },
 
   // Pins version counter
   pinsVersion: 0,
