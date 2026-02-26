@@ -582,7 +582,7 @@ function ParametersTab() {
       { key: p.key, value: editValue, description: p.description, updated_at: new Date().toISOString() },
       { onConflict: 'key' }
     );
-    if (error) { toast.error('Failed to save parameter'); return; }
+    if (error) { console.error('Param save error:', error); toast.error('Failed to save parameter'); return; }
     toast.success(`Saved ${p.key}`);
     setEditingKey(null);
     load();
@@ -816,30 +816,63 @@ type UserDetail = {
   verification_status: string | null;
   is_admin: boolean | null;
   avatar_url?: string | null;
+  is_shadow_banned?: boolean | null;
+  current_streak?: number | null;
+  longest_streak?: number | null;
+  last_active_date?: string | null;
+  invite_code_id?: string | null;
+};
+
+type UserSubscription = {
+  plan: string;
+  status: string;
+  current_period_end: string | null;
+  stripe_customer_id: string | null;
+} | null;
+
+type UserInvoice = {
+  id: string;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  created_at: string;
 };
 
 function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [user, setUser]       = useState<UserDetail | null>(null);
   const [pins, setUserPins]   = useState<Pin[]>([]);
   const [stats, setStats]     = useState({ pinCount: 0, voteCount: 0, commentCount: 0 });
+  const [subscription, setSubscription] = useState<UserSubscription>(null);
+  const [invoices, setInvoices] = useState<UserInvoice[]>([]);
+  const [inviteOrg, setInviteOrg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [profileRes, pinsRes, votesRes, commentsRes] = await Promise.all([
-        supabase.from('profiles').select('id, display_name, created_at, verification_status, is_admin, avatar_url').eq('id', userId).single(),
+      const [profileRes, pinsRes, votesRes, commentsRes, subRes, invRes] = await Promise.all([
+        supabase.from('profiles').select('id, display_name, created_at, verification_status, is_admin, avatar_url, is_shadow_banned, current_streak, longest_streak, last_active_date, invite_code_id').eq('id', userId).single(),
         supabase.from('pins').select('id, category, severity, is_emergency, resolved_at, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
         supabase.from('pin_votes').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('pin_comments').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('subscriptions').select('plan, status, current_period_end, stripe_customer_id').eq('user_id', userId).maybeSingle(),
+        supabase.from('invoices').select('id, amount_cents, currency, status, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
       ]);
-      setUser((profileRes.data as UserDetail) ?? null);
+      const profile = (profileRes.data as UserDetail) ?? null;
+      setUser(profile);
       setUserPins((pinsRes.data as Pin[]) ?? []);
       setStats({
         pinCount:     pinsRes.data?.length ?? 0,
         voteCount:    (votesRes as { count: number | null }).count ?? 0,
         commentCount: (commentsRes as { count: number | null }).count ?? 0,
       });
+      setSubscription((subRes.data as UserSubscription) ?? null);
+      setInvoices((invRes.data as UserInvoice[]) ?? []);
+      // Fetch invite org name if user has one
+      if (profile?.invite_code_id) {
+        const { data: ic } = await supabase.from('invite_codes').select('organization_name').eq('id', profile.invite_code_id).single();
+        if (ic) setInviteOrg((ic as { organization_name: string }).organization_name);
+      }
       setLoading(false);
     })();
   }, [userId]);
@@ -889,12 +922,20 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
 
         {/* Body */}
         {loading ? <Spinner /> : (
-          <div className="px-6 py-4 space-y-4">
-            {/* Meta */}
+          <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Identity */}
             <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="col-span-2">
+                <p className="text-xs text-gray-400 font-medium mb-0.5">User ID</p>
+                <p className="font-mono text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded select-all break-all">{userId}</p>
+              </div>
               <div>
                 <p className="text-xs text-gray-400 font-medium mb-0.5">Joined</p>
                 <p className="font-semibold text-gray-800">{user?.created_at ? fmt(user.created_at) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-0.5">Last active</p>
+                <p className="font-semibold text-gray-800">{user?.last_active_date ? fmt(user.last_active_date) : '—'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-medium mb-0.5">Verification</p>
@@ -906,7 +947,84 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
                   ? <Badge color="bg-purple-100 text-purple-700">Admin</Badge>
                   : <Badge color="bg-gray-100 text-gray-500">User</Badge>}
               </div>
+              {user?.is_shadow_banned && (
+                <div className="col-span-2">
+                  <Badge color="bg-red-100 text-red-700">Shadow banned</Badge>
+                </div>
+              )}
             </div>
+
+            {/* Streaks */}
+            {(user?.current_streak || user?.longest_streak) ? (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Streaks</p>
+                <div className="flex gap-3">
+                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2 text-center">
+                    <p className="text-base font-black text-gray-800">{user.current_streak ?? 0}</p>
+                    <p className="text-[0.6rem] text-gray-400 uppercase">Current</p>
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2 text-center">
+                    <p className="text-base font-black text-gray-800">{user.longest_streak ?? 0}</p>
+                    <p className="text-[0.6rem] text-gray-400 uppercase">Longest</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Invite code */}
+            {inviteOrg && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Invite code</p>
+                <p className="text-sm text-gray-700">{inviteOrg}</p>
+              </div>
+            )}
+
+            {/* Subscription */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Subscription</p>
+              {subscription ? (
+                <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 rounded-lg p-3">
+                  <div>
+                    <p className="text-xs text-gray-400">Plan</p>
+                    <p className="font-semibold text-gray-800">{subscription.plan}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Status</p>
+                    <Badge color={subscription.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>{subscription.status}</Badge>
+                  </div>
+                  {subscription.current_period_end && (
+                    <div>
+                      <p className="text-xs text-gray-400">Period ends</p>
+                      <p className="font-semibold text-gray-800">{fmt(subscription.current_period_end)}</p>
+                    </div>
+                  )}
+                  {subscription.stripe_customer_id && (
+                    <div>
+                      <p className="text-xs text-gray-400">Stripe ID</p>
+                      <p className="font-mono text-xs text-gray-600 truncate">{subscription.stripe_customer_id}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">Free plan</p>
+              )}
+            </div>
+
+            {/* Invoices */}
+            {invoices.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent invoices</p>
+                <div className="space-y-1.5">
+                  {invoices.map((inv) => (
+                    <div key={inv.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+                      <Badge color={inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>{inv.status}</Badge>
+                      <span className="font-semibold text-gray-700">{(inv.amount_cents / 100).toFixed(2)} {inv.currency.toUpperCase()}</span>
+                      <span className="ml-auto text-gray-400">{fmt(inv.created_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Recent pins */}
             {pins.length > 0 && (
@@ -1159,17 +1277,24 @@ function SimulationTab() {
   const [tickLog, setTickLog] = useState<string[]>([]);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load stats + current state
-  const loadStats = useCallback(async () => {
-    const [usersRes, pinsRes, paramRes, spacesRes] = await Promise.all([
+  // Refresh only counts (called after each tick — does NOT touch simActive)
+  const refreshStats = useCallback(async () => {
+    const [usersRes, pinsRes, spacesRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
       supabase.from('pins').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
-      supabase.from('admin_params').select('value').eq('key', 'simulation_active').single(),
       supabase.from('safe_spaces').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
     ]);
     setStats({ simUsers: usersRes.count ?? 0, simPins: pinsRes.count ?? 0, simSafeSpaces: spacesRes.count ?? 0 });
-    setSimActive(paramRes.data?.value === 'true');
   }, []);
+
+  // Full load: stats + simActive state from DB (only on mount)
+  const loadStats = useCallback(async () => {
+    await refreshStats();
+    const paramRes = await supabase.from('admin_params').select('value').eq('key', 'simulation_active').single();
+    if (paramRes.data?.value !== undefined) {
+      setSimActive(paramRes.data.value === 'true');
+    }
+  }, [refreshStats]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
@@ -1204,7 +1329,11 @@ function SimulationTab() {
   // Toggle simulation active
   async function toggleSimulation() {
     const newVal = !simActive;
-    await supabase.from('admin_params').update({ value: String(newVal) }).eq('key', 'simulation_active');
+    const { error } = await supabase.from('admin_params').upsert(
+      { key: 'simulation_active', value: String(newVal), description: 'Whether the simulation engine is running', updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+    if (error) { console.error('toggleSimulation error:', error); toast.error('Failed to toggle simulation'); return; }
     setSimActive(newVal);
     if (newVal) useStore.getState().setShowSimulated(true);
     toast.success(newVal ? 'Simulation started' : 'Simulation stopped');
@@ -1227,10 +1356,10 @@ function SimulationTab() {
       const data = await res.json();
       if (data.actions?.length) {
         setTickLog((prev) => [`${new Date().toLocaleTimeString()} — ${data.actions.join(', ')}`, ...prev.slice(0, 49)]);
-        loadStats();
+        refreshStats();
       }
     } catch { /* ignore tick failures */ }
-  }, [loadStats]);
+  }, [refreshStats]);
 
   // Start/stop tick interval
   useEffect(() => {
