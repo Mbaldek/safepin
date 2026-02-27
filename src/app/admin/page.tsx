@@ -1272,12 +1272,10 @@ function SimulationTab() {
   const [pinCount, setPinCount] = useState(500);
   const [seedSafeSpaces, setSeedSafeSpaces] = useState(false);
   const [safeSpaceCount, setSafeSpaceCount] = useState(100);
-  const [interval, setIntervalMs] = useState(30000);
   const [stats, setStats] = useState({ simUsers: 0, simPins: 0, simSafeSpaces: 0 });
   const [tickLog, setTickLog] = useState<string[]>([]);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Refresh only counts (called after each tick — does NOT touch simActive)
+  // Refresh only counts
   const refreshStats = useCallback(async () => {
     const [usersRes, pinsRes, spacesRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_simulated', true),
@@ -1290,13 +1288,26 @@ function SimulationTab() {
   // Full load: stats + simActive state from DB (only on mount)
   const loadStats = useCallback(async () => {
     await refreshStats();
-    const paramRes = await supabase.from('admin_params').select('value').eq('key', 'simulation_active').single();
+    const paramRes = await supabase.from('admin_params').select('value').eq('key', 'simulation_active').maybeSingle();
     if (paramRes.data?.value !== undefined) {
       setSimActive(paramRes.data.value === 'true');
     }
   }, [refreshStats]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
+
+  // Subscribe to realtime pin inserts (simulated) to update the activity log
+  useEffect(() => {
+    const channel = supabase
+      .channel('sim-pin-log')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pins', filter: 'is_simulated=eq.true' },
+        () => {
+          setTickLog((prev) => [`${new Date().toLocaleTimeString()} — New simulated pin created`, ...prev.slice(0, 49)]);
+          refreshStats();
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refreshStats]);
 
   // Seed Paris
   async function handleSeed() {
@@ -1326,7 +1337,7 @@ function SimulationTab() {
     }
   }
 
-  // Toggle simulation active
+  // Toggle simulation active (the global SimulationTicker handles ticking)
   async function toggleSimulation() {
     const newVal = !simActive;
     const { error } = await supabase.from('admin_params').upsert(
@@ -1336,42 +1347,8 @@ function SimulationTab() {
     if (error) { console.error('toggleSimulation error:', error); toast.error('Failed to toggle simulation'); return; }
     setSimActive(newVal);
     if (newVal) useStore.getState().setShowSimulated(true);
-    toast.success(newVal ? 'Simulation started' : 'Simulation stopped');
-    if (!newVal && tickRef.current) {
-      clearInterval(tickRef.current);
-      tickRef.current = null;
-    }
+    toast.success(newVal ? 'Simulation started — ticks run globally' : 'Simulation stopped');
   }
-
-  // Tick — call simulate-activity edge function
-  const tick = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const res = await fetch('/api/simulation/tick', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: 'tick' }),
-      });
-      const data = await res.json();
-      if (data.actions?.length) {
-        setTickLog((prev) => [`${new Date().toLocaleTimeString()} — ${data.actions.join(', ')}`, ...prev.slice(0, 49)]);
-        refreshStats();
-      }
-    } catch { /* ignore tick failures */ }
-  }, [refreshStats]);
-
-  // Start/stop tick interval
-  useEffect(() => {
-    if (simActive) {
-      tick(); // immediate first tick
-      tickRef.current = setInterval(tick, interval);
-    } else if (tickRef.current) {
-      clearInterval(tickRef.current);
-      tickRef.current = null;
-    }
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
-  }, [simActive, interval, tick]);
 
   // Cleanup all simulated data
   async function handleCleanup() {
@@ -1398,13 +1375,6 @@ function SimulationTab() {
     }
   }
 
-  const intervalOptions = [
-    { label: '10s', value: 10000 },
-    { label: '30s', value: 30000 },
-    { label: '1min', value: 60000 },
-    { label: '5min', value: 300000 },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Status */}
@@ -1429,7 +1399,7 @@ function SimulationTab() {
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs font-medium text-gray-500 mb-1">Tick Interval</p>
-          <p className="text-2xl font-black text-gray-700">{interval / 1000}s</p>
+          <p className="text-2xl font-black text-gray-700">30s</p>
         </div>
       </div>
 
@@ -1475,14 +1445,7 @@ function SimulationTab() {
             className={`px-5 py-2.5 font-bold text-sm rounded-lg transition-colors ${simActive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'}`}>
             {simActive ? 'Stop Simulation' : 'Start Simulation'}
           </button>
-          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
-            {intervalOptions.map((opt) => (
-              <button key={opt.value} onClick={() => setIntervalMs(opt.value)}
-                className={`px-3 py-2 text-xs font-medium transition-colors ${interval === opt.value ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          {simActive && <span className="text-xs text-gray-400">Ticking every 30s (runs globally)</span>}
         </div>
 
         {/* Tick log */}

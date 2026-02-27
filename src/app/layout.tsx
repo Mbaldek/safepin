@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
+import SimulationTicker from '@/components/SimulationTicker';
 
 export const metadata: Metadata = {
   title: 'Brume',
@@ -54,6 +55,7 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             {children}
+            <SimulationTicker />
           </ThemeProvider>
         </NextIntlClientProvider>
         <Toaster
