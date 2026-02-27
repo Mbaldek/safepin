@@ -53,26 +53,16 @@ export default function LoginPage() {
     router.push('/map');
   }
 
-  // ─── Beta bypass (anonymous sign-in) ─────────────
+  // ─── Beta bypass (shared beta account) ───────────
+  const betaEmail = process.env.NEXT_PUBLIC_BETA_EMAIL;
+  const betaPassword = process.env.NEXT_PUBLIC_BETA_PASSWORD;
+
   async function handleBetaLogin() {
+    if (!betaEmail || !betaPassword) { toast.error('Beta access unavailable'); return; }
     setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) { toast.error(error.message); setLoading(false); return; }
-      // Log beta access
-      console.info('[BETA]', new Date().toISOString(), 'anonymous_id=', data.user?.id);
-      if (data.user) {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          name: 'Beta Tester',
-        }, { onConflict: 'id' }).select().single();
-      }
-      router.push('/map');
-    } catch (err) {
-      console.error('Beta login failed:', err);
-      toast.error('Beta access unavailable');
-      setLoading(false);
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email: betaEmail, password: betaPassword });
+    if (error) { toast.error(error.message); setLoading(false); return; }
+    router.push('/map');
   }
 
   // ─── Invite code state ───────────────────────────
