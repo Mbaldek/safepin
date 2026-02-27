@@ -11,7 +11,7 @@ export type ReferencePoint = {
   arrondissement: number;
 };
 
-// ─── 80 Reference Points — 4 per arrondissement across Paris intramuros ──────
+// ─── Reference Points — Paris intramuros + Ile-de-France suburbs ─────────────
 
 export const PARIS_REFERENCE_POINTS: ReferencePoint[] = [
   // 1er
@@ -114,6 +114,43 @@ export const PARIS_REFERENCE_POINTS: ReferencePoint[] = [
   { lat: 48.8634, lng: 2.3987, label: 'Pere Lachaise', arrondissement: 20 },
   { lat: 48.8530, lng: 2.4063, label: 'Porte de Montreuil', arrondissement: 20 },
   { lat: 48.8680, lng: 2.3913, label: 'Menilmontant', arrondissement: 20 },
+  // ── Ile-de-France — Petite couronne (92, 93, 94) ──
+  { lat: 48.8920, lng: 2.2380, label: 'La Defense', arrondissement: 0 },
+  { lat: 48.8810, lng: 2.2190, label: 'Nanterre', arrondissement: 0 },
+  { lat: 48.8350, lng: 2.2400, label: 'Boulogne-Billancourt', arrondissement: 0 },
+  { lat: 48.8850, lng: 2.2680, label: 'Neuilly-sur-Seine', arrondissement: 0 },
+  { lat: 48.8220, lng: 2.2700, label: 'Issy-les-Moulineaux', arrondissement: 0 },
+  { lat: 48.8970, lng: 2.3030, label: 'Levallois-Perret', arrondissement: 0 },
+  { lat: 48.9040, lng: 2.3060, label: 'Clichy', arrondissement: 0 },
+  { lat: 48.9360, lng: 2.3570, label: 'Saint-Denis', arrondissement: 0 },
+  { lat: 48.9215, lng: 2.3565, label: 'Stade de France', arrondissement: 0 },
+  { lat: 48.9140, lng: 2.3830, label: 'Aubervilliers', arrondissement: 0 },
+  { lat: 48.8930, lng: 2.4120, label: 'Pantin', arrondissement: 0 },
+  { lat: 48.9100, lng: 2.4400, label: 'Bobigny', arrondissement: 0 },
+  { lat: 48.8630, lng: 2.4430, label: 'Montreuil', arrondissement: 0 },
+  { lat: 48.8470, lng: 2.4380, label: 'Vincennes', arrondissement: 0 },
+  { lat: 48.8400, lng: 2.4700, label: 'Fontenay-sous-Bois', arrondissement: 0 },
+  { lat: 48.7910, lng: 2.4620, label: 'Creteil', arrondissement: 0 },
+  { lat: 48.8130, lng: 2.3870, label: 'Ivry-sur-Seine', arrondissement: 0 },
+  { lat: 48.7870, lng: 2.3930, label: 'Vitry-sur-Seine', arrondissement: 0 },
+  { lat: 48.7920, lng: 2.3630, label: 'Villejuif', arrondissement: 0 },
+  { lat: 48.8100, lng: 2.3020, label: 'Clamart', arrondissement: 0 },
+  // ── Ile-de-France — Grande couronne (78, 91, 95, 77) ──
+  { lat: 48.8010, lng: 2.1300, label: 'Versailles', arrondissement: 0 },
+  { lat: 48.8990, lng: 2.0930, label: 'Saint-Germain-en-Laye', arrondissement: 0 },
+  { lat: 49.0360, lng: 2.0630, label: 'Cergy-Pontoise', arrondissement: 0 },
+  { lat: 48.9480, lng: 2.2460, label: 'Argenteuil', arrondissement: 0 },
+  { lat: 49.0500, lng: 2.1000, label: 'Pontoise', arrondissement: 0 },
+  { lat: 48.6320, lng: 2.4420, label: 'Evry-Courcouronnes', arrondissement: 0 },
+  { lat: 48.7300, lng: 2.2710, label: 'Massy', arrondissement: 0 },
+  { lat: 48.7430, lng: 2.3930, label: 'Orly', arrondissement: 0 },
+  { lat: 49.0030, lng: 2.5140, label: 'Roissy-CDG', arrondissement: 0 },
+  { lat: 48.9600, lng: 2.8790, label: 'Meaux', arrondissement: 0 },
+  { lat: 48.8530, lng: 2.6000, label: 'Marne-la-Vallee', arrondissement: 0 },
+  { lat: 48.5420, lng: 2.6550, label: 'Melun', arrondissement: 0 },
+  { lat: 48.6140, lng: 2.4820, label: 'Corbeil-Essonnes', arrondissement: 0 },
+  { lat: 48.7650, lng: 2.1990, label: 'Palaiseau', arrondissement: 0 },
+  { lat: 48.8050, lng: 2.4960, label: 'Nogent-sur-Marne', arrondissement: 0 },
 ];
 
 // ─── Name Pools ──────────────────────────────────────────────────────────────
@@ -178,19 +215,21 @@ export function generateUserPlaces(): SimPlace[] {
   const places: SimPlace[] = [];
 
   const homeRef = pick(pts);
+  const homeSpread = homeRef.arrondissement === 0 ? 0.005 : 0.002;
   places.push({
-    lat: homeRef.lat + randomOffset(0.002),
-    lng: homeRef.lng + randomOffset(0.002),
+    lat: homeRef.lat + randomOffset(homeSpread),
+    lng: homeRef.lng + randomOffset(homeSpread),
     label: homeRef.label,
     role: 'home',
   });
 
-  // Work in a different arrondissement
+  // Work in a different area
   let workRef: ReferencePoint;
-  do { workRef = pick(pts); } while (workRef.arrondissement === homeRef.arrondissement);
+  do { workRef = pick(pts); } while (workRef === homeRef);
+  const workSpread = workRef.arrondissement === 0 ? 0.005 : 0.002;
   places.push({
-    lat: workRef.lat + randomOffset(0.002),
-    lng: workRef.lng + randomOffset(0.002),
+    lat: workRef.lat + randomOffset(workSpread),
+    lng: workRef.lng + randomOffset(workSpread),
     label: workRef.label,
     role: 'work',
   });
@@ -203,9 +242,10 @@ export function generateUserPlaces(): SimPlace[] {
     do { idx = Math.floor(Math.random() * pts.length); } while (used.has(idx));
     used.add(idx);
     const ref = pts[idx];
+    const favSpread = ref.arrondissement === 0 ? 0.006 : 0.003;
     places.push({
-      lat: ref.lat + randomOffset(0.003),
-      lng: ref.lng + randomOffset(0.003),
+      lat: ref.lat + randomOffset(favSpread),
+      lng: ref.lng + randomOffset(favSpread),
       label: ref.label,
       role: 'favorite',
     });

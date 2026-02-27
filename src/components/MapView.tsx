@@ -289,8 +289,8 @@ function addClusterLayers(m: mapboxgl.Map, isDark: boolean) {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
     cluster: true,
-    clusterMaxZoom: 13,
-    clusterRadius: 50,
+    clusterMaxZoom: 11,
+    clusterRadius: 35,
   });
 
   // Cluster circle
