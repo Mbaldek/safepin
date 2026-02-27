@@ -28,6 +28,16 @@ export type Pin = {
   created_at: string;
 };
 
+export type PinEvidence = {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  activity: 'report' | 'confirmation' | 'rejection';
+  content: string | null;
+  media_urls: MediaItem[] | null;
+  created_at: string;
+};
+
 export type Comment = {
   id: string;
   pin_id: string;

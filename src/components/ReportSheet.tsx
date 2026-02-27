@@ -183,6 +183,17 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
     // Immediately add to store so the map updates without waiting for realtime
     if (newPin) addPin(newPin as import('@/types').Pin);
 
+    // Record initial evidence (the original report)
+    if (newPin) {
+      supabase.from('pin_evidence').insert({
+        pin_id: newPin.id,
+        user_id: userId,
+        activity: 'report',
+        content: description || null,
+        media_urls: uploaded.length > 0 ? uploaded : null,
+      }).then(() => {}); // fire-and-forget
+    }
+
     // Human post-submit toast + Walk With Me offer for high severity
     if (severity === 'high') {
       toast('Report submitted. Stay safe.', {

@@ -2,14 +2,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
-import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle, Share2, Flag } from 'lucide-react';
+import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle, Share2, Flag, Paperclip, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin } from '@/types';
+import { CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, Pin, PinEvidence, MediaItem } from '@/types';
 import { toast } from 'sonner';
 import PinChat from './PinChat';
 import PinStoriesRow from './PinStoriesRow';
@@ -72,11 +72,20 @@ export default function DetailSheet() {
   const [hasThanked, setHasThanked] = useState(false);
   const [thanksCount, setThanksCount] = useState(0);
   const [showMore, setShowMore] = useState(false);
+  // Evidence timeline
+  const [evidence, setEvidence] = useState<PinEvidence[]>([]);
+  // Vote evidence panel
+  const [votePanel, setVotePanel] = useState<'confirm' | 'deny' | null>(null);
+  const [evidenceText, setEvidenceText] = useState('');
+  const [evidenceFiles, setEvidenceFiles] = useState<{ file: File; preview: string; type: 'image' | 'video' | 'audio' }[]>([]);
+  const [submittingEvidence, setSubmittingEvidence] = useState(false);
+  const evidenceFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!selectedPin) return;
     setConfirms([]); setDenies([]); setMyVote(null);
     setChatExpanded(false); setChatCount(0);
+    setEvidence([]); setVotePanel(null); setEvidenceText(''); setEvidenceFiles([]);
     supabase
       .from('pin_votes')
       .select('user_id, vote_type, created_at')
@@ -87,12 +96,26 @@ export default function DetailSheet() {
         setDenies(rows.filter((v) => v.vote_type === 'deny'));
         setMyVote(rows.find((v) => v.user_id === userId) ?? null);
       });
+    // Load evidence timeline
+    supabase
+      .from('pin_evidence')
+      .select('*')
+      .eq('pin_id', selectedPin.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => setEvidence((data as PinEvidence[]) ?? []));
     // Load thanks count + check if user thanked
     setHasThanked(false); setThanksCount(0);
     supabase.from('pin_thanks').select('user_id').eq('pin_id', selectedPin.id).then(({ data }) => {
       setThanksCount(data?.length ?? 0);
       setHasThanked(data?.some((r) => r.user_id === userId) ?? false);
     });
+    // Realtime evidence
+    const channel = supabase
+      .channel(`evidence-${selectedPin.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_evidence', filter: `pin_id=eq.${selectedPin.id}` },
+        (payload) => setEvidence((prev) => [...prev, payload.new as PinEvidence]))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [selectedPin?.id, userId]);
 
   if (!selectedPin) return null;
@@ -181,6 +204,65 @@ export default function DetailSheet() {
       }
     }
     setVotingInFlight(false);
+  }
+
+  function handleVoteClick(type: 'confirm' | 'deny') {
+    if (myVote?.vote_type === type) {
+      // Toggle off — just remove the vote directly
+      vote(type);
+      return;
+    }
+    // Open evidence panel for this vote type
+    setVotePanel(type);
+    setEvidenceText('');
+    setEvidenceFiles([]);
+  }
+
+  async function submitVoteWithEvidence() {
+    if (!votePanel || !userId || submittingEvidence) return;
+    setSubmittingEvidence(true);
+
+    // Upload media files
+    const uploaded: MediaItem[] = [];
+    for (const media of evidenceFiles) {
+      const fileName = `${userId}/${Date.now()}-${media.file.name}`;
+      const { error: uploadError } = await supabase.storage.from('pin-photos').upload(fileName, media.file);
+      if (uploadError) {
+        toast.error('Could not upload file.');
+        setSubmittingEvidence(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('pin-photos').getPublicUrl(fileName);
+      uploaded.push({ url: urlData.publicUrl, type: media.type });
+    }
+
+    // Submit the vote
+    await vote(votePanel);
+
+    // Insert evidence row
+    const activity = votePanel === 'confirm' ? 'confirmation' : 'rejection';
+    if (evidenceText.trim() || uploaded.length > 0) {
+      await supabase.from('pin_evidence').insert({
+        pin_id: selectedPin!.id,
+        user_id: userId,
+        activity,
+        content: evidenceText.trim() || null,
+        media_urls: uploaded.length > 0 ? uploaded : null,
+      });
+    }
+
+    setVotePanel(null);
+    setEvidenceText('');
+    setEvidenceFiles([]);
+    setSubmittingEvidence(false);
+  }
+
+  function handleEvidenceFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || evidenceFiles.length >= 3) return;
+    const mediaType = file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'image';
+    setEvidenceFiles((prev) => [...prev, { file, preview: URL.createObjectURL(file), type: mediaType as 'image' | 'video' | 'audio' }]);
+    e.target.value = '';
   }
 
   async function resolvePin() {
@@ -350,21 +432,57 @@ export default function DetailSheet() {
             )}
           </div>
 
-          {/* Media */}
-          {mediaItems.length > 0 && (
+          {/* ── Evidence Timeline ── */}
+          {evidence.length > 0 && (
+            <div className="flex flex-col gap-2 mb-4">
+              {evidence.map((ev) => {
+                const badge = ev.activity === 'report'
+                  ? { icon: '📍', label: 'Report', bg: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: 'rgba(59,130,246,0.3)' }
+                  : ev.activity === 'confirmation'
+                    ? { icon: '👍', label: 'Confirmation', bg: 'rgba(16,185,129,0.1)', color: '#10b981', border: 'rgba(16,185,129,0.3)' }
+                    : { icon: '👁️', label: 'Rejection', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)' };
+                const media = (ev.media_urls ?? []) as MediaItem[];
+                return (
+                  <div key={ev.id} className="rounded-xl p-3" style={{ backgroundColor: 'var(--bg-card)', border: `1px solid var(--border)` }}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                        {badge.icon} {badge.label}
+                      </span>
+                      <span className="text-[0.6rem] font-medium ml-auto" style={{ color: 'var(--text-muted)' }}>{timeAgo(ev.created_at)}</span>
+                    </div>
+                    {ev.content && <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{ev.content}</p>}
+                    {media.map((m, i) => {
+                      if (m.type === 'image') return (
+                        <img key={i} src={m.url} alt="" className="w-full h-40 object-cover rounded-lg mt-1" style={{ border: '1px solid var(--border)' }} />
+                      );
+                      if (m.type === 'video') return (
+                        <video key={i} src={m.url} controls className="w-full rounded-lg mt-1" style={{ border: '1px solid var(--border)', maxHeight: '160px' }} />
+                      );
+                      return (
+                        <div key={i} className="rounded-lg p-2 flex items-center gap-2 mt-1" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                          <span>🎵</span>
+                          <audio src={m.url} controls className="flex-1" style={{ height: '28px' }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Fallback: show pin media directly if no evidence rows yet */}
+          {evidence.length === 0 && mediaItems.length > 0 && (
             <div className="flex flex-col gap-2 mb-4">
               {mediaItems.map((m, i) => {
                 if (m.type === 'image') return (
-                  <img key={i} src={m.url} alt="Evidence" className="w-full h-44 object-cover rounded-xl"
-                    style={{ border: '1px solid var(--border)' }} />
+                  <img key={i} src={m.url} alt="Evidence" className="w-full h-44 object-cover rounded-xl" style={{ border: '1px solid var(--border)' }} />
                 );
                 if (m.type === 'video') return (
-                  <video key={i} src={m.url} controls className="w-full rounded-xl"
-                    style={{ border: '1px solid var(--border)', maxHeight: '180px' }} />
+                  <video key={i} src={m.url} controls className="w-full rounded-xl" style={{ border: '1px solid var(--border)', maxHeight: '180px' }} />
                 );
                 return (
-                  <div key={i} className="rounded-xl p-3 flex items-center gap-3"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                     <span className="text-2xl">🎵</span>
                     <audio src={m.url} controls className="flex-1" style={{ height: '32px' }} />
                   </div>
@@ -374,15 +492,17 @@ export default function DetailSheet() {
           )}
 
           {/* ── Primary actions: Confirm + Deny (large, always visible) ── */}
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-1">
             <button
-              onClick={() => vote('confirm')}
-              disabled={!userId || votingInFlight}
+              onClick={() => handleVoteClick('confirm')}
+              disabled={!userId || votingInFlight || submittingEvidence}
               className="flex items-center gap-2 px-4 py-3.5 rounded-xl text-base font-bold transition flex-1 justify-center disabled:opacity-50"
               style={
                 myVoteType === 'confirm'
                   ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.6)' }
-                  : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                  : votePanel === 'confirm'
+                    ? { backgroundColor: 'rgba(16,185,129,0.06)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }
+                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
               }
             >
               👍 {confirms.length > 0 ? confirms.length : ''} {t('stillThere')}
@@ -390,13 +510,15 @@ export default function DetailSheet() {
 
             {!isResolved && (
               <button
-                onClick={() => vote('deny')}
-                disabled={!userId || votingInFlight}
+                onClick={() => handleVoteClick('deny')}
+                disabled={!userId || votingInFlight || submittingEvidence}
                 className="flex items-center gap-2 px-4 py-3.5 rounded-xl text-base font-bold transition flex-1 justify-center disabled:opacity-50"
                 style={
                   myVoteType === 'deny'
                     ? { backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1.5px solid rgba(245,158,11,0.6)' }
-                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                    : votePanel === 'deny'
+                      ? { backgroundColor: 'rgba(245,158,11,0.06)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }
+                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
                 }
               >
                 👁️ {denies.length > 0 ? `${denies.length}/3` : ''} {t('cleared')}
@@ -412,6 +534,82 @@ export default function DetailSheet() {
               </div>
             )}
           </div>
+
+          {/* ── Vote Evidence Panel (expandable) ── */}
+          <AnimatePresence>
+            {votePanel && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden mb-3"
+              >
+                <div className="rounded-xl p-3 mt-1" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <p className="text-xs font-bold mb-2" style={{ color: votePanel === 'confirm' ? '#10b981' : '#f59e0b' }}>
+                    {votePanel === 'confirm' ? '👍 Add evidence for your confirmation' : '👁️ Add evidence for your rejection'}
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Add a note (optional)..."
+                    value={evidenceText}
+                    onChange={(e) => setEvidenceText(e.target.value)}
+                    className="w-full text-sm rounded-lg px-3 py-2 mb-2 outline-none"
+                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                  {/* Media previews */}
+                  {evidenceFiles.length > 0 && (
+                    <div className="flex gap-2 mb-2 flex-wrap">
+                      {evidenceFiles.map((f, i) => (
+                        <div key={i} className="relative">
+                          {f.type === 'image' ? (
+                            <img src={f.preview} alt="" className="w-16 h-16 object-cover rounded-lg" style={{ border: '1px solid var(--border)' }} />
+                          ) : f.type === 'video' ? (
+                            <video src={f.preview} className="w-16 h-16 object-cover rounded-lg" style={{ border: '1px solid var(--border)' }} />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg flex items-center justify-center text-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>🎵</div>
+                          )}
+                          <button
+                            onClick={() => setEvidenceFiles((prev) => prev.filter((_, j) => j !== i))}
+                            className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[0.5rem]"
+                            style={{ backgroundColor: '#ef4444' }}
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input ref={evidenceFileRef} type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={handleEvidenceFile} />
+                    <button
+                      onClick={() => evidenceFileRef.current?.click()}
+                      disabled={evidenceFiles.length >= 3}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold transition disabled:opacity-40"
+                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    >
+                      <Paperclip size={12} /> Attach
+                    </button>
+                    <button
+                      onClick={submitVoteWithEvidence}
+                      disabled={submittingEvidence}
+                      className="flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white transition disabled:opacity-50"
+                      style={{ backgroundColor: votePanel === 'confirm' ? '#10b981' : '#f59e0b' }}
+                    >
+                      {submittingEvidence ? 'Submitting...' : `Submit ${votePanel === 'confirm' ? 'confirmation' : 'rejection'}`}
+                    </button>
+                    <button
+                      onClick={() => setVotePanel(null)}
+                      className="px-3 py-2 rounded-lg text-xs font-bold transition"
+                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ── Secondary actions: Comment, Follow, Thank (compact row) ── */}
           <div className="flex gap-2 mb-3">
