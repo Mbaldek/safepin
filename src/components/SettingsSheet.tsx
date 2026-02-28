@@ -64,7 +64,7 @@ function Row({
         {badge && (
           <span
             className="text-[0.55rem] font-black px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
+            style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
           >
             {badge}
           </span>
@@ -290,7 +290,7 @@ export default function SettingsSheet({ onClose }: Props) {
             style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
           >
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}>
+              style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}>
               {userProfile?.avatar_url
                 ? <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                 : (userProfile?.display_name?.[0] ?? '?').toUpperCase()}

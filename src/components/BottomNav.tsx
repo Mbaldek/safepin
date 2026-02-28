@@ -54,12 +54,12 @@ export default function BottomNav() {
             aria-current={isActive ? 'page' : undefined}
             className="flex-1 flex flex-col items-center justify-center gap-1 relative"
           >
-            {/* Pill background — shared layoutId so it slides between tabs */}
+            {/* Active dot indicator */}
             {isActive && (
               <motion.div
-                layoutId="nav-pill"
-                className="absolute inset-x-2 inset-y-1 rounded-2xl"
-                style={{ backgroundColor: 'var(--accent)', opacity: 0.12 }}
+                layoutId="nav-dot"
+                className="absolute bottom-1.5 w-1 h-1 rounded-full"
+                style={{ backgroundColor: 'var(--accent)' }}
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               />
             )}

@@ -34,7 +34,7 @@ function Avatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md'
   return (
     <div
       className={`${sz} rounded-full flex items-center justify-center font-black text-white shrink-0`}
-      style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+      style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}
     >
       {(name?.[0] ?? '?').toUpperCase()}
     </div>
@@ -555,7 +555,7 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
                             {f.displayName ?? 'Anonymous'}
                           </p>
                           {isTrusted && (
-                            <Shield size={12} strokeWidth={2.5} className="shrink-0" style={{ color: '#f43f5e' }} />
+                            <Shield size={12} strokeWidth={2.5} className="shrink-0" style={{ color: 'var(--accent)' }} />
                           )}
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>

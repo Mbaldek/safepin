@@ -376,7 +376,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             <div className="flex flex-col items-center gap-6 pt-2 pb-2">
               <div className="flex flex-col items-center gap-2 text-center">
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(244,63,94,0.12)' }}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,83,0.12)' }}>
                     <Navigation size={28} style={{ color: 'var(--accent)' }} />
                   </div>
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 animate-pulse" style={{ backgroundColor: '#22c55e', borderColor: 'var(--bg-secondary)' }} />
@@ -483,7 +483,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             <button
               onClick={() => { onClose(); setShowWalkWithMe(true); }}
               className="w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(244,63,94,0.25)' }}
+              style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(212,168,83,0.25)' }}
             >
               🚶 {t('walkWithMe')}
             </button>
@@ -569,8 +569,8 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             <div className="flex gap-2">
               {recentTrips.length > 0 && (
                 <div className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                  style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.15)' }}>
-                  <Flame size={14} strokeWidth={2.5} style={{ color: '#f43f5e' }} />
+                  style={{ backgroundColor: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
+                  <Flame size={14} strokeWidth={2.5} style={{ color: 'var(--accent)' }} />
                   <div>
                     <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
                       {recentTrips.length} {t('tripsThisWeek')}

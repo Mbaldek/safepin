@@ -80,7 +80,7 @@ function LiveBadge() {
 }
 
 function DangerBadge({ score }: { score: number }) {
-  const color = score === 0 ? '#10b981' : score <= 2 ? '#f59e0b' : '#f43f5e';
+  const color = score === 0 ? '#10b981' : score <= 2 ? '#f59e0b' : '#ef4444';
   const label = score === 0 ? 'Safe' : score <= 2 ? 'Mild risk' : 'Danger';
   return (
     <span className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${color}22`, color }}>
@@ -420,7 +420,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
               onClick={() => avatarInputRef.current?.click()}
               disabled={avatarUploading}
               className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0 relative group"
-              style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+              style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}
               title="Change photo"
             >
               {userProfile?.avatar_url ? (
@@ -681,7 +681,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                     {[
                       { label: 'Reports made',        value: myReports.length,  emoji: '📋', color: '#6366f1' },
                       { label: 'Confirmed by others', value: confirmedVotes,    emoji: '👍', color: '#22c55e' },
-                      { label: 'Active right now',    value: activePins.length, emoji: '🔴', color: '#f43f5e' },
+                      { label: 'Active right now',    value: activePins.length, emoji: '🔴', color: '#ef4444' },
                       { label: 'Comments written',    value: commentsMade,      emoji: '💬', color: '#f59e0b' },
                       { label: 'Place notes',         value: placeNotesCount,   emoji: '📌', color: '#8b5cf6' },
                     ].map(({ label, value, emoji, color }) => (
@@ -731,7 +731,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>My Pins</span>
                       {myPins.length > 0 && (
                         <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(244,63,94,0.12)', color: 'var(--accent)' }}>{myPins.length}</span>
+                          style={{ backgroundColor: 'rgba(212,168,83,0.12)', color: 'var(--accent)' }}>{myPins.length}</span>
                       )}
                     </div>
                     {expandedSections.has('pins') ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
@@ -861,7 +861,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>Trip History</span>
                       {tripHistory.length > 0 && (
                         <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(244,63,94,0.12)', color: 'var(--accent)' }}>{tripHistory.length}</span>
+                          style={{ backgroundColor: 'rgba(212,168,83,0.12)', color: 'var(--accent)' }}>{tripHistory.length}</span>
                       )}
                     </div>
                     {expandedSections.has('trips') ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}

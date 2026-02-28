@@ -634,7 +634,7 @@ export default function DetailSheet() {
                 }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
                 style={{
-                  backgroundColor: isFollowed ? 'rgba(244,63,94,0.12)' : 'var(--bg-card)',
+                  backgroundColor: isFollowed ? 'rgba(212,168,83,0.12)' : 'var(--bg-card)',
                   color: isFollowed ? 'var(--accent)' : 'var(--text-muted)',
                   border: `1px solid ${isFollowed ? 'var(--accent)' : 'var(--border)'}`,
                 }}
@@ -684,7 +684,7 @@ export default function DetailSheet() {
                     <button
                       onClick={() => setShowBroadcaster(true)}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
-                      style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
+                      style={{ backgroundColor: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.4)', color: 'var(--accent)' }}
                     >
                       <Radio size={13} />
                       {t('goLive')}
@@ -696,9 +696,9 @@ export default function DetailSheet() {
                     <button
                       onClick={() => setShowViewer(true)}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
-                      style={{ backgroundColor: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#f43f5e' }}
+                      style={{ backgroundColor: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.4)', color: 'var(--accent)' }}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--accent)' }} />
                       {t('watchLive')}
                     </button>
                   )}
@@ -708,9 +708,9 @@ export default function DetailSheet() {
                     <button
                       onClick={() => setShowBroadcaster(true)}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
-                      style={{ backgroundColor: 'rgba(244,63,94,0.2)', border: '1px solid #f43f5e', color: '#f43f5e' }}
+                      style={{ backgroundColor: 'rgba(212,168,83,0.2)', border: '1px solid var(--accent)', color: 'var(--accent)' }}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f43f5e' }} />
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--accent)' }} />
                       {t('live')}
                     </button>
                   )}

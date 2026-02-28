@@ -184,7 +184,7 @@ export default function LayerPanel(props: Props) {
               onToggle={() => toggle('data')}
             >
               <div className="flex flex-col gap-0.5">
-                <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color="#f43f5e" emoji="🔥" />
+                <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color="#D4A853" emoji="🔥" />
                 <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" />
                 <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" />
               </div>

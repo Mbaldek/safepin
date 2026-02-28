@@ -6,7 +6,7 @@ export const LEVELS: Level[] = [
   { label: 'Watcher',  emoji: '👁',  color: '#6b7280', min: 0,   next: 50  },
   { label: 'Reporter', emoji: '📡',  color: '#6366f1', min: 50,  next: 200 },
   { label: 'Guardian', emoji: '⚔️',  color: '#f59e0b', min: 200, next: 500 },
-  { label: 'Sentinel', emoji: '🛡️', color: '#f43f5e', min: 500, next: Infinity },
+  { label: 'Sentinel', emoji: '🛡️', color: '#D4A853', min: 500, next: Infinity },
 ];
 
 export function getLevel(score: number): Level {

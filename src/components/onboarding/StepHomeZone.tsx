@@ -75,13 +75,13 @@ export default function StepHomeZone({ userId, onNext, onSkip, onZoneSet }: Prop
         id: 'radius-fill',
         type: 'fill',
         source: 'radius-circle',
-        paint: { 'fill-color': 'rgba(244,63,94,0.12)' },
+        paint: { 'fill-color': 'rgba(212,168,83,0.12)' },
       });
       map.addLayer({
         id: 'radius-outline',
         type: 'line',
         source: 'radius-circle',
-        paint: { 'line-color': '#f43f5e', 'line-width': 2 },
+        paint: { 'line-color': '#D4A853', 'line-width': 2 },
       });
     });
 

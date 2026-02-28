@@ -10,7 +10,7 @@ function BrumeShield({ size = 48 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.2" />
       <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.5" fill="none" />
-      <text x="16" y="21" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">B</text>
+      <text x="16" y="21" textAnchor="middle" fontFamily="Outfit, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">B</text>
     </svg>
   );
 }
@@ -26,8 +26,8 @@ export default function StepWelcome({ onNext }: { onNext: () => void }) {
         transition={{ type: 'spring', damping: 18, stiffness: 260 }}
         className="w-24 h-24 rounded-3xl flex items-center justify-center mb-6"
         style={{
-          background: 'linear-gradient(135deg, rgba(244,63,94,0.1), rgba(244,63,94,0.25))',
-          border: '1.5px solid rgba(244,63,94,0.3)',
+          background: 'linear-gradient(135deg, rgba(212,168,83,0.1), rgba(212,168,83,0.25))',
+          border: '1.5px solid rgba(212,168,83,0.3)',
         }}
       >
         <motion.div

@@ -463,7 +463,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                     {!isMe && (
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 self-end ${!showAvatar ? 'invisible' : ''}`}
-                        style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+                        style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}
                       >
                         {(m.display_name?.[0] ?? '?').toUpperCase()}
                       </div>
@@ -613,7 +613,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   <button
                     onClick={() => startCreate('group', communityDetailOf.id)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                    style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
+                    style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
                   >
                     <Plus size={11} strokeWidth={2.5} />
                     Add a group
@@ -700,7 +700,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                         onClick={() => setNewEmoji(e)}
                         className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition"
                         style={{
-                          backgroundColor: newEmoji === e ? 'rgba(244,63,94,0.12)' : 'var(--bg-card)',
+                          backgroundColor: newEmoji === e ? 'rgba(212,168,83,0.12)' : 'var(--bg-card)',
                           border: newEmoji === e ? '2px solid var(--accent)' : '1px solid var(--border)',
                         }}
                       >

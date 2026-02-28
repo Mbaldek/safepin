@@ -247,7 +247,7 @@ export default function SavedPanel({
                     <button
                       onClick={() => onLoadPlace(n, 'to')}
                       className="flex-1 py-1.5 rounded-xl text-xs font-bold transition"
-                      style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)', border: '1px solid rgba(244,63,94,0.2)' }}
+                      style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)', border: '1px solid rgba(212,168,83,0.2)' }}
                     >📍 Go here</button>
                   </div>
                 </div>

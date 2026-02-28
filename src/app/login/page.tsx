@@ -213,7 +213,7 @@ export default function LoginPage() {
       <nav className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
           <div
-            className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-lg"
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D4A853] to-[#B8923E] flex items-center justify-center text-lg"
             style={{ boxShadow: '0 4px 12px var(--accent-glow)' }}
           >
             🛡️
@@ -249,7 +249,7 @@ export default function LoginPage() {
       <section className="flex flex-col items-center text-center px-6 pt-8 pb-10">
         <div
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[0.65rem] font-bold mb-5"
-          style={{ backgroundColor: 'rgba(244,63,94,0.10)', color: 'var(--accent)' }}
+          style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
         >
           <span>🛡️</span> {t('badge')}
         </div>
@@ -259,7 +259,7 @@ export default function LoginPage() {
         >
           {t.rich('heroTitle', {
             accent: (chunks) => (
-              <span className="bg-gradient-to-r from-[#f43f5e] to-[#e11d48] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
+              <span className="bg-gradient-to-r from-[#D4A853] to-[#B8923E] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
                 {chunks}
               </span>
             ),
@@ -523,7 +523,7 @@ export default function LoginPage() {
       <section className="px-5 pb-10">
         <div
           className="max-w-sm mx-auto rounded-2xl p-5 text-center"
-          style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.15)' }}
+          style={{ backgroundColor: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}
         >
           <p className="text-sm font-bold leading-relaxed" style={{ color: 'var(--text-primary)' }}>
             &ldquo;{t('quote')}&rdquo;

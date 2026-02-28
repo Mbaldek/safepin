@@ -48,7 +48,7 @@ export default function PushOptInModal({ onEnable, onDismiss }: Props) {
       >
         {/* Icon */}
         <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, rgba(244,63,94,0.15), rgba(244,63,94,0.3))', border: '1.5px solid rgba(244,63,94,0.25)' }}>
+          style={{ background: 'linear-gradient(135deg, rgba(212,168,83,0.15), rgba(212,168,83,0.3))', border: '1.5px solid rgba(212,168,83,0.25)' }}>
           <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
             <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.2" />
             <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.5" fill="none" />

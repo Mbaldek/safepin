@@ -94,7 +94,7 @@ export default function FlagReportModal({ targetType, targetId, onClose }: Props
               onClick={() => setSelected(id)}
               className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-left transition"
               style={{
-                backgroundColor: selected === id ? 'rgba(244,63,94,0.08)' : 'var(--bg-card)',
+                backgroundColor: selected === id ? 'rgba(212,168,83,0.08)' : 'var(--bg-card)',
                 border: `1.5px solid ${selected === id ? 'var(--accent)' : 'var(--border)'}`,
               }}
             >

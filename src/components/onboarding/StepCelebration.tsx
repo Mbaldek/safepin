@@ -20,7 +20,7 @@ function fireConfetti(canvas: HTMLCanvasElement) {
   canvas.height = canvas.offsetHeight * 2;
   ctx.scale(2, 2);
 
-  const colors = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+  const colors = ['#D4A853', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
   const w = canvas.offsetWidth;
   const h = canvas.offsetHeight;
   const particles = Array.from({ length: 80 }, () => ({

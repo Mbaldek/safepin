@@ -13,7 +13,7 @@ import { useContactPresence } from '@/lib/usePresence';
 type ContactRow = TrustedContact & { display_name: string | null; contact_user_id: string };
 type InviteRow  = TrustedContact & { sender_name: string | null };
 
-const COLORS = ['#f43f5e','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
+const COLORS = ['#D4A853','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
 function nameColor(name: string | null) {
   if (!name) return '#6b7280';
   let h = 0;
@@ -285,7 +285,7 @@ export default function TrustedCircleCard({
           <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>No contacts yet</p>
         )}
         {pendingReceived.length > 0 && (
-          <p className="text-[0.55rem] font-bold" style={{ color: '#f43f5e' }}>
+          <p className="text-[0.55rem] font-bold" style={{ color: 'var(--accent)' }}>
             {pendingReceived.length} pending invite{pendingReceived.length > 1 ? 's' : ''}
           </p>
         )}
@@ -397,7 +397,7 @@ export default function TrustedCircleCard({
         <div
           key={inv.id}
           className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-          style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1.5px solid rgba(244,63,94,0.2)' }}
+          style={{ backgroundColor: 'rgba(212,168,83,0.06)', border: '1.5px solid rgba(212,168,83,0.2)' }}
         >
           <div className="flex items-center gap-2.5">
             <Avatar name={inv.sender_name} size={30} />

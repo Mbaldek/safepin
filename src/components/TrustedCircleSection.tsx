@@ -16,7 +16,7 @@ type InviteRow  = TrustedContact & { sender_name: string | null };
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-const COLORS = ['#f43f5e','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
+const COLORS = ['#D4A853','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
 function nameColor(name: string | null) {
   if (!name) return '#6b7280';
   let h = 0;
@@ -263,7 +263,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
             <div
               key={inv.id}
               className="flex items-center justify-between px-4 py-3 rounded-2xl"
-              style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1.5px solid rgba(244,63,94,0.2)' }}
+              style={{ backgroundColor: 'rgba(212,168,83,0.06)', border: '1.5px solid rgba(212,168,83,0.2)' }}
             >
               <div className="flex items-center gap-2.5">
                 <Avatar name={inv.sender_name} size={32} />

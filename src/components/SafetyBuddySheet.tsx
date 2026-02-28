@@ -150,7 +150,7 @@ export default function SafetyBuddySheet({ userId, routeId, onClose }: Props) {
                       <button key={r.id} onClick={() => setSelectedRoute(r.id)}
                         className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition"
                         style={{
-                          backgroundColor: selectedRoute === r.id ? 'rgba(244,63,94,0.1)' : 'var(--bg-card)',
+                          backgroundColor: selectedRoute === r.id ? 'rgba(212,168,83,0.1)' : 'var(--bg-card)',
                           border: selectedRoute === r.id ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                           color: selectedRoute === r.id ? 'var(--accent)' : 'var(--text-primary)',
                         }}>
@@ -219,7 +219,7 @@ export default function SafetyBuddySheet({ userId, routeId, onClose }: Props) {
                     <div key={m.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black"
-                        style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)', color: '#fff' }}>
+                        style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)', color: '#fff' }}>
                         {(m.display_name ?? '?')[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">

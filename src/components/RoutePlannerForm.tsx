@@ -628,7 +628,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
             onClick={findRoutes}
             disabled={!destination.trim()}
             className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition disabled:opacity-40"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(244,63,94,0.25)' }}
+            style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(212,168,83,0.25)' }}
           >
             <Map size={16} strokeWidth={2.5} />
             {t('searchRoutes')}

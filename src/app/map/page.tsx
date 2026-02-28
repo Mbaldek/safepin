@@ -38,6 +38,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
 import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
+import LocationChip from '@/components/LocationChip';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
@@ -618,7 +619,7 @@ export default function MapPage() {
     return (
       <div className="h-dvh flex flex-col items-center justify-center gap-4"
         style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(244,63,94,0.3)] animate-pulse">
+        <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#D4A853] to-[#B8923E] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(212,168,83,0.3)] animate-pulse">
           🛡️
         </div>
         <div className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
@@ -643,7 +644,7 @@ export default function MapPage() {
             <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.15" />
               <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.8" fill="none" />
-              <text x="16" y="21" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">B</text>
+              <text x="16" y="21" textAnchor="middle" fontFamily="Outfit, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">B</text>
             </svg>
             <span className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
               Br<span style={{ color: 'var(--accent)' }}>u</span>me
@@ -729,6 +730,9 @@ export default function MapPage() {
         />
         <EmergencyButton userId={userId} />
 
+        {/* Location chip — map tab only */}
+        {activeTab === 'map' && <LocationChip />}
+
         {/* Session briefing card — shown once per session on map tab */}
         <AnimatePresence>
           {showBriefing && activeTab === 'map' && !sosPin && (
@@ -812,7 +816,7 @@ export default function MapPage() {
             {/* Report button — stacked above SOS on the right */}
             <button
               onClick={() => setActiveSheet('report')}
-              className="absolute bottom-22 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#f43f5e] to-[#e11d48] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(244,63,94,0.35)] z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute bottom-22 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#D4A853] to-[#B8923E] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(212,168,83,0.35)] z-50 hover:scale-105 active:scale-95 transition"
             >
               +
             </button>

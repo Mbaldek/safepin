@@ -64,11 +64,11 @@ export default function InstallPrompt() {
           style={{
             backgroundColor: 'var(--bg-card)',
             border: '1.5px solid var(--accent)',
-            boxShadow: '0 8px 32px rgba(244,63,94,0.15)',
+            boxShadow: '0 8px 32px rgba(212,168,83,0.15)',
           }}
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}>
+            style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}>
             <Download size={16} style={{ color: '#fff' }} />
           </div>
           <div className="flex-1 min-w-0">

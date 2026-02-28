@@ -34,8 +34,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f6fa' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: '(prefers-color-scheme: light)', color: '#F5F0EB' },
+    { media: '(prefers-color-scheme: dark)', color: '#1A1A2E' },
   ],
 };
 
@@ -65,7 +65,7 @@ export default async function RootLayout({
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'Outfit, sans-serif',
               fontWeight: 600,
             },
           }}

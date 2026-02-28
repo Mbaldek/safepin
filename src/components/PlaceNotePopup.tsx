@@ -104,7 +104,7 @@ export default function PlaceNotePopup({ note, onClose }: Props) {
             <button
               onClick={goHere}
               className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition hover:opacity-90 active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(244,63,94,0.25)' }}
+              style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(212,168,83,0.25)' }}
             >
               📍 Go here
             </button>

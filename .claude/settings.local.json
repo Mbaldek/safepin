@@ -20,7 +20,23 @@
       "mcp__claude_ai_Supabase__apply_migration",
       "Bash(npx vitest run:*)",
       "Bash(xargs:*)",
-      "mcp__claude_ai_Supabase__deploy_edge_function"
+      "mcp__claude_ai_Supabase__deploy_edge_function",
+      "Bash(unzip -l \"c:\\\\Users\\\\mathi\\\\Desktop\\\\safepin\\\\docs\\\\new design test.zip\")",
+      "Bash(unzip -p \"docs/new design test.zip\" app/globals.css)",
+      "Bash(unzip -p \"docs/new design test.zip\" styles/globals.css)",
+      "Bash(unzip -p \"docs/new design test.zip\" app/page.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" app/layout.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components.json)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/bottom-nav.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/bottom-sheet.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/header.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/incident-pin.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/location-chip.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/map-area.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/sos-button.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/brume/user-dot.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" components/theme-provider.tsx)",
+      "Bash(unzip -p \"docs/new design test.zip\" package.json)"
     ]
   }
 }

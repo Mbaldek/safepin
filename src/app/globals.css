@@ -141,6 +141,24 @@ body {
   animation: pin-drop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* Gold user-dot pulse (v0 Brume) */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(212, 168, 83, 0); }
+}
+.pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* SOS button glow (v0 Brume) */
+@keyframes sos-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5), 0 4px 15px rgba(26, 26, 46, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 4px 15px rgba(26, 26, 46, 0.5); }
+}
+.animate-sos-glow {
+  animation: sos-glow 2s ease-in-out infinite;
+}
+
 /* ===== Accessibility ===== */
 
 /* Focus-visible ring for keyboard navigation */

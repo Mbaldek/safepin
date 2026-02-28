@@ -8,7 +8,7 @@ import { useTheme } from '@/stores/useTheme';
 import mapboxgl from 'mapbox-gl';
 
 const FAKE_PINS = [
-  { lngLat: [2.3522, 48.8576] as [number, number], color: '#f43f5e', emoji: '😰', delay: 600 },
+  { lngLat: [2.3522, 48.8576] as [number, number], color: '#D4A853', emoji: '😰', delay: 600 },
   { lngLat: [2.3482, 48.8546] as [number, number], color: '#f59e0b', emoji: '🌑', delay: 1200 },
   { lngLat: [2.3562, 48.8556] as [number, number], color: '#10b981', emoji: '⚡', delay: 1800 },
 ];

@@ -115,7 +115,7 @@ export default function TripSummary({ trip, onDismiss, streak }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2.5 px-3 py-3 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <Flame size={16} strokeWidth={2} style={{ color: '#f43f5e' }} />
+          <Flame size={16} strokeWidth={2} style={{ color: 'var(--accent)' }} />
           <div>
             <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{streak > 0 ? `${streak} days` : '—'}</p>
             <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('tripStreak')}</p>

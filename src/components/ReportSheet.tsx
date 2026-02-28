@@ -361,7 +361,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                 <button
                   onClick={handleSubmit}
                   disabled={loading || !severity}
-                  className="w-full bg-gradient-to-r from-[#f43f5e] to-[#e11d48] text-white font-bold rounded-xl py-4 text-sm shadow-lg disabled:opacity-40 transition mb-4"
+                  className="w-full bg-gradient-to-r from-[#D4A853] to-[#B8923E] text-white font-bold rounded-xl py-4 text-sm shadow-lg disabled:opacity-40 transition mb-4"
                   style={{ boxShadow: severity ? '0 8px 24px var(--accent-glow)' : 'none' }}
                 >
                   {loading ? t('submitting') : t('submit')}
