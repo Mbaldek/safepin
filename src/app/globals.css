@@ -1,28 +1,22 @@
 @import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
 
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  font-style: normal;
-  font-weight: 400 500 600 700 800;
-  font-display: swap;
-  src: url('https://fonts.gstatic.com/s/plusjakartasans/v8/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_KU7NSg.woff2') format('woff2');
-}
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 /* ===== DARK THEME (default) ===== */
 [data-theme="dark"] {
-  --bg-primary: #0a0c10;
-  --bg-secondary: #12151c;
-  --bg-card: #191d28;
-  --bg-overlay: rgba(0, 0, 0, 0.5);
-  --text-primary: #ffffff;
-  --text-secondary: #eef0f6;
-  --text-muted: #6b7490;
-  --text-placeholder: #4a5068;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.1);
-  --accent: #f43f5e;
-  --accent-glow: rgba(244, 63, 94, 0.25);
+  --bg-primary: #1A1A2E;
+  --bg-secondary: #1F1F3A;
+  --bg-card: #252547;
+  --bg-overlay: rgba(26, 26, 46, 0.7);
+  --text-primary: #F5F0EB;
+  --text-secondary: #E8E0D8;
+  --text-muted: #8A8AA0;
+  --text-placeholder: #5A5A78;
+  --border: rgba(212, 168, 83, 0.12);
+  --border-hover: rgba(212, 168, 83, 0.2);
+  --accent: #D4A853;
+  --accent-glow: rgba(212, 168, 83, 0.25);
   --safe: #10b981;
   --warn: #f59e0b;
   --blue: #38bdf8;
@@ -30,25 +24,25 @@
 
 /* ===== LIGHT THEME ===== */
 [data-theme="light"] {
-  --bg-primary: #f5f6fa;
-  --bg-secondary: #ffffff;
-  --bg-card: #eef0f6;
-  --bg-overlay: rgba(0, 0, 0, 0.25);
-  --text-primary: #0a0c10;
-  --text-secondary: #1a1d28;
-  --text-muted: #596280;
-  --text-placeholder: #9ca3af;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.15);
-  --accent: #e11d48;
-  --accent-glow: rgba(225, 29, 72, 0.2);
+  --bg-primary: #F5F0EB;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #EDE6DD;
+  --bg-overlay: rgba(26, 26, 46, 0.2);
+  --text-primary: #1A1A2E;
+  --text-secondary: #2A2A4E;
+  --text-muted: #6A6A88;
+  --text-placeholder: #9A9AB0;
+  --border: rgba(26, 26, 46, 0.1);
+  --border-hover: rgba(26, 26, 46, 0.18);
+  --accent: #B8923E;
+  --accent-glow: rgba(184, 146, 62, 0.2);
   --safe: #059669;
   --warn: #d97706;
   --blue: #0284c7;
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 17px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
@@ -73,9 +67,9 @@ body {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #f43f5e;
+  background: var(--accent);
   border: 3px solid #fff;
-  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.5);
+  box-shadow: 0 2px 8px var(--accent-glow);
   position: absolute;
   top: 50%;
   left: 50%;
@@ -86,7 +80,7 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(244, 63, 94, 0.25);
+  background: var(--accent-glow);
   position: absolute;
   top: 50%;
   left: 50%;
