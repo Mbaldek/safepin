@@ -5,7 +5,7 @@
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 
-function BrumeShield({ size = 48 }: { size?: number }) {
+function BreveilShield({ size = 48 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.2" />
@@ -34,7 +34,7 @@ export default function StepWelcome({ onNext }: { onNext: () => void }) {
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <BrumeShield size={52} />
+          <BreveilShield size={52} />
         </motion.div>
       </motion.div>
 

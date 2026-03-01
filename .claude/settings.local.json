@@ -36,7 +36,13 @@
       "Bash(unzip -p \"docs/new design test.zip\" components/brume/sos-button.tsx)",
       "Bash(unzip -p \"docs/new design test.zip\" components/brume/user-dot.tsx)",
       "Bash(unzip -p \"docs/new design test.zip\" components/theme-provider.tsx)",
-      "Bash(unzip -p \"docs/new design test.zip\" package.json)"
+      "Bash(unzip -p \"docs/new design test.zip\" package.json)",
+      "Bash(\"c:/Users/mathi/Desktop/safepin/public/manifest.json\":*)",
+      "Bash(\"c:/Users/mathi/Desktop/safepin/public/icon.svg\":*)",
+      "Bash(__NEW_LINE_91f97c7902049021__ sed -i \"s/''Brume User''/''Breveil User''/g\" \"c:/Users/mathi/Desktop/safepin/src/components/SafetyBuddySheet.tsx\")",
+      "Bash(__NEW_LINE_91f97c7902049021__ sed -i \"s/subscribe to Brume Pro\\\\./subscribe to Breveil Pro./g\" \"c:/Users/mathi/Desktop/safepin/src/components/SettingsSheet.tsx\")",
+      "Bash(__NEW_LINE_91f97c7902049021__ sed -i -e \"s|// Deep-link into My Brume sub-tab|// Deep-link into My Breveil sub-tab|g\" -e \"s|// My Brume deep-link|// My Breveil deep-link|g\" \"c:/Users/mathi/Desktop/safepin/src/stores/useStore.ts\")",
+      "Bash(__NEW_LINE_91f97c7902049021__ echo \"done\")"
     ]
   }
 }

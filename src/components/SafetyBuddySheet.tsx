@@ -224,7 +224,7 @@ export default function SafetyBuddySheet({ userId, routeId, onClose }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {m.display_name ?? 'Brume User'}
+                          {m.display_name ?? 'Breveil User'}
                         </p>
                         <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
                           {m.overlap_days.join(', ')}

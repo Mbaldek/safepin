@@ -1,10 +1,10 @@
-// src/app/terms/page.tsx — Brume Terms of Service
+// src/app/terms/page.tsx — Breveil Terms of Service
 
 export default function TermsPage() {
   return (
     <div style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100dvh' }}>
       <div className="max-w-2xl mx-auto px-5 py-10">
-        <a href="/login" className="text-xs font-bold mb-6 inline-block" style={{ color: 'var(--accent)' }}>&larr; Back to Brume</a>
+        <a href="/login" className="text-xs font-bold mb-6 inline-block" style={{ color: 'var(--accent)' }}>&larr; Back to Breveil</a>
 
         <h1 className="text-2xl font-extrabold mb-1">Terms of Service</h1>
         <p className="text-xs mb-8" style={{ color: 'var(--text-muted)' }}>Last updated: February 2026</p>
@@ -13,7 +13,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-base font-black mb-2">1. Acceptance</h2>
             <p>
-              By accessing or using Brume (&ldquo;the Service&rdquo;), you agree to these Terms of Service.
+              By accessing or using Breveil (&ldquo;the Service&rdquo;), you agree to these Terms of Service.
               If you do not agree, do not use the Service. The Service is operated by DBEK,
               75 rue de Lourmel, 75015 Paris, France.
             </p>
@@ -22,9 +22,9 @@ export default function TermsPage() {
           <section>
             <h2 className="text-base font-black mb-2">2. Description of Service</h2>
             <p>
-              Brume is a community-powered safety mapping platform that allows users to report safety incidents,
+              Breveil is a community-powered safety mapping platform that allows users to report safety incidents,
               navigate with safety-aware routing, trigger emergency alerts, and communicate with their community.
-              Brume does <strong>not</strong> replace emergency services. In case of immediate danger, always call
+              Breveil does <strong>not</strong> replace emergency services. In case of immediate danger, always call
               your local emergency number (15, 17, 18, or 112 in France/EU).
             </p>
           </section>
@@ -60,16 +60,16 @@ export default function TermsPage() {
             <h2 className="text-base font-black mb-2">5. User-Generated Content</h2>
             <ul className="list-disc ml-5 space-y-1">
               <li>You retain ownership of content you create (reports, photos, messages).</li>
-              <li>By posting, you grant Brume a worldwide, royalty-free licence to display, distribute, and process your content as part of the Service.</li>
-              <li>Brume may remove content that violates these Terms or community guidelines.</li>
+              <li>By posting, you grant Breveil a worldwide, royalty-free licence to display, distribute, and process your content as part of the Service.</li>
+              <li>Breveil may remove content that violates these Terms or community guidelines.</li>
               <li>Reports may be anonymised and used in aggregate to improve community safety.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-base font-black mb-2">6. Brume Pro Subscription</h2>
+            <h2 className="text-base font-black mb-2">6. Breveil Pro Subscription</h2>
             <ul className="list-disc ml-5 space-y-1">
-              <li>Brume Pro is available as a monthly or annual subscription.</li>
+              <li>Breveil Pro is available as a monthly or annual subscription.</li>
               <li>Payment is processed by Stripe. Prices are displayed before purchase.</li>
               <li>Subscriptions auto-renew unless cancelled before the renewal date.</li>
               <li>You can manage or cancel your subscription in Settings &rarr; Billing.</li>
@@ -81,8 +81,8 @@ export default function TermsPage() {
           <section>
             <h2 className="text-base font-black mb-2">7. Emergency Features Disclaimer</h2>
             <p>
-              Brume provides tools to alert your contacts and share your location in emergencies.
-              However, <strong>Brume is not an emergency service</strong>. We do not guarantee response
+              Breveil provides tools to alert your contacts and share your location in emergencies.
+              However, <strong>Breveil is not an emergency service</strong>. We do not guarantee response
               times, availability, or the accuracy of user-generated safety data. Always contact official
               emergency services (112, 15, 17, 18) when in danger.
             </p>
@@ -92,7 +92,7 @@ export default function TermsPage() {
             <h2 className="text-base font-black mb-2">8. Identity Verification</h2>
             <p>
               Optional identity verification is provided by Veriff. Verification confirms that you are
-              a real person but does not imply endorsement or background checking. Brume is not responsible
+              a real person but does not imply endorsement or background checking. Breveil is not responsible
               for the actions of verified users.
             </p>
           </section>
@@ -100,7 +100,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-base font-black mb-2">9. Limitation of Liability</h2>
             <p>
-              To the maximum extent permitted by law, Brume and DBEK are not liable for: (a) the accuracy
+              To the maximum extent permitted by law, Breveil and DBEK are not liable for: (a) the accuracy
               of user-generated safety reports, (b) any harm arising from reliance on the Service,
               (c) service interruptions or data loss, (d) actions of other users. The Service is provided
               &ldquo;as is&rdquo; without warranties of any kind.
@@ -110,7 +110,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-base font-black mb-2">10. Intellectual Property</h2>
             <p>
-              The Brume name, logo, design, and software are the property of DBEK. You may not copy,
+              The Breveil name, logo, design, and software are the property of DBEK. You may not copy,
               modify, or distribute any part of the Service without written permission.
             </p>
           </section>
@@ -151,7 +151,7 @@ export default function TermsPage() {
         </div>
 
         <div className="mt-10 pt-6 text-center text-[0.6rem]" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-placeholder)' }}>
-          &copy; {new Date().getFullYear()} Brume by DBEK. All rights reserved.
+          &copy; {new Date().getFullYear()} Breveil by DBEK. All rights reserved.
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import ThemeProvider from '@/components/ThemeProvider';
 import SimulationTicker from '@/components/SimulationTicker';
 
 export const metadata: Metadata = {
-  title: 'Brume',
+  title: 'Breveil',
   description: 'A safer world, mapped by women — for women.',
   manifest: '/manifest.json',
   icons: {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Brume',
+    title: 'Breveil',
   },
 };
 
@@ -65,7 +65,7 @@ export default async function RootLayout({
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
-              fontFamily: 'Outfit, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 600,
             },
           }}

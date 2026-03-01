@@ -202,7 +202,7 @@ export default function SettingsSheet({ onClose }: Props) {
     const { error } = await supabase.from('pro_waitlist').upsert({ user_id: userId, email: user.email }, { onConflict: 'email' });
     if (error) { toast.error('Could not join waitlist'); return; }
     setWaitlistJoined(true);
-    toast.success('You\'re on the waitlist! We\'ll notify you when Brume Pro launches.');
+    toast.success('You\'re on the waitlist! We\'ll notify you when Breveil Pro launches.');
   }
 
   const RADIUS_OPTIONS = [
@@ -390,7 +390,7 @@ export default function SettingsSheet({ onClose }: Props) {
             <span className="text-base">🎓</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Restart onboarding tour</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Re-discover Brume features</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Re-discover Breveil features</p>
             </div>
             <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           </button>
@@ -399,7 +399,7 @@ export default function SettingsSheet({ onClose }: Props) {
           <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Help & Information</p>
           <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
             {([
-              { label: 'User Guide',          subtitle: 'How to use Brume',          icon: <BookOpen size={16} />,   href: '/guide.html' },
+              { label: 'User Guide',          subtitle: 'How to use Breveil',          icon: <BookOpen size={16} />,   href: '/guide.html' },
               { label: 'FAQ',                  subtitle: 'Frequently asked questions', icon: <HelpCircle size={16} />, href: '/faq.html' },
               { label: 'Methodology & Data',   subtitle: 'How safety scores work',    icon: <BarChart3 size={16} />,  href: '/methodology.html' },
             ]).map(({ label, subtitle, icon, href }) => (
@@ -430,7 +430,7 @@ export default function SettingsSheet({ onClose }: Props) {
               <span style={{ color: 'var(--accent)' }}><CreditCard size={16} /></span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Subscription</p>
-                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>Free plan · Brume Pro coming soon</p>
+                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>Free plan · Breveil Pro coming soon</p>
               </div>
               <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             </button>
@@ -528,8 +528,8 @@ export default function SettingsSheet({ onClose }: Props) {
                         : <CheckCircle2 size={14} style={{ color: '#10b981' }} />
                       }
                       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                        {subscription?.plan === 'pro' ? 'Brume Pro'
-                          : subscription?.plan === 'pro_annual' ? 'Brume Pro Annual'
+                        {subscription?.plan === 'pro' ? 'Breveil Pro'
+                          : subscription?.plan === 'pro_annual' ? 'Breveil Pro Annual'
                           : 'Free'}
                       </p>
                     </div>
@@ -585,13 +585,13 @@ export default function SettingsSheet({ onClose }: Props) {
             )}
           </Section>
 
-          {/* Brume Pro upgrade card */}
+          {/* Breveil Pro upgrade card */}
           {(!subscription || subscription.plan === 'free') && (
             <Section title="Upgrade" icon={<Crown size={13} />}>
               <div className="px-4 py-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Crown size={15} style={{ color: '#f59e0b' }} />
-                  <p className="text-sm font-black" style={{ color: '#f59e0b' }}>Brume Pro</p>
+                  <p className="text-sm font-black" style={{ color: '#f59e0b' }}>Breveil Pro</p>
                 </div>
                 <ul className="flex flex-col gap-1.5 mb-4">
                   {[
@@ -637,7 +637,7 @@ export default function SettingsSheet({ onClose }: Props) {
                 <Clock size={22} className="mx-auto mb-2 opacity-30" style={{ color: 'var(--text-muted)' }} />
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No invoices yet.</p>
                 <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Invoices will appear here once you subscribe to Brume Pro.
+                  Invoices will appear here once you subscribe to Breveil Pro.
                 </p>
               </div>
             ) : (
@@ -645,7 +645,7 @@ export default function SettingsSheet({ onClose }: Props) {
                 <div key={inv.id} className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
                   <div>
                     <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {inv.description ?? 'Brume subscription'}
+                      {inv.description ?? 'Breveil subscription'}
                     </p>
                     <p className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>
                       {new Date(inv.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -690,7 +690,7 @@ export default function SettingsSheet({ onClose }: Props) {
           <Section title="Data & Privacy" icon={<Database size={13} />}>
             <ToggleRow
               label="Usage analytics"
-              subtitle="Help us improve Brume with anonymous usage data"
+              subtitle="Help us improve Breveil with anonymous usage data"
               value={analyticsEnabled}
               onChange={setAnalyticsEnabled}
             />
@@ -750,12 +750,12 @@ export default function SettingsSheet({ onClose }: Props) {
             />
             <div className="px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Brume complies with the EU General Data Protection Regulation (GDPR / RGPD) and
+                Breveil complies with the EU General Data Protection Regulation (GDPR / RGPD) and
                 the French Loi Informatique et Libertés. Data is stored in the EU. No data is sold
                 to third parties.
               </p>
               <p className="text-[0.6rem] mt-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
+                Breveil v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
               </p>
               <p className="text-[0.6rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>

@@ -1,4 +1,4 @@
-// src/app/login/page.tsx — Brume landing + auth page
+// src/app/login/page.tsx — Breveil landing + auth page
 
 'use client';
 
@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { ChevronDown, Check, AlertCircle, Loader2 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
+import { BreveilMonogram } from '@/components/BrandAssets';
 
 function getAppOrigin() {
   return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
@@ -118,7 +119,7 @@ export default function LoginPage() {
   /** Persist invite code before OAuth redirects */
   function persistInviteCode() {
     if (inviteCode && inviteStatus?.valid) {
-      sessionStorage.setItem('brume_invite_code', inviteCode.toUpperCase().trim());
+      sessionStorage.setItem('breveil_invite_code', inviteCode.toUpperCase().trim());
     }
   }
 
@@ -212,14 +213,9 @@ export default function LoginPage() {
       {/* ─── Navbar ─────────────────────────────────── */}
       <nav className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <div
-            className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D4A853] to-[#B8923E] flex items-center justify-center text-lg"
-            style={{ boxShadow: '0 4px 12px var(--accent-glow)' }}
-          >
-            🛡️
-          </div>
-          <span className="text-lg font-extrabold tracking-wide" style={{ color: 'var(--text-primary)' }}>
-            Br<span style={{ color: 'var(--accent)' }}>u</span>me
+          <BreveilMonogram size={36} variant="dark" />
+          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1.25rem', letterSpacing: '3px', color: 'var(--text-primary)' }}>
+            BREVEIL
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -249,7 +245,7 @@ export default function LoginPage() {
       <section className="flex flex-col items-center text-center px-6 pt-8 pb-10">
         <div
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[0.65rem] font-bold mb-5"
-          style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
+          style={{ backgroundColor: 'rgba(232,168,56,0.10)', color: 'var(--accent)' }}
         >
           <span>🛡️</span> {t('badge')}
         </div>
@@ -259,7 +255,7 @@ export default function LoginPage() {
         >
           {t.rich('heroTitle', {
             accent: (chunks) => (
-              <span className="bg-gradient-to-r from-[#D4A853] to-[#B8923E] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
+              <span className="bg-gradient-to-r from-[#E8A838] to-[#C48A1E] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
                 {chunks}
               </span>
             ),
@@ -551,7 +547,7 @@ export default function LoginPage() {
           </a>
         </div>
         <p className="text-[0.55rem]" style={{ color: 'var(--text-placeholder)' }}>
-          &copy; {new Date().getFullYear()} Brume. All rights reserved.
+          &copy; {new Date().getFullYear()} Breveil. All rights reserved.
         </p>
       </footer>
     </div>

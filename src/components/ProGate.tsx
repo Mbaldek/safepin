@@ -45,7 +45,7 @@ export default function ProGate({ feature, children }: Props) {
           </div>
           <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{feature}</p>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Unlock this feature with Brume Pro
+            Unlock this feature with Breveil Pro
           </p>
           <button
             onClick={handleUpgrade}

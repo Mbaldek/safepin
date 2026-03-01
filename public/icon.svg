@@ -1,9 +1,17 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background rounded square -->
-  <rect width="512" height="512" rx="108" fill="#6C63FF"/>
-  <!-- Shield shape -->
-  <path d="M256 72L96 128v128c0 120 69.5 200.5 160 240 90.5-39.5 160-120 160-240V128L256 72z" fill="white" opacity="0.18"/>
-  <path d="M256 72L96 128v128c0 120 69.5 200.5 160 240 90.5-39.5 160-120 160-240V128L256 72z" stroke="white" stroke-width="8" fill="none" opacity="0.6"/>
-  <!-- B letter -->
-  <text x="256" y="330" text-anchor="middle" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-weight="900" font-size="240" fill="white">B</text>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B2541"/>
+      <stop offset="100%" stop-color="#0F1729"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="60%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="rgba(232,168,56,0.2)"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="108" fill="url(#glow)"/>
+  <text x="256" y="360" text-anchor="middle"
+    font-family="'Cormorant Garamond', serif" font-weight="400"
+    font-size="300" fill="white">B</text>
 </svg>

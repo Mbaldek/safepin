@@ -1,4 +1,4 @@
-// src/lib/offlineQueue.ts — IndexedDB queue for offline pin submissions (Brume)
+// src/lib/offlineQueue.ts — IndexedDB queue for offline pin submissions (Breveil)
 
 const DB_NAME = 'brume_offline';
 const DB_VERSION = 1;

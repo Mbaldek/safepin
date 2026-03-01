@@ -140,7 +140,7 @@ export default function StepCelebration({ contactAdded, contactName, homeZoneSet
           emoji="👥"
           label="Trusted circle"
           done={contactAdded}
-          detail={contactAdded ? contactName : 'Add later in My Brume'}
+          detail={contactAdded ? contactName : 'Add later in My Breveil'}
         />
         <SummaryRow
           emoji="🏠"

@@ -235,7 +235,7 @@
     "markAllRead": "Mark all read"
   },
   "mykova": {
-    "title": "My Brume",
+    "title": "My Breveil",
     "activity": "Activity",
     "saved": "Saved",
     "stats": "Stats",
@@ -338,7 +338,7 @@
     "arrival": "Arrives {time}"
   },
   "engagement": {
-    "welcome": "Welcome to Brume!",
+    "welcome": "Welcome to Breveil!",
     "welcomeDesc": "Start exploring safety reports in your area",
     "verifyPrompt": "Verify your identity to unlock full trust",
     "verifyBonus": "Verified users get 2x trust score",
@@ -349,7 +349,7 @@
     "newReportsNearby": "Your neighborhood has {count} new reports"
   },
   "install": {
-    "addToHome": "Add Brume to home screen",
+    "addToHome": "Add Breveil to home screen",
     "quickAccess": "Quick access, offline support",
     "install": "Install"
   },
@@ -392,8 +392,8 @@
     "featureAlertsDesc": "Get notified when something happens near you",
     "featureVerified": "Verified Identity",
     "featureVerifiedDesc": "Build trust with verified profiles & expertise badges",
-    "quote": "Brume gave me the confidence to walk home at night. Knowing my community has my back changes everything.",
-    "quoteAuthor": "— Brume user, Paris",
+    "quote": "Breveil gave me the confidence to walk home at night. Knowing my community has my back changes everything.",
+    "quoteAuthor": "— Breveil user, Paris",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
     "cookiePolicy": "Cookie Policy",
@@ -413,7 +413,7 @@
     }
   },
   "onboarding": {
-    "welcome": "Welcome to Brume",
+    "welcome": "Welcome to Breveil",
     "welcomeSub": "Your city, safer — together.",
     "getStarted": "Let's get you set up",
     "mapTitle": "See what's happening around you",
@@ -426,7 +426,7 @@
     "sosDemo": "Don't worry, this is just a demo!",
     "contactTitle": "Who has your back?",
     "contactBody": "Add one person you trust. They'll be notified if you trigger SOS.",
-    "contactSkipNote": "You can add someone later in My Brume → Trusted Circle",
+    "contactSkipNote": "You can add someone later in My Breveil → Trusted Circle",
     "contactPlaceholderName": "Name",
     "contactPlaceholderInfo": "Phone or email",
     "contactAdd": "Add {name} to my circle",
@@ -437,7 +437,7 @@
     "zoneSkip": "Skip — use my current location",
     "doneTitle": "You're all set!",
     "doneFullSetup": "You're fully set up. Stay safe out there.",
-    "doneEnter": "Enter Brume",
+    "doneEnter": "Enter Breveil",
     "next": "Next",
     "skip": "Skip for now",
     "back": "Back",

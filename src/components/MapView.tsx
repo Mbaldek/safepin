@@ -833,7 +833,7 @@ export default function MapView({
             if (map.current.getLayer(TRANSIT_CIRCLE)) map.current.setFilter(TRANSIT_CIRCLE, tf);
             if (map.current.getLayer(TRANSIT_LABEL))  map.current.setFilter(TRANSIT_LABEL, tf);
           })
-          .catch((err: unknown) => console.warn('[Brume] Transit fetch failed:', err));
+          .catch((err: unknown) => console.warn('[Breveil] Transit fetch failed:', err));
       }
       if (showPharmacy || showHospital || showPolice) {
         fetchParisPOIs()
@@ -845,7 +845,7 @@ export default function MapView({
               if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
             }
           })
-          .catch((err: unknown) => console.warn('[Brume] POI fetch failed:', err));
+          .catch((err: unknown) => console.warn('[Breveil] POI fetch failed:', err));
       }
       setLayersReady(true);
     });
@@ -1007,7 +1007,7 @@ export default function MapView({
         if (map.current.getLayer(TRANSIT_CIRCLE)) map.current.setFilter(TRANSIT_CIRCLE, filter);
         if (map.current.getLayer(TRANSIT_LABEL))  map.current.setFilter(TRANSIT_LABEL, filter);
       })
-      .catch((err: unknown) => console.warn('[Brume] Transit fetch failed:', err))
+      .catch((err: unknown) => console.warn('[Breveil] Transit fetch failed:', err))
       .finally(() => onTransitLoadingChange?.(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBus, showMetroRER, mapReady, layersReady]);
@@ -1043,7 +1043,7 @@ export default function MapView({
         if (map.current.getLayer(POI_CIRCLE)) map.current.setFilter(POI_CIRCLE, f);
         if (map.current.getLayer(POI_LABEL))  map.current.setFilter(POI_LABEL, f);
       })
-      .catch((err) => console.warn('[Brume] POI fetch failed:', err))
+      .catch((err) => console.warn('[Breveil] POI fetch failed:', err))
       .finally(() => onPoiLoadingChange?.(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPharmacy, showHospital, showPolice, mapReady, layersReady]);

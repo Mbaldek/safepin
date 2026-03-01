@@ -1,10 +1,10 @@
-// src/app/privacy/page.tsx — Brume Privacy Policy
+// src/app/privacy/page.tsx — Breveil Privacy Policy
 
 export default function PrivacyPage() {
   return (
     <div style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100dvh' }}>
       <div className="max-w-2xl mx-auto px-5 py-10">
-        <a href="/login" className="text-xs font-bold mb-6 inline-block" style={{ color: 'var(--accent)' }}>&larr; Back to Brume</a>
+        <a href="/login" className="text-xs font-bold mb-6 inline-block" style={{ color: 'var(--accent)' }}>&larr; Back to Breveil</a>
 
         <h1 className="text-2xl font-extrabold mb-1">Privacy Policy</h1>
         <p className="text-xs mb-8" style={{ color: 'var(--text-muted)' }}>Last updated: February 2026</p>
@@ -13,8 +13,8 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-base font-black mb-2">1. Who We Are</h2>
             <p>
-              Brume is operated by DBEK, a company registered in France at 75 rue de Lourmel, 75015 Paris, France.
-              Brume provides a community-powered safety mapping and navigation platform (&ldquo;the Service&rdquo;).
+              Breveil is operated by DBEK, a company registered in France at 75 rue de Lourmel, 75015 Paris, France.
+              Breveil provides a community-powered safety mapping and navigation platform (&ldquo;the Service&rdquo;).
               For questions about this policy, contact us at <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>.
             </p>
           </section>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
               <li><strong>User-generated content:</strong> Safety reports (pins), photos, chat messages, place notes, saved routes.</li>
               <li><strong>Device information:</strong> Push notification tokens, browser type, and language preference.</li>
               <li><strong>Verification data:</strong> If you choose identity verification, this is processed by our third-party provider Veriff. We store only the verification status (approved/declined), not your identity documents.</li>
-              <li><strong>Payment data:</strong> If you subscribe to Brume Pro, payments are processed by Stripe. We store your Stripe customer ID and subscription status, but never your card details.</li>
+              <li><strong>Payment data:</strong> If you subscribe to Breveil Pro, payments are processed by Stripe. We store your Stripe customer ID and subscription status, but never your card details.</li>
             </ul>
           </section>
 
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-base font-black mb-2">9. Children</h2>
             <p>
-              Brume is not directed to children under 16. We do not knowingly collect data from children.
+              Breveil is not directed to children under 16. We do not knowingly collect data from children.
               If you believe a child has provided us data, contact us and we will delete it promptly.
             </p>
           </section>
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
         </div>
 
         <div className="mt-10 pt-6 text-center text-[0.6rem]" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-placeholder)' }}>
-          &copy; {new Date().getFullYear()} Brume by DBEK. All rights reserved.
+          &copy; {new Date().getFullYear()} Breveil by DBEK. All rights reserved.
         </div>
       </div>
     </div>

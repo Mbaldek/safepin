@@ -3,8 +3,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Tower Control — Brume Admin',
-  description: 'Brume administrative dashboard',
+  title: 'Tower Control — Breveil Admin',
+  description: 'Breveil administrative dashboard',
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

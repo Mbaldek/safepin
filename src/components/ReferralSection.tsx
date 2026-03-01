@@ -46,8 +46,8 @@ export default function ReferralSection({ userId }: Props) {
   async function shareCode() {
     if (!referralCode) return;
     const shareData = {
-      title: 'Join Brume — Stay Safe Together',
-      text: `Join me on Brume, the safety mapping app! Use my referral code: ${referralCode}`,
+      title: 'Join Breveil — Stay Safe Together',
+      text: `Join me on Breveil, the safety mapping app! Use my referral code: ${referralCode}`,
       url: `https://safepin-pearl.vercel.app/login?ref=${referralCode}`,
     };
     try {
@@ -76,7 +76,7 @@ export default function ReferralSection({ userId }: Props) {
       </div>
 
       <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-        Share Brume with friends. Every signup with your code earns you bonus trust points!
+        Share Breveil with friends. Every signup with your code earns you bonus trust points!
       </p>
 
       {/* Referral code display */}

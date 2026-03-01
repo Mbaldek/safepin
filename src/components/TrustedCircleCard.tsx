@@ -231,7 +231,7 @@ export default function TrustedCircleCard({
   const hasMore = contacts.length > MAX_VISIBLE;
   const onlineCount = contactIds.filter((id) => presenceMap[id]?.status === 'online').length;
 
-  // ─── Compact mode for My Brume ────────────────────────────────────────────
+  // ─── Compact mode for My Breveil ────────────────────────────────────────────
   if (compact) {
     return (
       <div

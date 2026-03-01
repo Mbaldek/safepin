@@ -235,7 +235,7 @@
     "markAllRead": "Tout marquer comme lu"
   },
   "mykova": {
-    "title": "Mon Brume",
+    "title": "Mon Breveil",
     "activity": "Activité",
     "saved": "Sauvegardé",
     "stats": "Statistiques",
@@ -336,7 +336,7 @@
     "arrival": "Arrivée {time}"
   },
   "engagement": {
-    "welcome": "Bienvenue sur Brume !",
+    "welcome": "Bienvenue sur Breveil !",
     "welcomeDesc": "Explorez les signalements de sécurité dans votre zone",
     "verifyPrompt": "Vérifiez votre identité pour débloquer la confiance",
     "verifyBonus": "Les utilisateurs vérifiés obtiennent 2x le score de confiance",
@@ -347,7 +347,7 @@
     "newReportsNearby": "Votre quartier a {count} nouveaux signalements"
   },
   "install": {
-    "addToHome": "Ajouter Brume à l'écran d'accueil",
+    "addToHome": "Ajouter Breveil à l'écran d'accueil",
     "quickAccess": "Accès rapide, support hors ligne",
     "install": "Installer"
   },
@@ -390,8 +390,8 @@
     "featureAlertsDesc": "Soyez notifié quand quelque chose se passe près de vous",
     "featureVerified": "Identité vérifiée",
     "featureVerifiedDesc": "Renforcez la confiance avec des profils vérifiés et des badges d'expertise",
-    "quote": "Brume m'a donné la confiance de rentrer chez moi à pied le soir. Savoir que ma communauté veille sur moi change tout.",
-    "quoteAuthor": "— Utilisatrice Brume, Paris",
+    "quote": "Breveil m'a donné la confiance de rentrer chez moi à pied le soir. Savoir que ma communauté veille sur moi change tout.",
+    "quoteAuthor": "— Utilisatrice Breveil, Paris",
     "privacyPolicy": "Politique de confidentialité",
     "termsOfService": "Conditions d'utilisation",
     "cookiePolicy": "Politique des cookies",
@@ -411,7 +411,7 @@
     }
   },
   "onboarding": {
-    "welcome": "Bienvenue sur Brume",
+    "welcome": "Bienvenue sur Breveil",
     "welcomeSub": "Votre ville, plus sûre — ensemble.",
     "getStarted": "C'est parti !",
     "mapTitle": "Voyez ce qui se passe autour de vous",
@@ -424,7 +424,7 @@
     "sosDemo": "Pas d'inquiétude, c'est juste une démo !",
     "contactTitle": "Qui veille sur vous ?",
     "contactBody": "Ajoutez une personne de confiance. Elle sera alertée si vous déclenchez le SOS.",
-    "contactSkipNote": "Vous pourrez ajouter quelqu'un plus tard dans Mon Brume → Cercle de confiance",
+    "contactSkipNote": "Vous pourrez ajouter quelqu'un plus tard dans Mon Breveil → Cercle de confiance",
     "contactPlaceholderName": "Nom",
     "contactPlaceholderInfo": "Téléphone ou email",
     "contactAdd": "Ajouter {name} à mon cercle",
@@ -435,7 +435,7 @@
     "zoneSkip": "Passer — utiliser ma position actuelle",
     "doneTitle": "Vous êtes prêt(e) !",
     "doneFullSetup": "Tout est configuré. Restez en sécurité.",
-    "doneEnter": "Entrer dans Brume",
+    "doneEnter": "Entrer dans Breveil",
     "next": "Suivant",
     "skip": "Passer pour l'instant",
     "back": "Retour",

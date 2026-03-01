@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breveil — Bienvenue</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0E1A;--surf:#0F1729;--card:#141E30;
+  --brd:rgba(255,255,255,.06);--brd2:rgba(255,255,255,.12);
+  --veil:#E8A838;--veil-dark:#C48A1E;--veil-light:#F2D49A;
+  --aurora:#8B7EC8;--aurora-dark:#6A5FA8;--aurora-light:#B5ABE0;
+  --rose:#D4687A;--rose-dark:#B84D5E;
+  --sage:#6BA68E;--sage-light:#A3D4BF;
+  --danger:#E63946;
+  --ivoire:#F5F2EE;
+  --txt:rgba(255,255,255,.88);--mut:rgba(255,255,255,.35);
+  --faint:rgba(255,255,255,.03);
+  --display:'Cormorant Garamond',serif;
+  --body:'Plus Jakarta Sans',sans-serif;
+}
+html,body{height:100%}
+body{font-family:var(--body);background:var(--bg);color:var(--txt);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 15% 85%,rgba(232,168,56,.06) 0%,transparent 50%),radial-gradient(ellipse at 85% 15%,rgba(139,126,200,.06) 0%,transparent 45%)}
+
+/* TOPBAR */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:13px 28px;border-bottom:1px solid var(--brd);position:relative;z-index:10}
+.brand{display:flex;align-items:center;gap:9px}
+.brand-symbol{width:22px;height:22px;position:relative}
+.brand-symbol svg{width:100%;height:100%}
+.brand-name{font-family:var(--display);font-size:19px;font-weight:300;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.lbs{display:flex;gap:4px}
+.lb{background:none;border:1px solid var(--brd);color:var(--mut);padding:4px 12px;border-radius:2px;font-size:10px;font-weight:700;letter-spacing:.1em;cursor:pointer;font-family:var(--body);transition:all .2s}
+.lb.on{background:var(--veil);color:var(--bg);border-color:var(--veil)}
+.lb:hover:not(.on){color:var(--txt);border-color:var(--brd2)}
+
+/* BACK */
+.back{position:fixed;top:60px;left:24px;z-index:200;background:var(--faint);border:none;color:var(--mut);width:34px;height:34px;border-radius:50%;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:var(--body)}
+.back:hover{background:rgba(255,255,255,.1);color:white}
+.back.hide{opacity:0;pointer-events:none}
+
+/* WRAP */
+.wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;z-index:1}
+.card{width:100%;max-width:460px;background:var(--card);border:1px solid var(--brd);border-radius:18px;padding:40px;box-shadow:0 36px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03)}
+
+/* PROGRESS */
+.prog{display:flex;gap:3px;margin-bottom:40px}
+.pseg{height:2px;border-radius:1px;flex:1;background:rgba(255,255,255,.06);transition:background .4s}
+.pseg.done{background:rgba(232,168,56,.4)}
+.pseg.now{background:var(--veil)}
+
+/* STEP HEADER */
+.seyebrow{font-family:var(--body);font-size:9px;color:var(--veil);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;font-weight:700}
+.sh{font-family:var(--display);font-size:28px;line-height:1.18;margin-bottom:7px;font-weight:300}
+.sh em{font-style:italic;color:var(--veil)}
+.ssub{font-size:12px;color:var(--mut);line-height:1.7;margin-bottom:28px;font-weight:400}
+
+/* CHOICES */
+.choices{display:flex;flex-direction:column;gap:7px;margin-bottom:24px}
+.choice{background:var(--faint);border:1.5px solid var(--brd);border-radius:11px;padding:13px 14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
+.choice:hover{background:rgba(255,255,255,.05);border-color:var(--brd2)}
+.choice.sel{background:rgba(232,168,56,.07);border-color:var(--veil)}
+.cem{font-size:20px;flex-shrink:0}.cbody{flex:1}
+.ct{font-size:13px;font-weight:700;margin-bottom:2px}.cd{font-size:10px;color:var(--mut);font-weight:400}
+.cradio{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:8px;transition:all .2s;flex-shrink:0}
+.choice.sel .cradio{background:var(--veil);border-color:var(--veil);color:var(--bg)}
+
+/* GRID TOGGLES */
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:24px}
+.tc{background:var(--faint);border:1.5px solid var(--brd);border-radius:11px;padding:14px 12px;cursor:pointer;transition:all .2s;text-align:center}
+.tc:hover{background:rgba(255,255,255,.05)}
+.tc.sel{background:rgba(232,168,56,.07);border-color:var(--veil)}
+.tce{font-size:24px;margin-bottom:7px}.tct{font-size:11px;font-weight:700;margin-bottom:2px}.tcs{font-size:10px;color:var(--mut);font-weight:400}
+
+/* CONTACTS */
+.contacts{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.crow{background:var(--faint);border-radius:9px;padding:11px 13px;display:flex;align-items:center;gap:9px}
+.cav{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:13px}
+.cname{font-size:12px;font-weight:700;margin-bottom:1px}.cph{font-size:10px;color:var(--mut);font-weight:400}
+.cst{margin-left:auto;font-size:10px;font-weight:700}
+.c-ok{color:var(--sage-light)}.c-pnd{color:var(--veil)}
+.addbtn{width:100%;border:1.5px dashed rgba(255,255,255,.08);border-radius:9px;padding:11px;background:transparent;color:var(--mut);font-size:11px;cursor:pointer;transition:all .2s;font-family:var(--body);margin-bottom:24px;font-weight:600}
+.addbtn:hover{border-color:var(--veil);color:var(--txt)}
+
+/* TRANSIT */
+.tmodes{display:flex;flex-direction:column;gap:7px;margin-bottom:24px}
+.trow{background:var(--faint);border:1.5px solid var(--brd);border-radius:10px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:all .2s}
+.trow:hover,.trow.sel{background:rgba(139,126,200,.06);border-color:rgba(139,126,200,.3)}
+.tre{font-size:19px}.trt{font-size:12px;font-weight:700;margin-bottom:1px}.trd{font-size:10px;color:var(--mut);font-weight:400}
+.trbadge{margin-left:auto;font-family:var(--body);font-size:8px;padding:2px 6px;border-radius:2px;background:rgba(139,126,200,.12);color:var(--aurora-light);font-weight:700;letter-spacing:.05em}
+
+/* PERMISSIONS */
+.perms{display:flex;flex-direction:column;gap:7px;margin-bottom:24px}
+.prow{background:var(--faint);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:11px}
+.pem{font-size:18px}.pt{font-size:12px;font-weight:700;margin-bottom:2px}.pd{font-size:10px;color:var(--mut);font-weight:400}
+.tog{margin-left:auto;width:36px;height:20px;border-radius:10px;background:var(--sage);position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+.tog::after{content:'';position:absolute;width:14px;height:14px;background:white;border-radius:50%;top:3px;right:3px;transition:right .2s}
+.tog.off{background:rgba(255,255,255,.1)}.tog.off::after{right:19px}
+
+/* VERIFF */
+.vbox{background:rgba(139,126,200,.06);border:1px solid rgba(139,126,200,.18);border-radius:11px;padding:18px;margin-bottom:18px}
+.vbr{display:flex;gap:11px;align-items:flex-start}
+.vbe{font-size:19px;flex-shrink:0;margin-top:2px}
+.vbt{font-size:13px;font-weight:700;margin-bottom:5px}
+.vbd{font-size:11px;color:var(--mut);line-height:1.65;font-weight:400}
+.vbsteps{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+.vs{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--mut);font-weight:500}
+.vsn{width:17px;height:17px;border-radius:50%;background:rgba(139,126,200,.15);color:var(--aurora-light);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0}
+
+/* COMPLETE */
+.done-wrap{text-align:center;padding:8px 0}
+.check-box{width:88px;height:88px;border-radius:50%;background:rgba(232,168,56,.08);border:2px solid rgba(232,168,56,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;animation:pop .6s cubic-bezier(.34,1.56,.64,1) both;position:relative}
+.check-box svg{width:48px;height:48px}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:18px 0 22px}
+.stb{background:var(--faint);border:1px solid var(--brd);border-radius:9px;padding:12px 8px;text-align:center}
+.stn{font-family:var(--display);font-size:26px;line-height:1;margin-bottom:3px;font-weight:400}
+.stl{font-size:10px;color:var(--mut);font-weight:500}
+.fps{display:flex;flex-direction:column;gap:6px;margin-bottom:22px}
+.fpr{background:var(--faint);border-radius:9px;padding:11px 13px;display:flex;align-items:center;gap:11px}
+.fpbox{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.fpt{font-size:12px;font-weight:700;margin-bottom:2px}.fpd{font-size:10px;color:var(--mut);font-weight:400}
+
+/* BUTTONS */
+.btn-main{width:100%;padding:14px;border-radius:100px;background:var(--veil);color:var(--bg);border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--body);transition:all .2s;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-main:hover{background:var(--veil-dark);transform:translateY(-1px)}
+.btn-skip{width:100%;padding:10px;background:transparent;border:none;color:var(--mut);font-size:12px;cursor:pointer;font-family:var(--body);transition:color .2s;font-weight:500}
+.btn-skip:hover{color:rgba(255,255,255,.55)}
+
+/* SLIDES */
+.slide{display:none}
+.slide.on{display:block;animation:si .35s cubic-bezier(.16,1,.3,1) both}
+@keyframes si{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+
+/* i18n */
+.en,.fr{display:none}
+body.lang-en .en{display:block}
+body.lang-fr .fr{display:block}
+body.lang-en .en-i{display:inline}
+body.lang-fr .en-i{display:none}
+body.lang-en .fr-i{display:none}
+body.lang-fr .fr-i{display:inline}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.3);opacity:1}}
+</style>
+</head>
+<body class="lang-fr">
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-symbol">
+      <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 1.5 C5 1.5, 1.5 8, 1.5 12.5 C1.5 14.2, 2.8 15.8, 4 16.5" stroke="rgba(232,168,56,0.3)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M11 1.5 C17 1.5, 20.5 8, 20.5 12.5 C20.5 14.2, 19.2 15.8, 18 16.5" stroke="rgba(232,168,56,0.3)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M11 5 C6.5 5, 4.5 9.5, 4.5 13 C4.5 14.5, 5.8 15.8, 7 16.5" stroke="rgba(139,126,200,0.45)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M11 5 C15.5 5, 17.5 9.5, 17.5 13 C17.5 14.5, 16.2 15.8, 15 16.5" stroke="rgba(139,126,200,0.45)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M11 8 C8 8, 7 11, 7 13.5 C7 14.8, 8 15.8, 9 16.5" stroke="rgba(232,168,56,0.75)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M11 8 C14 8, 15 11, 15 13.5 C15 14.8, 14 15.8, 13 16.5" stroke="rgba(232,168,56,0.75)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <circle cx="11" cy="9.5" r="1.4" fill="rgba(232,168,56,0.85)"/>
+      </svg>
+    </div>
+    <span class="brand-name">Breveil</span>
+  </div>
+  <div class="lbs">
+    <button class="lb" onclick="setLang('en')" id="lb-en">EN</button>
+    <button class="lb on" onclick="setLang('fr')" id="lb-fr">FR</button>
+  </div>
+</div>
+
+<button class="back hide" id="backBtn" onclick="back()">←</button>
+
+<div class="wrap">
+  <div class="card">
+    <div class="prog" id="prog">
+      <div class="pseg now"></div>
+      <div class="pseg"></div><div class="pseg"></div><div class="pseg"></div>
+      <div class="pseg"></div><div class="pseg"></div><div class="pseg"></div>
+    </div>
+
+    <!-- S0 WELCOME -->
+    <div class="slide on" id="s0">
+      <div style="text-align:center;padding:12px 0">
+        <div style="width:76px;height:76px;border-radius:50%;background:rgba(232,168,56,.06);border:1px solid rgba(232,168,56,.18);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+          <svg viewBox="0 0 48 48" fill="none" width="40" height="40" xmlns="http://www.w3.org/2000/svg" style="animation:breathe 4s ease-in-out infinite">
+            <path d="M24 4 C10 4, 4 18, 4 28 C4 32, 7 35, 10 37" stroke="rgba(232,168,56,0.25)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 4 C38 4, 44 18, 44 28 C44 32, 41 35, 38 37" stroke="rgba(232,168,56,0.25)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 12 C14 12, 10 22, 10 30 C10 33, 12 35, 15 37" stroke="rgba(139,126,200,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 12 C34 12, 38 22, 38 30 C38 33, 36 35, 33 37" stroke="rgba(139,126,200,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 20 C18 20, 16 26, 16 32 C16 34, 18 36, 20 37" stroke="rgba(232,168,56,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M24 20 C30 20, 32 26, 32 32 C32 34, 30 36, 28 37" stroke="rgba(232,168,56,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="24" cy="22" r="3" fill="rgba(232,168,56,0.85)"/>
+          </svg>
+        </div>
+        <div style="font-family:var(--display);font-size:48px;letter-spacing:4px;margin-bottom:8px;font-weight:300;text-transform:uppercase">Breveil</div>
+        <div class="en" style="font-family:var(--display);font-size:17px;color:var(--mut);margin-bottom:24px;font-weight:300"><em style="color:var(--veil);font-style:italic">Walk without fear.</em><br>Community safety, mapped together.</div>
+        <div class="fr" style="font-family:var(--display);font-size:17px;color:var(--mut);margin-bottom:24px;font-weight:300"><em style="color:var(--veil);font-style:italic">Marchez sans peur.</em><br>Sécurité communautaire, cartographiée ensemble.</div>
+        <div style="display:flex;justify-content:center;gap:24px;margin-bottom:32px">
+          <div><div style="font-family:var(--display);font-size:22px;color:var(--veil);font-weight:400">35</div><div style="font-size:10px;color:var(--mut);font-weight:600"><span class="en-i">features</span><span class="fr-i">fonctionnalités</span></div></div>
+          <div style="width:1px;background:var(--brd)"></div>
+          <div><div style="font-family:var(--display);font-size:22px;color:var(--aurora-light);font-weight:400">30</div><div style="font-size:10px;color:var(--mut);font-weight:600"><span class="en-i">languages</span><span class="fr-i">langues</span></div></div>
+          <div style="width:1px;background:var(--brd)"></div>
+          <div><div style="font-family:var(--display);font-size:22px;color:var(--mut);font-weight:400">EU</div><div style="font-size:10px;color:var(--mut);font-weight:600">RGPD</div></div>
+        </div>
+        <p style="font-size:12px;color:var(--mut);line-height:1.75;max-width:300px;margin:0 auto 32px;font-weight:400"><span class="en-i">Real-time safety for women in Paris and beyond. No download. Always free at its core.</span><span class="fr-i">Sécurité en temps réel pour les femmes à Paris et au-delà. Aucun téléchargement. Toujours gratuit à la base.</span></p>
+        <button class="btn-main" onclick="next()"><span class="en-i">Get Started →</span><span class="fr-i">Commencer →</span></button>
+        <div style="font-size:9px;color:rgba(255,255,255,.14);margin-top:5px;font-family:var(--body);letter-spacing:.1em;font-weight:700"><span class="en-i">FREE · NO APP STORE REQUIRED</span><span class="fr-i">GRATUIT · SANS APP STORE</span></div>
+      </div>
+    </div>
+
+    <!-- S1 WHO -->
+    <div class="slide" id="s1">
+      <div class="seyebrow"><span class="en-i">Step 1 of 6</span><span class="fr-i">Étape 1 sur 6</span></div>
+      <div class="sh"><span class="en-i">Who are <em>you?</em></span><span class="fr-i">Qui <em>êtes-vous ?</em></span></div>
+      <p class="ssub"><span class="en-i">Help Breveil personalise your experience.</span><span class="fr-i">Aidez Breveil à personnaliser votre expérience.</span></p>
+      <div class="choices" id="whoG">
+        <div class="choice" onclick="pick('whoG',this)"><div class="cem">🚇</div><div class="cbody"><div class="ct"><span class="en-i">Daily Commuter</span><span class="fr-i">Navetteur quotidien</span></div><div class="cd"><span class="en-i">Metro, RER, bus, regular routes</span><span class="fr-i">Métro, RER, bus, trajets réguliers</span></div></div><div class="cradio">✓</div></div>
+        <div class="choice" onclick="pick('whoG',this)"><div class="cem">🎓</div><div class="cbody"><div class="ct"><span class="en-i">Student</span><span class="fr-i">Étudiante</span></div><div class="cd"><span class="en-i">Campus, housing, evening activities</span><span class="fr-i">Campus, logement, activités du soir</span></div></div><div class="cradio">✓</div></div>
+        <div class="choice" onclick="pick('whoG',this)"><div class="cem">🌙</div><div class="cbody"><div class="ct"><span class="en-i">Night Worker</span><span class="fr-i">Travailleuse de nuit</span></div><div class="cd"><span class="en-i">Late commutes, off-peak transit</span><span class="fr-i">Trajets tardifs, transports hors pointe</span></div></div><div class="cradio">✓</div></div>
+        <div class="choice" onclick="pick('whoG',this)"><div class="cem">🏃‍♀️</div><div class="cbody"><div class="ct"><span class="en-i">Runner / Walker</span><span class="fr-i">Coureuse / Marcheuse</span></div><div class="cd"><span class="en-i">Parks, outdoor routes, early mornings</span><span class="fr-i">Parcs, itinéraires extérieurs, matins</span></div></div><div class="cradio">✓</div></div>
+      </div>
+      <button class="btn-main" onclick="next()"><span class="en-i">Continue →</span><span class="fr-i">Continuer →</span></button>
+      <button class="btn-skip" onclick="next()"><span class="en-i">Skip</span><span class="fr-i">Passer</span></button>
+    </div>
+
+    <!-- S2 PRIORITIES -->
+    <div class="slide" id="s2">
+      <div class="seyebrow"><span class="en-i">Step 2 of 6</span><span class="fr-i">Étape 2 sur 6</span></div>
+      <div class="sh"><span class="en-i">What matters <em>most?</em></span><span class="fr-i">Qu'est-ce qui <em>compte ?</em></span></div>
+      <p class="ssub"><span class="en-i">Select all that apply.</span><span class="fr-i">Sélectionnez tout ce qui s'applique.</span></p>
+      <div class="tg">
+        <div class="tc" onclick="this.classList.toggle('sel')"><div class="tce">🗺️</div><div class="tct"><span class="en-i">Live map</span><span class="fr-i">Carte en direct</span></div><div class="tcs"><span class="en-i">See incidents ahead</span><span class="fr-i">Voir les incidents</span></div></div>
+        <div class="tc" onclick="this.classList.toggle('sel')"><div class="tce">🆘</div><div class="tct"><span class="en-i">SOS button</span><span class="fr-i">Bouton SOS</span></div><div class="tcs"><span class="en-i">One-tap emergency</span><span class="fr-i">Urgence en un geste</span></div></div>
+        <div class="tc" onclick="this.classList.toggle('sel')"><div class="tce">🚇</div><div class="tct"><span class="en-i">Transit safety</span><span class="fr-i">Sécurité transports</span></div><div class="tcs"><span class="en-i">Metro/RER planning</span><span class="fr-i">Planification métro/RER</span></div></div>
+        <div class="tc" onclick="this.classList.toggle('sel')"><div class="tce">🚶‍♀️</div><div class="tct"><span class="en-i">Companion</span><span class="fr-i">Compagnon</span></div><div class="tcs"><span class="en-i">Walk with someone</span><span class="fr-i">Marcher accompagnée</span></div></div>
+      </div>
+      <button class="btn-main" onclick="next()"><span class="en-i">Continue →</span><span class="fr-i">Continuer →</span></button>
+      <button class="btn-skip" onclick="next()"><span class="en-i">Skip</span><span class="fr-i">Passer</span></button>
+    </div>
+
+    <!-- S3 TRANSIT -->
+    <div class="slide" id="s3">
+      <div class="seyebrow"><span class="en-i">Step 3 of 6</span><span class="fr-i">Étape 3 sur 6</span></div>
+      <div class="sh"><span class="en-i">Your <em>transit modes.</em></span><span class="fr-i">Vos <em>transports.</em></span></div>
+      <p class="ssub"><span class="en-i">Breveil integrates Paris transit via IDFM Navitia. What do you use?</span><span class="fr-i">Breveil intègre les transports via IDFM Navitia. Que prenez-vous ?</span></p>
+      <div class="tmodes">
+        <div class="trow sel" onclick="this.classList.toggle('sel')"><div class="tre">🚇</div><div><div class="trt">Métro</div><div class="trd"><span class="en-i">All Paris metro lines</span><span class="fr-i">Toutes les lignes de métro</span></div></div><div class="trbadge">RATP</div></div>
+        <div class="trow sel" onclick="this.classList.toggle('sel')"><div class="tre">🚆</div><div><div class="trt">RER</div><div class="trd"><span class="en-i">Regional express A–E</span><span class="fr-i">Réseau express A à E</span></div></div><div class="trbadge">SNCF</div></div>
+        <div class="trow" onclick="this.classList.toggle('sel')"><div class="tre">🚌</div><div><div class="trt">Bus</div><div class="trd"><span class="en-i">Major Paris bus lines</span><span class="fr-i">Principales lignes de bus</span></div></div><div class="trbadge">RATP</div></div>
+        <div class="trow" onclick="this.classList.toggle('sel')"><div class="tre">🚊</div><div><div class="trt">Tramway</div><div class="trd">T1–T13</div></div><div class="trbadge">IDFM</div></div>
+      </div>
+      <button class="btn-main" onclick="next()"><span class="en-i">Continue →</span><span class="fr-i">Continuer →</span></button>
+      <button class="btn-skip" onclick="next()"><span class="en-i">Skip</span><span class="fr-i">Passer</span></button>
+    </div>
+
+    <!-- S4 TRUSTED CIRCLE -->
+    <div class="slide" id="s4">
+      <div class="seyebrow"><span class="en-i">Step 4 of 6</span><span class="fr-i">Étape 4 sur 6</span></div>
+      <div class="sh"><span class="en-i">Your <em>Trusted Circle.</em></span><span class="fr-i">Votre <em>Cercle de confiance.</em></span></div>
+      <p class="ssub"><span class="en-i">On SOS, these contacts receive your live GPS instantly via our emergency Edge Function.</span><span class="fr-i">Lors d'un SOS, ces contacts reçoivent votre GPS en direct instantanément via notre Edge Function d'urgence.</span></p>
+      <div class="contacts">
+        <div class="crow"><div class="cav">👩</div><div><div class="cname">Maman</div><div class="cph">+33 6 12 34 56 78</div></div><div class="cst c-ok">✓ <span class="en-i">Added</span><span class="fr-i">Ajouté</span></div></div>
+        <div class="crow"><div class="cav">👫</div><div><div class="cname">Léa — <span class="en-i">Roommate</span><span class="fr-i">Coloc</span></div><div class="cph">+33 6 98 76 54 32</div></div><div class="cst c-pnd"><span class="en-i">Pending</span><span class="fr-i">En attente</span></div></div>
+      </div>
+      <button class="addbtn">+ <span class="en-i">Add a trusted contact</span><span class="fr-i">Ajouter un contact de confiance</span></button>
+      <button class="btn-main" onclick="next()"><span class="en-i">Continue →</span><span class="fr-i">Continuer →</span></button>
+      <button class="btn-skip" onclick="next()"><span class="en-i">I'll do this later</span><span class="fr-i">Je le ferai plus tard</span></button>
+    </div>
+
+    <!-- S5 PERMISSIONS -->
+    <div class="slide" id="s5">
+      <div class="seyebrow"><span class="en-i">Step 5 of 6</span><span class="fr-i">Étape 5 sur 6</span></div>
+      <div class="sh"><span class="en-i">Enable your <em>safety tools.</em></span><span class="fr-i">Activez vos <em>outils de sécurité.</em></span></div>
+      <p class="ssub"><span class="en-i">Change these anytime in Settings.</span><span class="fr-i">Modifiez à tout moment dans les Paramètres.</span></p>
+      <div class="perms">
+        <div class="prow"><div class="pem">📍</div><div><div class="pt"><span class="en-i">Location</span><span class="fr-i">Localisation</span></div><div class="pd"><span class="en-i">Map, SOS trail, route planning</span><span class="fr-i">Carte, piste SOS, planification</span></div></div><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+        <div class="prow"><div class="pem">🔔</div><div><div class="pt"><span class="en-i">Push Notifications</span><span class="fr-i">Notifications push</span></div><div class="pd"><span class="en-i">Nearby incidents, SOS alerts</span><span class="fr-i">Incidents proches, alertes SOS</span></div></div><div class="tog" onclick="this.classList.toggle('off')"></div></div>
+        <div class="prow"><div class="pem">📷</div><div><div class="pt"><span class="en-i">Camera & Mic</span><span class="fr-i">Caméra & micro</span></div><div class="pd"><span class="en-i">Incident media, live broadcast</span><span class="fr-i">Médias d'incident, diffusion en direct</span></div></div><div class="tog off" onclick="this.classList.toggle('off')"></div></div>
+      </div>
+      <button class="btn-main" onclick="next()"><span class="en-i">Grant Permissions →</span><span class="fr-i">Accorder les autorisations →</span></button>
+      <button class="btn-skip" onclick="next()"><span class="en-i">Skip for now</span><span class="fr-i">Passer pour l'instant</span></button>
+    </div>
+
+    <!-- S6 VERIFF -->
+    <div class="slide" id="s6">
+      <div class="seyebrow"><span class="en-i">Step 6 of 6</span><span class="fr-i">Étape 6 sur 6</span></div>
+      <div class="sh"><span class="en-i">Verify your <em>identity.</em></span><span class="fr-i">Vérifiez votre <em>identité.</em></span></div>
+      <p class="ssub"><span class="en-i">Powered by Veriff. Verified users unlock Guardian trust level and greater community credibility. ~2 minutes.</span><span class="fr-i">Via Veriff. Les utilisatrices vérifiées obtiennent le niveau Gardienne et une crédibilité accrue. ~2 minutes.</span></p>
+      <div class="vbox">
+        <div class="vbr">
+          <div class="vbe">🛡️</div>
+          <div>
+            <div class="vbt"><span class="en-i">Your verification path</span><span class="fr-i">Votre chemin de vérification</span></div>
+            <div class="vbd"><span class="en-i">Your status is shown on your community profile and affects your trust weight on pins and votes.</span><span class="fr-i">Votre statut est affiché sur votre profil communautaire et affecte votre poids de confiance sur les signalements et votes.</span></div>
+            <div class="vbsteps">
+              <div class="vs"><div class="vsn">1</div><span class="en-i">Unverified — starting point</span><span class="fr-i">Non vérifié — point de départ</span></div>
+              <div class="vs"><div class="vsn">2</div><span class="en-i">Pending — Veriff review in progress</span><span class="fr-i">En attente — révision Veriff en cours</span></div>
+              <div class="vs"><div class="vsn" style="background:rgba(107,166,142,.2);color:var(--sage-light)">✓</div><span class="en-i">Approved — Guardian status unlocked</span><span class="fr-i">Approuvé — statut Gardienne débloqué</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--mut);text-align:center;margin-bottom:14px;font-weight:500"><span class="en-i">A verification nudge will appear 2–7 days post-signup if you skip.</span><span class="fr-i">Une incitation apparaîtra 2 à 7 jours après l'inscription si vous passez.</span></div>
+      <button class="btn-main" onclick="next()"><span class="en-i">Verify with Veriff →</span><span class="fr-i">Vérifier avec Veriff →</span></button>
+      <button class="btn-skip" onclick="next()"><span class="en-i">Skip — verify later</span><span class="fr-i">Passer — vérifier plus tard</span></button>
+    </div>
+
+    <!-- S7 COMPLETE -->
+    <div class="slide" id="s7">
+      <div class="done-wrap">
+        <div class="check-box">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 4 C10 4, 4 18, 4 28 C4 32, 7 35, 10 37" stroke="rgba(232,168,56,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 4 C38 4, 44 18, 44 28 C44 32, 41 35, 38 37" stroke="rgba(232,168,56,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 12 C14 12, 10 22, 10 30 C10 33, 12 35, 15 37" stroke="rgba(139,126,200,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 12 C34 12, 38 22, 38 30 C38 33, 36 35, 33 37" stroke="rgba(139,126,200,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M24 20 C18 20, 16 26, 16 32 C16 34, 18 36, 20 37" stroke="rgba(232,168,56,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M24 20 C30 20, 32 26, 32 32 C32 34, 30 36, 28 37" stroke="rgba(232,168,56,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="24" cy="22" r="3" fill="rgba(232,168,56,0.85)"/>
+          </svg>
+        </div>
+        <div style="font-family:var(--display);font-size:28px;margin-bottom:5px;font-weight:300"><span class="en-i">You're ready.</span><span class="fr-i">Vous êtes prête.</span></div>
+        <p style="font-size:12px;color:var(--mut);line-height:1.7;margin-bottom:22px;max-width:280px;margin-left:auto;margin-right:auto;font-weight:400"><span class="en-i">Welcome to Breveil. Your city, made safer together.</span><span class="fr-i">Bienvenue sur Breveil. Votre ville, rendue plus sûre ensemble.</span></p>
+        <div class="stats3">
+          <div class="stb"><div class="stn" style="color:var(--veil)">0</div><div class="stl"><span class="en-i">Points</span><span class="fr-i">Points</span></div></div>
+          <div class="stb"><div class="stn" style="color:var(--mut);font-size:19px">👁</div><div class="stl"><span class="en-i">Watcher</span><span class="fr-i">Observatrice</span></div></div>
+          <div class="stb"><div class="stn" style="color:var(--veil)">🔥</div><div class="stl"><span class="en-i">Day 1</span><span class="fr-i">Jour 1</span></div></div>
+        </div>
+        <div class="fps">
+          <div class="fpr"><div class="fpbox" style="background:rgba(232,168,56,.07)">🗺️</div><div><div class="fpt"><span class="en-i">Explore the live map</span><span class="fr-i">Explorer la carte en direct</span></div><div class="fpd"><span class="en-i">See incidents near you now</span><span class="fr-i">Voir les incidents proches</span></div></div></div>
+          <div class="fpr"><div class="fpbox" style="background:rgba(139,126,200,.07)">🚇</div><div><div class="fpt"><span class="en-i">Plan your first transit journey</span><span class="fr-i">Planifier votre premier trajet</span></div><div class="fpd"><span class="en-i">Metro, RER, bus with safety overlay</span><span class="fr-i">Métro, RER, bus avec données sécurité</span></div></div></div>
+          <div class="fpr"><div class="fpbox" style="background:rgba(232,168,56,.07)">🔥</div><div><div class="fpt"><span class="en-i">Start your streak today</span><span class="fr-i">Commencez votre série aujourd'hui</span></div><div class="fpd"><span class="en-i">Come back tomorrow to keep it going!</span><span class="fr-i">Revenez demain pour la continuer !</span></div></div></div>
+        </div>
+        <button class="btn-main" onclick="finish()"><span class="en-i">Enter Breveil →</span><span class="fr-i">Entrer dans Breveil →</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let cur=0;const total=8;
+function updProg(){
+  document.querySelectorAll('.pseg').forEach((s,i)=>{s.className='pseg'+(i<cur?' done':i===cur?' now':'')});
+  document.getElementById('backBtn').className='back'+(cur>0?'':' hide');
+}
+function next(){if(cur>=total-1)return;document.getElementById('s'+cur).classList.remove('on');cur++;document.getElementById('s'+cur).classList.add('on');updProg()}
+function back(){if(cur<=0)return;document.getElementById('s'+cur).classList.remove('on');cur--;document.getElementById('s'+cur).classList.add('on');updProg()}
+function pick(g,el){document.querySelectorAll('#'+g+' .choice').forEach(c=>c.classList.remove('sel'));el.classList.add('sel')}
+function setLang(l){document.body.className='lang-'+l;document.getElementById('lb-en').className='lb'+(l==='en'?' on':'');document.getElementById('lb-fr').className='lb'+(l==='fr'?' on':'')}
+function finish(){
+  const c=document.querySelector('.card');c.style.transition='all .5s';c.style.opacity='0';c.style.transform='scale(.96)';
+  setTimeout(()=>{document.querySelector('.wrap').innerHTML=`<div style="text-align:center;color:white;font-family:var(--body);padding:40px"><svg viewBox="0 0 48 48" fill="none" width="60" height="60" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:18px;animation:breathe 3s ease-in-out infinite"><path d="M24 4 C10 4, 4 18, 4 28 C4 32, 7 35, 10 37" stroke="rgba(232,168,56,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M24 4 C38 4, 44 18, 44 28 C44 32, 41 35, 38 37" stroke="rgba(232,168,56,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M24 12 C14 12, 10 22, 10 30 C10 33, 12 35, 15 37" stroke="rgba(139,126,200,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M24 12 C34 12, 38 22, 38 30 C38 33, 36 35, 33 37" stroke="rgba(139,126,200,0.4)" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M24 20 C18 20, 16 26, 16 32 C16 34, 18 36, 20 37" stroke="rgba(232,168,56,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M24 20 C30 20, 32 26, 32 32 C32 34, 30 36, 28 37" stroke="rgba(232,168,56,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="24" cy="22" r="3" fill="rgba(232,168,56,0.85)"/></svg><div style="font-family:var(--display);font-size:30px;margin-bottom:9px;font-weight:300;letter-spacing:3px;text-transform:uppercase">${document.body.className.includes('fr')?'Bienvenue sur Breveil.':'Welcome to Breveil.'}</div><div style="color:rgba(255,255,255,.25);font-size:11px;letter-spacing:.12em;font-weight:700">${document.body.className.includes('fr')?'OUVERTURE DE LA CARTE...':'OPENING THE SAFETY MAP...'}</div></div>`},500);
+}
+updProg();
+</script>
+</body>
+</html>

@@ -243,7 +243,7 @@ type Store = {
   pinsVersion: number;
   bumpPinsVersion: () => void;
 
-  // Deep-link into My Brume sub-tab (e.g. from Settings → Profile)
+  // Deep-link into My Breveil sub-tab (e.g. from Settings → Profile)
   myKovaInitialTab: string | null;
   setMyKovaInitialTab: (tab: string | null) => void;
 
@@ -445,7 +445,7 @@ export const useStore = create<Store>((set) => ({
   pinsVersion: 0,
   bumpPinsVersion: () => set((state) => ({ pinsVersion: state.pinsVersion + 1 })),
 
-  // My Brume deep-link
+  // My Breveil deep-link
   myKovaInitialTab: null,
   setMyKovaInitialTab: (tab) => set({ myKovaInitialTab: tab }),
 

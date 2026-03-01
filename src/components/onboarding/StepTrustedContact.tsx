@@ -38,11 +38,11 @@ export default function StepTrustedContact({ userId, onNext, onSkip, onContactAd
     // Share invite link
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const shareUrl = `${origin}/login?ref=${userId}`;
-    const shareText = `Join me on Brume — a community safety app. ${shareUrl}`;
+    const shareText = `Join me on Breveil — a community safety app. ${shareUrl}`;
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Brume', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Breveil', text: shareText, url: shareUrl });
       } else {
         await navigator.clipboard.writeText(shareText);
         toast.success('Link copied to clipboard!');

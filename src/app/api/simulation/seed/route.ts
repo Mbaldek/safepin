@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
           const idx = i + j;
           const firstName = pick(FIRST_NAMES);
           const lastName = pick(LAST_NAMES);
-          const email = `sim_${idx}_${Date.now()}@sim.brume.app`;
+          const email = `sim_${idx}_${Date.now()}@sim.breveil.app`;
 
           const { data, error } = await admin.auth.admin.createUser({
             email,

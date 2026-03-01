@@ -1,5 +1,5 @@
 // src/app/admin/page.tsx
-// Tower Control — Brume Admin Dashboard
+// Tower Control — Breveil Admin Dashboard
 
 'use client';
 
@@ -2697,7 +2697,7 @@ export default function AdminPage() {
               <span className="text-xl">🗼</span>
               <div>
                 <h1 className="text-base font-black text-gray-900 leading-none">Tower Control</h1>
-                <p className="text-xs text-gray-400 leading-none mt-0.5">Brume Admin</p>
+                <p className="text-xs text-gray-400 leading-none mt-0.5">Breveil Admin</p>
               </div>
             </div>
             <Link href="/map" className="text-xs text-gray-500 hover:text-gray-800 transition-colors">
@@ -2739,7 +2739,7 @@ export default function AdminPage() {
         {activeTab === 'invite-codes' && <InviteCodesTab />}
       </main>
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400">Brume v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:brumeapp@pm.me" className="hover:text-gray-600">brumeapp@pm.me</a></p>
+        <p className="text-xs text-gray-400">Breveil v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:brumeapp@pm.me" className="hover:text-gray-600">brumeapp@pm.me</a></p>
       </footer>
     </div>
   );

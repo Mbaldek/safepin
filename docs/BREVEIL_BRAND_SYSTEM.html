@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breveil — Brand System</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* PRIMARY PALETTE */
+  --midnight: #1B2541;
+  --midnight-rgb: 27, 37, 65;
+  --veil: #E8A838;
+  --veil-rgb: 232, 168, 56;
+  --aurora: #8B7EC8;
+  --aurora-rgb: 139, 126, 200;
+  --rose: #D4687A;
+  --rose-rgb: 212, 104, 122;
+  --ivoire: #F5F2EE;
+  --ivoire-rgb: 245, 242, 238;
+
+  /* EXTENDED */
+  --midnight-deep: #0F1729;
+  --midnight-light: #2A3A5C;
+  --veil-light: #F2D49A;
+  --veil-dark: #C48A1E;
+  --aurora-light: #B5ABE0;
+  --aurora-dark: #6A5FA8;
+  --rose-light: #E8A0AE;
+  --rose-dark: #B84D5E;
+  --sage: #6BA68E;
+  --sage-light: #A3D4BF;
+
+  /* FUNCTIONAL */
+  --danger: #E63946;
+  --danger-dark: #C62828;
+  --success: #4CAF79;
+  --warning: #F4A940;
+  --neutral-50: #FAFAF8;
+  --neutral-100: #F5F2EE;
+  --neutral-200: #E8E4DE;
+  --neutral-300: #D1CCC4;
+  --neutral-400: #A39E96;
+  --neutral-500: #7A756D;
+  --neutral-600: #585450;
+  --neutral-700: #3A3836;
+  --neutral-800: #2C2C3A;
+  --neutral-900: #1A1A24;
+
+  /* TYPOGRAPHY */
+  --display: 'Cormorant Garamond', serif;
+  --body: 'Plus Jakarta Sans', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--body);
+  background: var(--neutral-50);
+  color: var(--neutral-800);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ HERO ============ */
+.hero {
+  min-height: 100vh;
+  background: var(--midnight);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(var(--aurora-rgb), 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 30%, rgba(var(--veil-rgb), 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(var(--rose-rgb), 0.08) 0%, transparent 50%);
+  animation: auroraShift 20s ease-in-out infinite;
+}
+
+@keyframes auroraShift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(-2%, 1%) rotate(1deg); }
+  66% { transform: translate(1%, -1%) rotate(-0.5deg); }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 2rem;
+}
+
+.hero-symbol {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 3rem;
+  opacity: 0;
+  animation: fadeUp 1s ease-out 0.3s forwards;
+}
+
+.hero-wordmark {
+  width: 400px;
+  max-width: 80vw;
+  margin: 0 auto 1.5rem;
+  opacity: 0;
+  animation: fadeUp 1s ease-out 0.6s forwards;
+}
+
+.hero-tagline {
+  font-family: var(--body);
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  opacity: 0;
+  animation: fadeUp 1s ease-out 0.9s forwards;
+}
+
+.hero-subtitle {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(255,255,255,0.5);
+  margin-top: 0.5rem;
+  opacity: 0;
+  animation: fadeUp 1s ease-out 1.1s forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ SECTION LAYOUT ============ */
+section {
+  padding: 6rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-dark {
+  max-width: 100%;
+  background: var(--midnight);
+  color: white;
+}
+
+.section-dark .inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.section-label {
+  font-family: var(--body);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--neutral-400);
+  margin-bottom: 0.75rem;
+}
+
+.section-dark .section-label { color: rgba(255,255,255,0.35); }
+
+.section-title {
+  font-family: var(--display);
+  font-size: 2.8rem;
+  font-weight: 300;
+  line-height: 1.15;
+  margin-bottom: 1.5rem;
+  color: var(--midnight);
+}
+
+.section-dark .section-title { color: white; }
+
+.section-desc {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--neutral-500);
+  max-width: 640px;
+  margin-bottom: 3rem;
+}
+
+.section-dark .section-desc { color: rgba(255,255,255,0.5); }
+
+/* ============ BRAND STORY ============ */
+.etymology {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.etym-card {
+  background: white;
+  border: 1px solid var(--neutral-200);
+  border-radius: 16px;
+  padding: 2.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.etym-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+}
+
+.etym-word {
+  font-family: var(--display);
+  font-size: 2rem;
+  font-style: italic;
+  color: var(--midnight);
+  margin-bottom: 0.25rem;
+}
+
+.etym-lang {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--aurora);
+  margin-bottom: 1rem;
+}
+
+.etym-meaning {
+  font-size: 0.95rem;
+  color: var(--neutral-500);
+  line-height: 1.7;
+}
+
+/* ============ COLORS ============ */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.5rem;
+}
+
+.color-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: transform 0.3s ease;
+}
+
+.color-card:hover { transform: translateY(-4px); }
+
+.color-swatch {
+  height: 140px;
+  position: relative;
+}
+
+.color-info {
+  padding: 1.25rem;
+}
+
+.color-name {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 0.15rem;
+}
+
+.color-hex {
+  font-family: var(--body);
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.05em;
+}
+
+.color-role {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  margin-top: 0.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ============ TYPOGRAPHY ============ */
+.type-showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.type-block {
+  padding: 3rem;
+  border-radius: 16px;
+}
+
+.type-block.display-font {
+  background: var(--midnight);
+  color: white;
+}
+
+.type-block.body-font {
+  background: white;
+  border: 1px solid var(--neutral-200);
+}
+
+.type-font-name {
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  margin-bottom: 2rem;
+}
+
+.type-sample-display {
+  font-family: var(--display);
+  font-size: 3.5rem;
+  font-weight: 300;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+
+.type-sample-body {
+  font-family: var(--body);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+}
+
+.type-weights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.type-weight {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.1);
+}
+
+.body-font .type-weight {
+  background: var(--neutral-100);
+}
+
+/* ============ LOGO SHOWCASE ============ */
+.logo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.logo-variant {
+  border-radius: 16px;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.logo-variant:hover { transform: scale(1.02); }
+
+.logo-variant svg {
+  width: 280px;
+  max-width: 100%;
+}
+
+.logo-variant-label {
+  position: absolute;
+  bottom: 1rem;
+  right: 1.25rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.4;
+}
+
+.bg-midnight { background: var(--midnight); }
+.bg-ivoire { background: var(--ivoire); border: 1px solid var(--neutral-200); }
+.bg-veil { background: var(--veil); }
+.bg-aurora { background: var(--aurora); }
+.bg-rose { background: var(--rose); }
+.bg-white { background: white; border: 1px solid var(--neutral-200); }
+
+/* ============ MONOGRAM + SYMBOL ============ */
+.element-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.element-card {
+  border-radius: 16px;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.element-card:hover { transform: scale(1.03); }
+
+.element-card svg {
+  width: 80px;
+  height: 80px;
+}
+
+.element-card .el-label {
+  position: absolute;
+  bottom: 0.75rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.4;
+}
+
+/* ============ SCALE SYSTEM ============ */
+.scale-row {
+  display: flex;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.scale-swatch {
+  flex: 1;
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+}
+
+/* ============ USAGE ============ */
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.usage-card {
+  background: white;
+  border: 1px solid var(--neutral-200);
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.usage-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  font-size: 1.2rem;
+}
+
+.usage-title {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: var(--midnight);
+}
+
+.usage-desc {
+  font-size: 0.85rem;
+  color: var(--neutral-500);
+  line-height: 1.6;
+}
+
+/* ============ SPACING & RULES ============ */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.rule-card {
+  background: white;
+  border: 1px solid var(--neutral-200);
+  border-radius: 16px;
+  padding: 2.5rem;
+}
+
+.rule-do { border-left: 4px solid var(--success); }
+.rule-dont { border-left: 4px solid var(--danger); }
+
+.rule-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.rule-do .rule-label { color: var(--success); }
+.rule-dont .rule-label { color: var(--danger); }
+
+.rule-list {
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--neutral-600);
+}
+
+.rule-list li {
+  padding: 0.4rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.rule-list li::before {
+  position: absolute;
+  left: 0;
+  font-size: 0.8rem;
+}
+
+.rule-do .rule-list li::before { content: '✓'; color: var(--success); }
+.rule-dont .rule-list li::before { content: '✕'; color: var(--danger); }
+
+/* ============ DIVIDER ============ */
+.divider {
+  width: 60px;
+  height: 1px;
+  background: var(--neutral-300);
+  margin: 4rem auto;
+}
+
+/* ============ FOOTER ============ */
+.brand-footer {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--midnight-deep);
+  color: rgba(255,255,255,0.3);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+.brand-footer a {
+  color: var(--veil);
+  text-decoration: none;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .etymology, .type-showcase, .logo-grid, .rules-grid { grid-template-columns: 1fr; }
+  .color-grid { grid-template-columns: repeat(3, 1fr); }
+  .element-grid { grid-template-columns: repeat(2, 1fr); }
+  .usage-grid { grid-template-columns: 1fr; }
+  .section-title { font-size: 2rem; }
+  .type-sample-display { font-size: 2.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-symbol">
+      <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Symbol: The Veil — layered protective arcs -->
+        <path d="M60 10 C25 10, 10 45, 10 70 C10 78, 14 85, 20 90" stroke="rgba(232,168,56,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M60 10 C95 10, 110 45, 110 70 C110 78, 106 85, 100 90" stroke="rgba(232,168,56,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M60 25 C32 25, 22 52, 22 72 C22 79, 26 85, 32 89" stroke="rgba(139,126,200,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M60 25 C88 25, 98 52, 98 72 C98 79, 94 85, 88 89" stroke="rgba(139,126,200,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M60 40 C40 40, 34 58, 34 74 C34 80, 38 86, 44 89" stroke="rgba(232,168,56,0.8)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M60 40 C80 40, 86 58, 86 74 C86 80, 82 86, 76 89" stroke="rgba(232,168,56,0.8)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- Central point of light -->
+        <circle cx="60" cy="50" r="4" fill="rgba(232,168,56,0.9)"/>
+        <circle cx="60" cy="50" r="8" fill="none" stroke="rgba(232,168,56,0.3)" stroke-width="1"/>
+        <!-- Base/ground line -->
+        <path d="M30 95 L90 95" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-linecap="round"/>
+        <circle cx="60" cy="95" r="2" fill="rgba(255,255,255,0.2)"/>
+      </svg>
+    </div>
+
+    <div class="hero-wordmark">
+      <svg viewBox="0 0 400 60" xmlns="http://www.w3.org/2000/svg">
+        <text x="200" y="48" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="300" font-size="52" fill="white" letter-spacing="12">BREVEIL</text>
+      </svg>
+    </div>
+
+    <div class="hero-tagline">Veiller sur ceux que vous aimez</div>
+    <div class="hero-subtitle">Brand System — v1.0</div>
+  </div>
+</div>
+
+<!-- ============ BRAND STORY ============ -->
+<section>
+  <span class="section-label">01 — Origine</span>
+  <h2 class="section-title">A name born from<br>two French verbs</h2>
+  <p class="section-desc">
+    Breveil is a coined word that fuses the courage to face the world with the tenderness of watching over those you love. It carries French DNA at its root and universal clarity in its sound.
+  </p>
+
+  <div class="etymology">
+    <div class="etym-card">
+      <div class="etym-word">Braver</div>
+      <div class="etym-lang">French verb</div>
+      <div class="etym-meaning">To brave, to face with courage. The act of stepping out into the world despite uncertainty — and the strength to do so because someone has your back.</div>
+    </div>
+    <div class="etym-card">
+      <div class="etym-word">Veiller</div>
+      <div class="etym-lang">French verb</div>
+      <div class="etym-meaning">To watch over, to keep vigil. The quiet, attentive care of someone who stays awake so others can feel safe. A guardian's promise, made silently.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ COLOUR PALETTE ============ -->
+<section class="section-dark">
+  <div class="inner">
+    <span class="section-label">02 — Palette</span>
+    <h2 class="section-title">Five colors.<br>One protective veil.</h2>
+    <p class="section-desc">
+      The palette moves from the depth of night to the warmth of aurora light. Each color has a role: Midnight anchors trust, Veil signals warmth and alert, Aurora adds calm and mystique, Rose brings human connection, and Ivoire grounds everything in softness.
+    </p>
+
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--midnight);"></div>
+        <div class="color-info">
+          <div class="color-name">Midnight</div>
+          <div class="color-hex">#1B2541</div>
+          <div class="color-role">Primary · Trust · Depth</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--veil);"></div>
+        <div class="color-info">
+          <div class="color-name">Veil</div>
+          <div class="color-hex">#E8A838</div>
+          <div class="color-role">Secondary · Warmth · Alert</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--aurora);"></div>
+        <div class="color-info">
+          <div class="color-name">Aurora</div>
+          <div class="color-hex">#8B7EC8</div>
+          <div class="color-role">Accent · Calm · Care</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--rose);"></div>
+        <div class="color-info">
+          <div class="color-name">Rose</div>
+          <div class="color-hex">#D4687A</div>
+          <div class="color-role">Community · Warmth · Paris</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background: var(--ivoire);"></div>
+        <div class="color-info" style="background: var(--neutral-800);">
+          <div class="color-name">Ivoire</div>
+          <div class="color-hex">#F5F2EE</div>
+          <div class="color-role">Neutral · Ground · Softness</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Neutral scale -->
+    <div style="margin-top: 3rem;">
+      <div class="section-label">Neutral Scale</div>
+      <div class="scale-row">
+        <div class="scale-swatch" style="background: #FAFAF8; color: var(--neutral-400);">50</div>
+        <div class="scale-swatch" style="background: #F5F2EE; color: var(--neutral-400);">100</div>
+        <div class="scale-swatch" style="background: #E8E4DE; color: var(--neutral-500);">200</div>
+        <div class="scale-swatch" style="background: #D1CCC4; color: var(--neutral-600);">300</div>
+        <div class="scale-swatch" style="background: #A39E96; color: white;">400</div>
+        <div class="scale-swatch" style="background: #7A756D; color: white;">500</div>
+        <div class="scale-swatch" style="background: #585450; color: white;">600</div>
+        <div class="scale-swatch" style="background: #3A3836; color: white;">700</div>
+        <div class="scale-swatch" style="background: #2C2C3A; color: white;">800</div>
+        <div class="scale-swatch" style="background: #1A1A24; color: white;">900</div>
+      </div>
+    </div>
+
+    <!-- Functional colors -->
+    <div style="margin-top: 2rem;">
+      <div class="section-label">Functional</div>
+      <div style="display: flex; gap: 1rem; margin-top: 0.75rem;">
+        <div style="flex:1; height: 50px; background: var(--danger); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:white; font-size:0.7rem; letter-spacing:0.1em;">DANGER · #E63946</div>
+        <div style="flex:1; height: 50px; background: var(--success); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:white; font-size:0.7rem; letter-spacing:0.1em;">SUCCESS · #4CAF79</div>
+        <div style="flex:1; height: 50px; background: var(--warning); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:white; font-size:0.7rem; letter-spacing:0.1em;">WARNING · #F4A940</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TYPOGRAPHY ============ -->
+<section>
+  <span class="section-label">03 — Typographie</span>
+  <h2 class="section-title">The voice of<br>vigilant elegance</h2>
+  <p class="section-desc">
+    Cormorant Garamond carries the French heritage — elegant, high-contrast, refined without being precious. Plus Jakarta Sans brings warmth with subtly rounded terminals — distinctive enough to avoid generic tech-app feel, readable enough for incident alerts at 3am. Both are Google Fonts for maximum dev accessibility.
+  </p>
+
+  <div class="type-showcase">
+    <div class="type-block display-font">
+      <div class="type-font-name">Display — Cormorant Garamond</div>
+      <div class="type-sample-display">
+        Veiller sur<br>ceux que<br>vous aimez
+      </div>
+      <div style="font-family: var(--display); font-size: 1rem; opacity: 0.5; font-style: italic;">
+        Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz
+      </div>
+      <div class="type-weights">
+        <span class="type-weight" style="font-family: var(--display); font-weight: 300;">Light 300</span>
+        <span class="type-weight" style="font-family: var(--display); font-weight: 400;">Regular 400</span>
+        <span class="type-weight" style="font-family: var(--display); font-weight: 500;">Medium 500</span>
+        <span class="type-weight" style="font-family: var(--display); font-weight: 600;">SemiBold 600</span>
+        <span class="type-weight" style="font-family: var(--display); font-weight: 300; font-style: italic;">Light Italic</span>
+      </div>
+    </div>
+
+    <div class="type-block body-font">
+      <div class="type-font-name" style="color: var(--neutral-400);">Body — Plus Jakarta Sans</div>
+      <div class="type-sample-body">
+        Breveil combines community-driven safety intelligence with trusted circle protection and safe routing — all in one app. Report incidents, share your location with people you trust, and walk home knowing someone is watching over you.
+      </div>
+      <div style="font-family: var(--body); font-size: 0.85rem; color: var(--neutral-400);">
+        Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz 0123456789
+      </div>
+      <div class="type-weights">
+        <span class="type-weight" style="font-weight: 300;">Light 300</span>
+        <span class="type-weight" style="font-weight: 400;">Regular 400</span>
+        <span class="type-weight" style="font-weight: 500;">Medium 500</span>
+        <span class="type-weight" style="font-weight: 600;">SemiBold 600</span>
+        <span class="type-weight" style="font-weight: 700;">Bold 700</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ LOGO ============ -->
+<section>
+  <span class="section-label">04 — Logo</span>
+  <h2 class="section-title">The wordmark</h2>
+  <p class="section-desc">
+    The Breveil wordmark uses Cormorant Garamond Light with generous letter-spacing. The wide tracking evokes openness and vigilance — letters that breathe, watching. Always uppercase for authority and recognition at small sizes.
+  </p>
+
+  <div class="logo-grid">
+    <div class="logo-variant bg-midnight">
+      <svg viewBox="0 0 280 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="140" y="32" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="300" font-size="36" fill="white" letter-spacing="10">BREVEIL</text>
+      </svg>
+      <span class="logo-variant-label" style="color: rgba(255,255,255,0.4);">Sur Midnight</span>
+    </div>
+
+    <div class="logo-variant bg-ivoire">
+      <svg viewBox="0 0 280 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="140" y="32" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="300" font-size="36" fill="#1B2541" letter-spacing="10">BREVEIL</text>
+      </svg>
+      <span class="logo-variant-label" style="color: var(--neutral-400);">Sur Ivoire</span>
+    </div>
+
+    <div class="logo-variant bg-veil">
+      <svg viewBox="0 0 280 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="140" y="32" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="300" font-size="36" fill="#1B2541" letter-spacing="10">BREVEIL</text>
+      </svg>
+      <span class="logo-variant-label" style="color: rgba(27,37,65,0.4);">Sur Veil</span>
+    </div>
+
+    <div class="logo-variant bg-aurora">
+      <svg viewBox="0 0 280 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="140" y="32" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="300" font-size="36" fill="white" letter-spacing="10">BREVEIL</text>
+      </svg>
+      <span class="logo-variant-label" style="color: rgba(255,255,255,0.4);">Sur Aurora</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MONOGRAM ============ -->
+<section class="section-dark">
+  <div class="inner">
+    <span class="section-label">05 — Monogramme</span>
+    <h2 class="section-title">The B mark</h2>
+    <p class="section-desc">
+      The Breveil monogram is a stylized "B" with integrated veil arcs — the letter's bowls extend outward as protective curves, evoking the symbol's layered protection motif. Used as app icon, favicon, and avatar.
+    </p>
+
+    <div class="element-grid">
+      <div class="element-card bg-midnight" style="border: 1px solid rgba(255,255,255,0.08);">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="40" y="56" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="400" font-size="48" fill="white">B</text>
+          <path d="M52 24 C62 28, 68 36, 62 42" stroke="rgba(232,168,56,0.6)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M52 42 C65 46, 70 56, 60 62" stroke="rgba(232,168,56,0.6)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M55 20 C70 26, 76 38, 66 46" stroke="rgba(139,126,200,0.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <path d="M55 44 C73 50, 78 60, 64 68" stroke="rgba(139,126,200,0.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="el-label" style="color: rgba(255,255,255,0.3);">Midnight</span>
+      </div>
+
+      <div class="element-card" style="background: var(--ivoire); border: 1px solid var(--neutral-200);">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="40" y="56" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="400" font-size="48" fill="#1B2541">B</text>
+          <path d="M52 24 C62 28, 68 36, 62 42" stroke="rgba(232,168,56,0.7)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M52 42 C65 46, 70 56, 60 62" stroke="rgba(232,168,56,0.7)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M55 20 C70 26, 76 38, 66 46" stroke="rgba(139,126,200,0.4)" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <path d="M55 44 C73 50, 78 60, 64 68" stroke="rgba(139,126,200,0.4)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="el-label" style="color: var(--neutral-400);">Ivoire</span>
+      </div>
+
+      <div class="element-card bg-veil">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="40" y="56" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="400" font-size="48" fill="#1B2541">B</text>
+          <path d="M52 24 C62 28, 68 36, 62 42" stroke="rgba(27,37,65,0.3)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M52 42 C65 46, 70 56, 60 62" stroke="rgba(27,37,65,0.3)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M55 20 C70 26, 76 38, 66 46" stroke="rgba(27,37,65,0.18)" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <path d="M55 44 C73 50, 78 60, 64 68" stroke="rgba(27,37,65,0.18)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="el-label" style="color: rgba(27,37,65,0.35);">Veil</span>
+      </div>
+
+      <div class="element-card bg-rose">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="40" y="56" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="400" font-size="48" fill="white">B</text>
+          <path d="M52 24 C62 28, 68 36, 62 42" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M52 42 C65 46, 70 56, 60 62" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M55 20 C70 26, 76 38, 66 46" stroke="rgba(255,255,255,0.2)" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <path d="M55 44 C73 50, 78 60, 64 68" stroke="rgba(255,255,255,0.2)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="el-label" style="color: rgba(255,255,255,0.35);">Rose</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SYMBOL ============ -->
+<section>
+  <span class="section-label">06 — Symbole</span>
+  <h2 class="section-title">The Veil</h2>
+  <p class="section-desc">
+    Three layered arcs descending from a central point of light — the protective veil that watches over you. The outermost arc is faint (community awareness), the middle arc is present (your trusted circle), and the inner arc glows (you, protected). The small dot at the base represents the individual, grounded and safe.
+  </p>
+
+  <div class="element-grid">
+    <div class="element-card bg-midnight" style="border: 1px solid rgba(255,255,255,0.08);">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 12 C18 12, 8 35, 8 50 C8 56, 11 61, 15 64" stroke="rgba(232,168,56,0.25)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 12 C62 12, 72 35, 72 50 C72 56, 69 61, 65 64" stroke="rgba(232,168,56,0.25)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C24 22, 18 40, 18 52 C18 57, 21 62, 26 64" stroke="rgba(139,126,200,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C56 22, 62 40, 62 52 C62 57, 59 62, 54 64" stroke="rgba(139,126,200,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C30 32, 28 44, 28 54 C28 58, 31 62, 35 64" stroke="rgba(232,168,56,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C50 32, 52 44, 52 54 C52 58, 49 62, 45 64" stroke="rgba(232,168,56,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <circle cx="40" cy="38" r="3" fill="rgba(232,168,56,0.9)"/>
+        <circle cx="40" cy="38" r="6" fill="none" stroke="rgba(232,168,56,0.25)" stroke-width="0.8"/>
+        <circle cx="40" cy="68" r="1.5" fill="rgba(255,255,255,0.25)"/>
+      </svg>
+      <span class="el-label" style="color: rgba(255,255,255,0.3);">Midnight</span>
+    </div>
+
+    <div class="element-card" style="background: var(--ivoire); border: 1px solid var(--neutral-200);">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 12 C18 12, 8 35, 8 50 C8 56, 11 61, 15 64" stroke="rgba(27,37,65,0.12)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 12 C62 12, 72 35, 72 50 C72 56, 69 61, 65 64" stroke="rgba(27,37,65,0.12)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C24 22, 18 40, 18 52 C18 57, 21 62, 26 64" stroke="rgba(139,126,200,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C56 22, 62 40, 62 52 C62 57, 59 62, 54 64" stroke="rgba(139,126,200,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C30 32, 28 44, 28 54 C28 58, 31 62, 35 64" stroke="rgba(27,37,65,0.6)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C50 32, 52 44, 52 54 C52 58, 49 62, 45 64" stroke="rgba(27,37,65,0.6)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <circle cx="40" cy="38" r="3" fill="rgba(27,37,65,0.7)"/>
+        <circle cx="40" cy="38" r="6" fill="none" stroke="rgba(27,37,65,0.15)" stroke-width="0.8"/>
+        <circle cx="40" cy="68" r="1.5" fill="rgba(27,37,65,0.2)"/>
+      </svg>
+      <span class="el-label" style="color: var(--neutral-400);">Ivoire</span>
+    </div>
+
+    <div class="element-card bg-aurora">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 12 C18 12, 8 35, 8 50 C8 56, 11 61, 15 64" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 12 C62 12, 72 35, 72 50 C72 56, 69 61, 65 64" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C24 22, 18 40, 18 52 C18 57, 21 62, 26 64" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C56 22, 62 40, 62 52 C62 57, 59 62, 54 64" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C30 32, 28 44, 28 54 C28 58, 31 62, 35 64" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C50 32, 52 44, 52 54 C52 58, 49 62, 45 64" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <circle cx="40" cy="38" r="3" fill="white"/>
+        <circle cx="40" cy="38" r="6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+        <circle cx="40" cy="68" r="1.5" fill="rgba(255,255,255,0.3)"/>
+      </svg>
+      <span class="el-label" style="color: rgba(255,255,255,0.35);">Aurora</span>
+    </div>
+
+    <div class="element-card bg-rose">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 12 C18 12, 8 35, 8 50 C8 56, 11 61, 15 64" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 12 C62 12, 72 35, 72 50 C72 56, 69 61, 65 64" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C24 22, 18 40, 18 52 C18 57, 21 62, 26 64" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 22 C56 22, 62 40, 62 52 C62 57, 59 62, 54 64" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C30 32, 28 44, 28 54 C28 58, 31 62, 35 64" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M40 32 C50 32, 52 44, 52 54 C52 58, 49 62, 45 64" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <circle cx="40" cy="38" r="3" fill="white"/>
+        <circle cx="40" cy="38" r="6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+        <circle cx="40" cy="68" r="1.5" fill="rgba(255,255,255,0.3)"/>
+      </svg>
+      <span class="el-label" style="color: rgba(255,255,255,0.35);">Rose</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ============ USAGE CONTEXTS ============ -->
+<section>
+  <span class="section-label">07 — Application</span>
+  <h2 class="section-title">When to use what</h2>
+  <p class="section-desc">
+    Each element serves a distinct purpose across the product ecosystem.
+  </p>
+
+  <div class="usage-grid">
+    <div class="usage-card">
+      <div class="usage-icon" style="background: var(--midnight); color: white;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><text x="12" y="18" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="300" font-size="16" fill="white" letter-spacing="2">B</text></svg>
+      </div>
+      <div class="usage-title">Wordmark</div>
+      <div class="usage-desc">Landing page header, app store listing, legal documents, press kit, partnerships. Always with generous clear space.</div>
+    </div>
+    <div class="usage-card">
+      <div class="usage-icon" style="background: var(--veil);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><text x="12" y="18" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="400" font-size="20" fill="#1B2541">B</text></svg>
+      </div>
+      <div class="usage-title">Monogram</div>
+      <div class="usage-desc">App icon, favicon, social avatars, notification badge, loading state, splash screen. Recognizable at 16×16px.</div>
+    </div>
+    <div class="usage-card">
+      <div class="usage-icon" style="background: var(--aurora);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5 C7 5, 4 12, 4 16 C4 18, 5 19, 7 20" stroke="rgba(255,255,255,0.6)" stroke-width="1" fill="none"/>
+          <path d="M12 5 C17 5, 20 12, 20 16 C20 18, 19 19, 17 20" stroke="rgba(255,255,255,0.6)" stroke-width="1" fill="none"/>
+          <circle cx="12" cy="10" r="1.5" fill="white"/>
+        </svg>
+      </div>
+      <div class="usage-title">Symbol</div>
+      <div class="usage-desc">Map watermark, onboarding illustrations, community badge, merchandise, environmental graphics, motion identity.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BRAND RULES ============ -->
+<section class="section-dark">
+  <div class="inner">
+    <span class="section-label">08 — Règles</span>
+    <h2 class="section-title">Brand guidelines</h2>
+
+    <div class="rules-grid">
+      <div class="rule-card" style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);">
+        <div class="rule-label" style="color: var(--success);">DO</div>
+        <ul class="rule-list" style="color: rgba(255,255,255,0.6);">
+          <li>Use the wordmark on Midnight or Ivoire backgrounds</li>
+          <li>Maintain minimum clear space of 1× the "B" height</li>
+          <li>Use the monogram for small contexts (under 48px)</li>
+          <li>Pair Cormorant Garamond display with Plus Jakarta Sans body</li>
+          <li>Use Veil (amber) for primary CTAs and highlights</li>
+          <li>Use Danger red exclusively for SOS and emergency states</li>
+          <li>Apply the symbol as a watermark at 10-15% opacity on maps</li>
+        </ul>
+      </div>
+      <div class="rule-card" style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);">
+        <div class="rule-label" style="color: var(--danger);">DON'T</div>
+        <ul class="rule-list" style="color: rgba(255,255,255,0.6);">
+          <li>Place the wordmark on busy photographic backgrounds</li>
+          <li>Stretch, rotate, or distort any brand element</li>
+          <li>Use Danger red for non-emergency UI elements</li>
+          <li>Mix the symbol with the monogram in the same lockup</li>
+          <li>Use Aurora as a background for body text (contrast)</li>
+          <li>Set the wordmark in lowercase or mixed case</li>
+          <li>Add drop shadows, bevels, or gradients to the logo</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APP ICON PREVIEW ============ -->
+<section>
+  <span class="section-label">09 — App Icon</span>
+  <h2 class="section-title">Icon preview</h2>
+  <p class="section-desc">
+    The app icon uses the monogram on a Midnight-to-deep gradient with a subtle veil glow behind the B. Designed to stand out in any app drawer while maintaining brand elegance.
+  </p>
+
+  <div style="display: flex; gap: 2rem; align-items: end; margin-top: 2rem;">
+    <!-- Large -->
+    <div style="text-align: center;">
+      <div style="width: 120px; height: 120px; border-radius: 26px; background: linear-gradient(145deg, #1B2541 0%, #0F1729 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 30px rgba(27,37,65,0.3); position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 200%; height: 200%; background: radial-gradient(ellipse at 55% 40%, rgba(232,168,56,0.15) 0%, transparent 60%);"></div>
+        <svg viewBox="0 0 80 80" fill="none" style="width: 60px; position: relative; z-index: 1;">
+          <text x="40" y="56" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-weight="400" font-size="48" fill="white">B</text>
+          <path d="M52 24 C62 28, 68 36, 62 42" stroke="rgba(232,168,56,0.6)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path d="M52 42 C65 46, 70 56, 60 62" stroke="rgba(232,168,56,0.6)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-size: 0.7rem; color: var(--neutral-400); margin-top: 0.75rem;">1024×1024</div>
+    </div>
+
+    <!-- Medium -->
+    <div style="text-align: center;">
+      <div style="width: 60px; height: 60px; border-radius: 14px; background: linear-gradient(145deg, #1B2541 0%, #0F1729 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(27,37,65,0.3); position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 200%; height: 200%; background: radial-gradient(ellipse at 55% 40%, rgba(232,168,56,0.15) 0%, transparent 60%);"></div>
+        <span style="font-family: 'Cormorant Garamond', serif; font-size: 28px; color: white; position: relative; z-index: 1;">B</span>
+      </div>
+      <div style="font-size: 0.7rem; color: var(--neutral-400); margin-top: 0.75rem;">120×120</div>
+    </div>
+
+    <!-- Small -->
+    <div style="text-align: center;">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(145deg, #1B2541 0%, #0F1729 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(27,37,65,0.3); position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 200%; height: 200%; background: radial-gradient(ellipse at 55% 40%, rgba(232,168,56,0.15) 0%, transparent 60%);"></div>
+        <span style="font-family: 'Cormorant Garamond', serif; font-size: 20px; color: white; position: relative; z-index: 1;">B</span>
+      </div>
+      <div style="font-size: 0.7rem; color: var(--neutral-400); margin-top: 0.75rem;">60×60</div>
+    </div>
+
+    <!-- Tiny -->
+    <div style="text-align: center;">
+      <div style="width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(145deg, #1B2541 0%, #0F1729 100%); display: flex; align-items: center; justify-content: center;">
+        <span style="font-family: 'Cormorant Garamond', serif; font-size: 14px; color: white;">B</span>
+      </div>
+      <div style="font-size: 0.7rem; color: var(--neutral-400); margin-top: 0.75rem;">Favicon</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<div class="brand-footer">
+  <div style="font-family: var(--display); font-size: 1.5rem; color: rgba(255,255,255,0.15); margin-bottom: 1rem; letter-spacing: 0.2em;">BREVEIL</div>
+  Brand System v1.0 · March 2026<br>
+  <span style="margin-top: 0.5rem; display: inline-block;">Veiller sur ceux que vous aimez</span>
+</div>
+
+</body>
+</html>

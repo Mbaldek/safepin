@@ -17,6 +17,7 @@ import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, SlidersHorizontal, Layers } from 'lucide-react';
 import MapView from '@/components/MapView';
+import { BreveilMonogram } from '@/components/BrandAssets';
 import FilterBar from '@/components/FilterBar';
 import LayerPanel from '@/components/LayerPanel';
 import { useTheme } from '@/stores/useTheme';
@@ -295,10 +296,10 @@ export default function MapPage() {
 
         // Redeem pending invite code (from OAuth flow)
         const urlInviteCode = new URLSearchParams(window.location.search).get('invite_code');
-        const storedInviteCode = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('brume_invite_code') : null;
+        const storedInviteCode = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('breveil_invite_code') : null;
         const pendingCode = urlInviteCode || storedInviteCode;
         if (pendingCode) {
-          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('brume_invite_code');
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('breveil_invite_code');
           window.history.replaceState({}, '', window.location.pathname + (window.location.search.replace(/[?&]invite_code=[^&]*/g, '').replace(/^\?$/, '') || ''));
           fetch('/api/invite/redeem', {
             method: 'POST',
@@ -425,7 +426,7 @@ export default function MapPage() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     function onMessage(event: MessageEvent) {
-      if (event.data?.type === 'BRUME_SYNC_COMPLETE') {
+      if (event.data?.type === 'BREVEIL_SYNC_COMPLETE') {
         toast.success(`Synced ${event.data.synced} offline report${event.data.synced > 1 ? 's' : ''}`);
         // Refresh pins from server
         supabase
@@ -619,11 +620,11 @@ export default function MapPage() {
     return (
       <div className="h-dvh flex flex-col items-center justify-center gap-4"
         style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-[#D4A853] to-[#B8923E] flex items-center justify-center text-2xl shadow-lg shadow-[rgba(212,168,83,0.3)] animate-pulse">
-          🛡️
+        <div className="animate-pulse">
+          <BreveilMonogram size={48} variant="dark" />
         </div>
-        <div className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
-          Br<span style={{ color: 'var(--accent)' }}>u</span>me
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1.25rem', letterSpacing: '4px', color: 'var(--text-primary)' }}>
+          BREVEIL
         </div>
         <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mt-2"
           style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
@@ -640,14 +641,9 @@ export default function MapPage() {
         style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between px-4 pt-2.5 pb-2">
           <div className="flex items-center gap-1.5">
-            {/* Brume shield mark */}
-            <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" fill="var(--accent)" opacity="0.15" />
-              <path d="M16 2L4 7v9c0 8.5 5.2 14.2 12 17 6.8-2.8 12-8.5 12-17V7L16 2z" stroke="var(--accent)" strokeWidth="1.8" fill="none" />
-              <text x="16" y="21" textAnchor="middle" fontFamily="Outfit, sans-serif" fontWeight="800" fontSize="13" fill="var(--accent)">B</text>
-            </svg>
-            <span className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
-              Br<span style={{ color: 'var(--accent)' }}>u</span>me
+            <BreveilMonogram size={22} variant="dark" />
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1rem', letterSpacing: '3px', color: 'var(--text-primary)' }}>
+              BREVEIL
             </span>
           </div>
           <div className="flex items-center gap-2">

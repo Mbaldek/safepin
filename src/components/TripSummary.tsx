@@ -69,7 +69,7 @@ export default function TripSummary({ trip, onDismiss, streak }: Props) {
   async function shareTrip() {
     try {
       await navigator.share?.({
-        title: `Brume Safety Escort`,
+        title: `Breveil Safety Escort`,
         text: `I arrived safely at ${trip.destination.label}! ${actualMin} min trip — safety score: ${safeLabel}`,
       });
     } catch {

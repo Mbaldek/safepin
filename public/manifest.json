@@ -1,11 +1,11 @@
 {
-  "name": "Brume",
-  "short_name": "Brume",
+  "name": "Breveil",
+  "short_name": "Breveil",
   "description": "Real-time safety reporting and community protection",
   "start_url": "/map",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#f43f5e",
+  "background_color": "#0F1729",
+  "theme_color": "#1B2541",
   "categories": ["safety", "navigation", "social"],
   "orientation": "portrait",
   "icons": [

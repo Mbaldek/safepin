@@ -1,48 +1,48 @@
 @import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap');
 
 /* ===== DARK THEME (default) ===== */
 [data-theme="dark"] {
-  --bg-primary: #1A1A2E;
-  --bg-secondary: #1F1F3A;
-  --bg-card: #252547;
-  --bg-overlay: rgba(26, 26, 46, 0.7);
-  --text-primary: #F5F0EB;
-  --text-secondary: #E8E0D8;
-  --text-muted: #8A8AA0;
-  --text-placeholder: #5A5A78;
-  --border: rgba(212, 168, 83, 0.12);
-  --border-hover: rgba(212, 168, 83, 0.2);
-  --accent: #D4A853;
-  --accent-glow: rgba(212, 168, 83, 0.25);
-  --safe: #10b981;
-  --warn: #f59e0b;
-  --blue: #38bdf8;
+  --bg-primary:      #1B2541;
+  --bg-secondary:    #0F1729;
+  --bg-card:         #2A3A5C;
+  --bg-overlay:      rgba(15, 23, 41, 0.7);
+  --text-primary:    #F5F2EE;
+  --text-secondary:  #E8E4DE;
+  --text-muted:      #7A756D;
+  --text-placeholder:#585450;
+  --border:          rgba(232, 168, 56, 0.12);
+  --border-hover:    rgba(232, 168, 56, 0.2);
+  --accent:          #E8A838;
+  --accent-glow:     rgba(232, 168, 56, 0.25);
+  --safe:            #4CAF79;
+  --warn:            #F4A940;
+  --blue:            #8B7EC8;
 }
 
 /* ===== LIGHT THEME ===== */
 [data-theme="light"] {
-  --bg-primary: #F5F0EB;
-  --bg-secondary: #FFFFFF;
-  --bg-card: #EDE6DD;
-  --bg-overlay: rgba(26, 26, 46, 0.2);
-  --text-primary: #1A1A2E;
-  --text-secondary: #2A2A4E;
-  --text-muted: #6A6A88;
-  --text-placeholder: #9A9AB0;
-  --border: rgba(26, 26, 46, 0.1);
-  --border-hover: rgba(26, 26, 46, 0.18);
-  --accent: #B8923E;
-  --accent-glow: rgba(184, 146, 62, 0.2);
-  --safe: #059669;
-  --warn: #d97706;
-  --blue: #0284c7;
+  --bg-primary:      #F5F2EE;
+  --bg-secondary:    #FFFFFF;
+  --bg-card:         #E8E4DE;
+  --bg-overlay:      rgba(27, 37, 65, 0.2);
+  --text-primary:    #1B2541;
+  --text-secondary:  #2A3A5C;
+  --text-muted:      #7A756D;
+  --text-placeholder:#A39E96;
+  --border:          rgba(27, 37, 65, 0.10);
+  --border-hover:    rgba(27, 37, 65, 0.18);
+  --accent:          #C48A1E;
+  --accent-glow:     rgba(196, 138, 30, 0.20);
+  --safe:            #4CAF79;
+  --warn:            #F4A940;
+  --blue:            #6A5FA8;
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 17px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
@@ -141,19 +141,19 @@ body {
   animation: pin-drop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Gold user-dot pulse (v0 Brume) */
+/* Gold user-dot pulse */
 @keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.5); }
-  50%      { box-shadow: 0 0 0 8px rgba(212, 168, 83, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 168, 56, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(232, 168, 56, 0); }
 }
 .pulse-gold {
   animation: pulse-gold 2s ease-in-out infinite;
 }
 
-/* SOS button glow (v0 Brume) */
+/* SOS button glow */
 @keyframes sos-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5), 0 4px 15px rgba(26, 26, 46, 0.5); }
-  50%      { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 4px 15px rgba(26, 26, 46, 0.5); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.5), 0 4px 15px rgba(15, 23, 41, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(230, 57, 70, 0), 0 4px 15px rgba(15, 23, 41, 0.5); }
 }
 .animate-sos-glow {
   animation: sos-glow 2s ease-in-out infinite;

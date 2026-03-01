@@ -411,8 +411,8 @@ export function generatePartnerSafeSpaces(count: number) {
       phone: generatePhone(),
       contact_name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
       description: type === 'cafe'
-        ? 'Espace securise partenaire Brume. Personnel forme a l\'accueil d\'urgence.'
-        : 'Accueil prioritaire signalements Brume.',
+        ? 'Espace securise partenaire Breveil. Personnel forme a l\'accueil d\'urgence.'
+        : 'Accueil prioritaire signalements Breveil.',
       website: null,
       opening_hours: generateOpeningHours(type),
       is_partner: true,

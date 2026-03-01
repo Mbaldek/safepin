@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breveil — Veiller sur ceux que vous aimez</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --midnight:#1B2541;--midnight-deep:#0F1729;--midnight-light:#2A3A5C;
+  --veil:#E8A838;--veil-light:#F2D49A;--veil-dark:#C48A1E;
+  --aurora:#8B7EC8;--aurora-light:#B5ABE0;--aurora-dark:#6A5FA8;
+  --rose:#D4687A;--rose-light:#E8A0AE;--rose-dark:#B84D5E;
+  --sage:#6BA68E;--sage-light:#A3D4BF;
+  --ivoire:#F5F2EE;--ivoire-warm:#FAF8F5;
+  --danger:#E63946;--success:#4CAF79;--warning:#F4A940;
+  --n50:#FAFAF8;--n100:#F5F2EE;--n200:#E8E4DE;--n300:#D1CCC4;
+  --n400:#A39E96;--n500:#7A756D;--n600:#585450;--n700:#3A3836;--n800:#2C2C3A;--n900:#1A1A24;
+  --border:rgba(27,37,65,0.08);--border-l:rgba(27,37,65,0.04);
+  --display:'Cormorant Garamond',serif;
+  --body:'Plus Jakarta Sans',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--ivoire);color:var(--midnight);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.015;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* LANG BAR */
+.lbar{position:fixed;top:0;left:0;right:0;z-index:600;display:flex;justify-content:flex-end;align-items:center;padding:9px 48px;gap:5px;background:rgba(245,242,238,0.96);border-bottom:1px solid var(--border-l);backdrop-filter:blur(12px)}
+.lb{background:none;border:1px solid var(--border);color:var(--n400);padding:4px 13px;border-radius:2px;font-size:10px;font-weight:600;letter-spacing:.1em;cursor:pointer;font-family:var(--body);transition:all .2s}
+.lb.on{background:var(--midnight);color:var(--ivoire);border-color:var(--midnight)}
+.lb:hover:not(.on){color:var(--midnight);border-color:var(--midnight)}
+
+/* NAV */
+nav{position:fixed;top:38px;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:rgba(245,242,238,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-l)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--midnight)}
+.logo-symbol{width:28px;height:28px;position:relative}
+.logo-symbol svg{width:100%;height:100%}
+.logo-name{font-family:var(--display);font-size:22px;font-weight:300;letter-spacing:3px;text-transform:uppercase}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{text-decoration:none;color:var(--n400);font-size:13px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--midnight)}
+.nav-cta{background:var(--midnight);color:var(--ivoire);padding:9px 26px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.08em;text-decoration:none;text-transform:uppercase;transition:all .2s}
+.nav-cta:hover{background:var(--veil);color:var(--midnight)}
+
+/* HERO */
+.hero{min-height:100vh;padding-top:116px;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+.hero-l{padding:72px 48px 72px 72px;display:flex;flex-direction:column;justify-content:center}
+.eyebrow{display:flex;align-items:center;gap:9px;margin-bottom:36px}
+.epip{width:6px;height:6px;border-radius:50%;background:var(--veil);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.etxt{font-family:var(--body);font-size:10px;color:var(--veil-dark);letter-spacing:.13em;text-transform:uppercase;font-weight:700}
+h1{font-family:var(--display);font-size:clamp(56px,5.2vw,88px);line-height:.95;letter-spacing:-1px;margin-bottom:32px;font-weight:300}
+h1 em{font-style:italic;color:var(--veil-dark)}
+h1 .s{color:var(--n300)}
+.hsub{font-size:15px;line-height:1.8;color:var(--n500);max-width:420px;margin-bottom:48px;font-weight:400}
+.hacts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:60px}
+.btn-p{background:var(--midnight);color:var(--ivoire);padding:14px 36px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;transition:all .3s;display:inline-flex;align-items:center;gap:8px}
+.btn-p:hover{background:var(--veil);color:var(--midnight)}
+.btn-g{color:var(--n500);font-size:13px;text-decoration:none;border-bottom:1px solid var(--n300);padding-bottom:2px;transition:all .2s;font-weight:500}
+.btn-g:hover{color:var(--midnight);border-color:var(--midnight)}
+.proof{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding-top:36px;border-top:1px solid var(--border)}
+.pn{font-family:var(--display);font-size:34px;color:var(--midnight);line-height:1;margin-bottom:3px;font-weight:400}
+.pn em{font-style:italic;color:var(--veil-dark)}
+.pl{font-size:10px;color:var(--n400);letter-spacing:.03em;line-height:1.55;font-weight:500}
+
+/* HERO RIGHT — MAP */
+.hero-r{position:relative;overflow:hidden;background:var(--midnight-deep)}
+.atmo{position:absolute;inset:0;background:radial-gradient(ellipse at 28% 50%,rgba(232,168,56,.12) 0%,transparent 50%),radial-gradient(ellipse at 78% 22%,rgba(139,126,200,.1) 0%,transparent 45%),var(--midnight-deep)}
+.mgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:36px 36px}
+.mist-t{position:absolute;top:0;left:0;right:0;height:100px;background:linear-gradient(to bottom,rgba(245,242,238,.06),transparent);pointer-events:none}
+.mist-b{position:absolute;bottom:0;left:0;right:0;height:140px;background:linear-gradient(to top,rgba(232,168,56,.04),transparent);pointer-events:none}
+.sr{position:absolute;background:rgba(255,255,255,.04)}
+.sr.h{left:0;right:0;height:1px}
+.sr.v{top:0;bottom:0;width:1px}
+.sr.bold{background:rgba(255,255,255,.07)}
+.mpin{position:absolute;animation:mfloat 5s ease-in-out infinite}
+@keyframes mfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.mpw{display:flex;flex-direction:column;align-items:center}
+.mph{width:32px;height:32px;border-radius:50% 50% 50% 3px;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.mph span{transform:rotate(45deg);font-size:13px}
+.mpt{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent}
+.pin-danger .mph{background:rgba(230,57,70,.85)}.pin-danger .mpt{border-top:7px solid rgba(230,57,70,.85)}
+.pin-warning .mph{background:rgba(232,168,56,.85)}.pin-warning .mpt{border-top:7px solid rgba(232,168,56,.85)}
+.pin-safe .mph{background:rgba(107,166,142,.85)}.pin-safe .mpt{border-top:7px solid rgba(107,166,142,.85)}
+.pin-alert .mph{background:rgba(212,104,122,.85)}.pin-alert .mpt{border-top:7px solid rgba(212,104,122,.85)}
+.ripple{position:absolute;top:-7px;left:-7px;width:46px;height:46px;border-radius:50%;border:1.5px solid rgba(230,57,70,.4);animation:rpl 3s ease-out infinite}
+@keyframes rpl{0%{transform:scale(.4);opacity:1}100%{transform:scale(3.2);opacity:0}}
+.mcard{position:absolute;background:rgba(15,23,41,.92);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;backdrop-filter:blur(18px);box-shadow:0 18px 52px rgba(0,0,0,.3)}
+
+/* Hero floating cards */
+.card-feed{top:18%;left:22px;width:210px;animation:sR .8s cubic-bezier(.16,1,.3,1) .3s both}
+@keyframes sR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+.cf-hdr{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.22);letter-spacing:.14em;font-weight:700;margin-bottom:10px}
+.cf-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.cf-row:last-child{border-bottom:none}
+.cf-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-r{background:var(--danger);animation:pulse 1.5s infinite}.dot-a{background:var(--veil)}.dot-g{background:var(--sage)}
+.cf-txt{color:rgba(255,255,255,.65);font-size:11px;flex:1;line-height:1.4;font-weight:500}
+.cf-ago{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.18);font-weight:600;letter-spacing:.05em}
+
+.card-sos{bottom:20%;right:20px;width:184px;animation:sL .8s cubic-bezier(.16,1,.3,1) .5s both}
+@keyframes sL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+.sos-live{display:flex;align-items:center;gap:5px;font-family:var(--body);font-size:9px;color:var(--danger);letter-spacing:.1em;font-weight:700;margin-bottom:11px}
+.sl-dot{width:5px;height:5px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite}
+.sos-ct{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sos-av{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:10px}
+.sos-nm{color:rgba(255,255,255,.8);font-size:11px;font-weight:700}
+.sos-st{font-size:9px;color:var(--sage);margin-top:1px;font-weight:600}
+.sos-div{height:1px;background:rgba(255,255,255,.05);margin:9px 0}
+.sos-btn{width:100%;background:var(--sage);color:white;border:none;padding:8px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--body)}
+
+.card-streak{top:10%;right:24px;width:148px;animation:sL .8s cubic-bezier(.16,1,.3,1) .1s both}
+.sk-em{font-size:26px;margin-bottom:5px}
+.sk-n{font-family:var(--display);font-size:34px;color:var(--veil);line-height:1;margin-bottom:2px;font-weight:400}
+.sk-l{font-size:10px;color:rgba(255,255,255,.25);line-height:1.5;font-weight:500}
+
+.card-transit{bottom:8%;left:20px;width:200px;animation:sR .8s cubic-bezier(.16,1,.3,1) .7s both}
+.ct-hdr{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.18);letter-spacing:.12em;font-weight:700;margin-bottom:10px}
+.ct-seg{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ct-line{width:4px;height:24px;border-radius:2px;flex-shrink:0}
+.ct-info{font-size:10px;color:rgba(255,255,255,.55);line-height:1.4;font-weight:500}
+.ct-time{margin-left:auto;font-family:var(--body);font-size:9px;color:rgba(255,255,255,.2);font-weight:600}
+
+/* SECTIONS */
+.sec{padding:112px 72px}
+.slbl{font-family:var(--body);font-size:10px;color:var(--veil-dark);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:700}
+h2{font-family:var(--display);font-size:clamp(40px,4.5vw,64px);line-height:1;letter-spacing:-1px;margin-bottom:64px;font-weight:300}
+h2 em{font-style:italic;color:var(--veil-dark)}
+
+/* FEATURES GRID */
+.feat-sec{background:var(--midnight);color:var(--ivoire)}
+.feat-sec .slbl{color:rgba(232,168,56,.45)}
+.feat-sec h2{color:var(--ivoire)}
+.feat-sec h2 em{color:var(--veil)}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.04)}
+.fc{padding:36px;background:var(--midnight);transition:background .3s}
+.fc:hover{background:rgba(255,255,255,.03)}
+.fc-em{font-size:28px;margin-bottom:16px;display:block;transition:transform .3s}
+.fc:hover .fc-em{transform:scale(1.15) rotate(-4deg)}
+.fc-t{font-size:16px;font-weight:700;margin-bottom:9px}
+.fc-d{font-size:12px;color:rgba(245,242,238,.4);line-height:1.75;font-weight:400}
+.pills{display:flex;gap:4px;margin-top:14px;flex-wrap:wrap}
+.pill{font-size:9px;font-weight:700;letter-spacing:.07em;padding:3px 8px;border-radius:2px}
+.pf{background:rgba(107,166,142,.18);color:var(--sage-light)}
+.pp{background:rgba(232,168,56,.18);color:var(--veil-light)}
+.pn2{background:rgba(212,104,122,.18);color:var(--rose-light)}
+.pl2{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3)}
+
+/* HOW IT WORKS */
+.how-sec{background:var(--n200)}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:start}
+.steps{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:52px 1fr;gap:0;padding:28px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:none}
+.snum{font-family:var(--display);font-size:44px;color:var(--n300);line-height:1;transition:color .3s;font-weight:300}
+.step:hover .snum{color:var(--veil)}
+.st{font-size:15px;font-weight:700;margin-bottom:7px;padding-top:9px}
+.sd{font-size:12px;color:var(--n500);line-height:1.75}
+
+/* Phone mockup */
+.phone-wrap{display:flex;justify-content:center;position:sticky;top:132px}
+.phone{width:248px;border-radius:44px;background:var(--midnight-deep);padding:9px;box-shadow:0 52px 100px rgba(27,37,65,.25),0 0 0 1px rgba(27,37,65,.15)}
+.ph-scr{border-radius:36px;overflow:hidden;background:var(--midnight);height:490px;display:flex;flex-direction:column}
+.ph-top{padding:13px 16px 9px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2)}
+.ph-t{color:rgba(255,255,255,.85);font-size:11px;font-weight:600}
+.ph-live{display:flex;align-items:center;gap:4px;font-size:8px;color:rgba(255,255,255,.3);font-weight:700;letter-spacing:.1em}
+.ph-map{flex:1;background:#0C1628;position:relative}
+.ph-sos{position:absolute;bottom:14px;right:14px;width:44px;height:44px;border-radius:50%;background:var(--danger);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:800;box-shadow:0 0 0 4px rgba(230,57,70,.2),0 8px 20px rgba(230,57,70,.4);letter-spacing:.05em}
+.ph-bar{padding:12px 14px;background:rgba(0,0,0,.25)}
+.ph-ct{font-size:9px;color:rgba(255,255,255,.22);font-weight:700;letter-spacing:.08em;margin-bottom:6px}
+.ph-tags{display:flex;gap:4px;flex-wrap:wrap}
+.ph-tag{font-size:8px;padding:3px 7px;border-radius:4px;font-weight:700}
+
+/* TRANSIT */
+.transit-sec{background:var(--midnight);color:rgba(255,255,255,.84)}
+.transit-sec .slbl{color:rgba(139,126,200,.55)}
+.transit-sec h2{color:white}
+.transit-sec h2 em{color:var(--aurora-light)}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.tmodes{display:flex;flex-direction:column;gap:9px}
+.tmode{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;transition:all .2s;cursor:default}
+.tmode:hover{background:rgba(255,255,255,.06);border-color:rgba(139,126,200,.3)}
+.tme{font-size:22px}
+.tmn{font-size:14px;font-weight:700;margin-bottom:2px}
+.tmd{font-size:10px;color:rgba(255,255,255,.3);font-weight:500}
+.tmbadge{margin-left:auto;font-family:var(--body);font-size:8px;padding:3px 8px;border-radius:3px;background:rgba(139,126,200,.12);color:var(--aurora-light);font-weight:700;letter-spacing:.06em}
+.tnote{margin-top:20px;padding:17px;border:1px solid rgba(139,126,200,.2);border-radius:12px;background:rgba(139,126,200,.04);font-size:12px;color:rgba(255,255,255,.4);line-height:1.65}
+.tnote strong{color:var(--aurora-light)}
+.tvisual{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:24px}
+.tvh{font-family:var(--body);font-size:9px;color:rgba(255,255,255,.16);letter-spacing:.12em;font-weight:700;margin-bottom:18px}
+.tv-route{display:flex;flex-direction:column;gap:4px}
+.tv-seg{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px}
+.tv-seg.walk{background:rgba(255,255,255,.02)}
+.tv-l{width:4px;height:28px;border-radius:2px;flex-shrink:0}
+.tvn{font-size:11px;font-weight:700}.tvs{font-size:9px;color:rgba(255,255,255,.25);font-weight:500}
+.tvt{margin-left:auto;font-family:var(--body);font-size:9px;color:rgba(255,255,255,.2);font-weight:600}
+
+/* SAFE SPACES */
+.ss-sec{background:var(--n200)}
+.ssg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.sscard{padding:26px;border:1px solid var(--border);border-radius:4px;background:var(--ivoire-warm);position:relative;overflow:hidden;transition:all .25s}
+.sscard:hover{transform:translateY(-3px);border-color:var(--sage)}
+.sstier{font-family:var(--body);font-size:9px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:12px;font-weight:700}
+.t-std{color:var(--sage)}.t-bas{color:var(--aurora)}.t-prem{color:var(--veil-dark)}
+.sse{font-size:26px;margin-bottom:10px}.ssn{font-size:15px;font-weight:700;margin-bottom:6px}.ssd{font-size:12px;color:var(--n500);line-height:1.65}
+.ssdot{position:absolute;top:18px;right:18px;width:9px;height:9px;border-radius:50%}
+.d-std{background:var(--sage)}.d-bas{background:var(--aurora)}.d-prem{background:var(--veil-dark)}
+
+/* STREAKS */
+.streak-sec{background:var(--midnight);color:var(--ivoire)}
+.streak-sec .slbl{color:rgba(232,168,56,.35)}
+.streak-sec h2{color:var(--ivoire)}
+.streak-sec h2 em{color:var(--veil)}
+.skgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.skbox{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:12px;padding:18px 12px;text-align:center;transition:all .2s}
+.skbox:hover{background:rgba(255,255,255,.07);border-color:rgba(232,168,56,.3)}
+.ske{font-size:26px;margin-bottom:9px}
+.skd{font-family:var(--display);font-size:24px;color:var(--veil);line-height:1;margin-bottom:3px;font-weight:400}
+.skl{font-size:10px;color:rgba(245,242,238,.32);line-height:1.45;font-weight:500}
+
+/* TESTIMONIALS */
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tcard{border:1px solid var(--border);padding:32px 28px;position:relative;overflow:hidden;transition:border-color .3s;background:var(--ivoire-warm)}
+.tcard:hover{border-color:var(--veil)}
+.tcard::before{content:'"';font-family:var(--display);font-size:110px;color:var(--n200);line-height:.8;position:absolute;top:14px;left:16px;font-weight:300}
+.tcq{font-size:13px;line-height:1.8;margin-bottom:24px;position:relative;z-index:1;padding-top:24px;font-style:italic;color:var(--n500)}
+.tca{display:flex;align-items:center;gap:10px}
+.tav{width:32px;height:32px;border-radius:50%;background:var(--n200);display:flex;align-items:center;justify-content:center;font-size:13px}
+.tan{font-size:12px;font-weight:700}.tar{font-size:10px;color:var(--n400);margin-top:2px;font-weight:500}
+
+/* PRICING */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px;margin:0 auto}
+.pcard{border:1px solid var(--border);padding:44px 36px;background:var(--ivoire-warm)}
+.pcard.feat{background:var(--midnight);border-color:var(--midnight);color:var(--ivoire)}
+.flbl{font-family:var(--body);font-size:9px;color:var(--veil);letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;display:block;font-weight:700}
+.ptier{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n400);margin-bottom:7px}
+.pcard.feat .ptier{color:rgba(245,242,238,.35)}
+.pamt{font-family:var(--display);font-size:52px;line-height:1;margin-bottom:4px;font-weight:300}
+.pper{font-size:11px;color:var(--n400);margin-bottom:36px;font-weight:500}
+.pcard.feat .pper{color:rgba(245,242,238,.3)}
+.pfeats{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:32px}
+.pfeats li{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.55;font-weight:500}
+.chk{color:var(--sage);font-size:13px;flex-shrink:0;margin-top:1px}
+.pcard.feat .pfeats li{color:rgba(245,242,238,.6)}
+.pcard.feat .chk{color:var(--sage-light)}
+.pbtn{display:block;text-align:center;text-decoration:none;padding:13px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;border-radius:2px}
+.btn-od{border:1px solid var(--midnight);color:var(--midnight)}.btn-od:hover{background:var(--midnight);color:var(--ivoire)}
+.btn-r{background:var(--veil);color:var(--midnight)}.btn-r:hover{background:var(--veil-dark)}
+
+/* CTA */
+.cta-sec{background:var(--midnight);color:white;padding:108px 72px;text-align:center;position:relative;overflow:hidden}
+.cta-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(232,168,56,.08) 0%,transparent 60%)}
+.cta-sec h2{color:white;margin-bottom:14px;position:relative}
+.cta-sec p{font-size:15px;opacity:.55;margin-bottom:44px;max-width:420px;margin-left:auto;margin-right:auto;font-weight:400;position:relative}
+.btn-wh{background:var(--veil);color:var(--midnight);padding:15px 48px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;display:inline-block;transition:all .2s;border-radius:2px;position:relative}
+.btn-wh:hover{transform:translateY(-3px);box-shadow:0 18px 44px rgba(232,168,56,.25)}
+
+/* FOOTER */
+footer{background:var(--midnight-deep);color:rgba(255,255,255,.2);padding:48px 72px;display:flex;justify-content:space-between;align-items:center}
+.flogo{font-family:var(--display);font-size:18px;color:rgba(255,255,255,.5);margin-bottom:3px;font-weight:300;letter-spacing:3px;text-transform:uppercase}
+.fsub{font-family:var(--body);font-size:9px;letter-spacing:.07em;font-weight:500}
+.flinks{display:flex;gap:22px;font-size:11px;font-weight:500}
+.flinks a{color:rgba(255,255,255,.2);text-decoration:none;transition:color .2s}
+.flinks a:hover{color:rgba(255,255,255,.65)}
+
+/* REVEAL */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .65s,transform .65s cubic-bezier(.16,1,.3,1)}
+.rv.v{opacity:1;transform:translateY(0)}
+
+/* i18n */
+.en,.fr{display:none}
+body.lang-en .en{display:block}
+body.lang-fr .fr{display:block}
+body.lang-en .en-i{display:inline}
+body.lang-fr .en-i{display:none}
+body.lang-en .fr-i{display:none}
+body.lang-fr .fr-i{display:inline}
+
+@media(max-width:1024px){
+  .hero{grid-template-columns:1fr}.hero-r{display:none}
+  .sec{padding:64px 24px}
+  .fg,.tg,.ssg,.skgrid{grid-template-columns:1fr 1fr}
+  .how-grid,.tgrid{grid-template-columns:1fr}
+  .phone-wrap{display:none}.pgrid{grid-template-columns:1fr}
+  .hero-l{padding:48px 24px}.proof{grid-template-columns:1fr 1fr}
+  nav,.lbar{padding-left:20px;padding-right:20px}
+  nav .nav-links{display:none}
+  footer{flex-direction:column;gap:18px;text-align:center;padding:28px 20px}
+  .cta-sec{padding:64px 24px}
+}
+</style>
+</head>
+<body class="lang-fr">
+
+<div class="lbar">
+  <button class="lb" onclick="setLang('en')" id="lb-en">EN</button>
+  <button class="lb on" onclick="setLang('fr')" id="lb-fr">FR</button>
+</div>
+
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-symbol">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2 C6 2, 2 10, 2 16 C2 18, 3.5 20, 5 21" stroke="rgba(232,168,56,0.3)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M14 2 C22 2, 26 10, 26 16 C26 18, 24.5 20, 23 21" stroke="rgba(232,168,56,0.3)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M14 6 C8 6, 5.5 12, 5.5 17 C5.5 19, 7 20.5, 8.5 21" stroke="rgba(139,126,200,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M14 6 C20 6, 22.5 12, 22.5 17 C22.5 19, 21 20.5, 19.5 21" stroke="rgba(139,126,200,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M14 10 C10 10, 8.5 14, 8.5 18 C8.5 19.5, 9.5 20.5, 11 21" stroke="rgba(232,168,56,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M14 10 C18 10, 19.5 14, 19.5 18 C19.5 19.5, 18.5 20.5, 17 21" stroke="rgba(232,168,56,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <circle cx="14" cy="12" r="1.8" fill="rgba(232,168,56,0.9)"/>
+      </svg>
+    </div>
+    <span class="logo-name">Breveil</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features"><span class="en-i">Features</span><span class="fr-i">Fonctionnalités</span></a></li>
+    <li><a href="#how"><span class="en-i">How it works</span><span class="fr-i">Comment ça marche</span></a></li>
+    <li><a href="#transit">Transit</a></li>
+    <li><a href="#pricing"><span class="en-i">Pricing</span><span class="fr-i">Tarifs</span></a></li>
+  </ul>
+  <a href="https://safepin-pearl.vercel.app" class="nav-cta">
+    <span class="en-i">Open App</span><span class="fr-i">Ouvrir l'app</span>
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-l">
+    <div class="eyebrow">
+      <div class="epip"></div>
+      <span class="etxt en-i">Live in Paris · expanding EU-wide</span>
+      <span class="etxt fr-i">En direct à Paris · expansion EU</span>
+    </div>
+    <div class="en"><h1>Walk<br>every street<br><em>without</em><br><span class="s">fear.</span></h1></div>
+    <div class="fr"><h1>Traversez<br>la ville<br><em>sans</em><br><span class="s">peur.</span></h1></div>
+    <p class="hsub en-i">Real-time community safety for women. Report in 30s, plan safe routes, activate SOS — and navigate Paris transit safely. One PWA. No download required.</p>
+    <p class="hsub fr-i">Sécurité communautaire en temps réel pour les femmes. Signalez en 30s, planifiez, activez le SOS — naviguez les transports parisiens en sécurité. Une PWA. Aucun téléchargement.</p>
+    <div class="hacts">
+      <a href="https://safepin-pearl.vercel.app" class="btn-p"><span class="en-i">Open Breveil — Free →</span><span class="fr-i">Ouvrir Breveil — Gratuit →</span></a>
+      <a href="#how" class="btn-g"><span class="en-i">How it works</span><span class="fr-i">Comment ça marche</span></a>
+    </div>
+    <div class="proof">
+      <div><div class="pn">30<em>s</em></div><div class="pl en-i">to report</div><div class="pl fr-i">pour signaler</div></div>
+      <div><div class="pn">&lt;5<em>s</em></div><div class="pl en-i">SOS activation</div><div class="pl fr-i">activation SOS</div></div>
+      <div><div class="pn">35</div><div class="pl en-i">features</div><div class="pl fr-i">fonctionnalités</div></div>
+      <div><div class="pn">30</div><div class="pl en-i">languages</div><div class="pl fr-i">langues</div></div>
+    </div>
+  </div>
+
+  <div class="hero-r">
+    <div class="atmo"></div><div class="mgrid"></div><div class="mist-t"></div><div class="mist-b"></div>
+    <div class="sr h bold" style="top:35%"></div><div class="sr h" style="top:18%"></div><div class="sr h" style="top:52%"></div><div class="sr h" style="top:68%"></div>
+    <div class="sr v bold" style="left:38%"></div><div class="sr v" style="left:60%"></div><div class="sr v" style="left:18%"></div><div class="sr v" style="left:75%"></div>
+    <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" viewBox="0 0 500 700">
+      <polyline points="160,420 205,345 258,258 308,175 348,108" stroke="rgba(107,166,142,.55)" stroke-width="2.5" fill="none" stroke-dasharray="7,5"/>
+      <circle cx="160" cy="420" r="6" fill="rgba(107,166,142,.7)"/>
+      <circle cx="348" cy="108" r="6" fill="rgba(107,166,142,.7)"/>
+      <line x1="0" y1="315" x2="500" y2="315" stroke="#0055C8" stroke-width="2.5" opacity=".2"/>
+    </svg>
+    <div class="mpin pin-danger" style="left:27%;top:25%"><div class="mpw"><div class="ripple"></div><div class="mph"><span>⚠️</span></div><div class="mpt"></div></div></div>
+    <div class="mpin pin-warning" style="left:54%;top:42%;animation-delay:1.4s"><div class="mpw"><div class="mph"><span>🌑</span></div><div class="mpt"></div></div></div>
+    <div class="mpin pin-safe" style="left:40%;top:62%;animation-delay:2.6s"><div class="mpw"><div class="mph"><span>✓</span></div><div class="mpt"></div></div></div>
+    <div class="mpin pin-alert" style="left:70%;top:17%;animation-delay:.8s"><div class="mpw"><div class="ripple" style="animation-delay:.8s"></div><div class="mph"><span>🚨</span></div><div class="mpt"></div></div></div>
+    <div style="position:absolute;left:38%;top:57%;transform:translate(-50%,-50%)"><div style="width:12px;height:12px;background:var(--aurora);border-radius:50%;border:2.5px solid white;box-shadow:0 0 0 7px rgba(139,126,200,.18)"></div></div>
+
+    <div class="mcard card-streak"><div class="sk-em">🔥</div><div class="sk-n">7</div><div class="sk-l en-i">day streak<br>Weekly Warrior!</div><div class="sk-l fr-i">jours de suite<br>Guerrière !</div></div>
+    <div class="mcard card-feed">
+      <div class="cf-hdr en-i">LIVE · PARIS</div><div class="cf-hdr fr-i">EN DIRECT · PARIS</div>
+      <div class="cf-row"><div class="cf-dot dot-r"></div><div class="cf-txt en-i">Harassment — Châtelet</div><div class="cf-txt fr-i">Harcèlement — Châtelet</div><div class="cf-ago">2m</div></div>
+      <div class="cf-row"><div class="cf-dot dot-a"></div><div class="cf-txt en-i">Dark area — Barbès</div><div class="cf-txt fr-i">Zone sombre — Barbès</div><div class="cf-ago">9m</div></div>
+      <div class="cf-row"><div class="cf-dot dot-g"></div><div class="cf-txt en-i">Route confirmed safe</div><div class="cf-txt fr-i">Itinéraire confirmé sûr</div><div class="cf-ago">14m</div></div>
+    </div>
+    <div class="mcard card-sos">
+      <div class="sos-live"><div class="sl-dot"></div>SOS <span class="en-i">ACTIVE</span><span class="fr-i">ACTIF</span></div>
+      <div class="sos-ct"><div class="sos-av">👩</div><div><div class="sos-nm">Maman</div><div class="sos-st en-i">✓ Notified</div><div class="sos-st fr-i">✓ Alertée</div></div></div>
+      <div class="sos-div"></div>
+      <button class="sos-btn"><span class="en-i">✓ I'm Safe</span><span class="fr-i">✓ Je suis en sécurité</span></button>
+    </div>
+    <div class="mcard card-transit">
+      <div class="ct-hdr en-i">TRANSIT SAFETY</div><div class="ct-hdr fr-i">SÉCURITÉ TRANSPORT</div>
+      <div class="ct-seg"><div class="ct-line" style="background:#009A44"></div><div class="ct-info en-i">Ligne 8 → Opéra</div><div class="ct-info fr-i">Ligne 8 → Opéra</div><div class="ct-time">14m</div></div>
+      <div class="ct-seg"><div class="ct-line" style="background:#E2231A"></div><div class="ct-info">Ligne 3 → République</div><div class="ct-time">8m</div></div>
+      <div style="margin-top:8px;font-size:9px;color:rgba(230,57,70,.7)">⚠️ <span class="en-i">1 incident near République</span><span class="fr-i">1 incident près République</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="feat-sec sec" id="features">
+  <div class="slbl en-i">35 features · built for women</div>
+  <div class="slbl fr-i">35 fonctionnalités · conçues pour les femmes</div>
+  <h2 class="en rv">Every tool.<br>One <em>mission.</em></h2>
+  <h2 class="fr rv">Tous les outils.<br>Une seule <em>mission.</em></h2>
+  <div class="fg">
+    <div class="fc rv"><span class="fc-em">🗺️</span><div class="fc-t en-i">Live Safety Map</div><div class="fc-t fr-i">Carte de sécurité en direct</div><div class="fc-d en-i">Full-screen Mapbox GL JS v3 with 16 toggleable layers — incidents, transit lines, pharmacies, hospitals, safe spaces, neighbourhood scores and more.</div><div class="fc-d fr-i">Mapbox GL JS v3 plein écran, 16 couches activables — signalements, transports, pharmacies, hôpitaux, lieux sûrs, scores de quartier et plus.</div><div class="pills"><span class="pill pf">GRATUIT</span><span class="pill pl2">TEMPS RÉEL</span></div></div>
+    <div class="fc rv"><span class="fc-em">🆘</span><div class="fc-t en-i">One-Tap SOS</div><div class="fc-t fr-i">SOS en un geste</div><div class="fc-d en-i">5-second countdown. GPS trail. Auto-notify trusted circle via Edge Function. Emergency numbers 15, 17, 18, 112. Safe Spaces auto-layer activates.</div><div class="fc-d fr-i">Compte à rebours 5s. Piste GPS. Alerte cercle de confiance via Edge Function. Numéros 15, 17, 18, 112. Couche Lieux sûrs activée automatiquement.</div><div class="pills"><span class="pill pf">TOUJOURS GRATUIT</span></div></div>
+    <div class="fc rv"><span class="fc-em">🚇</span><div class="fc-t en-i">Paris Transit — IDFM Navitia</div><div class="fc-t fr-i">Transports parisiens — IDFM Navitia</div><div class="fc-d en-i">Real-time routing via IDFM Navitia API — métro, RER, bus, tram. Step-by-step with line badges and safety incident overlay on your route.</div><div class="fc-d fr-i">Itinéraires temps réel via l'API IDFM Navitia — métro, RER, bus, tram. Étape par étape avec badges de ligne et données de sécurité superposées.</div><div class="pills"><span class="pill pf">GRATUIT</span><span class="pill pn2">IDFM NAVITIA</span></div></div>
+    <div class="fc rv"><span class="fc-em">🔥</span><div class="fc-t en-i">Daily Streaks</div><div class="fc-t fr-i">Séries quotidiennes</div><div class="fc-d en-i">Track consecutive active days. Milestones at 3, 7, 14, 30, 60, 100 days. Longest streak tracked separately. Engagement logged in engagement_events.</div><div class="fc-d fr-i">Jours d'activité consécutifs. Jalons à 3, 7, 14, 30, 60, 100 jours. Plus longue série suivie séparément.</div><div class="pills"><span class="pill pf">GRATUIT</span><span class="pill pn2">NOUVEAU</span></div></div>
+    <div class="fc rv"><span class="fc-em">🏠</span><div class="fc-t en-i">Partner Safe Spaces</div><div class="fc-t fr-i">Lieux sûrs partenaires</div><div class="fc-d en-i">3-tier partnership: Standard, Basic, Premium. Verified locations with hours, photos, contact. Gold map markers for premium partners. Community upvoting.</div><div class="fc-d fr-i">3 niveaux partenaires : Standard, Basique, Premium. Lieux vérifiés avec horaires, photos, contacts. Marqueurs or pour les premium. Votes communautaires.</div><div class="pills"><span class="pill pf">GRATUIT</span><span class="pill pn2">NOUVEAU</span></div></div>
+    <div class="fc rv"><span class="fc-em">🛡️</span><div class="fc-t en-i">Identity Verification</div><div class="fc-t fr-i">Vérification d'identité</div><div class="fc-d en-i">Veriff-powered. Fail-closed webhook. Nudge shown 2–7 days post-signup. Verified badge unlocks Guardian trust level and higher community credibility.</div><div class="fc-d fr-i">Via Veriff. Webhook fail-closed. Incitation 2 à 7 jours après inscription. Badge vérifié, niveau Gardienne et crédibilité communautaire accrue.</div><div class="pills"><span class="pill pf">GRATUIT</span><span class="pill pl2">VERIFF</span></div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-sec sec" id="how">
+  <div class="slbl en-i">The core loop</div><div class="slbl fr-i">La boucle principale</div>
+  <h2 class="en rv">From incident<br>to <em>collective action.</em></h2>
+  <h2 class="fr rv">De l'incident<br>à <em>l'action collective.</em></h2>
+  <div class="how-grid">
+    <div class="steps">
+      <div class="step rv"><div class="snum">01</div><div><div class="st en-i">Report in 30 seconds</div><div class="st fr-i">Signalez en 30 secondes</div><div class="sd en-i">Category, severity, environment. Photo, video or audio optional. Works fully offline — IndexedDB queue with background sync on reconnect.</div><div class="sd fr-i">Catégorie, gravité, environnement. Photo, vidéo ou audio optionnels. Fonctionne hors ligne — file IndexedDB avec synchronisation automatique à la reconnexion.</div></div></div>
+      <div class="step rv"><div class="snum">02</div><div><div class="st en-i">On the map in &lt;5 seconds</div><div class="st fr-i">Sur la carte en moins de 5 secondes</div><div class="sd en-i">Supabase Realtime pushes your pin instantly. Web Push alerts nearby users within your configured radius. No delay, no polling.</div><div class="sd fr-i">Supabase Realtime envoie votre signalement instantanément. Web Push aux utilisatrices proches dans votre rayon configuré. Aucun délai.</div></div></div>
+      <div class="step rv"><div class="snum">03</div><div><div class="st en-i">Community confirms or clears</div><div class="st fr-i">La communauté confirme ou clôture</div><div class="sd en-i">Votes extend pin lifetime or auto-resolve at 3 denials. Comments and voice memos add context. Thank a reporter, go live, or respond to SOS.</div><div class="sd fr-i">Les votes prolongent la durée ou résolvent à 3 refus. Commentaires et mémos vocaux. Remerciez, diffusez en direct, ou répondez à un SOS.</div></div></div>
+      <div class="step rv"><div class="snum">04</div><div><div class="st en-i">Routes adjust · Scores update</div><div class="st fr-i">Itinéraires ajustés · Scores mis à jour</div><div class="sd en-i">Safe route planner's danger algorithm incorporates new incidents in real-time. Every report makes the network smarter for the next woman.</div><div class="sd fr-i">L'algorithme de l'itinéraire sûr intègre les nouveaux signalements. Chaque signalement rend le réseau plus intelligent pour la prochaine femme.</div></div></div>
+    </div>
+    <div class="phone-wrap rv">
+      <div class="phone">
+        <div class="ph-scr">
+          <div class="ph-top"><div class="ph-t">22:14</div><div class="ph-live"><div style="width:4px;height:4px;background:var(--sage);border-radius:50%"></div><span style="letter-spacing:.12em">BREVEIL</span></div></div>
+          <div class="ph-map">
+            <div style="position:absolute;inset:0;background:linear-gradient(155deg,#0D1830 0%,#111E35 55%,#0A1020 100%)"></div>
+            <div style="position:absolute;top:43%;left:0;right:0;height:1px;background:rgba(255,255,255,.04)"></div>
+            <div style="position:absolute;left:42%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.04)"></div>
+            <div style="position:absolute;top:40%;left:0;right:0;height:3px;background:#0055C8;opacity:.22;border-radius:2px"></div>
+            <svg style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 248 370"><polyline points="124,185 142,144 170,97 196,58" stroke="rgba(107,166,142,.65)" stroke-width="2" fill="none" stroke-dasharray="5,4"/></svg>
+            <div style="position:absolute;background:rgba(230,57,70,.85);width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;left:28%;top:30%">⚠️</div>
+            <div style="position:absolute;background:rgba(232,168,56,.8);width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;left:56%;top:52%">🌑</div>
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;background:var(--aurora);border-radius:50%;border:2px solid white;box-shadow:0 0 0 5px rgba(139,126,200,.18)"></div>
+            <div class="ph-sos">SOS</div>
+          </div>
+          <div class="ph-bar">
+            <div class="ph-ct">3 INCIDENTS À PROXIMITÉ</div>
+            <div class="ph-tags">
+              <div class="ph-tag" style="background:rgba(230,57,70,.15);color:rgba(230,57,70,.85)">⚠️ Harcèlement</div>
+              <div class="ph-tag" style="background:rgba(0,85,200,.15);color:rgba(130,170,230,.9)">🚇 Ligne 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSIT -->
+<section class="transit-sec sec" id="transit">
+  <div class="slbl en-i">Paris transit — fully integrated</div><div class="slbl fr-i">Transports parisiens — entièrement intégrés</div>
+  <h2 class="en rv">Safety meets<br><em>the métro.</em></h2>
+  <h2 class="fr rv">La sécurité rencontre<br><em>le métro.</em></h2>
+  <div class="tgrid">
+    <div>
+      <div class="tmodes">
+        <div class="tmode rv"><div class="tme">🚇</div><div><div class="tmn">Métro</div><div class="tmd en-i">All Paris metro lines with colour-coded badges</div><div class="tmd fr-i">Toutes les lignes avec badges de couleur</div></div><div class="tmbadge">RATP</div></div>
+        <div class="tmode rv"><div class="tme">🚆</div><div><div class="tmn">RER</div><div class="tmd en-i">Regional express — A, B, C, D, E lines</div><div class="tmd fr-i">Réseau express régional — lignes A à E</div></div><div class="tmbadge">SNCF</div></div>
+        <div class="tmode rv"><div class="tme">🚌</div><div><div class="tmn">Bus</div><div class="tmd en-i">Major Paris bus lines</div><div class="tmd fr-i">Principales lignes de bus</div></div><div class="tmbadge">RATP</div></div>
+        <div class="tmode rv"><div class="tme">🚊</div><div><div class="tmn">Tramway</div><div class="tmd en-i">T1–T13 network</div><div class="tmd fr-i">Réseau T1–T13</div></div><div class="tmbadge">IDFM</div></div>
+      </div>
+      <div class="tnote rv"><strong>IDFM Navitia API</strong><br><span class="en-i">Real-time journey planning from any Paris address. Step-by-step with departure/arrival times, transfer count, and line colour-coding. Safety incidents overlaid on your transit route.</span><span class="fr-i">Planification de trajet temps réel depuis n'importe quelle adresse parisienne. Étape par étape avec horaires, correspondances et codes couleur. Incidents de sécurité superposés sur votre trajet.</span></div>
+    </div>
+    <div class="tvisual rv">
+      <div class="tvh en-i">SAMPLE JOURNEY · PARIS</div><div class="tvh fr-i">EXEMPLE DE TRAJET · PARIS</div>
+      <div class="tv-route">
+        <div class="tv-seg walk"><div class="tv-l" style="background:rgba(255,255,255,.1)"></div><div><div class="tvn">🚶 <span class="en-i">Walk to station</span><span class="fr-i">Marche vers la station</span></div><div class="tvs">Rue de Lourmel</div></div><div class="tvt">5 min</div></div>
+        <div class="tv-seg"><div class="tv-l" style="background:#009A44"></div><div><div class="tvn">🚇 Ligne 8</div><div class="tvs">Lourmel → Opéra · 7 <span class="en-i">stops</span><span class="fr-i">arrêts</span></div></div><div class="tvt">14 min</div></div>
+        <div class="tv-seg"><div class="tv-l" style="background:#E2231A"></div><div><div class="tvn">🚇 Ligne 3</div><div class="tvs">Opéra → République · 4 <span class="en-i">stops</span><span class="fr-i">arrêts</span></div></div><div class="tvt">8 min</div></div>
+        <div class="tv-seg walk"><div class="tv-l" style="background:rgba(255,255,255,.1)"></div><div><div class="tvn">🚶 <span class="en-i">Walk to destination</span><span class="fr-i">Marche vers la destination</span></div><div class="tvs">Place de la République</div></div><div class="tvt">3 min</div></div>
+        <div style="margin-top:12px;padding:10px;background:rgba(230,57,70,.08);border-radius:8px;border:1px solid rgba(230,57,70,.18)"><div style="font-size:9px;color:rgba(255,255,255,.3);margin-bottom:3px;font-weight:700;letter-spacing:.08em">⚠️ <span class="en-i">SAFETY NOTE</span><span class="fr-i">ALERTE SÉCURITÉ</span></div><div style="font-size:10px;color:rgba(230,57,70,.8);font-weight:600"><span class="en-i">1 incident near République (8 min ago)</span><span class="fr-i">1 incident près de République (il y a 8 min)</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SAFE SPACES -->
+<section class="ss-sec sec">
+  <div class="slbl en-i">Partner Safe Spaces</div><div class="slbl fr-i">Lieux sûrs partenaires</div>
+  <h2 class="en rv">A verified<br><em>refuge network.</em></h2>
+  <h2 class="fr rv">Un réseau de<br><em>refuges vérifiés.</em></h2>
+  <div class="ssg">
+    <div class="sscard rv"><div class="ssdot d-std"></div><div class="sstier t-std">Standard</div><div class="sse">📍</div><div class="ssn en-i">Standard Safe Space</div><div class="ssn fr-i">Lieu sûr standard</div><div class="ssd en-i">Verified safe location. Green map marker. Community-upvotable. Auto-activates in the Safe Spaces layer during SOS events.</div><div class="ssd fr-i">Lieu sûr vérifié. Marqueur vert. Votes communautaires. Activé automatiquement dans la couche Lieux sûrs lors des SOS.</div></div>
+    <div class="sscard rv"><div class="ssdot d-bas"></div><div class="sstier t-bas">Partenaire Basique</div><div class="sse">🏪</div><div class="ssn en-i">Basic Partner</div><div class="ssn fr-i">Partenaire basique</div><div class="ssd en-i">Verified badge, full contact details, blue map marker. Committed to welcoming any woman in distress during opening hours.</div><div class="ssd fr-i">Badge vérifié, coordonnées complètes, marqueur bleu. Engagé à accueillir toute femme en détresse pendant les horaires.</div></div>
+    <div class="sscard rv"><div class="ssdot d-prem"></div><div class="sstier t-prem">Partenaire Premium ⭐</div><div class="sse">🏆</div><div class="ssn en-i">Premium Partner</div><div class="ssn fr-i">Partenaire premium</div><div class="ssd en-i">Gold map marker. Full profile with hours, photos, description, website. Featured placement. Managed via Tower Control admin dashboard.</div><div class="ssd fr-i">Marqueur or. Profil complet : horaires, photos, description, site. Mise en avant. Géré via le tableau de bord Tower Control.</div></div>
+  </div>
+</section>
+
+<!-- STREAKS -->
+<section class="streak-sec sec">
+  <div class="slbl en-i">Daily streaks</div><div class="slbl fr-i">Séries quotidiennes</div>
+  <h2 class="en rv">Every day you<br><em>show up.</em></h2>
+  <h2 class="fr rv">Chaque jour<br><em>que vous contribuez.</em></h2>
+  <div class="skgrid">
+    <div class="skbox rv"><div class="ske">🔥</div><div class="skd">3</div><div class="skl en-i">Well started!</div><div class="skl fr-i">Bien parti !</div></div>
+    <div class="skbox rv"><div class="ske">⚡</div><div class="skd">7</div><div class="skl en-i">Weekly Warrior</div><div class="skl fr-i">Guerrière semaine</div></div>
+    <div class="skbox rv"><div class="ske">💪</div><div class="skd">14</div><div class="skl en-i">Fortnight Champ</div><div class="skl fr-i">Champion quinzaine</div></div>
+    <div class="skbox rv"><div class="ske">🏆</div><div class="skd">30</div><div class="skl en-i">Monthly Guardian</div><div class="skl fr-i">Gardien mensuel</div></div>
+    <div class="skbox rv"><div class="ske">👑</div><div class="skd">60</div><div class="skl en-i">60-Day Sentinel</div><div class="skl fr-i">Sentinelle 60 jours</div></div>
+    <div class="skbox rv"><div class="ske">💎</div><div class="skd">100</div><div class="skl en-i">Centennial</div><div class="skl fr-i">Centenaire</div></div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="sec">
+  <div class="slbl en-i">Community voices</div><div class="slbl fr-i">La voix de la communauté</div>
+  <h2 class="en rv">Women who<br><em>use Breveil.</em></h2>
+  <h2 class="fr rv">Des femmes qui<br><em>utilisent Breveil.</em></h2>
+  <div class="tg">
+    <div class="tcard rv"><p class="tcq en-i">"The IDFM transit integration is what makes Breveil essential for me. I see safety incidents layered over my metro route before I even leave home."</p><p class="tcq fr-i">« L'intégration IDFM est ce qui rend Breveil indispensable. Je vois les incidents superposés sur mon trajet métro avant même de sortir de chez moi. »</p><div class="tca"><div class="tav">🚇</div><div><div class="tan">Amara D.</div><div class="tar en-i">Night nurse · Gare du Nord commuter</div><div class="tar fr-i">Infirmière de nuit · Navette Gare du Nord</div></div></div></div>
+    <div class="tcard rv"><p class="tcq en-i">"My 7-day streak means I open Breveil every morning. That daily habit has made me genuinely more aware of my surroundings."</p><p class="tcq fr-i">« Ma série de 7 jours fait que j'ouvre Breveil chaque matin. Cette habitude quotidienne m'a rendue vraiment plus attentive à mon environnement. »</p><div class="tca"><div class="tav">🎓</div><div><div class="tan">Léa M.</div><div class="tar en-i">Student, Sorbonne · Streak: 23 days 🔥</div><div class="tar fr-i">Étudiante, Sorbonne · Série : 23 jours 🔥</div></div></div></div>
+    <div class="tcard rv"><p class="tcq en-i">"There's a premium partner café near my running route. Knowing it's verified and open to me anytime changes how I move through the city."</p><p class="tcq fr-i">« Il y a un café partenaire premium près de mon itinéraire de course. Savoir qu'il est vérifié et accessible à tout moment change ma façon de me déplacer. »</p><div class="tca"><div class="tav">🏃‍♀️</div><div><div class="tan">Sophie K.</div><div class="tar en-i">Runner · Vincennes · Sentinel 🛡️</div><div class="tar fr-i">Coureuse · Vincennes · Sentinelle 🛡️</div></div></div></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="sec" id="pricing" style="text-align:center">
+  <div class="slbl en-i">Simple pricing</div><div class="slbl fr-i">Tarification simple</div>
+  <h2 class="en rv" style="margin-bottom:14px">Free forever.<br>Go <em>Pro</em> for more.</h2>
+  <h2 class="fr rv" style="margin-bottom:14px">Gratuit pour toujours.<br>Passez <em>Pro</em> pour plus.</h2>
+  <p style="color:var(--n500);margin-bottom:56px;font-size:14px;max-width:400px;margin-left:auto;margin-right:auto"><span class="en-i">Core safety is always free. No paywall on anything that keeps you safe.</span><span class="fr-i">La sécurité essentielle est toujours gratuite. Jamais de paywall sur ce qui vous protège.</span></p>
+  <div class="pgrid">
+    <div class="pcard"><div class="ptier en-i">Free · Always</div><div class="ptier fr-i">Gratuit · Toujours</div><div class="pamt">€0</div><div class="pper en-i">forever</div><div class="pper fr-i">pour toujours</div><ul class="pfeats"><li><span class="chk">✓</span><span class="en-i">Live safety map + reporting</span><span class="fr-i">Carte & signalement en direct</span></li><li><span class="chk">✓</span><span class="en-i">SOS emergency system</span><span class="fr-i">Système SOS d'urgence</span></li><li><span class="chk">✓</span><span class="en-i">Safe route planner (OSRM)</span><span class="fr-i">Planificateur d'itinéraire (OSRM)</span></li><li><span class="chk">✓</span><span class="en-i">Paris transit (IDFM Navitia)</span><span class="fr-i">Transports parisiens (IDFM)</span></li><li><span class="chk">✓</span><span class="en-i">Walk With Me companion</span><span class="fr-i">Compagnon Marchez avec moi</span></li><li><span class="chk">✓</span><span class="en-i">Community, chat, neighbourhoods</span><span class="fr-i">Communauté, chat, quartiers</span></li><li><span class="chk">✓</span><span class="en-i">Partner Safe Spaces</span><span class="fr-i">Lieux sûrs partenaires</span></li><li><span class="chk">✓</span><span class="en-i">Daily streaks & challenges</span><span class="fr-i">Séries & défis quotidiens</span></li><li><span class="chk">✓</span><span class="en-i">30 languages</span><span class="fr-i">30 langues</span></li></ul><a href="https://safepin-pearl.vercel.app" class="pbtn btn-od"><span class="en-i">Get Started Free</span><span class="fr-i">Commencer Gratuitement</span></a></div>
+    <div class="pcard feat"><span class="flbl en-i">Most Popular</span><span class="flbl fr-i">Le plus populaire</span><div class="ptier">Breveil Pro</div><div class="pamt">€4,99</div><div class="pper en-i">/ month · €39,99 / year</div><div class="pper fr-i">/ mois · €39,99 / an</div><ul class="pfeats"><li><span class="chk">✓</span><span class="en-i">Everything in Free</span><span class="fr-i">Tout ce qui est gratuit</span></li><li><span class="chk">✓</span><span class="en-i">GPS location history</span><span class="fr-i">Historique de localisation GPS</span></li><li><span class="chk">✓</span><span class="en-i">Neighbourhood safety scores</span><span class="fr-i">Scores de sécurité par quartier</span></li><li><span class="chk">✓</span><span class="en-i">Safety buddy matching</span><span class="fr-i">Matching de compagnon sécurité</span></li><li><span class="chk">✓</span><span class="en-i">Advanced analytics</span><span class="fr-i">Tableau de bord analytique</span></li><li><span class="chk">✓</span><span class="en-i">Priority incident alerts</span><span class="fr-i">Alertes d'incident prioritaires</span></li></ul><a href="https://safepin-pearl.vercel.app" class="pbtn btn-r"><span class="en-i">Upgrade to Pro</span><span class="fr-i">Passer à Pro</span></a></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec">
+  <h2 class="en">No app store.<br>No friction. Just <em style="opacity:.75">Breveil.</em></h2>
+  <h2 class="fr">Aucun app store.<br>Zéro friction. <em style="opacity:.75">Rien que Breveil.</em></h2>
+  <p class="en-i">Open Breveil in your browser now. Installable on any device. Free at its core. Always.</p>
+  <p class="fr-i">Ouvrez Breveil dans votre navigateur maintenant. Installable sur tout appareil. Gratuit à la base. Toujours.</p>
+  <a href="https://safepin-pearl.vercel.app" class="btn-wh"><span class="en-i">Open Breveil →</span><span class="fr-i">Ouvrir Breveil →</span></a>
+  <div style="font-size:11px;opacity:.3;margin-top:14px;position:relative;font-weight:500">safepin-pearl.vercel.app · Paris, France</div>
+</section>
+
+<footer>
+  <div><div class="flogo">Breveil</div><div class="fsub">© 2026 DBEK · 75 rue de Lourmel, 75015 Paris · contact@breveil.app</div></div>
+  <div class="flinks">
+    <a href="https://safepin-pearl.vercel.app/privacy"><span class="en-i">Privacy</span><span class="fr-i">Confidentialité</span></a>
+    <a href="https://safepin-pearl.vercel.app/terms"><span class="en-i">Terms</span><span class="fr-i">CGU</span></a>
+    <a href="https://safepin-pearl.vercel.app/cookies">Cookies</a>
+    <a href="mailto:contact@breveil.app">contact@breveil.app</a>
+  </div>
+</footer>
+
+<script>
+function setLang(l){document.body.className='lang-'+l;document.getElementById('lb-en').className='lb'+(l==='en'?' on':'');document.getElementById('lb-fr').className='lb'+(l==='fr'?' on':'')}
+const obs=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('v')})},{threshold:.15});
+document.querySelectorAll('.rv').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

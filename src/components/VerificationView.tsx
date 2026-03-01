@@ -162,7 +162,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {daysRemaining <= 2
                     ? 'Complete verification now to keep your account in good standing.'
-                    : 'Verified users build more trust in the Brume community. It only takes 2 minutes.'}
+                    : 'Verified users build more trust in the Breveil community. It only takes 2 minutes.'}
                 </p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
             <div>
               <p className="font-black text-sm" style={{ color: cfg.color }}>{cfg.label}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {displayStatus === 'unverified' && 'Verify once — earn a trusted badge visible to all Brume users'}
+                {displayStatus === 'unverified' && 'Verify once — earn a trusted badge visible to all Breveil users'}
                 {displayStatus === 'pending'    && 'Veriff is reviewing your documents. Usually takes a few minutes.'}
                 {displayStatus === 'approved'   && 'Your identity has been confirmed. Trusted badge is active.'}
                 {displayStatus === 'declined'   && 'Please try again with a clear, valid ID and good lighting.'}
@@ -230,7 +230,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
               >
                 Veriff
               </a>
-              {' '}— Estonian company, EU data hosting, GDPR-compliant. Your ID is processed by Veriff and never stored on Brume servers.
+              {' '}— Estonian company, EU data hosting, GDPR-compliant. Your ID is processed by Veriff and never stored on Breveil servers.
             </p>
           </div>
 
