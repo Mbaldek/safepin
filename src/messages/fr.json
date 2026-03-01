@@ -34,6 +34,11 @@
     "cancelCountdown": "ANNULER",
     "noTrustedContacts": "Vous n'avez aucun contact de confiance — votre alerte sera visible sur la carte, mais personne ne sera notifié directement",
     "quickDial": "Appel rapide",
+    "activeBanner": "Alerte active — votre cercle a été prévenu",
+    "enRouteTo": "En route vers",
+    "share": "Partager",
+    "safeSpot": "Lieu sûr",
+    "safeConfirmed": "Vous êtes en sécurité",
     "numbers": {
       "samu": "SAMU",
       "police": "Police",
