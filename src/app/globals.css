@@ -168,6 +168,34 @@ body {
   animation: sos-glow 2s ease-in-out infinite;
 }
 
+/* SOS countdown — expanding ring */
+@keyframes ring-expand {
+  0%   { transform: scale(0.8); opacity: 0.4; }
+  100% { transform: scale(2);   opacity: 0; }
+}
+.animate-ring-expand {
+  animation: ring-expand 1.2s ease-out infinite;
+}
+
+/* SOS countdown — number pulse per tick */
+@keyframes countdown-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); filter: drop-shadow(0 0 24px rgba(230,57,70,0.5)); }
+  100% { transform: scale(1); filter: none; }
+}
+.animate-countdown-pulse {
+  animation: countdown-pulse 0.6s ease-out forwards;
+}
+
+/* SOS active — bottom sheet slide up */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
 /* ===== Accessibility ===== */
 
 /* Focus-visible ring for keyboard navigation */
