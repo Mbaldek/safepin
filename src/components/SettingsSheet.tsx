@@ -858,6 +858,22 @@ export default function SettingsSheet({ onClose }: Props) {
               onPress={() => { router.push('/admin'); onClose(); }}
             />
           </Section>
+          <Section title="Onboarding" icon={<User size={13} />}>
+            <Row
+              label="Restart onboarding"
+              badge="Dev"
+              chevron={false}
+              onPress={async () => {
+                const uid = useStore.getState().userId;
+                if (uid) {
+                  await supabase.from('profiles').update({ onboarding_completed: false, onboarding_step: 0 }).eq('id', uid);
+                }
+                document.cookie = 'ob_done=0;path=/;max-age=0';
+                onClose();
+                router.push('/onboarding/profile');
+              }}
+            />
+          </Section>
             </motion.div>
 
           ) : section === 'security' ? (
