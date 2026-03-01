@@ -5,11 +5,15 @@
 // Instead we detect locale from Accept-Language / cookie and set a cookie
 // so that next-intl's server-side getLocale() picks it up.
 
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { LOCALES } from '@/i18n/routing';
 
 const DEFAULT_LOCALE = 'en';
 const COOKIE_NAME = 'NEXT_LOCALE';
+
+const PUBLIC_PATHS = ['/login', '/terms', '/privacy'];
+const ONBOARDING_PREFIX = '/onboarding/';
 
 // ─── Rate limiting (sliding window per-instance) ─────────────────────────────
 const counters = new Map<string, { count: number; resetAt: number }>();
@@ -115,7 +119,52 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
-  // Set locale cookie if not present (so server-side getLocale() works)
+  // 4. Auth + onboarding guard (skip for public pages and onboarding itself)
+  const isGuarded = !PUBLIC_PATHS.includes(pathname) && !pathname.startsWith(ONBOARDING_PREFIX);
+
+  if (isGuarded && req.cookies.get('ob_done')?.value !== '1') {
+    let supabaseRes = NextResponse.next({ request: req });
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return req.cookies.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+            supabaseRes = NextResponse.next({ request: req });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseRes.cookies.set(name, value, options));
+          },
+        },
+      },
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.onboarding_completed) {
+        return NextResponse.redirect(new URL('/onboarding/profile', req.url));
+      }
+
+      // Cache completion + set locale cookie on same response
+      supabaseRes.cookies.set('ob_done', '1', { path: '/', maxAge: 31536000 });
+      if (!req.cookies.get(COOKIE_NAME)) {
+        supabaseRes.cookies.set(COOKIE_NAME, detectLocale(req), { path: '/', maxAge: 365 * 24 * 60 * 60 });
+      }
+      return supabaseRes;
+    }
+    // Unauthenticated — fall through to locale cookie step
+  }
+
+  // 5. Set locale cookie if not present (so server-side getLocale() works)
   const locale = detectLocale(req);
   const response = NextResponse.next();
   if (!req.cookies.get(COOKIE_NAME)) {
