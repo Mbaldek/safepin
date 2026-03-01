@@ -528,10 +528,10 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
                 <span className="text-5xl">👥</span>
                 <div className="text-center">
                   <p className="font-bold text-base mb-1" style={{ color: 'var(--text-primary)' }}>
-                    No friends yet
+                    Vos amis apparaîtront ici 💛
                   </p>
                   <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Search for users to add as friends and chat privately
+                    Invitez vos proches sur Breveil
                   </p>
                 </div>
                 <button onClick={() => setView('search')}

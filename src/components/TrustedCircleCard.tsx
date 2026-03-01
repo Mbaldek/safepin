@@ -432,10 +432,10 @@ export default function TrustedCircleCard({
         <div className="flex flex-col items-center gap-2 py-4 text-center">
           <span className="text-3xl">👥</span>
           <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Add your first safety contact
+            Ajoutez vos premiers proches
           </p>
           <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Your Trusted Circle gets alerted during SOS and can watch your location during trips.
+            Ils pourront suivre vos trajets et vous les leurs
           </p>
           <button
             onClick={() => setShowAdd(true)}

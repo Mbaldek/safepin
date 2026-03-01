@@ -237,7 +237,7 @@ export default function NeighborhoodFeed() {
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No neighborhoods nearby. Create one!</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Aucun quartier ici encore — soyez le premier ! 🏘️</p>
         </div>
       )}
     </div>

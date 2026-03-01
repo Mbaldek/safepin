@@ -419,12 +419,14 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
             </div>
             <div className="text-center">
               <p className="font-bold text-base mb-1" style={{ color: 'var(--text-primary)' }}>
-                No incidents found
+                {timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all' || radiusFilter !== 'all'
+                  ? 'Aucun résultat'
+                  : 'Tout est calme autour de vous ☀️'}
               </p>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all' || radiusFilter !== 'all'
-                  ? 'Try widening your filters'
-                  : 'All clear in your area'}
+                  ? 'Essayez d\'élargir vos filtres'
+                  : 'Bonne nouvelle !'}
               </p>
             </div>
             {(timeFilter !== 'all' || emergencyOnly || severityFilter !== 'all' || radiusFilter !== 'all') && (

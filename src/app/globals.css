@@ -150,6 +150,15 @@ body {
   animation: pulse-gold 2s ease-in-out infinite;
 }
 
+/* Welcome screen veil symbol breathe */
+@keyframes breathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.04); }
+}
+.animate-breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
 /* SOS button glow */
 @keyframes sos-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.5), 0 4px 15px rgba(15, 23, 41, 0.5); }

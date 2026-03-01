@@ -163,6 +163,16 @@ export default function LoginPage() {
     });
   }
 
+  function friendlyAuthError(msg: string): string {
+    if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+      return t('errorRateLimit');
+    }
+    if (msg.includes('Invalid login credentials')) return t('errorInvalidCredentials');
+    if (msg.includes('Email not confirmed')) return t('errorEmailNotConfirmed');
+    if (msg.includes('User already registered')) return t('errorAlreadyRegistered');
+    return msg;
+  }
+
   async function handleMagicLink() {
     if (!email.trim()) return;
     persistInviteCode();
@@ -172,7 +182,7 @@ export default function LoginPage() {
       options: { emailRedirectTo: getCallbackUrl() },
     });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(friendlyAuthError(error.message)); return; }
     setMagicSent(true);
     toast.success(t('magicLinkSuccess'));
   }
@@ -202,7 +212,7 @@ export default function LoginPage() {
         password,
         options: { data: { name } },
       });
-      if (error) { toast.error(error.message); setLoading(false); return; }
+      if (error) { toast.error(friendlyAuthError(error.message)); setLoading(false); return; }
       // Sign in immediately after signup
       const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signInErr) {
@@ -217,7 +227,7 @@ export default function LoginPage() {
       router.push('/map');
     } else {
       const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { toast.error(error.message); setLoading(false); return; }
+      if (error) { toast.error(friendlyAuthError(error.message)); setLoading(false); return; }
       await redeemInviteCode();
       if (signInData.session) await applyProfileLanguage(signInData.session.user.id);
       toast.success(t('welcomeBack'));

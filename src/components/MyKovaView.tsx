@@ -528,7 +528,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {activeSubTab === 'activity' && (
               <motion.div key="activity" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-3">
                 {followedPins.length === 0 && feedNotifs.length === 0 ? (
-                  <EmptyState emoji="📡" title="Nothing here yet" body="Follow pins on the map to see their activity here" ctaLabel={t('browseMap')} onCta={() => setActiveTab('map')} />
+                  <EmptyState emoji="📍" title="Votre activité apparaîtra ici au fur et à mesure" body="Suivez des signalements sur la carte pour voir leur activité ici" ctaLabel={t('browseMap')} onCta={() => setActiveTab('map')} />
                 ) : (
                   <>
                     {feedNotifs.length > 0 && (

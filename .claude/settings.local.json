@@ -42,7 +42,14 @@
       "Bash(__NEW_LINE_91f97c7902049021__ sed -i \"s/''Brume User''/''Breveil User''/g\" \"c:/Users/mathi/Desktop/safepin/src/components/SafetyBuddySheet.tsx\")",
       "Bash(__NEW_LINE_91f97c7902049021__ sed -i \"s/subscribe to Brume Pro\\\\./subscribe to Breveil Pro./g\" \"c:/Users/mathi/Desktop/safepin/src/components/SettingsSheet.tsx\")",
       "Bash(__NEW_LINE_91f97c7902049021__ sed -i -e \"s|// Deep-link into My Brume sub-tab|// Deep-link into My Breveil sub-tab|g\" -e \"s|// My Brume deep-link|// My Breveil deep-link|g\" \"c:/Users/mathi/Desktop/safepin/src/stores/useStore.ts\")",
-      "Bash(__NEW_LINE_91f97c7902049021__ echo \"done\")"
+      "Bash(__NEW_LINE_91f97c7902049021__ echo \"done\")",
+      "Bash(sed 's/\"\"//g')",
+      "Bash(unzip -l \"screen funnel onboardinv V0 1.zip\")",
+      "Bash(unzip -l \"screen funnel onboarding v0 2.zip\")",
+      "Bash(unzip -l \"c:\\\\Users\\\\mathi\\\\Desktop\\\\safepin\\\\docs\\\\composant\\\\screen funnel onboarding v0 4.zip\")",
+      "Bash(unzip -o \"c:/Users/mathi/Desktop/safepin/docs/composant/screen\\\\ funnel\\\\ onboarding\\\\ v0\\\\ 4.zip\" -d perms_v0)",
+      "Bash(unzip -o \"c:\\\\Users\\\\mathi\\\\Desktop\\\\safepin\\\\docs\\\\composant\\\\screen funnel onboarding v0 4.zip\" -d \"/tmp/perms_v0\")",
+      "Bash(unzip -o \"docs/composant/screen funnel onboarding v0 5.zip\" -d \"/tmp/circle_v0\")"
     ]
   }
 }
