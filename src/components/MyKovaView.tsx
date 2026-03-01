@@ -6,19 +6,19 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Rss, Star, BarChart2, ChevronRight, ChevronDown, ChevronUp,
-  Navigation, Trash2, Pencil, Check, X, Radio,
+  ChevronRight, ChevronDown, ChevronUp,
+  Navigation, Trash2, Pencil, Check, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import {
-  Pin, AppNotification, PlaceNote, SavedRoute, TripLog, LiveSession,
+  Pin, PlaceNote, SavedRoute, TripLog,
   CATEGORIES, SEVERITY,
 } from '@/types';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
-import TrustedCircleCard from '@/components/TrustedCircleCard';
+import SettingsSheet from '@/components/SettingsSheet';
 import CommunityView from '@/components/CommunityView';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
@@ -33,6 +33,15 @@ import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
 const MODE_EMOJI: Record<string, string> = {
   walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇',
   foot: '🚶', metro: '🚇', bus: '🚌', cycling: '🚲', car: '🚗',
+};
+
+const PERSONA_ICONS: Record<string, string> = {
+  commuter: '🚇', student: '📚', nightowl: '🌙', runner: '🏃',
+  parent: '👨‍👩‍👦', traveler: '✈️', freelance: '💻', nightlife: '🎉', everything: '🌈',
+};
+
+const LEVEL_FR: Record<string, string> = {
+  Watcher: 'Veilleur', Reporter: 'Explorateur', Guardian: 'Gardien', Sentinel: 'Sentinelle',
 };
 
 const TAB_VARIANTS = {
@@ -58,26 +67,6 @@ function fmtDist(m: number) {
 }
 
 // ─── Shared UI primitives ────────────────────────────────────────────────────
-
-function notifEmoji(type: AppNotification['type']): string {
-  const map: Record<string, string> = {
-    emergency: '🆘', vote: '✅', comment: '💬',
-    resolve: '✅', community: '👥', trusted_contact: '🤝',
-  };
-  return map[type] ?? '🔔';
-}
-
-function LiveBadge() {
-  return (
-    <span
-      className="flex items-center gap-1 text-[0.6rem] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-      style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
-    >
-      <Radio size={9} />
-      LIVE
-    </span>
-  );
-}
 
 function DangerBadge({ score }: { score: number }) {
   const color = score === 0 ? '#10b981' : score <= 2 ? '#f59e0b' : '#ef4444';
@@ -139,12 +128,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const router = useRouter();
   const {
     pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet, setPins, updatePin,
-    favPlaceIds, placeNotes, followedPinIds, liveSessions,
-    notifications, setTripPrefill, setActiveTab,
+    favPlaceIds, placeNotes,
+    setTripPrefill, setActiveTab,
     myKovaInitialTab, setMyKovaInitialTab,
   } = useStore();
 
   const t = useTranslations('mykova');
+  const tOb = useTranslations('onboarding');
 
   // ─── Sub-tab state ──────────────────────────────────────────────────────
   const [activeSubTab, setActiveSubTab] = useState<MyKovaTab>('activity');
@@ -160,11 +150,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   }, []);
 
   // ─── Feed data ──────────────────────────────────────────────────────────
-  const followedPins = useMemo(
-    () => pins.filter((p) => followedPinIds.includes(p.id)),
-    [pins, followedPinIds],
-  );
-  const feedNotifs = useMemo(() => [...notifications].reverse().slice(0, 20), [notifications]);
 
   // ─── Favorites data ─────────────────────────────────────────────────────
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
@@ -201,6 +186,19 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const [editSaving, setEditSaving] = useState(false);
 
   const [showLocationHistory, setShowLocationHistory] = useState(false);
+
+  // ─── New profile/circle/communities state ────────────────────────────
+  const [showSettings, setShowSettings] = useState(false);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profileCity, setProfileCity] = useState<string | null>(null);
+  const [profilePersonas, setProfilePersonas] = useState<string[]>([]);
+  const [thanksCount, setThanksCount] = useState(0);
+  const [circleCount, setCircleCount] = useState(0);
+  const [circleNames, setCircleNames] = useState<string[]>([]);
+  const [communityCount, setCommunityCount] = useState(0);
+  const [communityPreviewNames, setCommunityPreviewNames] = useState<string[]>([]);
+  const [communityJoins, setCommunityJoins] = useState<Array<{ id: string; community_name: string; created_at: string }>>([]);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
 
   // Collapsible sections in Profile tab
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -254,10 +252,48 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  useEffect(() => {
+    if (profileDataLoaded || !userId) return;
+    async function loadProfileExtras() {
+      const [profRes, circleRes, comRes] = await Promise.all([
+        supabase.from('profiles').select('name, city, personas, thanks_received').eq('id', userId).single(),
+        supabase.from('trusted_circle').select('contact_id').eq('user_id', userId),
+        supabase.from('community_members').select('created_at, communities(name)').eq('user_id', userId)
+          .order('created_at', { ascending: false }).limit(20),
+      ]);
+      if (profRes.data) {
+        const pd = profRes.data as Record<string, unknown>;
+        setProfileName((pd.name as string | null) ?? null);
+        setProfileCity((pd.city as string | null) ?? null);
+        setProfilePersonas((pd.personas as string[] | null) ?? []);
+        setThanksCount((pd.thanks_received as number | null) ?? 0);
+      }
+      const circleIds = (circleRes.data ?? []).map((r: Record<string, unknown>) => r.contact_id);
+      setCircleCount(circleIds.length);
+      if (circleIds.length > 0) {
+        const { data: cProfiles } = await supabase.from('profiles')
+          .select('name, display_name').in('id', circleIds.slice(0, 3));
+        setCircleNames((cProfiles ?? []).map((p: Record<string, unknown>) => (p.name as string | null) || (p.display_name as string | null) || '?'));
+      }
+      const joins = (comRes.data ?? []) as Array<Record<string, unknown>>;
+      setCommunityCount(joins.length);
+      setCommunityPreviewNames(joins.slice(0, 3).map((j) => (j.communities as Record<string, unknown> | null)?.name as string ?? '').filter(Boolean));
+      setCommunityJoins(joins.map((j, i) => ({
+        id: `join-${i}`,
+        community_name: ((j.communities as Record<string, unknown> | null)?.name as string) ?? 'Communauté',
+        created_at: j.created_at as string,
+      })));
+      setProfileDataLoaded(true);
+    }
+    loadProfileExtras();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, profileDataLoaded]);
+
   // ─── Derived data ──────────────────────────────────────────────────────
 
   const displayName = userProfile?.display_name ?? null;
-  const initial = (displayName?.[0] ?? userEmail[0] ?? '?').toUpperCase();
+  const displayFirst = profileName ?? displayName;
+  const initial = (displayFirst?.[0] ?? userEmail[0] ?? '?').toUpperCase();
 
   const myPins = useMemo(() =>
     pins.filter((p) => p.user_id === userId)
@@ -292,6 +328,28 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     return myPins;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myPins, pinFilter]);
+
+  const activityItems = useMemo(() => {
+    const pinItems = myPins.slice(0, 10).map((pin) => {
+      const cat = CATEGORIES[pin.category as keyof typeof CATEGORIES];
+      return {
+        id: `pin-${pin.id}`,
+        icon: '📍',
+        text: `${t('youReported')} : ${cat?.label ?? pin.category}${pin.description ? ' · ' + pin.description.slice(0, 40) : ''}`,
+        date: pin.created_at,
+      };
+    });
+    const joinItems = communityJoins.map((j) => ({
+      id: j.id,
+      icon: '🏘️',
+      text: `${t('youJoined')} : ${j.community_name}`,
+      date: j.created_at,
+    }));
+    return [...pinItems, ...joinItems]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 15);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myPins, communityJoins]);
 
   // ─── Actions ───────────────────────────────────────────────────────────
 
@@ -379,10 +437,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
   // ─── Render ────────────────────────────────────────────────────────────
 
-  const SUB_TABS: { id: MyKovaTab; label: string; Icon: React.ElementType }[] = [
-    { id: 'activity',  label: t('activity'),  Icon: Rss      },
-    { id: 'saved',     label: t('saved'),     Icon: Star     },
-    { id: 'stats',     label: t('stats'),     Icon: BarChart2 },
+  const SUB_TABS: { id: MyKovaTab; label: string }[] = [
+    { id: 'activity', label: t('activity') },
+    { id: 'saved',    label: t('saved')    },
+    { id: 'stats',    label: t('stats')    },
   ];
 
   return (
@@ -401,193 +459,238 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-95 lg:max-w-none lg:rounded-2xl"
-        style={{ backgroundColor: 'var(--bg-primary)', maxHeight: '85dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}
+        style={{ backgroundColor: '#1B2541', maxHeight: '92dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.4)' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-9 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+          <div className="w-9 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
         </div>
 
-        {/* Title */}
-        <div className="px-5 pt-1 pb-3 shrink-0">
-          <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
-        </div>
+        {/* Scrollable inner */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col px-5 pt-4 pb-8">
 
-        {/* Always-visible profile card */}
-        <div className="px-4 pb-3 shrink-0">
-          <div className="flex items-center gap-3 rounded-2xl p-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={avatarUploading}
-              className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0 relative group"
-              style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}
-              title="Change photo"
-            >
-              {userProfile?.avatar_url ? (
-                <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-              ) : avatarUploading ? (
-                <span className="text-xs animate-pulse">...</span>
-              ) : initial}
-            </button>
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-            <div className="flex-1 min-w-0">
-              {editing ? (
-                <div className="flex items-center gap-1.5">
-                  <input ref={inputRef} value={nameInput} onChange={(e) => setNameInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } if (e.key === 'Escape') cancelEdit(); }}
-                    placeholder="Your name..."
-                    className="flex-1 text-sm font-bold outline-none rounded-lg px-2 py-1 min-w-0"
-                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--accent)', color: 'var(--text-primary)' }} />
-                  <button onClick={saveName} disabled={saving} className="p-1 rounded-lg" style={{ color: '#10b981' }}><Check size={14} /></button>
-                  <button onClick={cancelEdit} className="p-1 rounded-lg" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
-                </div>
-              ) : (
-                <button onClick={startEditing} className="flex items-center gap-1 group">
-                  <span className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>{displayName ?? 'Set your name'}</span>
-                  <Pencil size={10} className="opacity-0 group-hover:opacity-60 transition" style={{ color: 'var(--text-muted)' }} />
-                </button>
-              )}
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[0.6rem] font-black px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: level.color + '18', color: level.color }}>
-                  {level.emoji} {level.label}
-                </span>
-                {userProfile?.verification_status === 'approved' && (
-                  <span className="text-[0.6rem] font-bold" style={{ color: '#10b981' }}>✅ Verified</span>
-                )}
-              </div>
-            </div>
-            <span className="text-xl font-black shrink-0" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{trustScore}</span>
-          </div>
-
-          {/* Quick stats row */}
-          <div className="flex gap-2 mt-2">
-            {[
-              { label: t('reports'), value: myReports.length, emoji: '📋' },
-              { label: t('level'), value: level.label, emoji: level.emoji },
-              { label: t('votes'), value: confirmedVotes, emoji: '👍' },
-            ].map(({ label, value, emoji }) => (
-              <div key={label} className="flex-1 rounded-xl py-2 flex flex-col items-center gap-0.5"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <span className="text-sm">{emoji}</span>
-                <span className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{value}</span>
-                <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>{label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Trusted Circle */}
-          <div className="mt-2">
-            <TrustedCircleCard userId={userId} compact />
-          </div>
-
-          {/* Community access */}
-          <button
-            onClick={() => setShowCommunity(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition active:opacity-70 mt-2"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            <span className="text-lg">💬</span>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('community')}</p>
-              <p className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>{t('communityDesc')}</p>
-            </div>
-            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
-          </button>
-        </div>
-
-        {/* Sub-tab selector */}
-        <div className="flex gap-1.5 px-4 pb-3 shrink-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          {SUB_TABS.map(({ id, label, Icon }) => {
-            const active = activeSubTab === id;
-            return (
+            {/* ── Header ──────────────────────────────────────────────── */}
+            <div className="flex items-center justify-between">
+              <h1 className="font-serif text-[20px] font-light text-foreground">{t('title')}</h1>
               <button
-                key={id}
-                onClick={() => setActiveSubTab(id)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0"
-                style={{
-                  backgroundColor: active ? 'var(--accent)' : 'var(--bg-card)',
-                  color: active ? '#fff' : 'var(--text-muted)',
-                  border: active ? '1.5px solid transparent' : '1.5px solid var(--border)',
-                }}
+                type="button"
+                onClick={() => setShowSettings(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
+                aria-label="Paramètres"
               >
-                <Icon size={13} />
-                {label}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="rgba(255,255,255,0.4)" strokeWidth="1.8"
+                  strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
               </button>
-            );
-          })}
-        </div>
+            </div>
 
-        <div className="h-px mx-4 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+            {/* ── Profile card ─────────────────────────────────────────── */}
+            <div
+              className="mt-5 rounded-2xl p-4"
+              style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-center gap-3.5">
+                {/* Avatar */}
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, #E8A838, #8B7EC8)' }}
+                >
+                  {userProfile?.avatar_url ? (
+                    <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : avatarUploading ? (
+                    <span className="text-xs animate-pulse text-white">…</span>
+                  ) : (
+                    <span className="text-[22px] font-semibold text-foreground">{initial}</span>
+                  )}
+                </button>
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <AnimatePresence mode="wait">
+                {/* Name + city + personas */}
+                <div className="min-w-0 flex-1">
+                  {editing ? (
+                    <div className="flex items-center gap-1.5">
+                      <input ref={inputRef} value={nameInput} onChange={(e) => setNameInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } if (e.key === 'Escape') cancelEdit(); }}
+                        placeholder="Votre prénom…"
+                        className="flex-1 font-serif text-[20px] font-normal outline-none rounded-lg px-2 py-1 min-w-0"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.2)', color: 'var(--text-primary)' }} />
+                      <button onClick={saveName} disabled={saving} className="p-1 rounded-lg" style={{ color: '#10b981' }}><Check size={14} /></button>
+                      <button onClick={cancelEdit} className="p-1 rounded-lg" style={{ color: 'rgba(255,255,255,0.4)' }}><X size={14} /></button>
+                    </div>
+                  ) : (
+                    <button onClick={startEditing} className="flex items-center gap-1 group text-left">
+                      <h2 className="font-serif text-[22px] font-normal leading-tight text-foreground">
+                        {displayFirst ?? 'Votre prénom'}
+                      </h2>
+                      <Pencil size={10} className="opacity-0 group-hover:opacity-60 transition" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    </button>
+                  )}
+                  {profileCity && (
+                    <p className="mt-0.5 text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      {profileCity}
+                    </p>
+                  )}
+                  {profilePersonas.length > 0 && (
+                    <div className="mt-2 flex gap-1.5 flex-wrap">
+                      {profilePersonas.slice(0, 3).map((persona) => (
+                        <span
+                          key={persona}
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)' }}
+                        >
+                          <span className="text-[10px]">{PERSONA_ICONS[persona] ?? '✨'}</span>
+                          {tOb(`persona_${persona}` as Parameters<typeof tOb>[0])}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Stats row ────────────────────────────────────────────── */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {/* Signalements */}
+              <div
+                className="flex flex-col items-center rounded-xl py-3"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <span className="font-serif text-[24px] leading-none" style={{ color: '#E8A838' }}>{myReports.length}</span>
+                <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {t('reports')}
+                </span>
+              </div>
+
+              {/* Niveau */}
+              <div
+                className="flex flex-col items-center rounded-xl py-3"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <span className="font-serif text-[18px] font-medium leading-none" style={{ color: '#8B7EC8' }}>
+                  {LEVEL_FR[level.label] ?? level.label}
+                </span>
+                <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {t('level')}
+                </span>
+                <div className="mt-2 h-[3px] w-3/4 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.min(100, progress * 100)}%`, backgroundColor: '#8B7EC8' }}
+                  />
+                </div>
+              </div>
+
+              {/* Merci */}
+              <div
+                className="flex flex-col items-center rounded-xl py-3"
+                style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <span className="font-serif text-[24px] leading-none" style={{ color: '#E8A838' }}>{thanksCount}</span>
+                <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {t('thanks')}
+                </span>
+              </div>
+            </div>
+
+            {/* ── Circle card ──────────────────────────────────────────── */}
+            <button
+              type="button"
+              onClick={() => { setActiveTab('community'); onClose(); }}
+              className="mt-3 flex w-full items-center justify-between rounded-2xl p-3.5 text-left transition-colors hover:brightness-110"
+              style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div>
+                <p className="text-[14px] font-semibold text-foreground">💛 {t('circle')}</p>
+                <p className="mt-1 text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {circleCount} {t('proches')}{circleNames.length > 0 ? ` · ${circleNames.join(', ')}` : ''}
+                </p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+
+            {/* ── Communities card ─────────────────────────────────────── */}
+            <button
+              type="button"
+              onClick={() => setShowCommunity(true)}
+              className="mt-2 flex w-full items-center justify-between rounded-2xl p-3.5 text-left transition-colors hover:brightness-110"
+              style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div>
+                <p className="text-[14px] font-semibold text-foreground">👥 {t('communities')}</p>
+                <p className="mt-1 text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {communityCount > 0
+                    ? `${communityCount} ${t('groups')}${communityPreviewNames.length > 0 ? ` · ${communityPreviewNames.join(', ')}` : ''}`
+                    : t('communityDesc')}
+                </p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+
+            {/* ── Tab bar ──────────────────────────────────────────────── */}
+            <div className="mt-5 flex gap-2">
+              {SUB_TABS.map(({ id, label }) => {
+                const isActive = activeSubTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveSubTab(id)}
+                    className="rounded-full px-4 py-2 text-[12px] transition-all duration-200"
+                    style={{
+                      backgroundColor: isActive ? '#E8A838' : 'transparent',
+                      color: isActive ? '#1B2541' : 'rgba(255,255,255,0.4)',
+                      fontWeight: isActive ? 700 : 500,
+                      border: isActive ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ── Tab content ──────────────────────────────────────────── */}
+            <div className="mt-4">
+              <AnimatePresence mode="wait">
 
             {/* ═══ ACTIVITY TAB ═══ */}
             {activeSubTab === 'activity' && (
-              <motion.div key="activity" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-3">
-                {followedPins.length === 0 && feedNotifs.length === 0 ? (
-                  <EmptyState emoji="📍" title="Votre activité apparaîtra ici au fur et à mesure" body="Suivez des signalements sur la carte pour voir leur activité ici" ctaLabel={t('browseMap')} onCta={() => setActiveTab('map')} />
+              <motion.div key="activity" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-2">
+                {activityItems.length === 0 ? (
+                  <EmptyState emoji="📍" title={t('noActivity')} body="Signalez un incident ou rejoignez une communauté" ctaLabel={t('browseMap')} onCta={() => setActiveTab('map')} />
                 ) : (
-                  <>
-                    {feedNotifs.length > 0 && (
-                      <div className="space-y-2">
-                        <SectionLabel text="Recent activity" />
-                        {feedNotifs.map((n) => (
-                          <div
-                            key={n.id}
-                            className="flex items-start gap-3 p-3 rounded-2xl"
-                            style={{
-                              backgroundColor: n.read ? 'var(--bg-card)' : 'rgba(99,102,241,0.07)',
-                              border: `1.5px solid ${n.read ? 'var(--border)' : 'rgba(99,102,241,0.25)'}`,
-                            }}
-                          >
-                            <span className="text-xl leading-none mt-0.5">{notifEmoji(n.type)}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--text-primary)' }}>
-                                {n.title || 'Notification'}
-                              </p>
-                              {n.body && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{n.body}</p>}
-                              <p className="text-[0.65rem] mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.created_at)}</p>
-                            </div>
-                            {!n.read && <span className="mt-1.5 w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: 'var(--accent)' }} />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {followedPins.length > 0 && (
-                      <div className="space-y-2 mt-3">
-                        <SectionLabel text="Followed pins" />
-                        {followedPins.map((pin) => {
-                          const cat = CATEGORIES[pin.category];
-                          const isAct = !pin.resolved_at;
-                          return (
-                            <button
-                              key={pin.id}
-                              onClick={() => { setSelectedPin(pin); setActiveSheet('detail'); }}
-                              className="w-full text-left flex items-start gap-3 p-3 rounded-2xl transition active:scale-[0.98]"
-                              style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)' }}
-                            >
-                              <span className="text-xl leading-none mt-0.5">{cat?.emoji ?? '⚠️'}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{cat?.label ?? 'Incident'}</span>
-                                  <span className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full"
-                                    style={{ backgroundColor: isAct ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.15)', color: isAct ? '#10b981' : '#6b7280' }}>
-                                    {isAct ? 'Active' : 'Resolved'}
-                                  </span>
-                                </div>
-                                {pin.description && <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{pin.description}</p>}
-                                <p className="text-[0.65rem] mt-1" style={{ color: 'var(--text-muted)' }}>{timeAgo(pin.created_at)}</p>
-                              </div>
-                              <ChevronRight size={15} style={{ color: 'var(--text-muted)', marginTop: 2 }} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </>
+                  activityItems.map((item, i) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl p-3 animate-fade-in-up"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        animationDelay: `${i * 80}ms`,
+                        opacity: 0,
+                      }}
+                    >
+                      <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                        <span className="mr-1.5">{item.icon}</span>
+                        {item.text}
+                      </p>
+                      <p className="mt-1 text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        {timeAgo(item.date)}
+                      </p>
+                    </div>
+                  ))
                 )}
               </motion.div>
             )}
@@ -968,10 +1071,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
               </motion.div>
             )}
 
-          </AnimatePresence>
-        </div>
+              </AnimatePresence>
+            </div>{/* /tab content */}
+          </div>{/* /flex-col px-5 */}
+        </div>{/* /flex-1 overflow-y-auto */}
       </motion.div>
 
+      {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
       {showVerification && <VerificationView onClose={() => setShowVerification(false)} />}
 
       <AnimatePresence>

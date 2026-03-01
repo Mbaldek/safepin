@@ -258,7 +258,13 @@
     "locationHistory": "Location history",
     "noActivity": "No activity yet",
     "community": "Community",
-    "communityDesc": "Groups, neighbourhoods & messages"
+    "communityDesc": "Groups, neighbourhoods & messages",
+    "circle": "My Circle",
+    "proches": "contact(s)",
+    "communities": "My Communities",
+    "groups": "group(s)",
+    "youReported": "You reported",
+    "youJoined": "You joined"
   },
   "community": {
     "title": "Communities",

@@ -247,7 +247,7 @@
     "trustScore": "Score de confiance",
     "reports": "Signalements",
     "level": "Niveau",
-    "thanks": "Mercis",
+    "thanks": "Merci",
     "votes": "Votes",
     "comments": "Commentaires",
     "thisWeek": "Cette semaine",
@@ -258,7 +258,13 @@
     "locationHistory": "Historique de position",
     "noActivity": "Aucune activité",
     "community": "Communauté",
-    "communityDesc": "Groupes, quartiers & messages"
+    "communityDesc": "Groupes, quartiers & messages",
+    "circle": "Mon Cercle",
+    "proches": "proche(s)",
+    "communities": "Mes communautés",
+    "groups": "groupe(s)",
+    "youReported": "Vous avez signalé",
+    "youJoined": "Vous avez rejoint"
   },
     "title": "Communautés",
     "create": "Créer une communauté",
