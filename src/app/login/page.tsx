@@ -4,7 +4,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { ChevronDown, Check, AlertCircle, Loader2 } from 'lucide-react';
@@ -34,6 +34,20 @@ const STAT_KEYS = [
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations('login');
+  const locale = useLocale();
+
+  function setLang(code: 'fr' | 'en') {
+    document.cookie = `NEXT_LOCALE=${code};path=/;max-age=31536000`;
+    window.location.reload();
+  }
+
+  async function applyProfileLanguage(userId: string) {
+    const { data } = await supabase.from('profiles').select('language').eq('id', userId).maybeSingle();
+    if (data?.language) {
+      document.cookie = `NEXT_LOCALE=${data.language};path=/;max-age=31536000`;
+    }
+  }
+
   const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -49,8 +63,9 @@ export default function LoginPage() {
   async function handleDevLogin() {
     if (!devEmail || !devPassword) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: devEmail, password: devPassword });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: devEmail, password: devPassword });
     if (error) { toast.error(error.message); setLoading(false); return; }
+    if (data.session) await applyProfileLanguage(data.session.user.id);
     router.push('/map');
   }
 
@@ -61,8 +76,9 @@ export default function LoginPage() {
   async function handleBetaLogin() {
     if (!betaEmail || !betaPassword) { toast.error('Beta access unavailable'); return; }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: betaEmail, password: betaPassword });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: betaEmail, password: betaPassword });
     if (error) { toast.error(error.message); setLoading(false); return; }
+    if (data.session) await applyProfileLanguage(data.session.user.id);
     router.push('/map');
   }
 
@@ -188,7 +204,7 @@ export default function LoginPage() {
       });
       if (error) { toast.error(error.message); setLoading(false); return; }
       // Sign in immediately after signup
-      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signInErr) {
         toast.success(t('accountCreated'));
         setMode('signin');
@@ -196,12 +212,14 @@ export default function LoginPage() {
         return;
       }
       await redeemInviteCode();
+      if (signInData.session) await applyProfileLanguage(signInData.session.user.id);
       toast.success(t('accountCreated'));
       router.push('/map');
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { toast.error(error.message); setLoading(false); return; }
       await redeemInviteCode();
+      if (signInData.session) await applyProfileLanguage(signInData.session.user.id);
       toast.success(t('welcomeBack'));
       router.push('/map');
     }
@@ -237,6 +255,22 @@ export default function LoginPage() {
           >
             Beta
           </button>
+          {/* FR / EN language toggle */}
+          <div className="flex items-center rounded-xl overflow-hidden text-[0.65rem] font-bold"
+            style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            {(['fr', 'en'] as const).map((code) => (
+              <button
+                key={code}
+                onClick={() => setLang(code)}
+                className="px-2.5 py-1.5 transition"
+                style={locale === code
+                  ? { backgroundColor: 'var(--accent)', color: '#1B2541' }
+                  : { color: 'var(--text-muted)' }}
+              >
+                {code === 'fr' ? '🇫🇷' : '🇬🇧'} {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <ThemeToggle />
         </div>
       </nav>

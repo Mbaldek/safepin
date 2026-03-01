@@ -332,8 +332,12 @@ export default function SettingsSheet({ onClose }: Props) {
                     .map(([code, { native, flag }]) => (
                     <button
                       key={code}
-                      onClick={() => {
+                      onClick={async () => {
                         document.cookie = `NEXT_LOCALE=${code};path=/;max-age=31536000`;
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session) {
+                          await supabase.from('profiles').update({ language: code }).eq('id', session.user.id);
+                        }
                         window.location.reload();
                       }}
                       className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-bold transition text-left"
