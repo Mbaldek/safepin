@@ -15,21 +15,6 @@ function getAppOrigin() {
   return process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
 }
 
-const FEATURE_KEYS = [
-  { emoji: '📍', titleKey: 'featureLiveMap', descKey: 'featureLiveMapDesc' },
-  { emoji: '🆘', titleKey: 'featureSOS', descKey: 'featureSOSDesc' },
-  { emoji: '🗺️', titleKey: 'featureTrip', descKey: 'featureTripDesc' },
-  { emoji: '💬', titleKey: 'featureChat', descKey: 'featureChatDesc' },
-  { emoji: '🔔', titleKey: 'featureAlerts', descKey: 'featureAlertsDesc' },
-  { emoji: '🛡️', titleKey: 'featureVerified', descKey: 'featureVerifiedDesc' },
-] as const;
-
-const STAT_KEYS = [
-  { value: '10K+', labelKey: 'statReports' },
-  { value: '30+', labelKey: 'statLanguages' },
-  { value: '24/7', labelKey: 'statMonitoring' },
-  { value: '100%', labelKey: 'statFree' },
-] as const;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -297,32 +282,10 @@ export default function LoginPage() {
           className="text-3xl sm:text-4xl font-extrabold leading-tight max-w-md"
           style={{ color: 'var(--text-primary)' }}
         >
-          {t.rich('heroTitle', {
-            accent: (chunks) => (
-              <span className="bg-gradient-to-r from-[#E8A838] to-[#C48A1E] bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
-                {chunks}
-              </span>
-            ),
-          })}
+          {t('heroTitle')}
         </h1>
-        <p className="text-sm mt-3 max-w-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-          {t('heroSubtitle')}
-        </p>
       </section>
 
-      {/* ─── Stats ─────────────────────────────────── */}
-      <section className="flex justify-center gap-3 px-6 pb-8">
-        {STAT_KEYS.map((s) => (
-          <div
-            key={s.labelKey}
-            className="flex-1 max-w-[90px] text-center py-3 rounded-2xl"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            <p className="text-lg font-black" style={{ color: 'var(--accent)' }}>{s.value}</p>
-            <p className="text-[0.55rem] font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>{t(s.labelKey)}</p>
-          </div>
-        ))}
-      </section>
 
       {/* ─── Auth Card ─────────────────────────────── */}
       <section className="flex justify-center px-5 pb-8">
@@ -539,61 +502,18 @@ export default function LoginPage() {
         </div>
       </section>
 
-      {/* ─── Features Grid ─────────────────────────── */}
-      <section className="px-5 pb-10">
-        <h2 className="text-lg font-black text-center mb-5" style={{ color: 'var(--text-primary)' }}>
-          {t('featuresTitle')}
-        </h2>
-        <div className="grid grid-cols-2 gap-2.5 max-w-sm mx-auto">
-          {FEATURE_KEYS.map((f) => (
-            <div
-              key={f.titleKey}
-              className="rounded-2xl p-3.5"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <p className="text-xl mb-1.5">{f.emoji}</p>
-              <p className="text-xs font-black mb-0.5" style={{ color: 'var(--text-primary)' }}>{t(f.titleKey)}</p>
-              <p className="text-[0.6rem] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{t(f.descKey)}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ─── Social Proof ──────────────────────────── */}
-      <section className="px-5 pb-10">
-        <div
-          className="max-w-sm mx-auto rounded-2xl p-5 text-center"
-          style={{ backgroundColor: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}
-        >
-          <p className="text-sm font-bold leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-            &ldquo;{t('quote')}&rdquo;
-          </p>
-          <p className="text-xs mt-3 font-bold" style={{ color: 'var(--accent)' }}>
-            {t('quoteAuthor')}
-          </p>
-        </div>
-      </section>
-
-      {/* ─── Footer ────────────────────────────────── */}
-      <footer
-        className="mt-auto px-5 py-6 text-center"
-        style={{ borderTop: '1px solid var(--border)' }}
-      >
-        <div className="flex items-center justify-center gap-4 mb-3">
-          <a href="/privacy" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
-            {t('privacyPolicy')}
-          </a>
-          <a href="/terms" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
-            {t('termsOfService')}
-          </a>
-          <a href="/cookies" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
-            {t('cookiePolicy')}
-          </a>
-        </div>
-        <p className="text-[0.55rem]" style={{ color: 'var(--text-placeholder)' }}>
-          &copy; {new Date().getFullYear()} Breveil. All rights reserved.
-        </p>
-      </footer>
+      {/* ─── Legal links ───────────────────────────── */}
+      <div className="flex items-center justify-center gap-4 pb-10 pt-2">
+        <a href="/privacy" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
+          {t('privacyPolicy')}
+        </a>
+        <a href="/terms" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
+          {t('termsOfService')}
+        </a>
+        <a href="/cookies" className="text-[0.6rem] font-bold transition hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
+          {t('cookiePolicy')}
+        </a>
+      </div>
     </div>
   );
 }
