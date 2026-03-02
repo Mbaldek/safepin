@@ -31,7 +31,7 @@ import IncidentsView from '@/components/IncidentsView';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
-import OnboardingFunnel, { useOnboardingDone } from '@/components/OnboardingFunnel';
+import OnboardingFunnelV2, { useOnboardingDone } from '@/components/OnboardingFunnelV2';
 import PlaceNoteSheet from '@/components/PlaceNoteSheet';
 import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
@@ -978,7 +978,7 @@ export default function MapPage() {
 
       {/* ── Onboarding overlay (first launch only) ─────────────────── */}
       {!loading && !onboardingDone && userId && (
-        <OnboardingFunnel userId={userId} onDone={handleOnboardingDone} />
+        <OnboardingFunnelV2 onComplete={handleOnboardingDone} />
       )}
 
       {/* ── Push notification opt-in ─────────────────────────────────── */}
