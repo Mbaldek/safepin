@@ -369,7 +369,11 @@
     "joinedCount": "{n} rejoint(s)",
     "yourGroups": "Vos groupes",
     "groups": "Groupes",
-    "addGroup": "Ajouter un groupe"
+    "addGroup": "Ajouter un groupe",
+    "aroundYou": "Autour de vous",
+    "seeAllGroups": "Voir tous les groupes",
+    "inviteFirst": "Invitez vos premiers proches",
+    "joinCommunity": "Rejoignez une communauté"
   },
   "offline": {
     "banner": "Vous êtes hors ligne — les données peuvent être obsolètes",

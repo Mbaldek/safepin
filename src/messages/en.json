@@ -369,7 +369,11 @@
     "joinedCount": "{n} joined",
     "yourGroups": "Your Groups",
     "groups": "Groups",
-    "addGroup": "Add a group"
+    "addGroup": "Add a group",
+    "aroundYou": "Around you",
+    "seeAllGroups": "See all groups",
+    "inviteFirst": "Invite your first contacts",
+    "joinCommunity": "Join a community"
   },
   "offline": {
     "banner": "You're offline — data may be outdated",
