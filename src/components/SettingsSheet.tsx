@@ -166,6 +166,8 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
   const [waitlistJoined, setWaitlistJoined] = useState(false);
   const [langSearch, setLangSearch] = useState('');
   const [langOpen, setLangOpen] = useState(false);
+  const [mapStyleOpen, setMapStyleOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (section !== 'billing' || !userId) return;
@@ -181,6 +183,12 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
       setBillingLoading(false);
     });
   }, [section, userId]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email?.includes('balleron')) setIsAdmin(true);
+    });
+  }, []);
 
   const [upgrading, setUpgrading] = useState(false);
 
@@ -385,60 +393,69 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
             ))}
           </div>
 
-          {/* ── Restart onboarding ───────────────────────────────── */}
-          <button
-            onClick={async () => {
-              localStorage.removeItem('brume_onboarding_done');
-              document.cookie = 'ob_done=0;path=/;max-age=0';
-              if (userId) {
-                await supabase.from('profiles').update({ onboarding_completed: false }).eq('id', userId);
-              }
-              onClose();
-              router.push('/map');
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl mb-4 text-left transition active:opacity-60"
+          {/* ── Restart onboarding (disabled — coming soon) ──────── */}
+          <div
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl mb-4 opacity-40 cursor-not-allowed"
             style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
           >
             <span className="text-base">🎓</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Restart onboarding tour</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Re-discover Breveil features</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Relancer le tutoriel</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Bientôt disponible</p>
             </div>
-            <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          </button>
+          </div>
 
-          {/* ── Map Style ────────────────────────────────────────── */}
+          {/* ── Map Style (collapsible) ───────────────────────────── */}
           {mapStyle !== undefined && onMapStyleChange && (
-            <>
-              <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Map Style</p>
-              <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
-                {([
-                  { id: 'custom'  as MapStyle, label: 'Breveil',  emoji: '✦',  sub: 'Custom style' },
-                  { id: 'streets' as MapStyle, label: 'Streets',  emoji: '🗺️', sub: 'Standard' },
-                  { id: 'light'   as MapStyle, label: 'Light',    emoji: '☀️', sub: 'Minimal' },
-                  { id: 'dark'    as MapStyle, label: 'Dark',     emoji: '🌙', sub: 'Night' },
-                ]).map(({ id, label, emoji, sub }) => {
-                  const active = mapStyle === id;
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => onMapStyleChange(id)}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
-                      style={{ borderColor: 'var(--border)' }}
-                    >
-                      <span className="text-base">{emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>
-                      </div>
-                      {active && (
-                        <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>✓</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+            <div className="mb-4">
+              <button
+                onClick={() => setMapStyleOpen(!mapStyleOpen)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition active:opacity-60"
+                style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+              >
+                <span className="text-base">🗺️</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Map style</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {mapStyle === 'custom' ? 'Breveil' : mapStyle === 'streets' ? 'Streets' : mapStyle === 'light' ? 'Light' : 'Dark'}
+                  </p>
+                </div>
+                <ChevronRight
+                  size={15}
+                  className={`transition-transform duration-200 ${mapStyleOpen ? 'rotate-90' : ''}`}
+                  style={{ color: 'var(--text-muted)' }}
+                />
+              </button>
+              {mapStyleOpen && (
+                <div className="rounded-2xl overflow-hidden mt-1.5" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+                  {([
+                    { id: 'custom'  as MapStyle, label: 'Breveil',  emoji: '✦',  sub: 'Custom style' },
+                    { id: 'streets' as MapStyle, label: 'Streets',  emoji: '🗺️', sub: 'Standard' },
+                    { id: 'light'   as MapStyle, label: 'Light',    emoji: '☀️', sub: 'Minimal' },
+                    { id: 'dark'    as MapStyle, label: 'Dark',     emoji: '🌙', sub: 'Night' },
+                  ]).map(({ id, label, emoji, sub }) => {
+                    const active = mapStyle === id;
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => { onMapStyleChange(id); setMapStyleOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        <span className="text-base">{emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>
+                        </div>
+                        {active && (
+                          <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
 
           {/* ── Group B — Help & Information ──────────────────────── */}
@@ -522,6 +539,24 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             </button>
           </div>
+
+          {/* ── Admin: Reset Onboarding ──────────────────────────── */}
+          {isAdmin && (
+            <button
+              onClick={async () => {
+                if (!userId) return;
+                await supabase.from('profiles').update({ onboarding_completed: false, onboarding_step: 0 }).eq('id', userId);
+                document.cookie = 'ob_done=;path=/;max-age=0';
+                ['brume_onboarding_done', 'ob_done', 'onboardingDone', 'onboardingStep', 'onboarding_done'].forEach((k) => localStorage.removeItem(k));
+                toast.success('Onboarding reset — rechargement...');
+                setTimeout(() => { window.location.href = '/map'; }, 1000);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl mt-2 mb-1 transition active:opacity-60"
+              style={{ border: '1px solid rgba(249,115,22,0.35)', backgroundColor: 'rgba(249,115,22,0.07)' }}
+            >
+              <span className="text-sm font-bold" style={{ color: '#f97316' }}>🔧 Reset Onboarding (Admin)</span>
+            </button>
+          )}
 
           {/* ── Sign Out ─────────────────────────────────────────── */}
           <button
