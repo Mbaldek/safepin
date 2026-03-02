@@ -227,7 +227,12 @@
     "calmZone": "Zone calme",
     "followingYou": "vous suivent",
     "andMore": "et {n} autre(s)",
-    "safetyAvgLabel": "sécurité moy."
+    "safetyAvgLabel": "sécurité moy.",
+    "signalements": "{n} signalement(s)",
+    "dangerZone": "Zone sensible",
+    "activeZone": "Zone active",
+    "shareLink": "Partager le lien",
+    "dangerTip": "Restez sur les axes éclairés · Appelez un proche"
   },
   "settings": {
     "title": "Paramètres",

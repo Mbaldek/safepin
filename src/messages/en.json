@@ -227,7 +227,12 @@
     "calmZone": "Quiet zone",
     "followingYou": "following you",
     "andMore": "and {n} other",
-    "safetyAvgLabel": "safety avg."
+    "safetyAvgLabel": "safety avg.",
+    "signalements": "{n} report(s)",
+    "dangerZone": "Sensitive zone",
+    "activeZone": "Active zone",
+    "shareLink": "Share the link",
+    "dangerTip": "Stay on lit streets · Call a contact"
   },
   "settings": {
     "title": "Settings",
