@@ -16,7 +16,7 @@
   },
   "nav": {
     "map": "Carte",
-    "community": "Communaut\u00e9",
+    "community": "Communauté",
     "trip": "Trajet",
     "me": "Moi"
   },
@@ -61,7 +61,16 @@
     "success": "Signalement envoyé",
     "queued": "Signalement en attente — sera envoyé une fois en ligne",
     "loadingAddress": "Localisation…",
-    "unknownAddress": "Lieu inconnu"
+    "unknownAddress": "Lieu inconnu",
+    "tapToChange": "— appuyer pour changer",
+    "addDetails": "Ajouter des détails (optionnel)",
+    "hideDetails": "Masquer les détails",
+    "descriptionLabel": "DESCRIPTION",
+    "transportMode": "MODE DE TRANSPORT",
+    "onFoot": "À pied",
+    "transitMode": "Transports",
+    "bus": "Bus",
+    "cycling": "Vélo"
   },
   "detail": {
     "emergencyAlert": "Alerte d'urgence",
@@ -229,7 +238,11 @@
     "sessions": "Sessions actives",
     "privacyPolicy": "Politique de confidentialité",
     "terms": "Conditions d'utilisation",
-    "cookies": "Politique de cookies"
+    "cookies": "Politique de cookies",
+    "mapStyle": "Style de carte",
+    "redoOnboarding": "Relancer le tutoriel",
+    "support": "Aide",
+    "appVersion": "Breveil v0.1.0-beta"
   },
   "notifications": {
     "title": "Notifications",
@@ -264,15 +277,28 @@
     "communities": "Mes communautés",
     "groups": "groupe(s)",
     "youReported": "Vous avez signalé",
-    "youJoined": "Vous avez rejoint"
+    "youJoined": "Vous avez rejoint",
+    "noDescription": "Pas de description."
   },
+  "community": {
     "title": "Communautés",
     "create": "Créer une communauté",
     "join": "Rejoindre",
     "leave": "Quitter",
     "members": "{count} {count, plural, one {membre} other {membres}}",
     "noMessages": "Aucun message",
-    "typePlaceholder": "Écrivez un message…"
+    "typePlaceholder": "Écrivez un message…",
+    "addFirstContacts": "Ajoutez vos premiers proches",
+    "circleDescription": "Vos proches — partagez vos trajets et gardez le contact.",
+    "inviteContact": "Inviter un proche",
+    "messagesDesc": "Amis et conversations",
+    "neighbourhoods": "Quartiers",
+    "neighbourhoodsDesc": "Voir ce qui se passe autour",
+    "groupsCommunities": "Groupes & Communautés",
+    "discover": "Découvrir",
+    "newGroup": "+ Nouveau",
+    "member": "membre",
+    "communityTag": "COMMUNAUTÉ"
   },
   "offline": {
     "banner": "Vous êtes hors ligne — les données peuvent être obsolètes",
@@ -312,6 +338,7 @@
     "partner": "Partenaire",
     "premiumPartner": "Partenaire Premium",
     "verified": "Vérifié",
+    "community": "Communauté",
     "openNow": "Ouvert",
     "closed": "Fermé",
     "todayHours": "Aujourd'hui",
@@ -428,6 +455,7 @@
     "magicLinkSuccess": "Lien magique envoyé ! Vérifiez votre boîte mail.",
     "accountCreated": "Compte créé ! Vérifiez votre email pour confirmer.",
     "welcomeBack": "Bienvenue !",
+    "tagline": "Rejoignez une communauté qui veille les uns sur les autres",
     "invite": {
       "title": "Rejoindre avec un code d'invitation",
       "placeholder": "Entrez le code",
@@ -525,5 +553,53 @@
     "welcomeGoalsStat": "centres d'intérêt",
     "welcomeFeaturesStat": "fonctionnalités",
     "welcomeCta": "Explorer votre carte communautaire"
+  },
+  "map": {
+    "nearby": "À proximité",
+    "any": "Tous"
+  },
+  "banner": {
+    "reportsNearby": "🔔 {count} signalement(s) autour de vous",
+    "sharingActive": "📍 Partage actif avec votre Cercle",
+    "allCalm": "☀️ Tout est calme autour de vous",
+    "goodEvening": "🌙 Bonne soirée, restez vigilante",
+    "activeMembers": "💛 {name} — {count} membres actifs"
+  },
+  "placeTypes": {
+    "street": "Rue",
+    "parking": "Parking",
+    "storeMall": "Commerce",
+    "metro": "Métro",
+    "busStop": "Arrêt de bus",
+    "park": "Parc",
+    "restaurantBar": "Restaurant / Bar",
+    "building": "Bâtiment",
+    "other": "Autre"
+  },
+  "categories": {
+    "harassment": "Harcèlement",
+    "stalking": "Filature",
+    "aggression": "Agression",
+    "theft": "Vol",
+    "verbalAbuse": "Insultes",
+    "poorLighting": "Mauvais éclairage",
+    "unsafeRoad": "Route dangereuse",
+    "isolatedArea": "Zone isolée",
+    "intoxicated": "Individu en état d'ébriété",
+    "suspicious": "Comportement suspect"
+  },
+  "walkWithMe": {
+    "walkTogether": "Marcher ensemble",
+    "shareCode": "Partagez ce code avec votre accompagnant :",
+    "waitingCompanion": "En attente... 💛",
+    "myTrip": "Mon trajet",
+    "myFavorites": "Mes favoris",
+    "destinationPlaceholder": "ex: Maison, Gare du Nord, Café..."
+  },
+  "levels": {
+    "veilleur": "Veilleur",
+    "gardien": "Gardien",
+    "sentinelle": "Sentinelle",
+    "protecteur": "Protecteur"
   }
 }

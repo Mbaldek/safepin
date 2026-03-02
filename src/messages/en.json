@@ -61,7 +61,16 @@
     "success": "Report submitted",
     "queued": "Report queued — will submit when back online",
     "loadingAddress": "Locating…",
-    "unknownAddress": "Unknown location"
+    "unknownAddress": "Unknown location",
+    "tapToChange": "— tap to change",
+    "addDetails": "Add details (optional)",
+    "hideDetails": "Hide details",
+    "descriptionLabel": "DESCRIPTION",
+    "transportMode": "TRANSPORT MODE",
+    "onFoot": "On foot",
+    "transitMode": "Transit",
+    "bus": "Bus",
+    "cycling": "Cycling"
   },
   "detail": {
     "emergencyAlert": "Emergency Alert",
@@ -229,7 +238,11 @@
     "sessions": "Active sessions",
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms of Service",
-    "cookies": "Cookie Policy"
+    "cookies": "Cookie Policy",
+    "mapStyle": "Map style",
+    "redoOnboarding": "Redo onboarding tour",
+    "support": "Support",
+    "appVersion": "Breveil v0.1.0-beta"
   },
   "notifications": {
     "title": "Notifications",
@@ -264,7 +277,8 @@
     "communities": "My Communities",
     "groups": "group(s)",
     "youReported": "You reported",
-    "youJoined": "You joined"
+    "youJoined": "You joined",
+    "noDescription": "No description."
   },
   "community": {
     "title": "Communities",
@@ -273,7 +287,18 @@
     "leave": "Leave",
     "members": "{count} {count, plural, one {member} other {members}}",
     "noMessages": "No messages yet",
-    "typePlaceholder": "Type a message…"
+    "typePlaceholder": "Type a message…",
+    "addFirstContacts": "Add your first contacts",
+    "circleDescription": "Your trusted people — share trips and stay connected.",
+    "inviteContact": "Invite a contact",
+    "messagesDesc": "Friends & direct messages",
+    "neighbourhoods": "Neighbourhoods",
+    "neighbourhoodsDesc": "See what's happening nearby",
+    "groupsCommunities": "Groups & Communities",
+    "discover": "Discover",
+    "newGroup": "+ New",
+    "member": "member",
+    "communityTag": "COMMUNITY"
   },
   "offline": {
     "banner": "You're offline — data may be outdated",
@@ -430,6 +455,7 @@
     "magicLinkSuccess": "Magic link sent! Check your inbox.",
     "accountCreated": "Account created! Check your email to confirm.",
     "welcomeBack": "Welcome back!",
+    "tagline": "Join a community that looks out for each other",
     "invite": {
       "title": "Join with an invitation code",
       "placeholder": "Enter code",
@@ -527,5 +553,53 @@
     "welcomeGoalsStat": "interests",
     "welcomeFeaturesStat": "features",
     "welcomeCta": "Explore your community map"
+  },
+  "map": {
+    "nearby": "Nearby",
+    "any": "Any"
+  },
+  "banner": {
+    "reportsNearby": "🔔 {count} report(s) nearby",
+    "sharingActive": "📍 Sharing active with your Circle",
+    "allCalm": "☀️ All calm around you",
+    "goodEvening": "🌙 Good evening, stay safe",
+    "activeMembers": "💛 {name} — {count} active members"
+  },
+  "placeTypes": {
+    "street": "Street",
+    "parking": "Parking",
+    "storeMall": "Store / Mall",
+    "metro": "Metro",
+    "busStop": "Bus stop",
+    "park": "Park",
+    "restaurantBar": "Restaurant / Bar",
+    "building": "Building",
+    "other": "Other"
+  },
+  "categories": {
+    "harassment": "Harassment",
+    "stalking": "Stalking",
+    "aggression": "Aggression",
+    "theft": "Theft",
+    "verbalAbuse": "Verbal abuse",
+    "poorLighting": "Poor lighting",
+    "unsafeRoad": "Unsafe road",
+    "isolatedArea": "Isolated area",
+    "intoxicated": "Intoxicated",
+    "suspicious": "Suspicious"
+  },
+  "walkWithMe": {
+    "walkTogether": "Walk together",
+    "shareCode": "Share this code with your companion:",
+    "waitingCompanion": "Waiting... 💛",
+    "myTrip": "My trip",
+    "myFavorites": "My favorites",
+    "destinationPlaceholder": "e.g. Home, Gare du Nord, Café..."
+  },
+  "levels": {
+    "veilleur": "Watcher",
+    "gardien": "Guardian",
+    "sentinelle": "Sentinel",
+    "protecteur": "Protector"
   }
 }
