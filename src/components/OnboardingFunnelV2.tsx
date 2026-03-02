@@ -3,11 +3,13 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Camera, Check, ChevronRight, Copy, Link2, Share2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
+import { CitySelector } from './CitySelector';
 
 const STORAGE_KEY = 'brume_onboarding_done';
 
@@ -36,6 +38,8 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
 
   const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState('');
+  const [city, setCity] = useState('Paris');
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<number[]>([0, 3]);
@@ -71,7 +75,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
     if (userId) {
       await supabase.from('profiles').update({
         ...(name.trim() ? { display_name: name.trim() } : {}),
-        city: 'Paris',
+        city,
         onboarding_goals: selectedGoals,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
@@ -323,9 +327,12 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full"
                 style={{ background: 'var(--bg-card)', fontSize: 14, color: 'var(--text-primary)' }}
               >
-                📍 Paris
+                📍 {city}
               </span>
-              <button style={{ color: '#E8A838', fontSize: 14, fontWeight: 500 }}>
+              <button
+                onClick={() => setShowCitySelector(true)}
+                style={{ color: '#E8A838', fontSize: 14, fontWeight: 500 }}
+              >
                 {t('changeCity')}
               </button>
             </div>
@@ -668,6 +675,17 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
 
         </div>
       </div>
+
+      {/* City selector sheet */}
+      <AnimatePresence>
+        {showCitySelector && (
+          <CitySelector
+            value={city}
+            onChange={(newCity) => setCity(newCity)}
+            onClose={() => setShowCitySelector(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

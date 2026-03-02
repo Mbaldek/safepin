@@ -317,6 +317,19 @@ export type TripLog = {
 export type Profile = {
   id: string;
   name: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  city?: string | null;
+  date_of_birth?: string | null;
+  persona?: 'solo_traveler' | 'night_worker' | 'student' | 'commuter' | 'parent' | null;
+  phone?: string | null;
+  onboarding_goals?: number[];
+  onboarding_step?: number;
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string | null;
+  verified?: boolean;
+  verification_deadline?: string | null;
+  blocked_reason?: string | null;
   is_shadow_banned?: boolean;
   is_simulated?: boolean;
   sim_places?: Array<{ lat: number; lng: number; label: string; role: string }> | null;
