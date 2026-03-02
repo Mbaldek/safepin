@@ -9,6 +9,7 @@ import { TrustedContact } from '@/types';
 import { toast } from 'sonner';
 import { UserPlus, X, Check, Radio, MapPin, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { useContactPresence } from '@/lib/usePresence';
+import { useTranslations } from 'next-intl';
 
 type ContactRow = TrustedContact & { display_name: string | null; contact_user_id: string };
 type InviteRow  = TrustedContact & { sender_name: string | null };
@@ -45,6 +46,7 @@ export default function TrustedCircleCard({
   compact?: boolean;
 }) {
   const { addNotification, isSharingLocation, watchedLocations } = useStore();
+  const t = useTranslations('community');
   const [contacts, setContacts]               = useState<ContactRow[]>([]);
   const [pendingReceived, setPendingReceived] = useState<InviteRow[]>([]);
   const [pendingSent, setPendingSent]         = useState<TrustedContact[]>([]);
@@ -110,8 +112,8 @@ export default function TrustedCircleCard({
         addNotification({
           id: crypto.randomUUID(),
           type: 'trusted_contact',
-          title: '👋 New Trusted Circle invite',
-          body: 'Someone wants to add you to their circle',
+          title: t('notifNewInvite'),
+          body: t('notifInviteBody'),
           read: false,
           created_at: new Date().toISOString(),
         });
@@ -144,10 +146,10 @@ export default function TrustedCircleCard({
     });
     setInviting(false);
     if (error) {
-      toast.error(error.code === '23505' ? 'Already invited or in your circle' : 'Could not send invite');
+      toast.error(error.code === '23505' ? t('alreadyInvited') : t('couldNotSend'));
       return;
     }
-    toast.success(`Invite sent to ${target.display_name ?? 'user'}`);
+    toast.success(t('inviteSentTo', { name: target.display_name ?? 'user' }));
     setSearchQuery('');
     setSearchResults([]);
     setShowAdd(false);
@@ -159,8 +161,8 @@ export default function TrustedCircleCard({
       .from('trusted_contacts')
       .update({ status: accept ? 'accepted' : 'declined' })
       .eq('id', id);
-    if (error) { toast.error('Failed to respond'); return; }
-    toast.success(accept ? 'Added to Trusted Circle' : 'Invite declined');
+    if (error) { toast.error(t('failedToRespond')); return; }
+    toast.success(accept ? t('addedToCircle') : t('inviteDeclined'));
     loadContacts();
   }
 
@@ -174,7 +176,7 @@ export default function TrustedCircleCard({
     const lastCheckin = localStorage.getItem('brume_last_checkin');
     if (lastCheckin && Date.now() - Number(lastCheckin) < CHECKIN_COOLDOWN) {
       const minsLeft = Math.ceil((CHECKIN_COOLDOWN - (Date.now() - Number(lastCheckin))) / 60_000);
-      toast.error(`You can check in again in ${minsLeft} min`);
+      toast.error(t('checkInCooldown', { n: minsLeft }));
       return;
     }
 
@@ -221,7 +223,7 @@ export default function TrustedCircleCard({
 
     localStorage.setItem('brume_last_checkin', String(Date.now()));
     setCheckingIn(false);
-    toast.success(`Check-in sent to ${sent} contact${sent !== 1 ? 's' : ''}`);
+    toast.success(t('checkInSent', { n: sent }));
   }
 
   if (loading) return null;
@@ -240,8 +242,8 @@ export default function TrustedCircleCard({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm">🛡️</span>
-            <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Trusted Circle</p>
+            <span className="text-sm">💛</span>
+            <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{t('circle')}</p>
             {contacts.length > 0 && (
               <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
                 style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
@@ -253,7 +255,7 @@ export default function TrustedCircleCard({
             <span className="flex items-center gap-1 text-[0.55rem] font-bold px-1.5 py-0.5 rounded-full"
               style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
-              {onlineCount} online
+              {t('circleOnline', { n: onlineCount })}
             </span>
           )}
         </div>
@@ -282,7 +284,7 @@ export default function TrustedCircleCard({
             </div>
           </div>
         ) : (
-          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>No contacts yet</p>
+          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('noContactsYet')}</p>
         )}
         {pendingReceived.length > 0 && (
           <p className="text-[0.55rem] font-bold" style={{ color: 'var(--accent)' }}>
@@ -302,9 +304,9 @@ export default function TrustedCircleCard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-base">🛡️</span>
+          <span className="text-base">💛</span>
           <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
-            Trusted Circle
+            {t('circle')}
           </p>
           {contacts.length > 0 && (
             <span
@@ -318,7 +320,7 @@ export default function TrustedCircleCard({
             <span className="flex items-center gap-1 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full"
               style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
               <Radio size={9} strokeWidth={2.5} />
-              Live
+              {t('sharingLive')}
             </span>
           )}
         </div>
@@ -331,7 +333,7 @@ export default function TrustedCircleCard({
           }}
         >
           <UserPlus size={11} strokeWidth={2.5} />
-          Add
+          {t('add')}
         </button>
       </div>
 
@@ -342,7 +344,7 @@ export default function TrustedCircleCard({
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
         >
           <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-            Search by name
+            {t('searchByName')}
           </p>
           <div className="flex gap-2">
             <input
@@ -359,7 +361,7 @@ export default function TrustedCircleCard({
               className="px-3 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
             >
-              {searching ? '…' : 'Find'}
+              {searching ? '…' : t('find')}
             </button>
           </div>
           {searchResults.length > 0 && (
@@ -386,7 +388,7 @@ export default function TrustedCircleCard({
           )}
           {searchQuery.trim() && searchResults.length === 0 && !searching && (
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              No user found
+              {t('noUserFound')}
             </p>
           )}
         </div>
@@ -405,7 +407,7 @@ export default function TrustedCircleCard({
               <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
                 {inv.sender_name ?? 'Someone'}
               </p>
-              <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Wants to join your circle</p>
+              <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('wantsToJoin')}</p>
             </div>
           </div>
           <div className="flex gap-1.5">
@@ -432,10 +434,10 @@ export default function TrustedCircleCard({
         <div className="flex flex-col items-center gap-2 py-4 text-center">
           <span className="text-3xl">👥</span>
           <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Ajoutez vos premiers proches
+            {t('addFirstContacts')}
           </p>
           <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Ils pourront suivre vos trajets et vous les leurs
+            {t('circleDescription')}
           </p>
           <button
             onClick={() => setShowAdd(true)}
@@ -443,7 +445,7 @@ export default function TrustedCircleCard({
             style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
           >
             <UserPlus size={11} strokeWidth={2.5} className="inline mr-1.5" style={{ verticalAlign: '-1px' }} />
-            Add contact
+            {t('inviteContact')}
           </button>
         </div>
       )}
@@ -507,7 +509,7 @@ export default function TrustedCircleCard({
                   style={{ backgroundColor: 'var(--bg-card)' }}>
                   ⏳
                 </div>
-                <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Invite pending…</p>
+                <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('invitePending')}</p>
               </div>
               <button
                 onClick={() => removeContact(s.id)}
@@ -525,7 +527,7 @@ export default function TrustedCircleCard({
               className="flex items-center justify-center gap-1 py-1.5 text-xs font-bold transition"
               style={{ color: 'var(--text-muted)' }}
             >
-              {showAll ? <><ChevronUp size={12} /> Show less</> : <><ChevronDown size={12} /> See all ({contacts.length})</>}
+              {showAll ? <><ChevronUp size={12} /> {t('showLess')}</> : <><ChevronDown size={12} /> {t('seeAll', { n: contacts.length })}</>}
             </button>
           )}
         </div>
@@ -541,7 +543,7 @@ export default function TrustedCircleCard({
             style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}
           >
             <Heart size={12} strokeWidth={2.5} />
-            {checkingIn ? 'Sending…' : 'Check in'}
+            {checkingIn ? t('checkInSending') : t('checkIn')}
           </button>
           {onSeeOnMap && (
             <button
@@ -550,15 +552,14 @@ export default function TrustedCircleCard({
               style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             >
               <MapPin size={12} strokeWidth={2.5} style={{ color: 'var(--accent)' }} />
-              See on map
+              {t('seeOnMap')}
             </button>
           )}
         </div>
       )}
 
-      {/* SOS context */}
       <p className="text-[0.6rem] text-center leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-        These contacts are alerted when you trigger SOS.
+        {t('circleDescription')}
       </p>
     </div>
   );

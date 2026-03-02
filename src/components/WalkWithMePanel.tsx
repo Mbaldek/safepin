@@ -209,7 +209,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               </button>
             </div>
             <div className="animate-pulse text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
-              {t('waitingFor')}
+              {t('waitingCompanion')}
             </div>
           </div>
         )}

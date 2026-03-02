@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Send, UserPlus, Search, Shield } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTranslations } from 'next-intl';
 import { DMConversation, DirectMessage } from '@/types';
 import { toast } from 'sonner';
 
@@ -45,6 +46,7 @@ function Avatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md'
 
 export default function FriendsView({ onBack }: { onBack?: () => void }) {
   const { userId } = useStore();
+  const tc = useTranslations('community');
   const [view, setView] = useState<View>('list');
   const [listTab, setListTab] = useState<ListTab>('friends');
 
@@ -559,7 +561,7 @@ export default function FriendsView({ onBack }: { onBack?: () => void }) {
                           )}
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          {isTrusted ? 'Trusted Circle' : 'Tap to message'}
+                          {isTrusted ? tc('circle') : tc('tapToMessage')}
                         </p>
                       </div>
                       <span className="text-xs font-bold px-3 py-1.5 rounded-full shrink-0"

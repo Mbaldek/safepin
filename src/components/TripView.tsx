@@ -295,7 +295,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   }
 
   const headerTitle =
-    escortState === 'IDLE' ? (showSaved ? 'My Favorites' : t('safetyEscort')) :
+    escortState === 'IDLE' ? (showSaved ? t('myFavorites') : t('safetyEscort')) :
     escortState === 'PLANNING' ? t('title') :
     escortState === 'ACTIVE' ? t('activeTrip') :
     t('tripComplete');
@@ -504,7 +504,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
               >
                 <Star size={13} strokeWidth={2.5} style={{ color: '#f59e0b' }} />
-                My Favorites
+                {t('myFavorites')}
               </button>
             </div>
 

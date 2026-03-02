@@ -3,6 +3,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -110,6 +111,7 @@ export default function MapPage() {
     mapFilters,
     showSafeSpaces, setShowSafeSpaces,
   } = useStore();
+  const tMap = useTranslations('map');
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
   const justCompletedOnboardingRef = useRef(false);
@@ -745,7 +747,7 @@ export default function MapPage() {
             >
               <List size={15} strokeWidth={2.2} style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }} />
               <span className="text-xs font-bold" style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }}>
-                Nearby
+                {tMap('nearby')}
               </span>
               {/* Emergency badge */}
               {!showIncidentsList && pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length > 0 && (

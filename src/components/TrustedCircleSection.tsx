@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore';
 import { TrustedContact } from '@/types';
 import { toast } from 'sonner';
 import { UserPlus, X, Check, Radio } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ function Avatar({ name, size = 36 }: { name: string | null; size?: number }) {
 
 export default function TrustedCircleSection({ userId }: { userId: string }) {
   const { addNotification, isSharingLocation } = useStore();
+  const t = useTranslations('community');
   const [contacts, setContacts]               = useState<ContactRow[]>([]);
   const [pendingReceived, setPendingReceived] = useState<InviteRow[]>([]);
   const [pendingSent, setPendingSent]         = useState<TrustedContact[]>([]);
@@ -99,8 +101,8 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
         addNotification({
           id: crypto.randomUUID(),
           type: 'trusted_contact',
-          title: '👋 New Trusted Circle invite',
-          body: 'Someone wants to add you to their circle',
+          title: t('notifNewInvite'),
+          body: t('notifInviteBody'),
           read: false,
           created_at: new Date().toISOString(),
         });
@@ -136,10 +138,10 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
     });
     setInviting(false);
     if (error) {
-      toast.error(error.code === '23505' ? 'Already invited or in your circle' : 'Could not send invite');
+      toast.error(error.code === '23505' ? t('alreadyInvited') : t('couldNotSend'));
       return;
     }
-    toast.success(`Invite sent to ${searchResult.display_name ?? 'user'}`);
+    toast.success(t('inviteSentTo', { name: searchResult.display_name ?? 'user' }));
     setSearchQuery('');
     setSearchResult(null);
     setShowAdd(false);
@@ -151,8 +153,8 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
       .from('trusted_contacts')
       .update({ status: accept ? 'accepted' : 'declined' })
       .eq('id', id);
-    if (error) { toast.error('Failed to respond'); return; }
-    toast.success(accept ? 'Added to Trusted Circle ✓' : 'Invite declined');
+    if (error) { toast.error(t('failedToRespond')); return; }
+    toast.success(accept ? t('addedToCircle') : t('inviteDeclined'));
     loadContacts();
   }
 
@@ -171,7 +173,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
           <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Trusted Circle
+            {t('circle')}
           </p>
           {contacts.length > 0 && (
             <span
@@ -185,7 +187,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
             <span className="flex items-center gap-1 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full"
               style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
               <Radio size={9} strokeWidth={2.5} />
-              Sharing
+              {t('sharingLive')}
             </span>
           )}
         </div>
@@ -199,7 +201,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
           }}
         >
           <UserPlus size={12} strokeWidth={2.5} />
-          Add
+          {t('add')}
         </button>
       </div>
 
@@ -210,7 +212,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
           <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-            Invite by display name
+            {t('searchByName')}
           </p>
           <div className="flex gap-2">
             <input
@@ -227,7 +229,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
               className="px-3 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40"
               style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
             >
-              {searching ? '…' : 'Find'}
+              {searching ? '…' : t('find')}
             </button>
           </div>
           {searchResult && (
@@ -250,7 +252,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
           )}
           {searchQuery.trim() && !searchResult && !searching && (
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              No user found · check the exact name
+              {t('noUserFound')}
             </p>
           )}
         </div>
@@ -271,7 +273,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
                   <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
                     {inv.sender_name ?? 'Someone'}
                   </p>
-                  <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>Wants to add you</p>
+                  <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('wantsToAdd')}</p>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -302,9 +304,9 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
           <span className="text-2xl">👥</span>
-          <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No one in your circle yet</p>
+          <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{t('noCircleYet')}</p>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Add people you trust — they can watch you during trips
+            {t('addPeopleTrust')}
           </p>
         </div>
       )}
@@ -330,7 +332,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
                   <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
                     {c.display_name ?? 'Unknown'}
                   </p>
-                  <p className="text-[0.6rem] font-bold" style={{ color: '#22c55e' }}>✓ Trusted</p>
+                  <p className="text-[0.6rem] font-bold" style={{ color: '#22c55e' }}>{t('trustedBadge')}</p>
                 </div>
               </div>
               <button
@@ -353,7 +355,7 @@ export default function TrustedCircleSection({ userId }: { userId: string }) {
                   style={{ backgroundColor: 'var(--bg-secondary)' }}>
                   ⏳
                 </div>
-                <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>Invite pending…</p>
+                <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('invitePending')}</p>
               </div>
               <button
                 onClick={() => removeContact(s.id)}
