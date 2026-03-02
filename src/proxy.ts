@@ -150,16 +150,16 @@ export async function proxy(req: NextRequest) {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (!profile?.onboarding_completed) {
-        return NextResponse.redirect(new URL('/onboarding/profile', req.url));
+      if (profile?.onboarding_completed) {
+        // Cache completion + set locale cookie on same response
+        supabaseRes.cookies.set('ob_done', '1', { path: '/', maxAge: 31536000 });
+        if (!req.cookies.get(COOKIE_NAME)) {
+          supabaseRes.cookies.set(COOKIE_NAME, detectLocale(req), { path: '/', maxAge: 365 * 24 * 60 * 60 });
+        }
+        return supabaseRes;
       }
-
-      // Cache completion + set locale cookie on same response
-      supabaseRes.cookies.set('ob_done', '1', { path: '/', maxAge: 31536000 });
-      if (!req.cookies.get(COOKIE_NAME)) {
-        supabaseRes.cookies.set(COOKIE_NAME, detectLocale(req), { path: '/', maxAge: 365 * 24 * 60 * 60 });
-      }
-      return supabaseRes;
+      // Onboarding not completed → let through to /map
+      // OnboardingFunnel overlay handles the experience
     }
     // Unauthenticated — fall through to locale cookie step
   }

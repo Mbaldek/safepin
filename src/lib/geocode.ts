@@ -13,7 +13,7 @@ export async function geocodeForward(
     const prox = proximity ? `&proximity=${proximity.lng},${proximity.lat}` : '';
     const res = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-      `?access_token=${TOKEN}&limit=1&language=fr,en${prox}`,
+      `?access_token=${TOKEN}&limit=1&language=fr,en${prox}&autocomplete=true&types=poi,address,place`,
     );
     const d = await res.json();
     return d.features?.[0]?.geometry?.coordinates ?? null;

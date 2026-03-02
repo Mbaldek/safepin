@@ -53,7 +53,7 @@ export default function AutocompleteInput({
         const prox = userLocation ? `&proximity=${userLocation.lng},${userLocation.lat}` : '';
         const res = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json` +
-          `?access_token=${token}&limit=5&language=fr,en${prox}`,
+          `?access_token=${token}&limit=7&language=fr,en${prox}&autocomplete=true&types=poi,address,place`,
         );
         const data = await res.json();
         const results: ACSuggestion[] = (data.features ?? []).map((f: {

@@ -96,7 +96,7 @@ export default function MapPage() {
     setUserProfile, setUserId, userId,
     addNotification, notifications,
     setPendingRoutes,
-    isSharingLocation, setWatchedLocation,
+    isSharingLocation, setIsSharingLocation, setWatchedLocation,
     userLocation, userProfile,
     newPlaceNoteCoords, setNewPlaceNoteCoords,
     selectedPlaceNote, setSelectedPlaceNote,
@@ -235,7 +235,7 @@ export default function MapPage() {
 
   // Layer state (lifted from MapView so page can render LayerPanel bottom sheet)
   const { theme } = useTheme();
-  const [mapStyle, setMapStyle] = useState<'streets' | 'light' | 'dark'>('streets');
+  const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>('custom');
   const [showBus, setShowBus] = useState(false);
   const [showMetroRER, setShowMetroRER] = useState(false);
   const [showPharmacy, setShowPharmacy] = useState(false);
@@ -248,7 +248,7 @@ export default function MapPage() {
 
   // Auto-follow app theme for map style
   useEffect(() => {
-    setMapStyle(theme === 'dark' ? 'dark' : 'streets');
+    setMapStyle(theme === 'dark' ? 'dark' : 'custom');
   }, [theme]);
 
   // Filter active count for badge
@@ -728,6 +728,32 @@ export default function MapPage() {
 
         {/* Location chip — map tab only */}
         {activeTab === 'map' && <LocationChip />}
+
+        {/* Walk With Me — active sharing indicator */}
+        {isSharingLocation && (
+          <div
+            className="absolute top-14 left-1/2 -translate-x-1/2 z-30
+                       flex items-center gap-2 px-3 py-1.5 rounded-full
+                       backdrop-blur-sm cursor-pointer"
+            style={{
+              background: 'rgba(76,175,121,0.12)',
+              border: '1px solid rgba(76,175,121,0.25)',
+            }}
+            onClick={() => setShowWalkWithMe(true)}
+          >
+            <span className="w-2 h-2 rounded-full animate-pulse"
+                  style={{ backgroundColor: 'var(--safe)' }} />
+            <span className="text-xs font-semibold" style={{ color: 'var(--safe)' }}>
+              Partage actif
+            </span>
+            <button
+              className="text-xs opacity-60 ml-1"
+              onClick={(e) => { e.stopPropagation(); setIsSharingLocation(false); }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* Session briefing card — shown once per session on map tab */}
         <AnimatePresence>

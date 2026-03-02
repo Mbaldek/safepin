@@ -69,6 +69,7 @@ export default function OnboardingFunnel({ userId, onDone }: Props) {
       onboarding_completed: true,
       onboarding_completed_at: new Date().toISOString(),
     }).eq('id', userId);
+    document.cookie = 'ob_done=1;path=/;max-age=31536000';
     onDone();
   }
 

@@ -38,6 +38,7 @@ const SAFE_LABEL = 'safe-spaces-label';
 const SAFE_PARTNER = 'safe-spaces-partner';
 
 const STYLE_URLS: Record<string, string> = {
+  custom:  'mapbox://styles/matlab244/cmm6okd7v005q01s49w19fac0',
   streets: 'mapbox://styles/mapbox/streets-v12',
   light:   'mapbox://styles/mapbox/light-v11',
   dark:    'mapbox://styles/mapbox/dark-v11',
@@ -461,7 +462,7 @@ function addClusterLayers(m: mapboxgl.Map) {
 }
 
 export type MapViewProps = {
-  mapStyle: 'streets' | 'light' | 'dark';
+  mapStyle: 'custom' | 'streets' | 'light' | 'dark';
   showBus: boolean;
   showMetroRER: boolean;
   showPharmacy: boolean;

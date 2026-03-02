@@ -422,6 +422,29 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
 
   return (
     <>
+      {/* ── Hold progress — centered overlay, above the thumb ──────── */}
+      {phase === 'idle' && fabHoldProgress > 0 && (
+        <div
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center pointer-events-none"
+          style={{ background: `rgba(230,57,70,${fabHoldProgress * 0.10})` }}
+        >
+          <p className="text-white/70 text-sm font-medium mb-5 tracking-wide">
+            Maintiens pour déclencher l&apos;alerte
+          </p>
+          <div className="w-52 h-[3px] rounded-full overflow-hidden"
+               style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${fabHoldProgress * 100}%`,
+                backgroundColor: DANGER_RED,
+                transition: 'width 0.05s linear',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Countdown overlay — v0 design ───────────────────────────── */}
       {phase === 'countdown' && (
         <div
@@ -653,11 +676,11 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           <svg className="absolute inset-0 h-full w-full" viewBox="0 0 56 56" fill="none">
             <circle
               cx="28" cy="28" r="26"
-              stroke="white" strokeWidth="3"
+              stroke="white" strokeWidth="1.5"
               strokeDasharray={`${fabHoldProgress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
               strokeLinecap="round"
               transform="rotate(-90 28 28)"
-              opacity="0.8"
+              opacity="0.35"
             />
           </svg>
         )}

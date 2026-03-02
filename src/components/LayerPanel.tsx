@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import CollapsibleSection from '@/components/CollapsibleSection';
 
-type MapStyle = 'streets' | 'light' | 'dark';
+type MapStyle = 'custom' | 'streets' | 'light' | 'dark';
 
 type Props = {
   open: boolean;
@@ -39,6 +39,7 @@ type Props = {
 };
 
 const STYLES: { id: MapStyle; label: string; emoji: string }[] = [
+  { id: 'custom',  label: 'Breveil', emoji: '✦'  },
   { id: 'streets', label: 'Streets', emoji: '🗺️' },
   { id: 'light',   label: 'Light',   emoji: '☀️' },
   { id: 'dark',    label: 'Dark',    emoji: '🌙' },
