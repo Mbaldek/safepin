@@ -144,5 +144,20 @@
     "magicLinkSuccess": "Ссылка отправлена! Проверьте почту.",
     "accountCreated": "Аккаунт создан! Проверьте email для подтверждения.",
     "welcomeBack": "С возвращением!"
+  },
+  "incidents": {
+    "nearbyIncidents": "Происшествия рядом",
+    "allClear": "Всё спокойно вокруг вас ☀️",
+    "allClearSub": "Хорошие новости!",
+    "noResults": "Нет результатов",
+    "broadenFilters": "Расширить фильтры",
+    "clearFilters": "Очистить фильтры",
+    "radius": "Радиус",
+    "severityAll": "Все",
+    "mild": "Лёгкое",
+    "moderate": "Умеренное",
+    "danger": "Опасное",
+    "urgent": "Срочно",
+    "emergencyAlert": "Экстренный сигнал"
   }
 }

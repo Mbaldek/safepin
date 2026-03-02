@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "附近事件",
+    "allClear": "您周围一切平静 ☀️",
+    "allClearSub": "好消息！",
+    "noResults": "没有结果",
+    "broadenFilters": "扩大筛选",
+    "clearFilters": "清除筛选",
+    "radius": "半径",
+    "severityAll": "全部",
+    "mild": "轻微",
+    "moderate": "中等",
+    "danger": "危险",
+    "urgent": "紧急",
+    "emergencyAlert": "紧急警报"
   }
 }

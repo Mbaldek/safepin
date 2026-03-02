@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Incidente din apropiere",
+    "allClear": "Totul liniștit în jur ☀️",
+    "allClearSub": "Vești bune!",
+    "noResults": "Niciun rezultat",
+    "broadenFilters": "Extindeți filtrele",
+    "clearFilters": "Ștergeți filtrele",
+    "radius": "Rază",
+    "severityAll": "Toate",
+    "mild": "Ușor",
+    "moderate": "Moderat",
+    "danger": "Periculos",
+    "urgent": "Urgent",
+    "emergencyAlert": "Alertă de urgență"
   }
 }

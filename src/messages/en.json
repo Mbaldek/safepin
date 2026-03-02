@@ -359,6 +359,21 @@
     "communityMissesYou": "Your community misses you — {count} new reports near you",
     "newReportsNearby": "Your neighborhood has {count} new reports"
   },
+  "incidents": {
+    "nearbyIncidents": "Nearby Reports",
+    "allClear": "All clear around you ☀️",
+    "allClearSub": "Good news!",
+    "noResults": "No results",
+    "broadenFilters": "Try broadening your filters",
+    "clearFilters": "Clear filters",
+    "radius": "Radius",
+    "severityAll": "All",
+    "mild": "Mild",
+    "moderate": "Moderate",
+    "danger": "Danger",
+    "urgent": "Urgent",
+    "emergencyAlert": "Emergency Alert"
+  },
   "install": {
     "addToHome": "Add Breveil to home screen",
     "quickAccess": "Quick access, offline support",

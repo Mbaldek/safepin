@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Κοντινά συμβάντα",
+    "allClear": "Όλα ήρεμα γύρω σου ☀️",
+    "allClearSub": "Καλά νέα!",
+    "noResults": "Κανένα αποτέλεσμα",
+    "broadenFilters": "Διευρύνετε τα φίλτρα",
+    "clearFilters": "Εκκαθάριση φίλτρων",
+    "radius": "Ακτίνα",
+    "severityAll": "Όλα",
+    "mild": "Ήπιο",
+    "moderate": "Μέτριο",
+    "danger": "Επικίνδυνο",
+    "urgent": "Επείγον",
+    "emergencyAlert": "Ειδοποίηση έκτακτης ανάγκης"
   }
 }

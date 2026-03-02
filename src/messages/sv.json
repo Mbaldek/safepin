@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Händelser i närheten",
+    "allClear": "Allt lugnt runtomkring dig ☀️",
+    "allClearSub": "Goda nyheter!",
+    "noResults": "Inga resultat",
+    "broadenFilters": "Utöka filter",
+    "clearFilters": "Rensa filter",
+    "radius": "Radie",
+    "severityAll": "Alla",
+    "mild": "Lätt",
+    "moderate": "Måttlig",
+    "danger": "Farlig",
+    "urgent": "Brådskande",
+    "emergencyAlert": "Nödlarm"
   }
 }

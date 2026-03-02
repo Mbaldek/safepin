@@ -144,5 +144,20 @@
     "magicLinkSuccess": "मैजिक लिंक भेजा गया! अपना इनबॉक्स देखें।",
     "accountCreated": "खाता बनाया गया! पुष्टि के लिए ईमेल देखें।",
     "welcomeBack": "वापसी पर स्वागत!"
+  },
+  "incidents": {
+    "nearbyIncidents": "पास की घटनाएं",
+    "allClear": "आपके आसपास सब शांत है ☀️",
+    "allClearSub": "अच्छी खबर!",
+    "noResults": "कोई परिणाम नहीं",
+    "broadenFilters": "फ़िल्टर बढ़ाएं",
+    "clearFilters": "फ़िल्टर साफ़ करें",
+    "radius": "दायरा",
+    "severityAll": "सभी",
+    "mild": "हल्का",
+    "moderate": "मध्यम",
+    "danger": "खतरनाक",
+    "urgent": "जरूरी",
+    "emergencyAlert": "आपातकालीन अलर्ट"
   }
 }

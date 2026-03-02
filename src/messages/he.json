@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "אירועים קרובים",
+    "allClear": "הכל שקט סביבך ☀️",
+    "allClearSub": "חדשות טובות!",
+    "noResults": "אין תוצאות",
+    "broadenFilters": "הרחב מסננים",
+    "clearFilters": "נקה מסננים",
+    "radius": "רדיוס",
+    "severityAll": "הכל",
+    "mild": "קל",
+    "moderate": "בינוני",
+    "danger": "מסוכן",
+    "urgent": "דחוף",
+    "emergencyAlert": "התראת חירום"
   }
 }

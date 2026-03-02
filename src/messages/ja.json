@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "近くの報告",
+    "allClear": "周辺は静かです ☀️",
+    "allClearSub": "良いニュース！",
+    "noResults": "結果なし",
+    "broadenFilters": "フィルターを広げる",
+    "clearFilters": "フィルターをクリア",
+    "radius": "半径",
+    "severityAll": "すべて",
+    "mild": "軽度",
+    "moderate": "中程度",
+    "danger": "危険",
+    "urgent": "緊急",
+    "emergencyAlert": "緊急アラート"
   }
 }

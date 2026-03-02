@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Події поблизу",
+    "allClear": "Все спокійно навколо вас ☀️",
+    "allClearSub": "Гарні новини!",
+    "noResults": "Немає результатів",
+    "broadenFilters": "Розширити фільтри",
+    "clearFilters": "Очистити фільтри",
+    "radius": "Радіус",
+    "severityAll": "Усі",
+    "mild": "Легке",
+    "moderate": "Помірне",
+    "danger": "Небезпечне",
+    "urgent": "Терміново",
+    "emergencyAlert": "Аварійне сповіщення"
   }
 }

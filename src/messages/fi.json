@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Läheiset tapahtumat",
+    "allClear": "Kaikki rauhallista ympärilläsi ☀️",
+    "allClearSub": "Hyviä uutisia!",
+    "noResults": "Ei tuloksia",
+    "broadenFilters": "Laajenna suodattimia",
+    "clearFilters": "Tyhjennä suodattimet",
+    "radius": "Säde",
+    "severityAll": "Kaikki",
+    "mild": "Lievä",
+    "moderate": "Kohtalainen",
+    "danger": "Vaarallinen",
+    "urgent": "Kiireellinen",
+    "emergencyAlert": "Hätäilmoitus"
   }
 }

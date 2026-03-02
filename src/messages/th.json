@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "เหตุการณ์ใกล้เคียง",
+    "allClear": "ทุกอย่างสงบรอบตัวคุณ ☀️",
+    "allClearSub": "ข่าวดี!",
+    "noResults": "ไม่มีผลลัพธ์",
+    "broadenFilters": "ขยายตัวกรอง",
+    "clearFilters": "ล้างตัวกรอง",
+    "radius": "รัศมี",
+    "severityAll": "ทั้งหมด",
+    "mild": "เบา",
+    "moderate": "ปานกลาง",
+    "danger": "อันตราย",
+    "urgent": "เร่งด่วน",
+    "emergencyAlert": "แจ้งเตือนฉุกเฉิน"
   }
 }

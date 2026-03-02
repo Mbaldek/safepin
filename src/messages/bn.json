@@ -144,5 +144,20 @@
     "magicLinkSuccess": "ম্যাজিক লিংক পাঠানো হয়েছে! আপনার ইনবক্স দেখুন।",
     "accountCreated": "অ্যাকাউন্ট তৈরি হয়েছে! নিশ্চিত করতে ইমেইল দেখুন।",
     "welcomeBack": "আবার স্বাগতম!"
+  },
+  "incidents": {
+    "nearbyIncidents": "কাছের ঘটনাগুলি",
+    "allClear": "আপনার আশেপাশে সব শান্ত ☀️",
+    "allClearSub": "সুসংবাদ!",
+    "noResults": "কোনো ফলাফল নেই",
+    "broadenFilters": "ফিল্টার বিস্তৃত করুন",
+    "clearFilters": "ফিল্টার মুছুন",
+    "radius": "ব্যাসার্ধ",
+    "severityAll": "সব",
+    "mild": "হালকা",
+    "moderate": "মাঝারি",
+    "danger": "বিপজ্জনক",
+    "urgent": "জরুরি",
+    "emergencyAlert": "জরুরি সতর্কতা"
   }
 }

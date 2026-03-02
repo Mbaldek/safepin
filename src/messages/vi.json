@@ -144,5 +144,20 @@
     "magicLinkSuccess": "Đã gửi liên kết! Kiểm tra hộp thư.",
     "accountCreated": "Đã tạo tài khoản! Kiểm tra email để xác nhận.",
     "welcomeBack": "Chào mừng trở lại!"
+  },
+  "incidents": {
+    "nearbyIncidents": "Sự cố gần đây",
+    "allClear": "Mọi thứ yên tĩnh xung quanh bạn ☀️",
+    "allClearSub": "Tin tốt!",
+    "noResults": "Không có kết quả",
+    "broadenFilters": "Mở rộng bộ lọc",
+    "clearFilters": "Xóa bộ lọc",
+    "radius": "Bán kính",
+    "severityAll": "Tất cả",
+    "mild": "Nhẹ",
+    "moderate": "Vừa",
+    "danger": "Nguy hiểm",
+    "urgent": "Khẩn cấp",
+    "emergencyAlert": "Cảnh báo khẩn cấp"
   }
 }

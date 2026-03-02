@@ -357,6 +357,21 @@
     "communityMissesYou": "Votre communauté vous manque — {count} nouveaux signalements près de vous",
     "newReportsNearby": "Votre quartier a {count} nouveaux signalements"
   },
+  "incidents": {
+    "nearbyIncidents": "Signalements proches",
+    "allClear": "Tout est calme autour de vous ☀️",
+    "allClearSub": "Bonne nouvelle !",
+    "noResults": "Aucun résultat",
+    "broadenFilters": "Élargissez vos filtres",
+    "clearFilters": "Effacer les filtres",
+    "radius": "Rayon",
+    "severityAll": "Tous",
+    "mild": "Faible",
+    "moderate": "Modéré",
+    "danger": "Grave",
+    "urgent": "Urgent",
+    "emergencyAlert": "Alerte d'urgence"
+  },
   "install": {
     "addToHome": "Ajouter Breveil à l'écran d'accueil",
     "quickAccess": "Accès rapide, support hors ligne",

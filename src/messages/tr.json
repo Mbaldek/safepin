@@ -144,5 +144,20 @@
     "magicLinkSuccess": "Sihirli bağlantı gönderildi! Gelen kutunuzu kontrol edin.",
     "accountCreated": "Hesap oluşturuldu! Onaylamak için e-postanızı kontrol edin.",
     "welcomeBack": "Tekrar hoş geldiniz!"
+  },
+  "incidents": {
+    "nearbyIncidents": "Yakın olaylar",
+    "allClear": "Çevrenizde her şey sakin ☀️",
+    "allClearSub": "İyi haberler!",
+    "noResults": "Sonuç yok",
+    "broadenFilters": "Filtreleri genişlet",
+    "clearFilters": "Filtreleri temizle",
+    "radius": "Yarıçap",
+    "severityAll": "Tümü",
+    "mild": "Hafif",
+    "moderate": "Orta",
+    "danger": "Tehlikeli",
+    "urgent": "Acil",
+    "emergencyAlert": "Acil uyarı"
   }
 }

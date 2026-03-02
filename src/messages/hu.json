@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Közeli események",
+    "allClear": "Minden csendes körülötted ☀️",
+    "allClearSub": "Jó hír!",
+    "noResults": "Nincs eredmény",
+    "broadenFilters": "Szűrők bővítése",
+    "clearFilters": "Szűrők törlése",
+    "radius": "Sugár",
+    "severityAll": "Összes",
+    "mild": "Enyhe",
+    "moderate": "Közepes",
+    "danger": "Veszélyes",
+    "urgent": "Sürgős",
+    "emergencyAlert": "Vészriasztás"
   }
 }

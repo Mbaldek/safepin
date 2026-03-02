@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Hlášení v okolí",
+    "allClear": "Ve vašem okolí je klid ☀️",
+    "allClearSub": "Dobré zprávy!",
+    "noResults": "Žádné výsledky",
+    "broadenFilters": "Rozšiřte filtry",
+    "clearFilters": "Vymazat filtry",
+    "radius": "Okruh",
+    "severityAll": "Vše",
+    "mild": "Mírné",
+    "moderate": "Střední",
+    "danger": "Nebezpečné",
+    "urgent": "Urgentní",
+    "emergencyAlert": "Nouzové upozornění"
   }
 }

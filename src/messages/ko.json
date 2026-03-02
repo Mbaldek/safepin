@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "근처 신고",
+    "allClear": "주변이 조용합니다 ☀️",
+    "allClearSub": "좋은 소식!",
+    "noResults": "결과 없음",
+    "broadenFilters": "필터 확대",
+    "clearFilters": "필터 지우기",
+    "radius": "반경",
+    "severityAll": "전체",
+    "mild": "경미",
+    "moderate": "보통",
+    "danger": "위험",
+    "urgent": "긴급",
+    "emergencyAlert": "긴급 경보"
   }
 }

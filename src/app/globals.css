@@ -204,6 +204,11 @@ body {
   animation: fade-in-up 0.3s ease-out forwards;
 }
 
+/* Mapbox user location dot — aurora glow ring */
+.mapboxgl-user-location-dot {
+  box-shadow: 0 0 0 4px rgba(139,126,200,0.35), 0 0 0 8px rgba(139,126,200,0.1) !important;
+}
+
 /* ===== Accessibility ===== */
 
 /* Focus-visible ring for keyboard navigation */

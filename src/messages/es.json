@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Incidentes cercanos",
+    "allClear": "Todo tranquilo a tu alrededor ☀️",
+    "allClearSub": "¡Buenas noticias!",
+    "noResults": "Sin resultados",
+    "broadenFilters": "Ampliar filtros",
+    "clearFilters": "Limpiar filtros",
+    "radius": "Radio",
+    "severityAll": "Todos",
+    "mild": "Leve",
+    "moderate": "Moderado",
+    "danger": "Peligroso",
+    "urgent": "Urgente",
+    "emergencyAlert": "Alerta de emergencia"
   }
 }

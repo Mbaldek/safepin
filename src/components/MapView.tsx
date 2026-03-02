@@ -6,7 +6,7 @@ import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
-import { SEVERITY, Pin } from '@/types';
+import { Pin } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
@@ -255,6 +255,85 @@ function addHeatmapLayer(m: mapboxgl.Map, geojson: GeoJSON.FeatureCollection) {
   }, 'clusters');
 }
 
+// ── Custom pin image helpers ──────────────────────────────────────────────────
+
+/** Static canvas pin image (e.g. mild severity). */
+function makeStaticPin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d')!;
+  const cx = S / 2, cy = S / 2, dotR = S * 0.35;
+  ctx.beginPath(); ctx.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx - dotR * 0.18, cy - dotR * 0.18, dotR * 0.32, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
+  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
+}
+
+/** Animated canvas pin (pulse opacity + optional expanding glow ring). */
+function makePulsePin(color: string, S: number, glowRing: boolean) {
+  let _canvas: HTMLCanvasElement | null = null;
+  let _ctx: CanvasRenderingContext2D | null = null;
+  let _map: mapboxgl.Map | null = null;
+  const cx = S / 2, cy = S / 2, dotR = S * 0.35;
+  const obj = {
+    width: S,
+    height: S,
+    data: new Uint8ClampedArray(S * S * 4) as unknown as Uint8Array,
+    onAdd(m: mapboxgl.Map) {
+      _map = m;
+      _canvas = document.createElement('canvas');
+      _canvas.width = S; _canvas.height = S;
+      _ctx = _canvas.getContext('2d')!;
+    },
+    render(): boolean {
+      if (!_ctx) return false;
+      _ctx.clearRect(0, 0, S, S);
+      const t = (performance.now() / 2000) % 1;
+      if (glowRing) {
+        const ringR = dotR + (cx - dotR - 2) * t;
+        const alpha = 0.45 * (1 - t);
+        _ctx.beginPath(); _ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+        _ctx.strokeStyle = color + Math.round(alpha * 255).toString(16).padStart(2, '0');
+        _ctx.lineWidth = 3; _ctx.stroke();
+      }
+      const pulse = 0.75 + 0.25 * Math.sin(t * Math.PI * 2);
+      _ctx.globalAlpha = pulse;
+      _ctx.beginPath(); _ctx.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
+      _ctx.fillStyle = '#fff'; _ctx.fill();
+      _ctx.beginPath(); _ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+      _ctx.fillStyle = color; _ctx.fill();
+      _ctx.beginPath(); _ctx.arc(cx - dotR * 0.18, cy - dotR * 0.18, dotR * 0.32, 0, Math.PI * 2);
+      _ctx.fillStyle = 'rgba(255,255,255,0.3)'; _ctx.fill();
+      _ctx.globalAlpha = 1;
+      obj.data = new Uint8ClampedArray(_ctx.getImageData(0, 0, S, S).data) as unknown as Uint8Array;
+      _map?.triggerRepaint();
+      return true;
+    },
+  };
+  return obj;
+}
+
+/** Safe space pin: emoji inside a #6BA68E semi-transparent circle. */
+const SAFE_SPACE_EMOJI: Record<string, string> = {
+  pharmacy: '💊', hospital: '🏥', police: '🚔', cafe: '☕', shelter: '🏠', other: '🛡️',
+};
+function makeSafePin(emoji: string): { width: number; height: number; data: Uint8Array } {
+  const S = 28;
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d')!;
+  ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2 - 1, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(107,166,142,0.2)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(107,166,142,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.font = `${Math.round(S * 0.52)}px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, S / 2, S / 2 + 1);
+  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
+}
+
 function getPinOpacity(pin: Pin): number {
   const base = pin.last_confirmed_at
     ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
@@ -275,14 +354,14 @@ function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
       geometry: { type: 'Point', coordinates: [pin.lng, pin.lat] },
       properties: {
         id: pin.id,
-        color: SEVERITY[pin.severity as keyof typeof SEVERITY]?.color ?? '#6b7490',
+        severity: pin.severity,
         opacity: getPinOpacity(pin),
       },
     })),
   };
 }
 
-function addClusterLayers(m: mapboxgl.Map, isDark: boolean) {
+function addClusterLayers(m: mapboxgl.Map) {
   if (m.getSource(SOURCE_ID)) return;
 
   m.addSource(SOURCE_ID, {
@@ -320,18 +399,33 @@ function addClusterLayers(m: mapboxgl.Map, isDark: boolean) {
     paint: { 'text-color': '#fff' },
   });
 
-  // Individual unclustered pins
+  // Register custom severity pin images (2× for HiDPI; pixelRatio:2 halves display size)
+  if (!m.hasImage('pin-sev-low')) {
+    m.addImage('pin-sev-low',  makeStaticPin('#F4A940', 24), { pixelRatio: 2 }); // 12px display
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    m.addImage('pin-sev-med',  makePulsePin('#E8A838', 28, false) as any, { pixelRatio: 2 }); // 14px
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    m.addImage('pin-sev-high', makePulsePin('#E63946', 48, true)  as any, { pixelRatio: 2 }); // 24px w/ glow
+  }
+
+  // Individual unclustered pins — symbol layer with custom severity images
   m.addLayer({
     id: 'unclustered-point',
-    type: 'circle',
+    type: 'symbol',
     source: SOURCE_ID,
     filter: ['!', ['has', 'point_count']],
+    layout: {
+      'icon-image': ['match', ['get', 'severity'],
+        'low',  'pin-sev-low',
+        'med',  'pin-sev-med',
+        'high', 'pin-sev-high',
+        'pin-sev-low',
+      ],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': false,
+    },
     paint: {
-      'circle-color': ['get', 'color'],
-      'circle-opacity': ['get', 'opacity'],
-      'circle-radius': 8,
-      'circle-stroke-width': 2,
-      'circle-stroke-color': isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)',
+      'icon-opacity': ['get', 'opacity'],
     },
   });
 
@@ -470,7 +564,7 @@ export default function MapView({
     });
 
     map.current.on('load', () => {
-      addClusterLayers(map.current!, theme === 'dark');
+      addClusterLayers(map.current!);
       setLayersReady(true);
       setMapReady(true);
     });
@@ -819,7 +913,7 @@ export default function MapView({
     transitCache = null; poiCache = null; heatmapGeoJSON = null;
     setLayersReady(false);
     map.current.once('style.load', () => {
-      addClusterLayers(map.current!, mapStyle === 'dark');
+      addClusterLayers(map.current!);
       const anyTransit = showBus || showMetroRER;
       if (anyTransit) {
         fetchParisTransitStations()
@@ -959,10 +1053,10 @@ export default function MapView({
       const m = map.current;
       for (const pin of regularPins) {
         if (prevIds.has(pin.id)) continue;
-        const color = SEVERITY[pin.severity as keyof typeof SEVERITY]?.color ?? '#f43f5e';
+        const dropColor = { low: '#F4A940', med: '#E8A838', high: '#E63946' }[pin.severity] ?? '#E8A838';
         const el = document.createElement('div');
         el.className = 'pin-drop';
-        el.style.cssText = `width:18px;height:18px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 2px 6px ${color}66;pointer-events:none;`;
+        el.style.cssText = `width:18px;height:18px;border-radius:50%;background:${dropColor};border:2.5px solid #fff;box-shadow:0 2px 6px ${dropColor}66;pointer-events:none;`;
         const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([pin.lng, pin.lat])
           .addTo(m);
@@ -1138,47 +1232,50 @@ export default function MapView({
 
     m.addSource(SAFE_SRC, { type: 'geojson', data: geojson });
 
-    // Generate drop-pin images for partner spaces (once)
+    // Register safe-space emoji images + partner drop-pin images (once per style)
+    if (!m.hasImage('safe-pharmacy')) {
+      Object.entries(SAFE_SPACE_EMOJI).forEach(([type, emoji]) => {
+        m.addImage(`safe-${type}`, makeSafePin(emoji));
+      });
+    }
     if (!m.hasImage('pin-premium')) {
       const mkPin = (color: string) => {
         const s = 48;
         const c = document.createElement('canvas');
         c.width = s; c.height = s;
         const ctx = c.getContext('2d')!;
-        // Drop-pin body
         ctx.beginPath();
         ctx.arc(s / 2, s * 0.38, s * 0.32, Math.PI, 0);
         ctx.quadraticCurveTo(s * 0.82, s * 0.55, s / 2, s * 0.92);
         ctx.quadraticCurveTo(s * 0.18, s * 0.55, s * 0.18, s * 0.38);
         ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        // Inner white dot
-        ctx.beginPath();
-        ctx.arc(s / 2, s * 0.38, s * 0.14, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(s / 2, s * 0.38, s * 0.14, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff'; ctx.fill();
         return { width: s, height: s, data: new Uint8Array(ctx.getImageData(0, 0, s, s).data) };
       };
       m.addImage('pin-premium', mkPin('#f59e0b'));
       m.addImage('pin-basic', mkPin('#3b82f6'));
     }
 
-    // Non-partner: green circles
+    // Non-partner: emoji in #6BA68E circle
     m.addLayer({
       id: SAFE_CIRCLE,
-      type: 'circle',
+      type: 'symbol',
       source: SAFE_SRC,
       filter: ['!', ['get', 'isPartner']],
-      paint: {
-        'circle-radius': 7,
-        'circle-color': '#22c55e',
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff',
-        'circle-opacity': 0.9,
+      layout: {
+        'icon-image': ['match', ['get', 'kind'],
+          'pharmacy', 'safe-pharmacy',
+          'hospital',  'safe-hospital',
+          'police',    'safe-police',
+          'cafe',      'safe-cafe',
+          'shelter',   'safe-shelter',
+          'safe-other',
+        ],
+        'icon-allow-overlap': true,
+        'icon-size': 0.9,
       },
     });
 

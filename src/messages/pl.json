@@ -144,5 +144,20 @@
     "magicLinkSuccess": "Magic link wysłany! Sprawdź skrzynkę.",
     "accountCreated": "Konto utworzone! Sprawdź email, aby potwierdzić.",
     "welcomeBack": "Witaj ponownie!"
+  },
+  "incidents": {
+    "nearbyIncidents": "Zgłoszenia w pobliżu",
+    "allClear": "Spokojnie w Twoim otoczeniu ☀️",
+    "allClearSub": "Dobre wiadomości!",
+    "noResults": "Brak wyników",
+    "broadenFilters": "Rozszerz filtry",
+    "clearFilters": "Wyczyść filtry",
+    "radius": "Promień",
+    "severityAll": "Wszystkie",
+    "mild": "Łagodne",
+    "moderate": "Umiarkowane",
+    "danger": "Niebezpieczne",
+    "urgent": "Pilne",
+    "emergencyAlert": "Alert awaryjny"
   }
 }

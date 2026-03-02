@@ -144,5 +144,20 @@
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete."
+  },
+  "incidents": {
+    "nearbyIncidents": "Kejadian di dekat",
+    "allClear": "Semua tenang di sekitar Anda ☀️",
+    "allClearSub": "Kabar baik!",
+    "noResults": "Tidak ada hasil",
+    "broadenFilters": "Perluas filter",
+    "clearFilters": "Hapus filter",
+    "radius": "Radius",
+    "severityAll": "Semua",
+    "mild": "Ringan",
+    "moderate": "Sedang",
+    "danger": "Berbahaya",
+    "urgent": "Mendesak",
+    "emergencyAlert": "Peringatan darurat"
   }
 }

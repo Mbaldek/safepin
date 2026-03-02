@@ -144,5 +144,20 @@
     "magicLinkSuccess": "تم إرسال الرابط السحري! تحققي من بريدك.",
     "accountCreated": "تم إنشاء الحساب! تحققي من بريدك للتأكيد.",
     "welcomeBack": "مرحبًا بعودتك!"
+  },
+  "incidents": {
+    "nearbyIncidents": "البلاغات القريبة",
+    "allClear": "كل شيء هادئ حولك ☀️",
+    "allClearSub": "أخبار جيدة!",
+    "noResults": "لا نتائج",
+    "broadenFilters": "وسّع الفلاتر",
+    "clearFilters": "مسح الفلاتر",
+    "radius": "النطاق",
+    "severityAll": "الكل",
+    "mild": "خفيف",
+    "moderate": "متوسط",
+    "danger": "خطير",
+    "urgent": "عاجل",
+    "emergencyAlert": "تنبيه طارئ"
   }
 }

@@ -49,7 +49,8 @@
       "Bash(unzip -l \"c:\\\\Users\\\\mathi\\\\Desktop\\\\safepin\\\\docs\\\\composant\\\\screen funnel onboarding v0 4.zip\")",
       "Bash(unzip -o \"c:/Users/mathi/Desktop/safepin/docs/composant/screen\\\\ funnel\\\\ onboarding\\\\ v0\\\\ 4.zip\" -d perms_v0)",
       "Bash(unzip -o \"c:\\\\Users\\\\mathi\\\\Desktop\\\\safepin\\\\docs\\\\composant\\\\screen funnel onboarding v0 4.zip\" -d \"/tmp/perms_v0\")",
-      "Bash(unzip -o \"docs/composant/screen funnel onboarding v0 5.zip\" -d \"/tmp/circle_v0\")"
+      "Bash(unzip -o \"docs/composant/screen funnel onboarding v0 5.zip\" -d \"/tmp/circle_v0\")",
+      "Bash(node add-incidents-i18n.js)"
     ]
   }
 }
