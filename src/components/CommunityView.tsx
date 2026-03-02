@@ -608,7 +608,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               <div>
                 <div className="flex items-center justify-between mb-2.5">
                   <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    Groups
+                    {t('groups')}
                   </p>
                   <button
                     onClick={() => startCreate('group', communityDetailOf.id)}
@@ -616,7 +616,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                     style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
                   >
                     <Plus size={11} strokeWidth={2.5} />
-                    Add a group
+                    {t('addGroup')}
                   </button>
                 </div>
 
@@ -807,14 +807,14 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               {/* More section */}
               <div>
                 <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
-                  More
+                  {t('more')}
                 </p>
                 <div className="flex flex-col gap-1.5">
                   {([
-                    { key: 'messages' as const, icon: MessageCircle, label: 'Messages', desc: 'Friends & direct messages', color: '#6366f1' },
-                    { key: 'neighborhoods' as const, icon: MapPinned, label: 'Neighbourhoods', desc: 'See what\'s happening nearby', color: '#f59e0b' },
-                    { key: 'list' as const, icon: Users, label: 'Groups & Communities', desc: `${myCommunities.length + myGroups.length} joined`, color: '#22c55e' },
-                  ] as const).map((row) => (
+                    { key: 'messages' as View, icon: MessageCircle, label: t('messages'), desc: t('messagesDesc'), color: '#6366f1' },
+                    { key: 'neighborhoods' as View, icon: MapPinned, label: t('neighbourhoods'), desc: t('neighbourhoodsDesc'), color: '#f59e0b' },
+                    { key: 'list' as View, icon: Users, label: t('groupsCommunities'), desc: t('joinedCount', { n: myCommunities.length + myGroups.length }), color: '#22c55e' },
+                  ]).map((row) => (
                     <button
                       key={row.key}
                       onClick={() => setView(row.key)}
@@ -862,7 +862,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
             >
               ←
             </button>
-            <h2 className="text-base font-black flex-1" style={{ color: 'var(--text-primary)' }}>Neighbourhoods</h2>
+            <h2 className="text-base font-black flex-1" style={{ color: 'var(--text-primary)' }}>{t('neighbourhoods')}</h2>
             <CloseBtn />
           </div>
           <div className="flex-1 overflow-y-auto p-4">
@@ -888,7 +888,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                   >
                     ←
                   </button>
-                  <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>Groups & Communities</h2>
+                  <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{t('groupsCommunities')}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -967,7 +967,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               {myGroups.length > 0 && (
                 <div>
                   <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                    Your Groups
+                    {t('yourGroups')}
                   </p>
                   <div className="flex flex-col gap-2">
                     {myGroups.map((g) => (

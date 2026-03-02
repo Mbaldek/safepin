@@ -212,7 +212,9 @@
     "estMinutes": "est. {minutes} min",
     "stationaryNudge": "You've been stationary. Are you OK?",
     "dangerNudge": "Incident detected nearby — stay alert",
-    "autoArrival": "You've arrived! Trip complete."
+    "autoArrival": "You've arrived! Trip complete.",
+    "myFavorites": "My favorites",
+    "close": "Close"
   },
   "settings": {
     "title": "Settings",
@@ -361,7 +363,13 @@
     "notifNewInvite": "💛 New circle invite",
     "notifInviteBody": "Someone wants to add you to their circle",
     "tapToMessage": "Tap to message",
-    "add": "Add"
+    "add": "Add",
+    "more": "More",
+    "messages": "Messages",
+    "joinedCount": "{n} joined",
+    "yourGroups": "Your Groups",
+    "groups": "Groups",
+    "addGroup": "Add a group"
   },
   "offline": {
     "banner": "You're offline — data may be outdated",

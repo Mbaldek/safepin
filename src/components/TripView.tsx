@@ -343,7 +343,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
             className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80"
             style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
           >
-            ✕ Close
+            ✕ {t('close')}
           </button>
         </div>
       )}

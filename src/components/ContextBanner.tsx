@@ -3,9 +3,8 @@
 
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '@/stores/useStore';
-import { geocodeReverse } from '@/lib/geocode';
 import { haversineMeters } from '@/lib/utils';
 
 type BannerMsg = {
@@ -18,28 +17,11 @@ type BannerMsg = {
 
 export default function ContextBanner() {
   const { userLocation, pins, isSharingLocation, setIsSharingLocation, setShowWalkWithMe } = useStore();
-  const [locationName, setLocationName] = useState<string | null>(null);
-  const lastGeocodedRef = useRef<{ lat: number; lng: number } | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
-
-  // Reverse geocode when user moves >200m
-  useEffect(() => {
-    if (!userLocation) return;
-    const moved = lastGeocodedRef.current
-      ? haversineMeters(lastGeocodedRef.current, userLocation) > 200
-      : true;
-    if (!moved) return;
-    lastGeocodedRef.current = userLocation;
-    geocodeReverse(userLocation.lng, userLocation.lat).then((name) => {
-      if (name) setLocationName(name.split(',').slice(0, 2).join(',').trim());
-    });
-  }, [userLocation]);
 
   // Build the rotating messages
   const messages = useMemo<BannerMsg[]>(() => {
     const arr: BannerMsg[] = [];
-
-    if (locationName) arr.push({ key: 'loc', icon: '📍', text: locationName });
 
     if (userLocation) {
       const now = Date.now();
@@ -65,7 +47,7 @@ export default function ContextBanner() {
     arr.push({ key: 'time', icon: h < 18 ? '☀️' : '🌙', text: h < 18 ? 'Bonne journée' : 'Restez prudent' });
 
     return arr;
-  }, [locationName, userLocation, pins, isSharingLocation, setShowWalkWithMe, setIsSharingLocation]);
+  }, [userLocation, pins, isSharingLocation, setShowWalkWithMe, setIsSharingLocation]);
 
   // Cycle through messages every 6 s; reset index when list changes length
   useEffect(() => { setMsgIndex(0); }, [messages.length]);

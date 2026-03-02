@@ -21,7 +21,6 @@ import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import FilterBar from '@/components/FilterBar';
 import ContextBanner from '@/components/ContextBanner';
-import { useTheme } from '@/stores/useTheme';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -234,7 +233,6 @@ export default function MapPage() {
   // showWalkWithMe is now in the Zustand store (shared with TripView)
 
   // Layer state (controls passed to MapView)
-  const { theme } = useTheme();
   const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>('custom');
   const [showBus, setShowBus] = useState(false);
   const [showMetroRER, setShowMetroRER] = useState(false);
@@ -246,10 +244,7 @@ export default function MapPage() {
   const [transitLoading, setTransitLoading] = useState(false);
   const [poiLoading, setPoiLoading] = useState(false);
 
-  // Auto-follow app theme for map style
-  useEffect(() => {
-    setMapStyle(theme === 'dark' ? 'dark' : 'custom');
-  }, [theme]);
+  // Map style defaults to Breveil custom — user can change in Settings
 
   // Filter active count for badge
   const filterActiveCount = [
