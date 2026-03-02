@@ -151,14 +151,14 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
       const path = `${userId}/avatar.${ext}`;
       const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
       if (upErr) {
-        toast.error(t('avatarUploadError'));
+        toast.error(t('avatarUploadFailed'));
         return;
       }
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
       const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
       setAvatar(avatarUrl);
-      toast.success(t('avatarUploadSuccess'));
+      toast.success(t('avatarUploaded'));
     } finally {
       setAvatarUploading(false);
       e.target.value = '';
