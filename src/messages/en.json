@@ -214,7 +214,20 @@
     "dangerNudge": "Incident detected nearby — stay alert",
     "autoArrival": "You've arrived! Trip complete.",
     "myFavorites": "My favorites",
-    "close": "Close"
+    "close": "Close",
+    "monTrajet": "My Trip",
+    "walkWithMeSubtitle": "Share your trip in real time",
+    "plan": "Plan",
+    "shareWithCircle": "Share with Circle",
+    "seeAll": "See all",
+    "arrived": "I've arrived",
+    "enRoute": "On the way",
+    "incidentsCount": "{n} incident(s)",
+    "connectedContacts": "{n} connected",
+    "calmZone": "Quiet zone",
+    "followingYou": "following you",
+    "andMore": "and {n} other",
+    "safetyAvgLabel": "safety avg."
   },
   "settings": {
     "title": "Settings",

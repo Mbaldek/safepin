@@ -214,7 +214,20 @@
     "dangerNudge": "Incident détecté à proximité — restez vigilant",
     "autoArrival": "Vous êtes arrivé ! Trajet terminé.",
     "myFavorites": "Mes favoris",
-    "close": "Fermer"
+    "close": "Fermer",
+    "monTrajet": "Mon trajet",
+    "walkWithMeSubtitle": "Partagez votre trajet en temps réel",
+    "plan": "Planifier",
+    "shareWithCircle": "Partage avec le Cercle",
+    "seeAll": "Voir tout",
+    "arrived": "Je suis arrivé(e)",
+    "enRoute": "En route",
+    "incidentsCount": "{n} incident(s)",
+    "connectedContacts": "{n} proches connectés",
+    "calmZone": "Zone calme",
+    "followingYou": "vous suivent",
+    "andMore": "et {n} autre(s)",
+    "safetyAvgLabel": "sécurité moy."
   },
   "settings": {
     "title": "Paramètres",
