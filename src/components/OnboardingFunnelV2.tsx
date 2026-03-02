@@ -39,6 +39,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
   const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState('');
   const [city, setCity] = useState('Paris');
+  const [cityCoords, setCityCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -132,17 +133,36 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('avatarInvalidType'));
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('avatarTooLarge'));
+      e.target.value = '';
+      return;
+    }
+
     setAvatarUploading(true);
-    const ext = file.name.split('.').pop() ?? 'jpg';
-    const path = `${userId}/avatar.${ext}`;
-    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-    if (upErr) { toast.error(t('addPhoto')); setAvatarUploading(false); return; }
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-    await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
-    setAvatar(avatarUrl);
-    setAvatarUploading(false);
-    e.target.value = '';
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `${userId}/avatar.${ext}`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (upErr) {
+        toast.error(t('avatarUploadError'));
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId);
+      setAvatar(avatarUrl);
+      toast.success(t('avatarUploadSuccess'));
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = '';
+    }
   }
 
   // ─── Rendered goals list ────────────────────────────────────────────────────
@@ -156,7 +176,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
 
   return (
     <div
-      className="fixed inset-0 z-[600] flex flex-col"
+      className="fixed inset-0 z-600 flex flex-col"
       style={{ background: 'var(--bg-secondary)' }}
     >
       {/* Hidden file input for avatar upload */}
@@ -240,7 +260,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               {t('v2Tagline')}
             </p>
 
-            <div className="flex flex-col gap-3 w-full max-w-[300px]">
+            <div className="flex flex-col gap-3 w-full max-w-75">
               {([
                 { e: '🗺️', label: t('v2Prop1') },
                 { e: '🆘',  label: t('v2Prop2') },
