@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, Star, ArrowLeft, Route, Signal, User, ChevronRight } from 'lucide-react';
+import { X, Star, ArrowLeft, Route, Signal, User, ChevronRight, Eye, Share2 } from 'lucide-react';
 import SavedPanel from '@/components/SavedPanel';
 import RoutePlannerForm, { Mode } from '@/components/RoutePlannerForm';
 import TripSummary from '@/components/TripSummary';
@@ -16,7 +16,7 @@ import { SavedRoute } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { springTransition } from '@/lib/utils';
+import { springTransition, haversineMeters } from '@/lib/utils';
 import { TransitStep } from '@/lib/transit';
 import { tripMonitor, MonitorEvent } from '@/lib/TripMonitor';
 
@@ -57,7 +57,7 @@ type RecentTrip = {
 
 export default function TripView({ onClose }: { onClose: () => void }) {
   const {
-    userProfile, userId, pins,
+    userProfile, userId, pins, userLocation,
     activeTrip, setActiveTrip,
     setActiveRoute, setPendingRoutes, setTransitSegments,
     isSharingLocation, setIsSharingLocation,
@@ -330,6 +330,16 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     switch (m) { case 'walk': return '🚶'; case 'bike': return '🚴'; case 'drive': return '🚗'; case 'transit': return '🚇'; default: return '📍'; }
   };
 
+  // Danger mode: >= 3 unresolved incidents within 500 m in last 24 h
+  const nearbyIncidentCount = userLocation
+    ? pins.filter((p) => {
+        if (p.resolved_at) return false;
+        if ((Date.now() - new Date(p.created_at).getTime()) > 24 * 3600_000) return false;
+        return haversineMeters(userLocation, { lat: p.lat, lng: p.lng }) < 500;
+      }).length
+    : 0;
+  const isDangerMode = nearbyIncidentCount >= 3;
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -374,16 +384,29 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       {/* Active trip top HUD — elapsed + status chip + Terminer */}
       {escortState === 'ACTIVE' && activeTrip && (
         <div className="flex items-center justify-between px-5 pt-3 pb-2 shrink-0">
-          <span className="text-base font-bold" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-            {formatCountdown(Math.max(0, now - new Date(activeTrip.startedAt).getTime()))}
-          </span>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#22c55e' }} />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('enRoute')}</span>
+          {/* Elapsed timer */}
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: isDangerMode ? '#f4a940' : '#22c55e' }} />
+            <span className="text-base font-semibold" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+              {formatCountdown(Math.max(0, now - new Date(activeTrip.startedAt).getTime()))}
+            </span>
           </div>
+          {/* Status badge */}
+          {isDangerMode ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(244,169,64,0.15)', border: '1px solid #f4a940' }}>
+              <span className="text-xs font-semibold" style={{ color: '#f4a940' }}>⚠️ {t('dangerZone')}</span>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#f4a940' }} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(107,166,142,0.15)', border: '1px solid #22c55e' }}>
+              <span className="text-xs font-semibold" style={{ color: '#22c55e' }}>{t('enRoute')}</span>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#22c55e' }} />
+            </div>
+          )}
+          {/* Terminer */}
           <button
-            onClick={() => completeTrip('cancelled')}
-            className="text-sm transition hover:opacity-80"
+            onClick={() => completeTrip('safe')}
+            className="text-[0.8125rem] font-medium transition hover:opacity-80"
             style={{ color: 'rgba(239,68,68,0.7)' }}
           >
             {t('cancelTrip')}
@@ -414,102 +437,155 @@ export default function TripView({ onClose }: { onClose: () => void }) {
           const startMs = new Date(activeTrip.startedAt).getTime();
           const remaining = Math.max(0, etaMs - now);
           const progress = Math.min(1, 1 - remaining / (etaMs - startMs));
+
+          async function shareLink() {
+            const url = `${window.location.origin}/track/${activeTrip!.id}`;
+            try {
+              await navigator.share({ title: 'Mon trajet Breveil', url });
+            } catch {
+              try { await navigator.clipboard.writeText(url); toast.success('Lien copié !'); } catch { /* noop */ }
+            }
+          }
+
           return (
             <div className="flex flex-col gap-4 pt-2 pb-2">
 
-              {/* Route info card */}
-              <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <div className="mb-3">
-                  <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{activeTrip.destination.label}</h2>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>~{Math.ceil(remaining / 60_000)} min</span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {fmtDist(Math.max(0, activeTrip.route.distance * (1 - progress)))} {t('remaining')}
-                    </span>
+              {/* RouteSummaryCard */}
+              <div
+                className="p-4 rounded-xl"
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  ...(isDangerMode ? { borderLeft: '3px solid #f4a940' } : {}),
+                }}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-2xl">{modeEmoji(activeTrip.mode)}</span>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      {activeTrip.destination.label}
+                    </h2>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                        ~{Math.ceil(remaining / 60_000)} min
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        · {fmtDist(Math.max(0, activeTrip.route.distance * (1 - progress)))} {t('remaining')}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                {/* Progress bar with dot indicator */}
+                <div className="relative h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${progress * 100}%`, backgroundColor: 'var(--accent)' }}
                   />
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow"
+                    style={{ left: `calc(${progress * 100}% - 5px)` }}
+                  />
+                </div>
+                {isDangerMode && (
+                  <p className="text-[0.6875rem] mt-2.5" style={{ color: '#f4a940' }}>
+                    {t('dangerTip')}
+                  </p>
+                )}
+              </div>
+
+              {/* SafetyContextStrip */}
+              <div className="flex gap-2">
+                <div
+                  className="flex-1 flex items-center justify-center py-2.5 rounded-xl text-center"
+                  style={{
+                    backgroundColor: isDangerMode ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.08)',
+                    border: `1px solid ${isDangerMode ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.20)'}`,
+                  }}
+                >
+                  <span className="text-xs font-medium leading-tight" style={{ color: isDangerMode ? '#ef4444' : '#f59e0b' }}>
+                    {t('signalements', { n: nearbyIncidentCount })}
+                  </span>
+                </div>
+                <div
+                  className="flex-1 flex items-center justify-center py-2.5 rounded-xl text-center"
+                  style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' }}
+                >
+                  <span className="text-xs font-medium leading-tight" style={{ color: '#22c55e' }}>
+                    {t('connectedContacts', { n: circleContacts.length })}
+                  </span>
+                </div>
+                <div
+                  className="flex-1 flex items-center justify-center py-2.5 rounded-xl text-center"
+                  style={{
+                    backgroundColor: isDangerMode ? 'rgba(244,169,64,0.10)' : 'rgba(107,166,142,0.10)',
+                    border: `1px solid ${isDangerMode ? 'rgba(244,169,64,0.25)' : 'rgba(107,166,142,0.25)'}`,
+                  }}
+                >
+                  <span className="text-xs font-medium leading-tight" style={{ color: isDangerMode ? '#f4a940' : '#6ba68e' }}>
+                    {isDangerMode ? `⚠️ ${t('dangerZone')}` : `✓ ${t('activeZone')}`}
+                  </span>
                 </div>
               </div>
 
-              {/* Safety strip */}
-              <div className="flex gap-2 flex-wrap">
-                {activeTrip.incidents > 0 && (
-                  <div className="px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(212,168,83,0.10)', border: '1px solid rgba(212,168,83,0.20)' }}>
-                    <span className="text-xs" style={{ color: 'var(--accent)' }}>{t('incidentsCount', { n: activeTrip.incidents })}</span>
-                  </div>
-                )}
-                {circleContacts.length > 0 && (
-                  <div className="px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.20)' }}>
-                    <span className="text-xs" style={{ color: '#22c55e' }}>{t('connectedContacts', { n: circleContacts.length })}</span>
-                  </div>
-                )}
-                <div className="px-3 py-1.5 rounded-full" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('calmZone')}</span>
-                </div>
-              </div>
-
-              {/* Action row */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsSharingLocation(true)}
-                  className="flex-1 h-10 rounded-xl flex items-center justify-center transition active:opacity-70"
-                  style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+              {/* CircleAwareness */}
+              {circleContacts.length > 0 && (
+                <div
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
                 >
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('share')}</span>
-                </button>
-                <button
-                  onClick={onClose}
-                  className="px-5 h-10 rounded-xl flex items-center justify-center transition active:opacity-70"
-                  style={{ backgroundColor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)' }}
-                >
-                  <span className="text-sm font-medium" style={{ color: '#ef4444' }}>SOS</span>
-                </button>
-              </div>
-
-              {/* Arrived */}
-              <button
-                onClick={() => completeTrip('safe')}
-                className="w-full h-12 rounded-xl font-semibold text-sm transition active:scale-[0.98]"
-                style={{ backgroundColor: 'var(--accent)', color: '#000' }}
-              >
-                {t('arrived')}
-              </button>
-
-              {/* Cancel */}
-              <button
-                onClick={() => completeTrip('cancelled')}
-                className="w-full py-2 text-xs text-center transition hover:opacity-70"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {t('cancelTrip')}
-              </button>
-
-              {/* Circle awareness */}
-              {circleContacts.length > 0 && isSharingLocation && (
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="flex -space-x-2">
-                    {circleContacts.slice(0, 3).map((c, i) => (
+                  <div className="flex -space-x-2 shrink-0">
+                    {circleContacts.slice(0, 4).map((c, i) => (
                       <div
                         key={c.id}
-                        className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-[0.5rem] font-medium text-white"
-                        style={{ zIndex: 3 - i, backgroundColor: 'rgba(139,126,200,0.5)', borderColor: 'var(--bg-secondary)' }}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[0.5625rem] font-semibold text-white"
+                        style={{
+                          zIndex: 4 - i,
+                          backgroundColor: 'rgba(139,126,200,0.6)',
+                          border: '2px solid var(--bg-secondary)',
+                        }}
                       >
                         {(c.display_name?.[0] ?? '?').toUpperCase()}
                       </div>
                     ))}
                   </div>
-                  <span className="text-[0.6875rem]" style={{ color: 'var(--text-muted)' }}>
-                    {circleContacts.slice(0, 2).map((c) => c.display_name?.split(' ')[0] ?? '?').join(', ')}
-                    {circleContacts.length > 2 && ` ${t('andMore', { n: circleContacts.length - 2 })}`}
-                    {' '}{t('followingYou')}
+                  <span className="flex-1 text-[0.6875rem]" style={{ color: 'var(--text-muted)' }}>
+                    {circleContacts.length === 1
+                      ? `${circleContacts[0].display_name?.split(' ')[0] ?? '?'} ${t('followingYou')}`
+                      : circleContacts.length === 2
+                      ? `${circleContacts[0].display_name?.split(' ')[0] ?? '?'}, ${circleContacts[1].display_name?.split(' ')[0] ?? '?'} ${t('followingYou')}`
+                      : `${circleContacts[0].display_name?.split(' ')[0] ?? '?'}, ${circleContacts[1].display_name?.split(' ')[0] ?? '?'} ${t('andMore', { n: circleContacts.length - 2 })} ${t('followingYou')}`}
                   </span>
+                  <Eye size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
                 </div>
               )}
+
+              {/* Partager le lien — full width */}
+              <button
+                onClick={shareLink}
+                className="w-full h-11 rounded-xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
+                style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+              >
+                <Share2 size={15} style={{ color: 'var(--text-muted)' }} />
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('shareLink')}</span>
+              </button>
+
+              {/* SOS + Arrived */}
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="w-[30%] h-12 rounded-full flex items-center justify-center transition active:scale-[0.98]"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.30)' }}
+                >
+                  <span className="text-sm font-bold" style={{ color: '#ef4444' }}>SOS</span>
+                </button>
+                <button
+                  onClick={() => completeTrip('safe')}
+                  className="flex-1 h-12 rounded-xl flex items-center justify-center transition active:scale-[0.98]"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  <span className="text-sm font-semibold" style={{ color: '#000' }}>{t('arrived')} ✓</span>
+                </button>
+              </div>
 
             </div>
           );
