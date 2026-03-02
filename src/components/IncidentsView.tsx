@@ -7,6 +7,11 @@ import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useStore } from '@/stores/useStore';
 import { CATEGORIES, Pin } from '@/types';
+
+const CAT_I18N: Record<string, string> = {
+  verbal_abuse: 'verbalAbuse', poor_lighting: 'poorLighting', dark_area: 'poorLighting',
+  unsafe_road: 'unsafeRoad', isolated: 'isolatedArea', drunk: 'intoxicated',
+};
 import { timeAgoLong as timeAgo, haversineMeters, springTransition } from '@/lib/utils';
 
 // ── Severity brand tokens ──────────────────────────────────────────────────────
@@ -55,6 +60,7 @@ function IncidentCard({ pin, dist, t }: {
   t: ReturnType<typeof useTranslations>;
 }) {
   const { setSelectedPin, setActiveSheet, setMapFlyTo, liveSessions } = useStore();
+  const tCat = useTranslations('categories');
   const cat = CATEGORIES[pin.category as keyof typeof CATEGORIES];
   const isEmergency = pin.is_emergency;
   const isLive = liveSessions.some((s) => s.pin_id === pin.id && !s.ended_at);
@@ -66,7 +72,7 @@ function IncidentCard({ pin, dist, t }: {
     : pin.severity === 'med' ? t('moderate')
     : t('danger');
   const emoji = isEmergency ? '🆘' : (cat?.emoji ?? '⚠️');
-  const typeLabel = isEmergency ? t('emergencyAlert') : (cat?.label ?? pin.category);
+  const typeLabel = isEmergency ? t('emergencyAlert') : tCat(CAT_I18N[pin.category] ?? pin.category);
 
   function handleTap() {
     setSelectedPin(pin);
@@ -106,7 +112,7 @@ function IncidentCard({ pin, dist, t }: {
               className="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse"
               style={{ backgroundColor: '#E63946', color: '#fff' }}
             >
-              ● LIVE
+              ● {t('live')}
             </span>
           )}
         </div>
@@ -135,15 +141,15 @@ function IncidentCard({ pin, dist, t }: {
 type TimeFilter = 'all' | '1h' | '6h' | 'today';
 type RadiusFilter = 'all' | '500m' | '1km' | '2km' | '5km';
 
-const TIME_FILTERS: { id: TimeFilter; label: string }[] = [
-  { id: 'all',   label: 'All' },
-  { id: '1h',    label: '< 1h' },
-  { id: '6h',    label: '< 6h' },
-  { id: 'today', label: 'Today' },
+const TIME_FILTERS: { id: TimeFilter; key: string }[] = [
+  { id: 'all',   key: 'severityAll' },
+  { id: '1h',    key: 'lessThan1h'  },
+  { id: '6h',    key: 'lessThan6h'  },
+  { id: 'today', key: 'today'       },
 ];
 
-const RADIUS_FILTERS: { id: RadiusFilter; label: string; meters: number }[] = [
-  { id: 'all',  label: 'Any',  meters: Infinity },
+const RADIUS_FILTERS: { id: RadiusFilter; label?: string; meters: number }[] = [
+  { id: 'all',  meters: Infinity },
   { id: '500m', label: '500m', meters: 500      },
   { id: '1km',  label: '1km',  meters: 1_000    },
   { id: '2km',  label: '2km',  meters: 2_000    },
@@ -248,7 +254,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
 
         {/* Time filter chips */}
         <div className="flex gap-1.5 mb-2">
-          {TIME_FILTERS.map(({ id, label }) => (
+          {TIME_FILTERS.map(({ id, key }) => (
             <button
               key={id}
               onClick={() => setTimeFilter(id)}
@@ -259,7 +265,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                   : { backgroundColor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }
               }
             >
-              {label}
+              {t(key)}
             </button>
           ))}
         </div>
@@ -284,7 +290,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                       : { backgroundColor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }
                 }
               >
-                {label}
+                {id === 'all' ? t('any') : label}
               </button>
             );
           })}

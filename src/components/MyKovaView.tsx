@@ -362,10 +362,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     const { error } = await supabase.from('profiles').upsert({ id: userId, display_name: trimmed });
     setSaving(false);
     didSaveRef.current = false;
-    if (error) { toast.error('Could not save your name. Try again.'); return; }
+    if (error) { toast.error(t('nameSaveError')); return; }
     setUserProfile({ ...(userProfile ?? { id: userId, display_name: null, created_at: new Date().toISOString() }), display_name: trimmed });
     setEditing(false);
-    toast.success('Name updated');
+    toast.success(t('nameUpdated'));
   }
 
   function startEditing() { didSaveRef.current = false; setEditing(true); }
@@ -378,13 +378,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     const ext = file.name.split('.').pop() ?? 'jpg';
     const path = `${userId}/avatar.${ext}`;
     const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-    if (upErr) { toast.error('Could not upload photo. Try again.'); setAvatarUploading(false); return; }
+    if (upErr) { toast.error(t('photoUploadError')); setAvatarUploading(false); return; }
     const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
     const avatar_url = urlData.publicUrl + '?t=' + Date.now();
     const { error: dbErr } = await supabase.from('profiles').update({ avatar_url }).eq('id', userId);
-    if (dbErr) { toast.error('Photo uploaded but could not save. Try again.'); setAvatarUploading(false); return; }
+    if (dbErr) { toast.error(t('photoSaveError')); setAvatarUploading(false); return; }
     setUserProfile({ ...(userProfile ?? { id: userId, display_name: null, created_at: new Date().toISOString() }), avatar_url });
-    toast.success('Profile photo updated');
+    toast.success(t('photoUpdated'));
     setAvatarUploading(false);
     e.target.value = '';
   }
@@ -396,10 +396,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
   async function deletePin(pin: Pin) {
     const { error } = await supabase.from('pins').delete().eq('id', pin.id);
-    if (error) { toast.error('Could not delete pin'); return; }
+    if (error) { toast.error(t('pinDeleteError')); return; }
     setPins(pins.filter((p) => p.id !== pin.id));
     setConfirmDeleteId(null);
-    toast.success('Pin deleted');
+    toast.success(t('pinDeleted'));
   }
 
   function startPinEdit(pin: Pin) {
@@ -415,10 +415,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
       .update({ severity: editSeverity, description: editDesc.trim() })
       .eq('id', pin.id);
     setEditSaving(false);
-    if (error) { toast.error('Could not save changes'); return; }
+    if (error) { toast.error(t('pinSaveError')); return; }
     updatePin({ ...pin, severity: editSeverity as Pin['severity'], description: editDesc.trim() });
     setEditingPinId(null);
-    toast.success('Pin updated');
+    toast.success(t('pinUpdated'));
   }
 
   function openTripToPlace(place: PlaceNote) {

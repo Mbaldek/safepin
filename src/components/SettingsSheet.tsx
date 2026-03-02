@@ -197,7 +197,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
       const { url, error } = await res.json();
       if (error) { toast.error(error); return; }
       window.location.href = url;
-    } catch { toast.error('Failed to start checkout'); }
+    } catch { toast.error(t('checkoutFailed')); }
     finally { setUpgrading(false); }
   }
 
@@ -206,9 +206,9 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { toast('No email found on your account'); return; }
     const { error } = await supabase.from('pro_waitlist').upsert({ user_id: userId, email: user.email }, { onConflict: 'email' });
-    if (error) { toast.error('Could not join waitlist'); return; }
+    if (error) { toast.error(t('waitlistFailed')); return; }
     setWaitlistJoined(true);
-    toast.success('You\'re on the waitlist! We\'ll notify you when Breveil Pro launches.');
+    toast.success(t('waitlistSuccess'));
   }
 
   const RADIUS_OPTIONS = [
@@ -228,7 +228,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
     setDeleting(true);
     // Soft delete — sign out and mark account for deletion (hard delete via Supabase admin)
     await supabase.auth.signOut();
-    toast.success('Account deletion requested. You have been signed out.');
+    toast.success(t('accountDeleted'));
     router.replace('/login');
   }
 
@@ -633,7 +633,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                           const { url, error } = await res.json();
                           if (error) { toast.error(error); return; }
                           window.location.href = url;
-                        } catch { toast.error('Failed to open billing portal'); }
+                        } catch { toast.error(t('billingPortalFailed')); }
                       }}
                       className="w-full text-center text-xs font-semibold py-2 rounded-xl flex items-center justify-center gap-1.5 transition hover:opacity-80"
                       style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}

@@ -70,7 +70,18 @@
     "onFoot": "On foot",
     "transitMode": "Transit",
     "bus": "Bus",
-    "cycling": "Cycling"
+    "cycling": "Cycling",
+    "vehicle": "Vehicle",
+    "indoor": "Indoor",
+    "maxFiles": "You can attach up to 5 files",
+    "pickCategory": "Pick a category",
+    "selectSeverity": "Select severity",
+    "tapMap": "Tap the map to set location",
+    "uploadFailed": "Could not upload file. Check your connection.",
+    "error": "Something went wrong. Please try again.",
+    "submitted": "Report submitted. Stay safe.",
+    "isMovingDesc": "Were you moving (bus, car, bike…)?",
+    "specifyLocation": "Specify location…"
   },
   "detail": {
     "emergencyAlert": "Emergency Alert",
@@ -126,7 +137,8 @@
     "morning": "6am–12pm",
     "afternoon": "12pm–6pm",
     "evening": "6pm–10pm",
-    "night": "10pm–6am"
+    "night": "10pm–6am",
+    "any": "Any"
   },
   "layers": {
     "mapStyle": "Map style",
@@ -242,7 +254,12 @@
     "mapStyle": "Map style",
     "redoOnboarding": "Redo onboarding tour",
     "support": "Support",
-    "appVersion": "Breveil v0.1.0-beta"
+    "appVersion": "Breveil v0.1.0-beta",
+    "waitlistSuccess": "You're on the waitlist! We'll notify you when Breveil Pro launches.",
+    "waitlistFailed": "Could not join waitlist",
+    "checkoutFailed": "Failed to start checkout",
+    "accountDeleted": "Account deletion requested. You have been signed out.",
+    "billingPortalFailed": "Failed to open billing portal"
   },
   "notifications": {
     "title": "Notifications",
@@ -278,7 +295,16 @@
     "groups": "group(s)",
     "youReported": "You reported",
     "youJoined": "You joined",
-    "noDescription": "No description."
+    "noDescription": "No description.",
+    "nameSaveError": "Could not save your name. Try again.",
+    "nameUpdated": "Name updated",
+    "photoUploadError": "Could not upload photo. Try again.",
+    "photoSaveError": "Photo uploaded but could not save. Try again.",
+    "photoUpdated": "Profile photo updated",
+    "pinDeleteError": "Could not delete pin",
+    "pinDeleted": "Pin deleted",
+    "pinSaveError": "Could not save changes",
+    "pinUpdated": "Pin updated"
   },
   "community": {
     "title": "Communities",
@@ -298,7 +324,14 @@
     "discover": "Discover",
     "newGroup": "+ New",
     "member": "member",
-    "communityTag": "COMMUNITY"
+    "communityTag": "COMMUNITY",
+    "failedJoin": "Failed to join",
+    "failedLeave": "Failed to leave",
+    "failedCreate": "Failed to create",
+    "joined": "Joined {name}",
+    "left": "Left {name}",
+    "groupCreated": "Group created!",
+    "communityCreated": "Community created!"
   },
   "offline": {
     "banner": "You're offline — data may be outdated",
@@ -397,7 +430,12 @@
     "moderate": "Moderate",
     "danger": "Danger",
     "urgent": "Urgent",
-    "emergencyAlert": "Emergency Alert"
+    "emergencyAlert": "Emergency Alert",
+    "any": "Any",
+    "lessThan1h": "< 1h",
+    "lessThan6h": "< 6h",
+    "today": "Today",
+    "live": "LIVE"
   },
   "install": {
     "addToHome": "Add Breveil to home screen",
@@ -586,7 +624,8 @@
     "unsafeRoad": "Unsafe road",
     "isolatedArea": "Isolated area",
     "intoxicated": "Intoxicated",
-    "suspicious": "Suspicious"
+    "suspicious": "Suspicious",
+    "other": "Other"
   },
   "walkWithMe": {
     "walkTogether": "Walk together",
@@ -594,7 +633,23 @@
     "waitingCompanion": "Waiting... 💛",
     "myTrip": "My trip",
     "myFavorites": "My favorites",
-    "destinationPlaceholder": "e.g. Home, Gare du Nord, Café..."
+    "destinationPlaceholder": "e.g. Home, Gare du Nord, Café...",
+    "title": "Walk With Me",
+    "creating": "Creating…",
+    "startSession": "Start a Walk Session",
+    "orJoin": "or join",
+    "enterCode": "Enter code",
+    "join": "Join",
+    "waitingFor": "Waiting for companion…",
+    "destination": "Destination:",
+    "safetyCheckin": "Safety check-in: Are you okay?",
+    "endWalk": "End Walk — I'm Safe",
+    "createFailed": "Failed to create session",
+    "sessionCreated": "Session created! Share the code.",
+    "invalidCode": "Invalid or expired code",
+    "joinedSuccess": "Joined! Walk together safely.",
+    "walkCompleted": "Walk completed safely!",
+    "codeCopied": "Code copied!"
   },
   "levels": {
     "veilleur": "Watcher",

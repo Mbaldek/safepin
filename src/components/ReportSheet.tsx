@@ -11,6 +11,18 @@ import { useStore } from '@/stores/useStore';
 import { CATEGORIES, REPORT_CATEGORIES, SEVERITY, ENVIRONMENTS, URBAN_CONTEXTS, MediaItem } from '@/types';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+
+const CAT_I18N: Record<string, string> = {
+  verbal_abuse: 'verbalAbuse',
+  poor_lighting: 'poorLighting',
+  dark_area:     'poorLighting',
+  unsafe_road:   'unsafeRoad',
+  isolated:      'isolatedArea',
+  drunk:         'intoxicated',
+};
+const SEV_I18N: Record<string, string> = { low: 'mild', med: 'moderate', high: 'danger' };
+const ENV_I18N: Record<string, string> = { foot: 'onFoot', metro: 'transitMode', car: 'vehicle', indoor: 'indoor' };
+const PLACE_I18N: Record<string, string> = { store: 'storeMall', bus: 'busStop', restaurant: 'restaurantBar' };
 import { enqueue, getCount } from '@/lib/offlineQueue';
 import { springTransition } from '@/lib/utils';
 import { geocodeReverse } from '@/lib/geocode';
@@ -32,6 +44,11 @@ function detectType(file: File): 'image' | 'video' | 'audio' {
 export default function ReportSheet({ userId }: { userId: string | null }) {
   const { setActiveSheet, newPinCoords, setNewPinCoords, addPin, setOfflineQueueCount, setShowWalkWithMe } = useStore();
   const t = useTranslations('report');
+  const tCat = useTranslations('categories');
+  const tInc = useTranslations('incidents');
+  const tPlace = useTranslations('placeTypes');
+  const tTrip = useTranslations('trip');
+  const tEmergency = useTranslations('emergency');
   const focusTrapRef = useFocusTrap(true, handleClose);
 
   // Step state
@@ -76,7 +93,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   function handleMediaAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     const remaining = 5 - mediaFiles.length;
-    if (remaining <= 0) { toast.error('You can attach up to 5 files'); return; }
+    if (remaining <= 0) { toast.error(t('maxFiles')); return; }
     const toAdd = files.slice(0, remaining).map((file) => ({
       file,
       preview: URL.createObjectURL(file),
@@ -91,10 +108,10 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   }
 
   async function handleSubmit() {
-    if (!category) { toast.error('Pick a category'); return; }
-    if (!severity) { toast.error('Select severity'); return; }
-    if (!newPinCoords) { toast.error('Tap the map to set location'); return; }
-    if (!userId) { toast.error('Please sign in first'); return; }
+    if (!category) { toast.error(t('pickCategory')); return; }
+    if (!severity) { toast.error(t('selectSeverity')); return; }
+    if (!newPinCoords) { toast.error(t('tapMap')); return; }
+    if (!userId) { toast.error(tEmergency('signInFirst')); return; }
 
     setLoading(true);
 
@@ -143,7 +160,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
         .from('pin-photos')
         .upload(fileName, media.file);
       if (uploadError) {
-        toast.error('Could not upload file. Check your connection.');
+        toast.error(t('uploadFailed'));
         setLoading(false);
         return;
       }
@@ -174,7 +191,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
       .single();
 
     if (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error(t('error'));
       console.error('Insert error:', error);
       setLoading(false);
       return;
@@ -196,14 +213,14 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
 
     // Human post-submit toast + Walk With Me offer for high severity
     if (severity === 'high') {
-      toast('Report submitted. Stay safe.', {
+      toast(t('submitted'), {
         action: {
-          label: 'Walk With Me',
+          label: tTrip('walkWithMe'),
           onClick: () => setShowWalkWithMe(true),
         },
       });
     } else {
-      toast.success('Report submitted. Stay safe.');
+      toast.success(t('submitted'));
     }
 
     setActiveSheet('none');
@@ -291,7 +308,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(REPORT_CATEGORIES).map(([key, { label, emoji }]) => (
+                  {Object.entries(REPORT_CATEGORIES).map(([key, { emoji }]) => (
                     <button
                       key={key}
                       onClick={() => handleCategorySelect(key)}
@@ -306,7 +323,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                         className="text-[0.65rem] font-bold leading-tight block"
                         style={{ color: category === key ? 'var(--accent)' : 'var(--text-primary)' }}
                       >
-                        {label}
+                        {tCat(CAT_I18N[key] ?? key)}
                       </span>
                     </button>
                   ))}
@@ -332,15 +349,15 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                   >
                     <span className="text-lg">{CATEGORIES[category as keyof typeof CATEGORIES]?.emoji}</span>
                     <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                      {CATEGORIES[category as keyof typeof CATEGORIES]?.label}
+                      {tCat(CAT_I18N[category] ?? category)}
                     </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>— tap to change</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tapToChange')}</span>
                   </button>
                 )}
 
                 {/* Severity pills */}
                 <div className="flex gap-2.5 mb-5">
-                  {Object.entries(SEVERITY).map(([key, { label, emoji, color }]) => (
+                  {Object.entries(SEVERITY).map(([key, { emoji, color }]) => (
                     <button
                       key={key}
                       onClick={() => setSeverity(key)}
@@ -352,7 +369,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                       }
                     >
                       <span className="text-2xl block mb-1">{emoji}</span>
-                      <span className="text-xs">{label}</span>
+                      <span className="text-xs">{tInc(SEV_I18N[key] ?? key)}</span>
                     </button>
                   ))}
                 </div>
@@ -374,7 +391,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  {showDetails ? 'Hide details' : 'Add details (optional)'}
+                  {showDetails ? t('hideDetails') : t('addDetails')}
                 </button>
 
                 <AnimatePresence>
@@ -470,7 +487,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                             {t('environment')}
                           </label>
                           <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                            {Object.entries(ENVIRONMENTS).map(([key, { label, emoji }]) => (
+                            {Object.entries(ENVIRONMENTS).map(([key, { emoji }]) => (
                               <button
                                 key={key}
                                 onClick={() => setEnvironment(environment === key ? null : key)}
@@ -481,7 +498,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                                     : { borderColor: 'var(--border)', color: 'var(--text-muted)', backgroundColor: 'transparent' }
                                 }
                               >
-                                {emoji} {label}
+                                {emoji} {t(ENV_I18N[key] ?? key)}
                               </button>
                             ))}
                           </div>
@@ -493,7 +510,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                             {t('urbanContext')}
                           </label>
                           <div className="grid grid-cols-3 gap-1.5">
-                            {Object.entries(URBAN_CONTEXTS).map(([key, { label, emoji }]) => (
+                            {Object.entries(URBAN_CONTEXTS).map(([key, { emoji }]) => (
                               <button
                                 key={key}
                                 onClick={() => setUrbanContext(urbanContext === key ? null : key)}
@@ -508,7 +525,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                                   className="text-[0.6rem] font-bold leading-tight block"
                                   style={{ color: urbanContext === key ? 'var(--accent)' : 'var(--text-muted)' }}
                                 >
-                                  {label}
+                                  {tPlace(PLACE_I18N[key] ?? key)}
                                 </span>
                               </button>
                             ))}
@@ -518,7 +535,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                               type="text"
                               value={urbanContextCustom}
                               onChange={(e) => setUrbanContextCustom(e.target.value)}
-                              placeholder="Specify location…"
+                              placeholder={t('specifyLocation')}
                               className="w-full text-xs rounded-xl px-3 py-2 outline-none mt-2"
                               style={{
                                 backgroundColor: 'var(--bg-card)',
@@ -536,7 +553,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
                               {t('isMoving')}
                             </p>
                             <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                              Were you moving (bus, car, bike…)?
+                              {t('isMovingDesc')}
                             </p>
                           </div>
                           <button

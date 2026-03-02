@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { X, Copy, Users, Clock, Shield } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { WalkSession } from '@/types';
 
 type Props = {
@@ -22,6 +23,8 @@ function generateCode() {
 
 export default function WalkWithMePanel({ userId, destination, onClose }: Props) {
   const { userProfile, userLocation } = useStore();
+  const t = useTranslations('walkWithMe');
+  const tEmergency = useTranslations('emergency');
   const [session, setSession] = useState<WalkSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [joinCode, setJoinCode] = useState('');
@@ -77,10 +80,10 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
       })
       .select()
       .single();
-    if (error) { toast.error('Failed to create session'); setLoading(false); return; }
+    if (error) { toast.error(t('createFailed')); setLoading(false); return; }
     setSession(data as WalkSession);
     setLoading(false);
-    toast.success('Session created! Share the code.');
+    toast.success(t('sessionCreated'));
   }
 
   // Join session by code
@@ -94,10 +97,10 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
       .eq('status', 'waiting')
       .select()
       .single();
-    if (error || !data) { toast.error('Invalid or expired code'); setLoading(false); return; }
+    if (error || !data) { toast.error(t('invalidCode')); setLoading(false); return; }
     setSession(data as WalkSession);
     setLoading(false);
-    toast.success('Joined! Walk together safely.');
+    toast.success(t('joinedSuccess'));
   }
 
   // End session
@@ -108,7 +111,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
       .update({ status: 'completed', ended_at: new Date().toISOString() })
       .eq('id', session.id);
     setSession(null);
-    toast.success('Walk completed safely!');
+    toast.success(t('walkCompleted'));
     onClose();
   }
 
@@ -125,7 +128,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
   function copyCode() {
     if (session?.invite_code) {
       navigator.clipboard.writeText(session.invite_code);
-      toast.success('Code copied!');
+      toast.success(t('codeCopied'));
     }
   }
 
@@ -144,7 +147,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Users size={18} style={{ color: 'var(--accent)' }} />
-            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>Walk With Me</span>
+            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</span>
           </div>
           <button onClick={onClose} className="p-1 rounded-full">
             <X size={16} style={{ color: 'var(--text-muted)' }} />
@@ -160,12 +163,12 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               className="w-full py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-50"
               style={{ backgroundColor: 'var(--accent)' }}
             >
-              {loading ? 'Creating...' : 'Start a Walk Session'}
+              {loading ? t('creating') : t('startSession')}
             </button>
 
             <div className="flex items-center gap-2">
               <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border)' }} />
-              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>or join</span>
+              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('orJoin')}</span>
               <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border)' }} />
             </div>
 
@@ -173,7 +176,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               <input
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="Enter code"
+                placeholder={t('enterCode')}
                 maxLength={6}
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm font-bold text-center tracking-widest"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
@@ -184,7 +187,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: 'var(--accent)' }}
               >
-                Join
+                {t('join')}
               </button>
             </div>
           </div>
@@ -193,7 +196,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
         {/* Waiting for companion */}
         {session?.status === 'waiting' && (
           <div className="text-center space-y-3">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Share this code with your companion:</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('shareCode')}</p>
             <div className="flex items-center justify-center gap-2">
               <span
                 className="text-2xl font-black tracking-[0.3em] px-4 py-2 rounded-xl"
@@ -206,7 +209,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               </button>
             </div>
             <div className="animate-pulse text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
-              Waiting for companion...
+              {t('waitingFor')}
             </div>
           </div>
         )}
@@ -218,7 +221,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Shield size={16} style={{ color: '#10b981' }} />
-                <span className="text-xs font-bold" style={{ color: '#10b981' }}>Walking together</span>
+                <span className="text-xs font-bold" style={{ color: '#10b981' }}>{t('walkTogether')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock size={14} style={{ color: 'var(--text-muted)' }} />
@@ -230,7 +233,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
             {destination && (
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Destination: <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{destination}</span>
+                {t('destination')} <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{destination}</span>
               </p>
             )}
 
@@ -240,13 +243,13 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 className="rounded-xl p-3 flex items-center justify-between"
                 style={{ backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}
               >
-                <span className="text-xs font-bold" style={{ color: '#f59e0b' }}>Safety check-in: Are you okay?</span>
+                <span className="text-xs font-bold" style={{ color: '#f59e0b' }}>{t('safetyCheckin')}</span>
                 <button
                   onClick={dismissCheckin}
                   className="px-3 py-1 rounded-lg text-xs font-bold text-white"
                   style={{ backgroundColor: '#10b981' }}
                 >
-                  I'm safe
+                  {tEmergency('imSafe')}
                 </button>
               </div>
             )}
@@ -257,7 +260,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               className="w-full py-3 rounded-xl text-sm font-bold transition"
               style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
             >
-              End Walk — I'm Safe
+              {t('endWalk')}
             </button>
           </div>
         )}

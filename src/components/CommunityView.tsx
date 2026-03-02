@@ -253,10 +253,10 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
     const { error } = await supabase.from('community_members').insert({
       community_id: item.id, user_id: userId, role: 'member',
     });
-    if (error) { toast.error('Failed to join'); return; }
+    if (error) { toast.error(t('failedJoin')); return; }
     setMyMemberships((prev) => new Set([...prev, item.id]));
     setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: c.member_count + 1 } : c));
-    toast.success(`Joined ${item.name}`);
+    toast.success(t('joined', { name: item.name }));
   }
 
   async function leaveItem(item: Community) {
@@ -264,11 +264,11 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
     const { error } = await supabase
       .from('community_members').delete()
       .eq('community_id', item.id).eq('user_id', userId);
-    if (error) { toast.error('Failed to leave'); return; }
+    if (error) { toast.error(t('failedLeave')); return; }
     setMyMemberships((prev) => { const s = new Set(prev); s.delete(item.id); return s; });
     setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: Math.max(0, c.member_count - 1) } : c));
     if (selectedItem?.id === item.id) setView('home');
-    toast.success(`Left ${item.name}`);
+    toast.success(t('left', { name: item.name }));
   }
 
   async function joinSubGroup(group: Community) {
@@ -276,10 +276,10 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
     const { error } = await supabase.from('community_members').insert({
       community_id: group.id, user_id: userId, role: 'member',
     });
-    if (error) { toast.error('Failed to join'); return; }
+    if (error) { toast.error(t('failedJoin')); return; }
     setMyMemberships((prev) => new Set([...prev, group.id]));
     setSubGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, member_count: g.member_count + 1 } : g));
-    toast.success(`Joined ${group.name}`);
+    toast.success(t('joined', { name: group.name }));
   }
 
   async function leaveSubGroup(group: Community) {
@@ -288,7 +288,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
       .eq('community_id', group.id).eq('user_id', userId);
     setMyMemberships((prev) => { const s = new Set(prev); s.delete(group.id); return s; });
     setSubGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, member_count: Math.max(0, g.member_count - 1) } : g));
-    toast.success(`Left ${group.name}`);
+    toast.success(t('left', { name: group.name }));
   }
 
   async function sendMessage() {
@@ -318,7 +318,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
       })
       .select()
       .single();
-    if (error) { toast.error('Failed to create'); setCreating(false); return; }
+    if (error) { toast.error(t('failedCreate')); setCreating(false); return; }
 
     await supabase.from('community_members').insert({
       community_id: data.id, user_id: userId, role: 'owner',
@@ -338,11 +338,11 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
         ...prev,
         [createParentId]: (prev[createParentId] ?? 0) + 1,
       }));
-      toast.success('Group created!');
+      toast.success(t('groupCreated'));
       setView('community-detail');
     } else {
       setItems((prev) => [newItem, ...prev]);
-      toast.success(`${createType === 'community' ? 'Community' : 'Group'} created!`);
+      toast.success(createType === 'community' ? t('communityCreated') : t('groupCreated'));
       setView('list');
     }
 

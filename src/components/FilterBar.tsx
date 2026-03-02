@@ -10,11 +10,14 @@ import { useTranslations } from 'next-intl';
 import CollapsibleSection from '@/components/CollapsibleSection';
 
 const AGE_OPTIONS = [
-  { id: 'all',   label: 'Any'   },
-  { id: '1h',    label: '< 1h'  },
-  { id: '6h',    label: '< 6h'  },
-  { id: 'today', label: 'Today' },
+  { id: 'all',   key: 'any'        as const },
+  { id: '1h',    key: 'lessThan1h' as const },
+  { id: '6h',    key: 'lessThan6h' as const },
+  { id: 'today', key: 'today'      as const },
 ];
+
+const SEV_I18N: Record<string, string> = { low: 'mild', med: 'moderate', high: 'danger' };
+const PLACE_I18N: Record<string, string> = { store: 'storeMall', bus: 'busStop', restaurant: 'restaurantBar' };
 
 const TIME_OPTIONS = [
   { id: 'all'       as const, key: 'anyTime'    as const },
@@ -70,6 +73,8 @@ type FilterBarProps = {
 export default function FilterBar({ open, onClose }: FilterBarProps) {
   const { mapFilters, setMapFilters } = useStore();
   const t = useTranslations('filters');
+  const tInc = useTranslations('incidents');
+  const tPlace = useTranslations('placeTypes');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const activeCount = [
@@ -90,14 +95,17 @@ export default function FilterBar({ open, onClose }: FilterBarProps) {
 
   // Summary helpers
   const severitySummary = mapFilters.severity === 'all'
-    ? 'All'
-    : SEVERITY[mapFilters.severity as keyof typeof SEVERITY]?.label ?? mapFilters.severity;
+    ? t('all')
+    : tInc(SEV_I18N[mapFilters.severity] ?? mapFilters.severity);
 
-  const ageSummary = AGE_OPTIONS.find((o) => o.id === mapFilters.age)?.label ?? 'Any';
+  const ageSummary = (() => {
+    const opt = AGE_OPTIONS.find((o) => o.id === mapFilters.age);
+    return opt ? t(opt.key) : t('any');
+  })();
 
   const urbanSummary = mapFilters.urban === 'all'
-    ? 'Any'
-    : URBAN_CONTEXTS[mapFilters.urban as keyof typeof URBAN_CONTEXTS]?.label ?? mapFilters.urban;
+    ? t('any')
+    : tPlace(PLACE_I18N[mapFilters.urban] ?? mapFilters.urban);
 
   const timeSummary = mapFilters.timeOfDay === 'all'
     ? t('anyTime')
@@ -156,16 +164,16 @@ export default function FilterBar({ open, onClose }: FilterBarProps) {
             >
               <ChipRow>
                 <Chip active={mapFilters.severity === 'all'} onClick={() => patch({ severity: 'all' })}>
-                  All
+                  {t('all')}
                 </Chip>
-                {Object.entries(SEVERITY).map(([key, { label, emoji, color }]) => (
+                {Object.entries(SEVERITY).map(([key, { emoji, color }]) => (
                   <Chip
                     key={key}
                     active={mapFilters.severity === key}
                     onClick={() => patch({ severity: key })}
                     color={color}
                   >
-                    {emoji} {label}
+                    {emoji} {tInc(SEV_I18N[key] ?? key)}
                   </Chip>
                 ))}
               </ChipRow>
@@ -180,9 +188,9 @@ export default function FilterBar({ open, onClose }: FilterBarProps) {
               onToggle={() => toggle('age')}
             >
               <ChipRow>
-                {AGE_OPTIONS.map(({ id, label }) => (
+                {AGE_OPTIONS.map(({ id, key }) => (
                   <Chip key={id} active={mapFilters.age === id} onClick={() => patch({ age: id })}>
-                    {label}
+                    {t(key)}
                   </Chip>
                 ))}
               </ChipRow>
@@ -198,15 +206,15 @@ export default function FilterBar({ open, onClose }: FilterBarProps) {
             >
               <ChipRow wrap>
                 <Chip active={mapFilters.urban === 'all'} onClick={() => patch({ urban: 'all' })}>
-                  Any
+                  {t('any')}
                 </Chip>
-                {Object.entries(URBAN_CONTEXTS).map(([key, { label, emoji }]) => (
+                {Object.entries(URBAN_CONTEXTS).map(([key, { emoji }]) => (
                   <Chip
                     key={key}
                     active={mapFilters.urban === key}
                     onClick={() => patch({ urban: key })}
                   >
-                    {emoji} {label}
+                    {emoji} {tPlace(PLACE_I18N[key] ?? key)}
                   </Chip>
                 ))}
               </ChipRow>

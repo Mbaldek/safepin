@@ -70,7 +70,18 @@
     "onFoot": "À pied",
     "transitMode": "Transports",
     "bus": "Bus",
-    "cycling": "Vélo"
+    "cycling": "Vélo",
+    "vehicle": "Véhicule",
+    "indoor": "Intérieur",
+    "maxFiles": "Vous pouvez joindre jusqu'à 5 fichiers",
+    "pickCategory": "Choisissez une catégorie",
+    "selectSeverity": "Sélectionnez la gravité",
+    "tapMap": "Appuyez sur la carte pour définir l'emplacement",
+    "uploadFailed": "Impossible d'envoyer le fichier. Vérifiez votre connexion.",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "submitted": "Signalement envoyé. Restez prudent(e).",
+    "isMovingDesc": "Étiez-vous en mouvement (bus, voiture, vélo…) ?",
+    "specifyLocation": "Précisez l'emplacement…"
   },
   "detail": {
     "emergencyAlert": "Alerte d'urgence",
@@ -126,7 +137,8 @@
     "morning": "6h–12h",
     "afternoon": "12h–18h",
     "evening": "18h–22h",
-    "night": "22h–6h"
+    "night": "22h–6h",
+    "any": "Tous"
   },
   "layers": {
     "mapStyle": "Style de carte",
@@ -242,7 +254,12 @@
     "mapStyle": "Style de carte",
     "redoOnboarding": "Relancer le tutoriel",
     "support": "Aide",
-    "appVersion": "Breveil v0.1.0-beta"
+    "appVersion": "Breveil v0.1.0-beta",
+    "waitlistSuccess": "Vous êtes sur la liste d'attente ! Nous vous informerons quand Breveil Pro sera lancé.",
+    "waitlistFailed": "Impossible de rejoindre la liste d'attente",
+    "checkoutFailed": "Impossible de démarrer le paiement",
+    "accountDeleted": "Suppression de compte demandée. Vous avez été déconnecté(e).",
+    "billingPortalFailed": "Impossible d'ouvrir le portail de facturation"
   },
   "notifications": {
     "title": "Notifications",
@@ -278,7 +295,16 @@
     "groups": "groupe(s)",
     "youReported": "Vous avez signalé",
     "youJoined": "Vous avez rejoint",
-    "noDescription": "Pas de description."
+    "noDescription": "Pas de description.",
+    "nameSaveError": "Impossible d'enregistrer votre nom. Réessayez.",
+    "nameUpdated": "Nom mis à jour",
+    "photoUploadError": "Impossible d'envoyer la photo. Réessayez.",
+    "photoSaveError": "Photo envoyée mais impossible d'enregistrer. Réessayez.",
+    "photoUpdated": "Photo de profil mise à jour",
+    "pinDeleteError": "Impossible de supprimer le signalement",
+    "pinDeleted": "Signalement supprimé",
+    "pinSaveError": "Impossible d'enregistrer les modifications",
+    "pinUpdated": "Signalement mis à jour"
   },
   "community": {
     "title": "Communautés",
@@ -298,7 +324,14 @@
     "discover": "Découvrir",
     "newGroup": "+ Nouveau",
     "member": "membre",
-    "communityTag": "COMMUNAUTÉ"
+    "communityTag": "COMMUNAUTÉ",
+    "failedJoin": "Impossible de rejoindre",
+    "failedLeave": "Impossible de quitter",
+    "failedCreate": "Impossible de créer",
+    "joined": "{name} rejoint",
+    "left": "{name} quitté",
+    "groupCreated": "Groupe créé !",
+    "communityCreated": "Communauté créée !"
   },
   "offline": {
     "banner": "Vous êtes hors ligne — les données peuvent être obsolètes",
@@ -397,7 +430,12 @@
     "moderate": "Modéré",
     "danger": "Grave",
     "urgent": "Urgent",
-    "emergencyAlert": "Alerte d'urgence"
+    "emergencyAlert": "Alerte d'urgence",
+    "any": "Tous",
+    "lessThan1h": "< 1h",
+    "lessThan6h": "< 6h",
+    "today": "Aujourd'hui",
+    "live": "EN DIRECT"
   },
   "install": {
     "addToHome": "Ajouter Breveil à l'écran d'accueil",
@@ -586,7 +624,8 @@
     "unsafeRoad": "Route dangereuse",
     "isolatedArea": "Zone isolée",
     "intoxicated": "Individu en état d'ébriété",
-    "suspicious": "Comportement suspect"
+    "suspicious": "Comportement suspect",
+    "other": "Autre"
   },
   "walkWithMe": {
     "walkTogether": "Marcher ensemble",
@@ -594,7 +633,23 @@
     "waitingCompanion": "En attente... 💛",
     "myTrip": "Mon trajet",
     "myFavorites": "Mes favoris",
-    "destinationPlaceholder": "ex: Maison, Gare du Nord, Café..."
+    "destinationPlaceholder": "ex: Maison, Gare du Nord, Café...",
+    "title": "Marche avec moi",
+    "creating": "Création…",
+    "startSession": "Démarrer une session de marche",
+    "orJoin": "ou rejoindre",
+    "enterCode": "Entrer le code",
+    "join": "Rejoindre",
+    "waitingFor": "En attente de l'accompagnant…",
+    "destination": "Destination :",
+    "safetyCheckin": "Vérification de sécurité : vous allez bien ?",
+    "endWalk": "Terminer la marche — Je suis en sécurité",
+    "createFailed": "Impossible de créer la session",
+    "sessionCreated": "Session créée ! Partagez le code.",
+    "invalidCode": "Code invalide ou expiré",
+    "joinedSuccess": "Rejoint ! Marchons ensemble en sécurité.",
+    "walkCompleted": "Marche terminée en toute sécurité !",
+    "codeCopied": "Code copié !"
   },
   "levels": {
     "veilleur": "Veilleur",
