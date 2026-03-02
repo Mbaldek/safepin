@@ -716,6 +716,32 @@ export default function MapPage() {
         />
         <EmergencyButton userId={userId} />
 
+        {/* Location sharing chip — visible while Walk With Me broadcast is active */}
+        {isSharingLocation && (
+          <div
+            className="absolute top-14 left-1/2 -translate-x-1/2 z-30
+                       flex items-center gap-2 px-3 py-1.5 rounded-full
+                       backdrop-blur-sm cursor-pointer"
+            style={{
+              background: 'rgba(76,175,121,0.12)',
+              border: '1px solid rgba(76,175,121,0.25)',
+            }}
+            onClick={() => setShowWalkWithMe(true)}
+          >
+            <span className="w-2 h-2 rounded-full animate-pulse"
+                  style={{ backgroundColor: 'var(--safe)' }} />
+            <span className="text-xs font-semibold" style={{ color: 'var(--safe)' }}>
+              Partage actif
+            </span>
+            <button
+              className="text-xs opacity-60 ml-1 leading-none"
+              onClick={(e) => { e.stopPropagation(); setIsSharingLocation(false); }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Contextual rolling banner — map tab only */}
         {activeTab === 'map' && <ContextBanner />}
 
