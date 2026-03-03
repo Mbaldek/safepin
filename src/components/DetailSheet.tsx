@@ -6,6 +6,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
+import { useMapPadding } from '@/hooks/useMapPadding';
 import { Bell, BellOff, Radio, ChevronDown, ChevronUp, MessageCircle, Share2, Flag, Paperclip, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
@@ -58,6 +59,7 @@ export default function DetailSheet() {
   } = useStore();
   const t = useTranslations('detail');
   const focusTrapRef = useFocusTrap(true, handleClose);
+  useMapPadding(focusTrapRef);
 
   const [confirms, setConfirms] = useState<VoteRow[]>([]);
   const [denies, setDenies] = useState<VoteRow[]>([]);

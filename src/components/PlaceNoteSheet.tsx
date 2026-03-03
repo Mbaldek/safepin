@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
+import { useMapPadding } from '@/hooks/useMapPadding';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { PlaceNote } from '@/types';
@@ -23,6 +24,7 @@ type Props = {
 export default function PlaceNoteSheet({ coords, userId, onClose, onSaved }: Props) {
   const { addPlaceNote, toggleFavPlace } = useStore();
   const focusTrapRef = useFocusTrap(true, onClose);
+  useMapPadding(focusTrapRef);
   const [name, setName]         = useState('');
   const [note, setNote]         = useState('');
   const [emoji, setEmoji]       = useState('📌');

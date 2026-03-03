@@ -261,6 +261,10 @@ type Store = {
   // Unread DM count (for Community tab badge)
   unreadDmCount: number;
   setUnreadDmCount: (n: number) => void;
+
+  // Map bottom padding — set by bottom sheets to shift the map's logical center upward
+  mapBottomPadding: number;
+  setMapBottomPadding: (px: number) => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -467,6 +471,10 @@ export const useStore = create<Store>((set) => ({
   // Unread DM count
   unreadDmCount: 0,
   setUnreadDmCount: (n) => set({ unreadDmCount: n }),
+
+  // Map bottom padding
+  mapBottomPadding: 0,
+  setMapBottomPadding: (px) => set({ mapBottomPadding: px }),
 }));
 
 // Shallow selectors for performance — prevent unnecessary re-renders

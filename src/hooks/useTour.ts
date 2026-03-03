@@ -32,7 +32,7 @@ const TOUR_STEPS: TourStep[] = [
     targetSelector: '[data-tour="filter-bar"]',
     titleKey: 'filtersTitle',
     descriptionKey: 'filtersDesc',
-    position: 'bottom',
+    position: 'right',
   },
   {
     id: 'trip',

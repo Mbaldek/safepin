@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
+import { useMapPadding } from '@/hooks/useMapPadding';
 import { X, ArrowLeft, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
@@ -50,6 +51,7 @@ export default function ReportSheet({ userId }: { userId: string | null }) {
   const tTrip = useTranslations('trip');
   const tEmergency = useTranslations('emergency');
   const focusTrapRef = useFocusTrap(true, handleClose);
+  useMapPadding(focusTrapRef);
 
   // Step state
   const [step, setStep] = useState<Step>('category');

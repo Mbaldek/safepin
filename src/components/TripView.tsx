@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { springTransition, haversineMeters } from '@/lib/utils';
+import { useMapPadding } from '@/hooks/useMapPadding';
 import { TransitStep } from '@/lib/transit';
 import { tripMonitor, MonitorEvent } from '@/lib/TripMonitor';
 
@@ -69,6 +70,8 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setShowWalkWithMe,
   } = useStore();
   const t = useTranslations('trip');
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useMapPadding(sheetRef);
 
   // Derive escort state from activeTrip
   const [escortState, setEscortState] = useState<EscortState>(() => {
@@ -344,6 +347,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
+      ref={sheetRef}
       className={`sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl ${escortState !== 'IDLE' || showSaved ? 'lg:top-2' : ''}`}
       style={{
         backgroundColor: 'var(--bg-secondary)',

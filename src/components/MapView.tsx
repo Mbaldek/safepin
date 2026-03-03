@@ -493,7 +493,7 @@ export default function MapView({
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const reportMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile } = useStore();
+  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile, mapBottomPadding } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
@@ -585,6 +585,16 @@ export default function MapView({
     map.current.flyTo({ center: [mapFlyTo.lng, mapFlyTo.lat], zoom: mapFlyTo.zoom });
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
+
+  // Adjust map logical center when a bottom sheet opens/resizes/closes
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady) return;
+    m.easeTo({
+      padding: { top: 0, left: 0, right: 0, bottom: mapBottomPadding },
+      duration: 300,
+    });
+  }, [mapBottomPadding, mapReady]);
 
   // Draggable marker for incident reporting
   useEffect(() => {
@@ -684,7 +694,7 @@ export default function MapView({
     const lats  = activeRoute.coords.map((c) => c[1]);
     m.fitBounds(
       [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-      { padding: 60, duration: 1200 },
+      { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, duration: 1200 },
     );
   }, [activeRoute, mapReady, layersReady]);
 
@@ -728,7 +738,7 @@ export default function MapView({
       const lats  = allCoords.map((c) => c[1]);
       m.fitBounds(
         [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: 60, duration: 1200 },
+        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, duration: 1200 },
       );
     }
   }, [pendingRoutes, mapReady, layersReady]);
@@ -781,7 +791,7 @@ export default function MapView({
       const lats = allCoords.map((c) => c[1]);
       m.fitBounds(
         [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: 60, duration: 1200 },
+        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, duration: 1200 },
       );
     }
   }, [transitSegments, mapReady, layersReady]);
