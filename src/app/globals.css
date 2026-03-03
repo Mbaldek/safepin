@@ -1,58 +1,260 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 @import "mapbox-gl/dist/mapbox-gl.css";
 
-/* ===== DARK THEME (default) ===== */
-[data-theme="dark"] {
-  --bg-primary:      #1B2541;
-  --bg-secondary:    #0F1729;
-  --bg-card:         #2A3A5C;
-  --bg-overlay:      rgba(15, 23, 41, 0.7);
-  --text-primary:    #F5F2EE;
-  --text-secondary:  #E8E4DE;
-  --text-muted:      #7A756D;
-  --text-placeholder:#585450;
-  --border:          rgba(232, 168, 56, 0.12);
-  --border-hover:    rgba(232, 168, 56, 0.2);
-  --accent:          #E8A838;
-  --accent-glow:     rgba(232, 168, 56, 0.25);
-  --safe:            #4CAF79;
-  --warn:            #F4A940;
-  --blue:            #8B7EC8;
+/* ══════════════════════════════════════════════════════════════════
+   BREVEIL DESIGN SYSTEM v1.0
+   Brand: Community safety app for women
+   Theme: Calm, warm, reassuring
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────
+     PRIMARY GRADIENT — BREVEIL WARM
+     Teal → Deep blue → Purple-rose → Warm violet
+     ───────────────────────────────────────────────────────────────── */
+  --gradient-start: #3BB4C1;
+  --gradient-mid: #1E3A5F;
+  --gradient-transition: #4A2C5A;
+  --gradient-end: #5C3D5E;
+
+  --gradient-primary: linear-gradient(
+    180deg,
+    #3BB4C1 0%,
+    #1E3A5F 45%,
+    #4A2C5A 75%,
+    #5C3D5E 100%
+  );
+
+  /* ─────────────────────────────────────────────────────────────────
+     SURFACE COLORS
+     ───────────────────────────────────────────────────────────────── */
+  --surface-base: #0F172A;
+  --surface-card: #1E293B;
+  --surface-elevated: #334155;
+  --surface-glass: rgba(30, 41, 59, 0.8);
+
+  /* ─────────────────────────────────────────────────────────────────
+     TEXT COLORS
+     ───────────────────────────────────────────────────────────────── */
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-inverse: #0F172A;
+
+  /* ─────────────────────────────────────────────────────────────────
+     SEMANTIC COLORS
+     ───────────────────────────────────────────────────────────────── */
+  --semantic-success: #34D399;
+  --semantic-success-soft: rgba(52, 211, 153, 0.15);
+  --semantic-warning: #FBBF24;
+  --semantic-warning-soft: rgba(251, 191, 36, 0.15);
+  --semantic-danger: #EF4444;
+  --semantic-danger-soft: rgba(239, 68, 68, 0.15);
+  --semantic-info: #60A5FA;
+  --semantic-info-soft: rgba(96, 165, 250, 0.15);
+
+  /* ─────────────────────────────────────────────────────────────────
+     ACCENT COLORS
+     ───────────────────────────────────────────────────────────────── */
+  --accent-gold: #F5C341;
+  --accent-coral: #F87171;
+  --accent-cyan: #22D3EE;
+  --accent-teal: #3BB4C1;
+
+  /* ─────────────────────────────────────────────────────────────────
+     INTERACTIVE STATES
+     ───────────────────────────────────────────────────────────────── */
+  --interactive-hover: rgba(255, 255, 255, 0.05);
+  --interactive-active: rgba(255, 255, 255, 0.10);
+  --interactive-focus: rgba(59, 180, 193, 0.5);
+
+  /* ─────────────────────────────────────────────────────────────────
+     BORDERS
+     ───────────────────────────────────────────────────────────────── */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --border-focus: var(--gradient-start);
+
+  /* ─────────────────────────────────────────────────────────────────
+     SPACING (8px grid)
+     ───────────────────────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─────────────────────────────────────────────────────────────────
+     BORDER RADIUS
+     ───────────────────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* ─────────────────────────────────────────────────────────────────
+     SHADOWS
+     ───────────────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(59, 180, 193, 0.3);
+  --shadow-glow-gold: 0 0 20px rgba(245, 195, 65, 0.3);
+
+  /* ─────────────────────────────────────────────────────────────────
+     MOTION
+     ───────────────────────────────────────────────────────────────── */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─────────────────────────────────────────────────────────────────
+     CATEGORY COLORS (Incident system)
+     ───────────────────────────────────────────────────────────────── */
+  --category-urgent: #EF4444;
+  --category-urgent-bg: rgba(239, 68, 68, 0.12);
+  --category-warning: #F59E0B;
+  --category-warning-bg: rgba(245, 158, 11, 0.12);
+  --category-infra: #64748B;
+  --category-infra-bg: rgba(148, 163, 184, 0.12);
+  --category-positive: #34D399;
+  --category-positive-bg: rgba(52, 211, 153, 0.12);
+
+  /* ─────────────────────────────────────────────────────────────────
+     LEGACY COMPATIBILITY (migrate away from these)
+     ───────────────────────────────────────────────────────────────── */
+  --bg-primary: var(--surface-base);
+  --bg-secondary: var(--surface-card);
+  --bg-card: var(--surface-card);
+  --bg-overlay: rgba(15, 23, 42, 0.7);
+  --accent: var(--accent-gold);
+  --accent-glow: rgba(245, 195, 65, 0.25);
+  --safe: var(--semantic-success);
+  --warn: var(--semantic-warning);
+  --blue: #8B7EC8;
+  --text-muted: var(--text-secondary);
+  --border: var(--border-default);
+  --border-hover: rgba(245, 195, 65, 0.2);
+  --text-placeholder: #585450;
 }
 
-/* ===== LIGHT THEME ===== */
+/* ══════════════════════════════════════════════════════════════════
+   LIGHT MODE
+   ══════════════════════════════════════════════════════════════════ */
 [data-theme="light"] {
-  --bg-primary:      #F5F2EE;
-  --bg-secondary:    #FFFFFF;
-  --bg-card:         #E8E4DE;
-  --bg-overlay:      rgba(27, 37, 65, 0.2);
-  --text-primary:    #1B2541;
-  --text-secondary:  #2A3A5C;
-  --text-muted:      #7A756D;
-  --text-placeholder:#A39E96;
-  --border:          rgba(27, 37, 65, 0.10);
-  --border-hover:    rgba(27, 37, 65, 0.18);
-  --accent:          #C48A1E;
-  --accent-glow:     rgba(196, 138, 30, 0.20);
-  --safe:            #4CAF79;
-  --warn:            #F4A940;
-  --blue:            #6A5FA8;
+  --surface-base: #F8FAFC;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-glass: rgba(255, 255, 255, 0.9);
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border-default: rgba(15, 23, 42, 0.10);
+  --border-strong: rgba(15, 23, 42, 0.20);
+
+  --interactive-hover: rgba(0, 0, 0, 0.03);
+  --interactive-active: rgba(0, 0, 0, 0.06);
+
+  /* Light gradient (warmer) */
+  --gradient-primary: linear-gradient(
+    180deg,
+    #67E8F9 0%,
+    #3B82F6 50%,
+    #6366F1 100%
+  );
+
+  /* Legacy */
+  --bg-primary: var(--surface-base);
+  --bg-secondary: var(--surface-card);
+  --bg-card: var(--surface-card);
+  --bg-overlay: rgba(27, 37, 65, 0.2);
+  --accent: #C48A1E;
+  --accent-glow: rgba(196, 138, 30, 0.20);
+  --border: var(--border-default);
+  --border-hover: rgba(27, 37, 65, 0.18);
+  --text-muted: var(--text-secondary);
+  --text-placeholder: #A39E96;
 }
 
-body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 17px;
-  -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  transition: background-color 0.3s, color 0.3s;
+/* ══════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Pin ripple (transport incidents) */
+@keyframes pin-ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(3); opacity: 0; }
 }
 
-.mapboxgl-ctrl-attrib {
-  display: none !important;
+.pin-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pin-ripple 2s ease-out infinite;
 }
+.pin-ripple-1 { animation-delay: 0s; }
+.pin-ripple-2 { animation-delay: 0.5s; }
+.pin-ripple-3 { animation-delay: 1s; }
+
+/* Pin drop */
+@keyframes pin-drop {
+  0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
+  60% { transform: translateY(5px) scale(1.1); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pin-drop {
+  animation: pin-drop 700ms var(--ease-spring) forwards;
+}
+
+/* Breathe (logo, loading) */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
+/* Pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Sheet motion optimization */
+.sheet-motion {
+  will-change: transform, opacity;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   APP-SPECIFIC ANIMATIONS
+   ══════════════════════════════════════════════════════════════════ */
 
 /* Draggable report pin marker */
 .report-pin-marker {
@@ -96,15 +298,6 @@ body {
   background: linear-gradient(135deg, var(--accent), var(--warn));
 }
 
-/* Sheets — GPU compositing hint for Android WebView / Capacitor */
-.sheet-motion {
-  will-change: transform, opacity;
-}
-
-/* Hide scrollbar utility */
-.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-
 /* Emergency marker pulse ring */
 @keyframes emergency-ring {
   0%   { transform: scale(1);   opacity: 0.8; }
@@ -134,17 +327,6 @@ body {
   100% { opacity: 0; }
 }
 
-/* Pin drop animation for new realtime pins */
-@keyframes pin-drop {
-  0%   { transform: translateY(-60px) scale(0.6); opacity: 0; }
-  60%  { transform: translateY(4px) scale(1.05); opacity: 1; }
-  80%  { transform: translateY(-2px) scale(0.98); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
-.pin-drop {
-  animation: pin-drop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
 /* Ghost trail drift for transport pins */
 @keyframes ghost-drift-v {
   0%, 100% { transform: translateY(0); }
@@ -159,26 +341,17 @@ body {
 
 /* Gold user-dot pulse */
 @keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 168, 56, 0.5); }
-  50%      { box-shadow: 0 0 0 8px rgba(232, 168, 56, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 195, 65, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(245, 195, 65, 0); }
 }
 .pulse-gold {
   animation: pulse-gold 2s ease-in-out infinite;
 }
 
-/* Welcome screen veil symbol breathe */
-@keyframes breathe {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50%       { opacity: 1;    transform: scale(1.04); }
-}
-.animate-breathe {
-  animation: breathe 3.5s ease-in-out infinite;
-}
-
 /* SOS button glow */
 @keyframes sos-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.5), 0 4px 15px rgba(15, 23, 41, 0.5); }
-  50%      { box-shadow: 0 0 0 8px rgba(230, 57, 70, 0), 0 4px 15px rgba(15, 23, 41, 0.5); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.5), 0 4px 15px rgba(15, 23, 42, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(230, 57, 70, 0), 0 4px 15px rgba(15, 23, 42, 0.5); }
 }
 .animate-sos-glow {
   animation: sos-glow 2s ease-in-out infinite;
@@ -220,23 +393,168 @@ body {
   animation: fade-in-up 0.3s ease-out forwards;
 }
 
-/* Mapbox user location dot — aurora glow ring */
+/* ══════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Glass effect */
+.glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Gradient background */
+.bg-gradient {
+  background: var(--gradient-primary);
+}
+
+/* Glow effects */
+.glow-teal {
+  box-shadow: var(--shadow-glow);
+}
+
+.glow-gold {
+  box-shadow: var(--shadow-glow-gold);
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ══════════════════════════════════════════════════════════════════ */
+
+.text-hero {
+  font-size: 40px;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.text-h1 {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.text-h1-functional {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.text-h2 {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.text-h3 {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-body {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-body-sm {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-caption {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+.text-overline {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BASE STYLES
+   ══════════════════════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Mapbox overrides */
+.mapboxgl-ctrl-attrib {
+  display: none !important;
+}
+
 .mapboxgl-user-location-dot {
-  box-shadow: 0 0 0 4px rgba(139,126,200,0.35), 0 0 0 8px rgba(139,126,200,0.1) !important;
+  box-shadow: 0 0 0 4px rgba(59, 180, 193, 0.35), 0 0 0 8px rgba(59, 180, 193, 0.1) !important;
 }
 
-/* ===== Accessibility ===== */
-
-/* Focus-visible ring for keyboard navigation */
+/* Focus visible */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--border-focus);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
-/* Reset for mouse/pointer focus */
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(59, 180, 193, 0.3);
 }
 
 /* Skip link — hidden until focused */
@@ -256,14 +574,4 @@ body {
 }
 .skip-link:focus {
   top: 8px;
-}
-
-/* Reduced motion — disable all animations and transitions */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
 }

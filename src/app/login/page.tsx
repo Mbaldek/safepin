@@ -259,7 +259,7 @@ export default function LoginPage() {
                 onClick={() => setLang(code)}
                 className="px-2.5 py-1.5 transition"
                 style={locale === code
-                  ? { backgroundColor: 'var(--accent)', color: '#1B2541' }
+                  ? { backgroundColor: 'var(--accent)', color: 'var(--surface-base)' }
                   : { color: 'var(--text-muted)' }}
               >
                 {code === 'fr' ? '🇫🇷' : '🇬🇧'} {code.toUpperCase()}

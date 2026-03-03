@@ -527,7 +527,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                     {!isMe && (
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 self-end ${!showAvatar ? 'invisible' : ''}`}
-                        style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}
+                        style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}
                       >
                         {(m.display_name?.[0] ?? '?').toUpperCase()}
                       </div>

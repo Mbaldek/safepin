@@ -77,7 +77,7 @@ function StoryViewer({
       <div className="absolute top-8 left-0 right-0 z-10 flex items-center justify-between px-4 pt-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black text-white"
-            style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}>
             {(story.display_name?.[0] ?? '?').toUpperCase()}
           </div>
           <div>
@@ -269,7 +269,7 @@ export default function StoriesRow({ communityId }: { communityId: string }) {
               <button
                 onClick={() => { setViewerStartIndex(i); setViewerOpen(true); }}
                 className="w-14 h-14 rounded-full overflow-hidden relative"
-                style={{ padding: '2px', background: 'linear-gradient(135deg, #D4A853, #f59e0b)' }}
+                style={{ padding: '2px', background: 'linear-gradient(135deg, var(--accent-gold), #f59e0b)' }}
               >
                 <div className="w-full h-full rounded-full overflow-hidden"
                   style={{ backgroundColor: 'var(--bg-secondary)' }}>

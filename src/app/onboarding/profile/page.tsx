@@ -173,7 +173,7 @@ export default function OnboardingProfilePage() {
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all duration-200"
                   style={{
                     backgroundColor: selected ? 'rgba(232,168,56,0.12)' : 'rgba(255,255,255,0.04)',
-                    color: selected ? '#E8A838' : 'rgba(255,255,255,0.6)',
+                    color: selected ? 'var(--accent-gold)' : 'rgba(255,255,255,0.6)',
                     border: `1px solid ${selected ? 'rgba(232,168,56,0.3)' : 'rgba(255,255,255,0.08)'}`,
                     cursor: 'pointer',
                   }}
@@ -193,7 +193,7 @@ export default function OnboardingProfilePage() {
           className="w-full py-3.5 rounded-2xl font-bold text-sm transition"
           style={{
             backgroundColor: 'var(--accent)',
-            color: '#1B2541',
+            color: 'var(--surface-base)',
             opacity: saving ? 0.7 : 1,
             border: 'none',
             cursor: saving ? 'not-allowed' : 'pointer',

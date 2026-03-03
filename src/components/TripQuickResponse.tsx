@@ -71,7 +71,7 @@ export default function TripQuickResponse({ tripId, travelerName, destination, m
         <div className="flex items-center gap-2 mb-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-content-center text-sm"
-            style={{ backgroundColor: 'var(--accent)', color: '#1B2541' }}
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--surface-base)' }}
           >
             {emoji}
           </div>

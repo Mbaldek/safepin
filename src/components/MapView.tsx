@@ -468,7 +468,7 @@ function addClusterLayers(m: mapboxgl.Map) {
   if (!m.hasImage('pin-sev-low')) {
     m.addImage('pin-sev-low',  makeStaticPin('#F4A940', 24), { pixelRatio: 2 }); // 12px display
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    m.addImage('pin-sev-med',  makePulsePin('#E8A838', 28, false) as any, { pixelRatio: 2 }); // 14px
+    m.addImage('pin-sev-med',  makePulsePin('var(--accent-gold)', 28, false) as any, { pixelRatio: 2 }); // 14px
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     m.addImage('pin-sev-high', makePulsePin('#E63946', 48, true)  as any, { pixelRatio: 2 }); // 24px w/ glow
 
@@ -1154,7 +1154,7 @@ export default function MapView({
       const m = map.current;
       for (const pin of regularPins) {
         if (prevIds.has(pin.id)) continue;
-        const dropColor = { low: '#F4A940', med: '#E8A838', high: '#E63946' }[pin.severity] ?? '#E8A838';
+        const dropColor = { low: '#F4A940', med: 'var(--accent-gold)', high: '#E63946' }[pin.severity] ?? 'var(--accent-gold)';
         const el = document.createElement('div');
         el.className = 'pin-drop';
         el.style.cssText = `width:18px;height:18px;border-radius:50%;background:${dropColor};border:2.5px solid #fff;box-shadow:0 2px 6px ${dropColor}66;pointer-events:none;`;

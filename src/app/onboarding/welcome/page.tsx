@@ -137,7 +137,7 @@ export default function OnboardingWelcomePage() {
                 border: '1px solid rgba(255,255,255,0.06)',
               }}
             >
-              <span className="text-[13px] font-semibold" style={{ color: '#E8A838' }}>
+              <span className="text-[13px] font-semibold" style={{ color: 'var(--accent-gold)' }}>
                 {stat.number}
               </span>
               <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -157,7 +157,7 @@ export default function OnboardingWelcomePage() {
           className="flex w-full items-center justify-center gap-2 py-4 text-[15px] font-bold transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
           style={{
             backgroundColor: 'var(--accent)',
-            color: '#1B2541',
+            color: 'var(--surface-base)',
             borderRadius: 14,
             border: 'none',
             cursor: loading ? 'not-allowed' : 'pointer',

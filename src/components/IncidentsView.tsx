@@ -17,7 +17,7 @@ import { timeAgoLong as timeAgo, haversineMeters, springTransition } from '@/lib
 // ── Severity brand tokens ──────────────────────────────────────────────────────
 
 const SEV_COLOR: Record<string, string> = {
-  low: '#F4A940', med: '#E8A838', high: '#E63946',
+  low: '#F4A940', med: 'var(--accent-gold)', high: '#E63946',
 };
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ function IncidentCard({ pin, dist, t }: {
   const isEmergency = pin.is_emergency;
   const isLive = liveSessions.some((s) => s.pin_id === pin.id && !s.ended_at);
   const isDanger = isEmergency || pin.severity === 'high';
-  const sevColor = isEmergency ? '#E63946' : (SEV_COLOR[pin.severity] ?? '#E8A838');
+  const sevColor = isEmergency ? '#E63946' : (SEV_COLOR[pin.severity] ?? 'var(--accent-gold)');
   const sevLabel = isEmergency
     ? t('urgent')
     : pin.severity === 'low' ? t('mild')

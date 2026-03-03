@@ -450,7 +450,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       {phase === 'countdown' && (
         <div
           className="absolute inset-0 z-400 flex flex-col"
-          style={{ background: `radial-gradient(circle at 50% 35%, rgba(230,57,70,0.15) 0%, #1B2541 60%)` }}
+          style={{ background: `radial-gradient(circle at 50% 35%, rgba(230,57,70,0.15) 0%, var(--surface-base) 60%)` }}
         >
           {/* Breveil wordmark */}
           <header className="px-6 pt-5">
@@ -532,7 +532,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           {/* Bottom sheet */}
           <div
             className="absolute inset-x-0 bottom-0 z-360 animate-slide-up rounded-t-3xl px-5 pb-8 pt-2"
-            style={{ backgroundColor: '#1B2541', boxShadow: '0 -8px 40px rgba(0,0,0,0.45)' }}
+            style={{ backgroundColor: 'var(--surface-base)', boxShadow: '0 -8px 40px rgba(0,0,0,0.45)' }}
           >
             {/* Drag handle */}
             <div className="flex justify-center py-2">

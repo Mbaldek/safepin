@@ -40,7 +40,7 @@ function AvatarCircle({ name }: { name: string }) {
     <div
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[14px] font-bold"
       style={{
-        background: 'linear-gradient(135deg, #E8A838 0%, #8B7EC8 100%)',
+        background: 'linear-gradient(135deg, var(--accent-gold) 0%, #8B7EC8 100%)',
         color: '#FFFFFF',
       }}
     >
@@ -273,7 +273,7 @@ export default function OnboardingCirclePage() {
             className="w-full py-4 text-[15px] font-bold transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
             style={{
               backgroundColor: 'var(--accent)',
-              color: '#1B2541',
+              color: 'var(--surface-base)',
               borderRadius: 14,
               border: 'none',
               cursor: saving ? 'not-allowed' : 'pointer',

@@ -159,7 +159,7 @@ export function CoachMark({
             <button
               onClick={onNext}
               className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
-              style={{ backgroundColor: 'var(--accent)', color: '#1B2541' }}
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--surface-base)' }}
             >
               {currentStep === totalSteps ? doneLabel : nextLabel}
             </button>

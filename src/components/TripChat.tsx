@@ -149,7 +149,7 @@ export default function TripChat({ tripId }: { tripId: string }) {
                 className="text-xs px-3 py-1.5 rounded-xl max-w-[85%]"
                 style={{
                   backgroundColor: isMe ? 'var(--accent)' : 'var(--bg-card)',
-                  color: isMe ? '#1B2541' : 'var(--text-primary)',
+                  color: isMe ? 'var(--surface-base)' : 'var(--text-primary)',
                   border: isMe ? 'none' : '1px solid var(--border)',
                 }}
               >
@@ -183,7 +183,7 @@ export default function TripChat({ tripId }: { tripId: string }) {
           className="p-2 rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
           style={{ backgroundColor: 'var(--accent)' }}
         >
-          <Send size={14} color="#1B2541" />
+          <Send size={14} color="var(--surface-base)" />
         </button>
       </form>
     </div>

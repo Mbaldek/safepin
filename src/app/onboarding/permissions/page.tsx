@@ -16,7 +16,7 @@ function MapIllustration() {
   return (
     <div
       className="relative mx-auto w-full overflow-hidden rounded-2xl"
-      style={{ backgroundColor: '#0F1729', height: 220 }}
+      style={{ backgroundColor: 'var(--surface-card)', height: 220 }}
     >
       <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
         {/* Street grid */}
@@ -40,13 +40,13 @@ function MapIllustration() {
       <div className="absolute" style={{ left: 60, top: 58 }}>
         <div className="flex flex-col items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ backgroundColor: '#E8A838', boxShadow: '0 0 16px rgba(232,168,56,0.35)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1B2541" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            style={{ backgroundColor: 'var(--accent-gold)', boxShadow: '0 0 16px rgba(232,168,56,0.35)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--surface-base)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
             </svg>
           </div>
           <div className="mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
-            style={{ backgroundColor: 'rgba(232,168,56,0.15)', color: '#E8A838' }}>
+            style={{ backgroundColor: 'rgba(232,168,56,0.15)', color: 'var(--accent-gold)' }}>
             Lieux proches
           </div>
         </div>
@@ -57,7 +57,7 @@ function MapIllustration() {
         <div className="flex flex-col items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full"
             style={{ backgroundColor: '#8B7EC8', boxShadow: '0 0 16px rgba(139,126,200,0.35)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1B2541" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--surface-base)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
               <line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" />
             </svg>
@@ -74,7 +74,7 @@ function MapIllustration() {
         <div className="flex flex-col items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full"
             style={{ backgroundColor: '#6BA68E', boxShadow: '0 0 16px rgba(107,166,142,0.35)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1B2541" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--surface-base)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
@@ -111,7 +111,7 @@ const MOCK_NOTIFICATIONS = [
     time: 'il y a 8 min',
   },
   {
-    accentColor: '#E8A838',
+    accentColor: 'var(--accent-gold)',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A838" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
     title: 'Bilan de la semaine',
     body: 'Votre quartier est 23% plus sûr',
@@ -193,7 +193,7 @@ export default function OnboardingPermissionsPage() {
 
   const btnStyle: React.CSSProperties = {
     backgroundColor: 'var(--accent)',
-    color: '#1B2541',
+    color: 'var(--surface-base)',
     borderRadius: 14,
     border: 'none',
     cursor: loading ? 'not-allowed' : 'pointer',

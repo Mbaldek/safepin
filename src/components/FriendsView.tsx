@@ -35,7 +35,7 @@ function Avatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md'
   return (
     <div
       className={`${sz} rounded-full flex items-center justify-center font-black text-white shrink-0`}
-      style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}
+      style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}
     >
       {(name?.[0] ?? '?').toUpperCase()}
     </div>

@@ -75,7 +75,7 @@ export const BreveilMonogram = ({
         x="40" y="56" textAnchor="middle"
         fontFamily="'Cormorant Garamond', serif"
         fontWeight="400" fontSize="48"
-        fill={isDark ? 'white' : '#1B2541'}
+        fill={isDark ? 'white' : 'var(--surface-base)'}
       >
         B
       </text>

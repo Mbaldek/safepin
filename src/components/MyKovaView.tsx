@@ -459,7 +459,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-95 lg:max-w-none lg:rounded-2xl"
-        style={{ backgroundColor: '#1B2541', maxHeight: '92dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.4)' }}
+        style={{ backgroundColor: 'var(--surface-base)', maxHeight: '92dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.4)' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -500,7 +500,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, #E8A838, #8B7EC8)' }}
+                  style={{ background: 'linear-gradient(135deg, var(--accent-gold), #8B7EC8)' }}
                 >
                   {userProfile?.avatar_url ? (
                     <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -562,7 +562,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 className="flex flex-col items-center rounded-xl py-3"
                 style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <span className="font-serif text-[24px] leading-none" style={{ color: '#E8A838' }}>{myReports.length}</span>
+                <span className="font-serif text-[24px] leading-none" style={{ color: 'var(--accent-gold)' }}>{myReports.length}</span>
                 <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {t('reports')}
                 </span>
@@ -592,7 +592,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 className="flex flex-col items-center rounded-xl py-3"
                 style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <span className="font-serif text-[24px] leading-none" style={{ color: '#E8A838' }}>{thanksCount}</span>
+                <span className="font-serif text-[24px] leading-none" style={{ color: 'var(--accent-gold)' }}>{thanksCount}</span>
                 <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {t('thanks')}
                 </span>
@@ -650,8 +650,8 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                     onClick={() => setActiveSubTab(id)}
                     className="rounded-full px-4 py-2 text-[12px] transition-all duration-200"
                     style={{
-                      backgroundColor: isActive ? '#E8A838' : 'transparent',
-                      color: isActive ? '#1B2541' : 'rgba(255,255,255,0.4)',
+                      backgroundColor: isActive ? 'var(--accent-gold)' : 'transparent',
+                      color: isActive ? 'var(--surface-base)' : 'rgba(255,255,255,0.4)',
                       fontWeight: isActive ? 700 : 500,
                       border: isActive ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
                     }}

@@ -211,7 +211,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 height: 8,
                 background:
                   i === currentStep
-                    ? '#E8A838'
+                    ? 'var(--accent-gold)'
                     : i < currentStep
                     ? 'rgba(232,168,56,0.5)'
                     : 'rgba(255,255,255,0.2)',
@@ -281,7 +281,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <button
                 onClick={goNext}
                 className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: '#E8A838', color: '#1B2541' }}
+                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
               >
                 {t('start')} <ChevronRight className="w-4 h-4" />
               </button>
@@ -318,7 +318,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 ) : avatarUploading ? (
                   <div
                     className="w-5 h-5 border-2 rounded-full animate-spin"
-                    style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#E8A838' }}
+                    style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'var(--accent-gold)' }}
                   />
                 ) : (
                   <Camera className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -351,7 +351,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               </span>
               <button
                 onClick={() => setShowCitySelector(true)}
-                style={{ color: '#E8A838', fontSize: 14, fontWeight: 500 }}
+                style={{ color: 'var(--accent-gold)', fontSize: 14, fontWeight: 500 }}
               >
                 {t('changeCity')}
               </button>
@@ -361,7 +361,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <button
                 onClick={goNext}
                 className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: '#E8A838', color: '#1B2541' }}
+                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
               >
                 {t('continueBtn')} <ChevronRight className="w-4 h-4" />
               </button>
@@ -407,7 +407,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                     <span className="text-left flex-1" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
                       {t(g.key)}
                     </span>
-                    {sel && <Check className="w-5 h-5 shrink-0" style={{ color: '#E8A838' }} />}
+                    {sel && <Check className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-gold)' }} />}
                   </button>
                 );
               })}
@@ -417,7 +417,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <button
                 onClick={goNext}
                 className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: '#E8A838', color: '#1B2541' }}
+                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
               >
                 {t('continueBtn')} <ChevronRight className="w-4 h-4" />
               </button>
@@ -471,7 +471,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                     <button
                       onClick={() => void requestLocation()}
                       className="px-4 py-1.5 text-[13px] font-medium rounded-full shrink-0"
-                      style={{ background: '#E8A838', color: '#1B2541' }}
+                      style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
                     >
                       {t('allow')}
                     </button>
@@ -508,7 +508,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                     <button
                       onClick={() => void requestNotifications()}
                       className="px-4 py-1.5 text-[13px] font-medium rounded-full shrink-0"
-                      style={{ background: '#E8A838', color: '#1B2541' }}
+                      style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
                     >
                       {t('allow')}
                     </button>
@@ -529,7 +529,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <button
                 onClick={goNext}
                 className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: '#E8A838', color: '#1B2541' }}
+                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
               >
                 {t('continueBtn')} <ChevronRight className="w-4 h-4" />
               </button>
@@ -603,7 +603,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <button
                 onClick={() => void handleInviteContact()}
                 className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-[13px] font-medium rounded-lg"
-                style={{ background: '#E8A838', color: '#1B2541' }}
+                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
               >
                 {t('send')}
               </button>
@@ -677,7 +677,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 onClick={() => void handleComplete()}
                 disabled={completing}
                 className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: '#E8A838', color: '#1B2541' }}
+                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
               >
                 {completing ? '…' : t('finish')}
                 {!completing && <ChevronRight className="w-4 h-4" />}

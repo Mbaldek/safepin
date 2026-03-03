@@ -1,10 +1,10 @@
 // src/lib/colors.ts — Breveil brand color + font constants
 
 export const C = {
-  midnight:      '#1B2541',
-  midnightDeep:  '#0F1729',
-  midnightLight: '#2A3A5C',
-  veil:          '#E8A838',
+  midnight:      '#0F172A',
+  midnightDeep:  '#1E293B',
+  midnightLight: '#334155',
+  veil:          '#F5C341',
   veilLight:     '#F2D49A',
   veilDark:      '#C48A1E',
   aurora:        '#8B7EC8',
@@ -20,7 +20,7 @@ export const C = {
   success:       '#4CAF79',
   warning:       '#F4A940',
   n50:           '#FAFAF8',
-  n100:          '#F5F2EE',  // Ivoire
+  n100:          '#FFFFFF',  // Ivoire
   n200:          '#E8E4DE',
   n300:          '#D1CCC4',
   n400:          '#A39E96',

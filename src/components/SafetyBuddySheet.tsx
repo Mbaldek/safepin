@@ -219,7 +219,7 @@ export default function SafetyBuddySheet({ userId, routeId, onClose }: Props) {
                     <div key={m.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                       style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black"
-                        style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)', color: '#fff' }}>
+                        style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)', color: '#fff' }}>
                         {(m.display_name ?? '?')[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">

@@ -135,7 +135,7 @@ export default function OnboardingGoalsPage() {
                   {/* Title */}
                   <span
                     className="mt-3 text-[14px] font-bold leading-snug transition-colors duration-200"
-                    style={{ color: selected ? '#E8A838' : '#FFFFFF' }}
+                    style={{ color: selected ? 'var(--accent-gold)' : '#FFFFFF' }}
                   >
                     {t(goal.titleKey)}
                   </span>
@@ -156,7 +156,7 @@ export default function OnboardingGoalsPage() {
             className="mt-6 w-full py-4 rounded-[14px] font-bold text-[15px] transition-all"
             style={{
               backgroundColor: 'var(--accent)',
-              color: '#1B2541',
+              color: 'var(--surface-base)',
               opacity: saving ? 0.7 : 1,
               border: 'none',
               cursor: saving ? 'not-allowed' : 'pointer',

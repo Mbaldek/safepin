@@ -68,7 +68,7 @@ export default function InstallPrompt() {
           }}
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}>
             <Download size={16} style={{ color: '#fff' }} />
           </div>
           <div className="flex-1 min-w-0">

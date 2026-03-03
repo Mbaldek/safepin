@@ -304,7 +304,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
             style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
           >
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #D4A853, #B8923E)' }}>
+              style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}>
               {userProfile?.avatar_url
                 ? <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                 : (userProfile?.display_name?.[0] ?? '?').toUpperCase()}

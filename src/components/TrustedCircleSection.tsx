@@ -17,7 +17,7 @@ type InviteRow  = TrustedContact & { sender_name: string | null };
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-const COLORS = ['#D4A853','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
+const COLORS = ['var(--accent-gold)','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
 function nameColor(name: string | null) {
   if (!name) return '#6b7280';
   let h = 0;
