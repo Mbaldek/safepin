@@ -16,11 +16,11 @@ export default function AddressSearch({ autoFocus }: { autoFocus?: boolean }) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { setMapFlyTo } = useStore();
+  const { setMapFlyTo, userLocation } = useStore();
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 3) {
+    if (query.trim().length < 2) {
       setSuggestions([]);
       setOpen(false);
       return;
@@ -29,7 +29,7 @@ export default function AddressSearch({ autoFocus }: { autoFocus?: boolean }) {
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       try {
         const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=5&language=fr,en&autocomplete=true&types=poi,address,place`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=5&language=fr,en${userLocation ? `&proximity=${userLocation.lng},${userLocation.lat}` : ''}&autocomplete=true&types=poi,address,place,locality,neighborhood`
         );
         const data = await res.json();
         setSuggestions(data.features || []);

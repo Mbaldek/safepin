@@ -285,7 +285,12 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'community_messages',
         filter: `community_id=eq.${selectedItem.id}`,
-      }, (payload) => setMessages((prev) => [...prev, payload.new as CommunityMessage]))
+      }, (payload) => setMessages((prev) => {
+        const msg = payload.new as CommunityMessage;
+        const tempIdx = prev.findIndex(m => typeof m.id === 'string' && (m.id as string).startsWith('temp-') && m.content === msg.content && m.user_id === msg.user_id);
+        if (tempIdx >= 0) { const next = [...prev]; next[tempIdx] = msg; return next; }
+        return [...prev, msg];
+      }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [selectedItem?.id]);
@@ -341,13 +346,24 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
 
   async function sendMessage() {
     if (!msgInput.trim() || !userId || !selectedItem || sending) return;
+    const content = msgInput.trim();
+    const tempId = `temp-${Date.now()}`;
+    setMsgInput('');
+    setMessages((prev) => [...prev, {
+      id: tempId, community_id: selectedItem.id, user_id: userId,
+      display_name: userProfile?.display_name ?? null, content,
+      created_at: new Date().toISOString(),
+    } as CommunityMessage]);
     setSending(true);
     const { error } = await supabase.from('community_messages').insert({
       community_id: selectedItem.id, user_id: userId,
-      display_name: userProfile?.display_name ?? null, content: msgInput.trim(),
+      display_name: userProfile?.display_name ?? null, content,
     });
     setSending(false);
-    if (!error) setMsgInput('');
+    if (error) {
+      toast.error(t('sendFailed'));
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    }
   }
 
   async function handleCreate() {

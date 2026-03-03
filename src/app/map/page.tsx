@@ -16,7 +16,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, SlidersHorizontal } from 'lucide-react';
+import { Bell, Search, Menu, X, List } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
@@ -775,6 +775,7 @@ export default function MapPage() {
             <button
               onClick={() => setShowIncidentsList(!showIncidentsList)}
               aria-label={showIncidentsList ? 'Hide incidents list' : 'Show incidents list'}
+              data-tour="filter-bar"
               className="absolute top-3 left-3 h-9 px-3 rounded-xl flex items-center gap-2 shadow-lg z-50 hover:scale-105 active:scale-95 transition"
               style={{
                 backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',
@@ -795,30 +796,11 @@ export default function MapPage() {
                   {pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length}
                 </span>
               )}
-            </button>
-            {/* Filter icon button — bottom left */}
-            <button
-              onClick={() => setShowIncidentsList(!showIncidentsList)}
-              aria-label="Map filters"
-              data-tour="filter-bar"
-              className="absolute bottom-6 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
-              style={{
-                backgroundColor: filterActiveCount > 0
-                  ? 'var(--accent)'
-                  : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
-                border: '1px solid var(--border)',
-                backdropFilter: 'blur(12px)',
-              }}
-            >
-              <SlidersHorizontal
-                size={15}
-                strokeWidth={2}
-                style={{ color: filterActiveCount > 0 ? '#fff' : 'var(--text-muted)' }}
-              />
-              {filterActiveCount > 0 && (
+              {/* Active filter count badge */}
+              {!showIncidentsList && filterActiveCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-3.75 h-3.75 rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-                  style={{ backgroundColor: '#fff', color: 'var(--accent)' }}
+                  className="min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                 >
                   {filterActiveCount}
                 </span>
