@@ -16,6 +16,9 @@ interface CoachMarkProps {
   onSkip: () => void;
   currentStep: number;
   totalSteps: number;
+  skipLabel?: string;
+  nextLabel?: string;
+  doneLabel?: string;
 }
 
 const TOOLTIP_WIDTH = 280;
@@ -30,6 +33,9 @@ export function CoachMark({
   onSkip,
   currentStep,
   totalSteps,
+  skipLabel = 'Skip',
+  nextLabel = 'Next →',
+  doneLabel = 'Got it!',
 }: CoachMarkProps) {
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -148,14 +154,14 @@ export function CoachMark({
               className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
               style={{ color: 'var(--text-muted)' }}
             >
-              Skip
+              {skipLabel}
             </button>
             <button
               onClick={onNext}
               className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
               style={{ backgroundColor: 'var(--accent)', color: '#1B2541' }}
             >
-              {currentStep === totalSteps ? 'Got it!' : 'Next →'}
+              {currentStep === totalSteps ? doneLabel : nextLabel}
             </button>
           </div>
         </div>

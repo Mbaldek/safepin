@@ -1039,6 +1039,9 @@ export default function MapPage() {
             totalSteps={tourTotal}
             onNext={tourNext}
             onSkip={tourSkip}
+            skipLabel={tTour('skip')}
+            nextLabel={tTour('next')}
+            doneLabel={tTour('done')}
           />
         )}
       </AnimatePresence>
