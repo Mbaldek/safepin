@@ -115,7 +115,7 @@ function ItemCard({
 
 export default function CommunityView({ onClose }: { onClose: () => void }) {
   const t = useTranslations('community');
-  const { userId, userProfile } = useStore();
+  const { userId, userProfile, unreadDmCount } = useStore();
 
   // Navigation
   const [view, setView]       = useState<View>('home');
@@ -840,6 +840,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
                 {t('circle')}
               </h2>
               <button
+                onClick={() => setView('messages')}
                 className="text-[0.75rem] font-medium px-3 py-1 rounded-full transition active:opacity-70"
                 style={{ border: '1px solid rgba(212,168,83,0.5)', color: 'var(--accent)' }}
               >
@@ -881,6 +882,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
               <div className="flex items-center justify-between py-2">
                 <span className="text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>{t('inviteFirst')}</span>
                 <button
+                  onClick={() => setView('messages')}
                   className="text-[0.75rem] font-semibold px-3 py-1 rounded-full shrink-0 ml-3 transition active:opacity-70"
                   style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
                 >
@@ -896,7 +898,7 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
           <section className="px-4 pb-3">
             <div className="flex items-center gap-2 mb-2">
               <h2 className="text-[0.875rem] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {t('title')}
+                {t('communities')}
               </h2>
               {(myCommunities.length + myGroups.length) > 0 && (
                 <span
@@ -1016,34 +1018,29 @@ export default function CommunityView({ onClose }: { onClose: () => void }) {
           <div className="mx-4" style={{ height: 1, backgroundColor: 'var(--border)' }} />
 
           {/* ─── Bottom: Messages row ────────────────────────── */}
-          {(() => {
-            const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
-            return (
-              <button
-                onClick={() => setView('messages')}
-                className="flex items-center gap-3 px-4 py-3.5 w-full transition active:opacity-70 text-left hover:bg-white/[0.03] rounded-lg"
+          <button
+            onClick={() => setView('messages')}
+            className="flex items-center gap-3 px-4 py-3.5 w-full transition active:opacity-70 text-left hover:bg-white/[0.03] rounded-lg"
+          >
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
+            >
+              <MessageCircle size={18} strokeWidth={2} style={{ color: '#8B7EC8' }} />
+            </div>
+            <p className="flex-1 text-[0.875rem] font-medium" style={{ color: 'var(--text-primary)' }}>
+              {t('messages')}
+            </p>
+            {unreadDmCount > 0 && (
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-semibold shrink-0"
+                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
-                >
-                  <MessageCircle size={18} strokeWidth={2} style={{ color: '#8B7EC8' }} />
-                </div>
-                <p className="flex-1 text-[0.875rem] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {t('messages')}
-                </p>
-                {totalUnread > 0 && (
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-semibold shrink-0"
-                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                  >
-                    {totalUnread > 9 ? '9+' : totalUnread}
-                  </div>
-                )}
-                <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
-              </button>
-            );
-          })()}
+                {unreadDmCount > 9 ? '9+' : unreadDmCount}
+              </div>
+            )}
+            <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+          </button>
 
           <div className="pb-4" />
         </div>

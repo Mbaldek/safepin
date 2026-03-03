@@ -8,9 +8,9 @@ import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe, HelpCircle, BookOpen, BarChart3 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe, HelpCircle, BookOpen, BarChart3, MapPinned } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { DEFAULT_NOTIF_SETTINGS, type Subscription, type Invoice } from '@/types';
+import { DEFAULT_NOTIF_SETTINGS, URBAN_CONTEXTS, type Subscription, type Invoice } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
 import { springTransition } from '@/lib/utils';
 
@@ -114,7 +114,7 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin';
+type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin' | 'mapDisplay';
 
 const LOCALE_LABELS: Record<string, { native: string; flag: string }> = {
   en: { native: 'English', flag: '🇬🇧' },
@@ -150,7 +150,7 @@ const LOCALE_LABELS: Record<string, { native: string; flag: string }> = {
 };
 
 export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: Props) {
-  const { userId, userProfile, notifSettings, setNotifSettings, setActiveTab, setMyKovaInitialTab } = useStore();
+  const { userId, userProfile, notifSettings, setNotifSettings, setActiveTab, setMyKovaInitialTab, mapFilters, setMapFilters } = useStore();
   const router = useRouter();
   const t = useTranslations('settings');
   const focusTrapRef = useFocusTrap(true, onClose);
@@ -375,6 +375,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
             {([
               { id: 'notifications', label: 'Notifications', subtitle: 'Alerts, radius, quiet hours', icon: <Bell size={16} /> },
+              { id: 'mapDisplay',    label: t('mapDisplay'),  subtitle: t('mapDisplayDesc'),           icon: <MapPinned size={16} /> },
               { id: 'account',       label: 'Account',       subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
             ] as { id: Section; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
               <button
@@ -857,6 +858,74 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>
               </p>
             </div>
+          </Section>
+            </motion.div>
+
+          ) : section === 'mapDisplay' ? (
+            <motion.div key="mapDisplay" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.15 }}>
+          {/* ── Map Display ─────────────────────────────────────────── */}
+          <Section title={t('mapDisplay')} icon={<MapPinned size={13} />}>
+            {/* Urban context chips */}
+            <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('locationType')}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(['all', ...Object.keys(URBAN_CONTEXTS)] as const).map((key) => {
+                  const isAll = key === 'all';
+                  const active = mapFilters.urban === key;
+                  const emoji = isAll ? null : URBAN_CONTEXTS[key as keyof typeof URBAN_CONTEXTS]?.emoji;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setMapFilters({ ...mapFilters, urban: key })}
+                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition"
+                      style={active
+                        ? { backgroundColor: 'var(--accent)', color: '#fff', border: '1.5px solid var(--accent)' }
+                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                      }
+                    >
+                      {emoji ? `${emoji} ` : ''}{isAll ? t('any') : (URBAN_CONTEXTS[key as keyof typeof URBAN_CONTEXTS]?.label ?? key)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Time of day chips */}
+            <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('timeOfDay')}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { id: 'all', label: t('anyTime') },
+                  { id: 'morning', label: t('morning') },
+                  { id: 'afternoon', label: t('afternoon') },
+                  { id: 'evening', label: t('evening') },
+                  { id: 'night', label: t('night') },
+                ] as const).map(({ id, label }) => {
+                  const active = mapFilters.timeOfDay === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setMapFilters({ ...mapFilters, timeOfDay: id as typeof mapFilters.timeOfDay })}
+                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition"
+                      style={active
+                        ? { backgroundColor: 'var(--accent)', color: '#fff', border: '1.5px solid var(--accent)' }
+                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Confirmed only toggle */}
+            <ToggleRow
+              label={t('confirmedOnly')}
+              subtitle={t('confirmedDesc')}
+              value={mapFilters.confirmedOnly}
+              onChange={(v) => setMapFilters({ ...mapFilters, confirmedOnly: v })}
+            />
           </Section>
             </motion.div>
 

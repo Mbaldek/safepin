@@ -285,7 +285,19 @@
     "waitlistFailed": "Could not join waitlist",
     "checkoutFailed": "Failed to start checkout",
     "accountDeleted": "Account deletion requested. You have been signed out.",
-    "billingPortalFailed": "Failed to open billing portal"
+    "billingPortalFailed": "Failed to open billing portal",
+    "mapDisplay": "Map display",
+    "mapDisplayDesc": "Filter what appears on the map",
+    "locationType": "Location type",
+    "timeOfDay": "Time of day",
+    "confirmedOnly": "Confirmed only",
+    "confirmedDesc": "Only show incidents confirmed by others",
+    "anyTime": "Any time",
+    "morning": "6am–12pm",
+    "afternoon": "12pm–6pm",
+    "evening": "6pm–10pm",
+    "night": "10pm–6am",
+    "any": "Any"
   },
   "notifications": {
     "title": "Notifications",

@@ -19,7 +19,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, SlidersHorizontal } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
-import FilterBar from '@/components/FilterBar';
 import ContextBanner from '@/components/ContextBanner';
 import ReportSheet from '@/components/ReportSheet';
 import DetailSheet from '@/components/DetailSheet';
@@ -250,7 +249,6 @@ export default function MapPage() {
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
 
   // Layer state (controls passed to MapView)
@@ -276,9 +274,6 @@ export default function MapPage() {
     mapFilters.timeOfDay !== 'all',
   ].filter(Boolean).length;
 
-  function openFilterPanel() {
-    setShowFilterPanel(true);
-  }
   const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 
@@ -803,12 +798,12 @@ export default function MapPage() {
             </button>
             {/* Filter icon button — bottom left */}
             <button
-              onClick={openFilterPanel}
+              onClick={() => setShowIncidentsList(!showIncidentsList)}
               aria-label="Map filters"
               data-tour="filter-bar"
               className="absolute bottom-6 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
               style={{
-                backgroundColor: showFilterPanel || filterActiveCount > 0
+                backgroundColor: filterActiveCount > 0
                   ? 'var(--accent)'
                   : 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
                 border: '1px solid var(--border)',
@@ -818,7 +813,7 @@ export default function MapPage() {
               <SlidersHorizontal
                 size={15}
                 strokeWidth={2}
-                style={{ color: showFilterPanel || filterActiveCount > 0 ? '#fff' : 'var(--text-muted)' }}
+                style={{ color: filterActiveCount > 0 ? '#fff' : 'var(--text-muted)' }}
               />
               {filterActiveCount > 0 && (
                 <span
@@ -840,8 +835,6 @@ export default function MapPage() {
           </>
         )}
 
-        {/* Filter bottom sheet */}
-        <FilterBar open={showFilterPanel} onClose={() => setShowFilterPanel(false)} />
 
         {/* Map contextual card — shows area info */}
 

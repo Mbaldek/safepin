@@ -285,7 +285,19 @@
     "waitlistFailed": "Impossible de rejoindre la liste d'attente",
     "checkoutFailed": "Impossible de démarrer le paiement",
     "accountDeleted": "Suppression de compte demandée. Vous avez été déconnecté(e).",
-    "billingPortalFailed": "Impossible d'ouvrir le portail de facturation"
+    "billingPortalFailed": "Impossible d'ouvrir le portail de facturation",
+    "mapDisplay": "Affichage carte",
+    "mapDisplayDesc": "Filtrer ce qui apparaît sur la carte",
+    "locationType": "Type de lieu",
+    "timeOfDay": "Moment de la journée",
+    "confirmedOnly": "Confirmés uniquement",
+    "confirmedDesc": "Afficher uniquement les signalements confirmés",
+    "anyTime": "Tout moment",
+    "morning": "6h–12h",
+    "afternoon": "12h–18h",
+    "evening": "18h–22h",
+    "night": "22h–6h",
+    "any": "Tous"
   },
   "notifications": {
     "title": "Notifications",

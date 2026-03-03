@@ -85,11 +85,9 @@ function IncidentCard({ pin, dist, t }: {
       onClick={handleTap}
       className="w-full text-left flex items-start gap-3 rounded-xl p-3.5 transition active:scale-[0.98]"
       style={{
-        backgroundColor: isDanger ? 'rgba(230,57,70,0.03)' : 'rgba(255,255,255,0.04)',
-        borderTop: `1px solid ${isDanger ? 'rgba(230,57,70,0.15)' : 'rgba(255,255,255,0.06)'}`,
-        borderRight: `1px solid ${isDanger ? 'rgba(230,57,70,0.15)' : 'rgba(255,255,255,0.06)'}`,
-        borderBottom: `1px solid ${isDanger ? 'rgba(230,57,70,0.15)' : 'rgba(255,255,255,0.06)'}`,
-        borderLeft: isDanger ? '3px solid #E63946' : '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: isDanger ? 'rgba(230,57,70,0.03)' : 'var(--bg-card)',
+        border: `1px solid ${isDanger ? 'rgba(230,57,70,0.15)' : 'var(--border)'}`,
+        borderLeft: isDanger ? '3px solid #E63946' : `1px solid var(--border)`,
       }}
     >
       {/* Icon circle */}
@@ -104,7 +102,7 @@ function IncidentCard({ pin, dist, t }: {
       {/* Content */}
       <div className="flex flex-1 flex-col gap-0.5 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[14px] font-semibold truncate" style={{ color: 'rgba(255,255,255,0.9)' }}>
+          <span className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
             {typeLabel}
           </span>
           {isLive && (
@@ -116,10 +114,10 @@ function IncidentCard({ pin, dist, t }: {
             </span>
           )}
         </div>
-        <span className="text-[12px] truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <span className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>
           {pin.description}
         </span>
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <span className="text-[11px]" style={{ color: 'var(--text-placeholder)' }}>
           {timeAgo(pin.created_at)}
           {dist !== null && ` · ~${formatDist(dist)}`}
         </span>
@@ -138,10 +136,9 @@ function IncidentCard({ pin, dist, t }: {
 
 // ── Filter types ──────────────────────────────────────────────────────────────
 
-type TimeFilter = 'all' | '1h' | '6h' | 'today';
 type RadiusFilter = 'all' | '500m' | '1km' | '2km' | '5km';
 
-const TIME_FILTERS: { id: TimeFilter; key: string }[] = [
+const AGE_FILTERS: { id: string; key: string }[] = [
   { id: 'all',   key: 'severityAll' },
   { id: '1h',    key: 'lessThan1h'  },
   { id: '6h',    key: 'lessThan6h'  },
@@ -162,10 +159,12 @@ const SEV_ORDER: Record<string, number> = { high: 0, med: 1, low: 2 };
 
 export default function IncidentsView({ onClose }: { onClose: () => void }) {
   const t = useTranslations('incidents');
-  const { pins, userLocation, liveSessions } = useStore();
-  const [timeFilter, setTimeFilter]     = useState<TimeFilter>('all');
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const { pins, userLocation, liveSessions, mapFilters, setMapFilters } = useStore();
   const [radiusFilter, setRadiusFilter] = useState<RadiusFilter>('all');
+
+  function patchFilters(partial: Partial<typeof mapFilters>) {
+    setMapFilters({ ...mapFilters, ...partial });
+  }
 
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -181,10 +180,10 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
           if ((now - base) / 3_600_000 >= 24) return false;
         }
         const ageMs = now - new Date(pin.created_at).getTime();
-        if (timeFilter === '1h'    && ageMs > 3_600_000)       return false;
-        if (timeFilter === '6h'    && ageMs > 6 * 3_600_000)  return false;
-        if (timeFilter === 'today' && ageMs > 24 * 3_600_000) return false;
-        if (severityFilter !== 'all' && !pin.is_emergency && pin.severity !== severityFilter) return false;
+        if (mapFilters.age === '1h'    && ageMs > 3_600_000)       return false;
+        if (mapFilters.age === '6h'    && ageMs > 6 * 3_600_000)  return false;
+        if (mapFilters.age === 'today' && ageMs > 24 * 3_600_000) return false;
+        if (mapFilters.severity !== 'all' && !pin.is_emergency && pin.severity !== mapFilters.severity) return false;
         if (radiusFilter !== 'all' && userLocation) {
           const maxM = RADIUS_FILTERS.find((r) => r.id === radiusFilter)!.meters;
           if (haversineMeters(userLocation, { lat: pin.lat, lng: pin.lng }) > maxM) return false;
@@ -202,16 +201,21 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
         if (sevDiff !== 0) return sevDiff;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [pins, timeFilter, severityFilter, radiusFilter, userLocation, liveSessions]);
+  }, [pins, mapFilters.age, mapFilters.severity, radiusFilter, userLocation, liveSessions]);
 
-  const hasFilters = timeFilter !== 'all' || severityFilter !== 'all' || radiusFilter !== 'all';
+  const hasFilters = mapFilters.severity !== 'all' || mapFilters.age !== 'all' || radiusFilter !== 'all';
+
+  function clearAll() {
+    patchFilters({ severity: 'all', age: 'all' });
+    setRadiusFilter('all');
+  }
 
   return (
     <motion.div
       className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden"
       style={{
-        backgroundColor: '#0F1729',
-        boxShadow: '0 -10px 40px rgba(15,23,41,0.7)',
+        backgroundColor: 'var(--bg-secondary)',
+        boxShadow: '0 -10px 40px var(--bg-overlay)',
         maxHeight: '78dvh',
       }}
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -220,24 +224,24 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
       {/* Drag handle */}
       <div
         className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0"
-        style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+        style={{ backgroundColor: 'var(--border)' }}
       />
 
       {/* ── Sticky header ─────────────────────────────────────────── */}
       <div
         className="shrink-0 px-4 pt-3 pb-3"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderBottom: '1px solid var(--border)' }}
       >
         {/* Title row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-[16px] font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <h2 className="text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>
               {t('nearbyIncidents')}
             </h2>
             {filtered.length > 0 && (
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}
+                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)' }}
               >
                 {filtered.length}
               </span>
@@ -246,23 +250,23 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
           <button
             onClick={onClose}
             className="text-xs rounded-full px-3 py-1.5 font-medium transition active:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
           >
             ✕
           </button>
         </div>
 
-        {/* Time filter chips */}
+        {/* Age filter chips */}
         <div className="flex gap-1.5 mb-2">
-          {TIME_FILTERS.map(({ id, key }) => (
+          {AGE_FILTERS.map(({ id, key }) => (
             <button
               key={id}
-              onClick={() => setTimeFilter(id)}
+              onClick={() => patchFilters({ age: id })}
               className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition"
               style={
-                timeFilter === id
-                  ? { backgroundColor: '#E8A838', color: '#1B2541' }
-                  : { backgroundColor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }
+                mapFilters.age === id
+                  ? { backgroundColor: 'var(--accent)', color: '#fff' }
+                  : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
               }
             >
               {t(key)}
@@ -272,7 +276,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
 
         {/* Radius filter chips */}
         <div className="flex gap-1.5 mb-2 items-center">
-          <span className="text-[10px] font-semibold shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[10px] font-semibold shrink-0" style={{ color: 'var(--text-placeholder)' }}>
             {t('radius')}
           </span>
           {RADIUS_FILTERS.map(({ id, label }) => {
@@ -284,10 +288,10 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                 className="px-2.5 py-1 rounded-full text-[10px] font-semibold transition"
                 style={
                   disabled
-                    ? { backgroundColor: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.04)', cursor: 'default' }
+                    ? { backgroundColor: 'var(--bg-card)', color: 'var(--text-placeholder)', border: '1px solid var(--border)', cursor: 'default', opacity: 0.5 }
                     : radiusFilter === id
-                      ? { backgroundColor: '#8B7EC8', color: '#fff' }
-                      : { backgroundColor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }
+                      ? { backgroundColor: 'var(--blue)', color: '#fff' }
+                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
                 }
               >
                 {id === 'all' ? t('any') : label}
@@ -299,7 +303,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
         {/* Severity chips */}
         <div className="flex gap-1.5">
           {(['all', 'low', 'med', 'high'] as const).map((sev) => {
-            const isActive = severityFilter === sev;
+            const isActive = mapFilters.severity === sev;
             const color = sev === 'all' ? undefined : SEV_COLOR[sev];
             const label = sev === 'all' ? t('severityAll')
               : sev === 'low' ? t('mild')
@@ -308,14 +312,14 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
             return (
               <button
                 key={sev}
-                onClick={() => setSeverityFilter(sev)}
+                onClick={() => patchFilters({ severity: sev })}
                 className="px-2.5 py-1 rounded-full text-[10px] font-semibold transition"
                 style={
                   isActive
                     ? color
                       ? { backgroundColor: `${color}20`, color, border: `1.5px solid ${color}60` }
-                      : { backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', border: '1.5px solid rgba(255,255,255,0.2)' }
-                    : { backgroundColor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.06)' }
+                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1.5px solid var(--border-hover)' }
+                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
                 }
               >
                 {label}
@@ -340,17 +344,17 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
             >
               <VeilSymbol />
             </div>
-            <p className="mt-4 text-center text-[16px] font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <p className="mt-4 text-center text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
               {hasFilters ? t('noResults') : t('allClear')}
             </p>
-            <p className="mt-1 text-center text-[13px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="mt-1 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
               {hasFilters ? t('broadenFilters') : t('allClearSub')}
             </p>
             {hasFilters && (
               <button
-                onClick={() => { setTimeFilter('all'); setSeverityFilter('all'); setRadiusFilter('all'); }}
+                onClick={clearAll}
                 className="mt-4 px-4 py-2 rounded-xl text-[12px] font-semibold transition active:opacity-70"
-                style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
                 {t('clearFilters')}
               </button>
