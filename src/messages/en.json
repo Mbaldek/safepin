@@ -232,7 +232,13 @@
     "dangerZone": "Sensitive zone",
     "activeZone": "Active zone",
     "shareLink": "Share the link",
-    "dangerTip": "Stay on lit streets · Call a contact"
+    "dangerTip": "Stay on lit streets · Call a contact",
+    "chooseRoute": "Choose route",
+    "transfers": "transfers",
+    "startRoute": "Start",
+    "calculating": "Calculating...",
+    "noRoutesForMode": "No routes",
+    "suggestions": "Suggestions"
   },
   "settings": {
     "title": "Settings",

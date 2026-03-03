@@ -91,6 +91,11 @@ body {
   100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
 }
 
+/* Trip CTA gradient */
+.gradient-accent {
+  background: linear-gradient(135deg, var(--accent), var(--warn));
+}
+
 /* Sheets — GPU compositing hint for Android WebView / Capacitor */
 .sheet-motion {
   will-change: transform, opacity;

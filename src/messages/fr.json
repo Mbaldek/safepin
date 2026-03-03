@@ -232,7 +232,13 @@
     "dangerZone": "Zone sensible",
     "activeZone": "Zone active",
     "shareLink": "Partager le lien",
-    "dangerTip": "Restez sur les axes éclairés · Appelez un proche"
+    "dangerTip": "Restez sur les axes éclairés · Appelez un proche",
+    "chooseRoute": "Choisir un itinéraire",
+    "transfers": "correspondances",
+    "startRoute": "Démarrer",
+    "calculating": "Calcul en cours...",
+    "noRoutesForMode": "Aucun itinéraire",
+    "suggestions": "Suggestions"
   },
   "settings": {
     "title": "Paramètres",

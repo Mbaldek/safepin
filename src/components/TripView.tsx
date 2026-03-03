@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, Star, ArrowLeft, Route, Signal, User, ChevronRight, Eye, Share2 } from 'lucide-react';
+import { X, Star, ArrowLeft, Route, Signal, User, ChevronRight, Eye, Share2, Shield, Users } from 'lucide-react';
 import SavedPanel from '@/components/SavedPanel';
 import RoutePlannerForm, { Mode } from '@/components/RoutePlannerForm';
 import TripSummary from '@/components/TripSummary';
@@ -633,96 +633,115 @@ export default function TripView({ onClose }: { onClose: () => void }) {
         {/* ── IDLE: Hub ──────────────────────────────────────────────── */}
         {escortState === 'IDLE' && !showSaved && (() => {
           const currentTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          const modeIconBg = (m: string) => {
+            switch (m) {
+              case 'walk':    return 'rgba(245,158,11,0.15)';
+              case 'bike':    return 'rgba(59,130,246,0.15)';
+              case 'drive':   return 'rgba(245,158,11,0.15)';
+              case 'transit': return 'rgba(99,102,241,0.15)';
+              default:        return 'rgba(255,255,255,0.08)';
+            }
+          };
+          const modeIconRing = (m: string) => {
+            switch (m) {
+              case 'walk':    return 'rgba(245,158,11,0.3)';
+              case 'bike':    return 'rgba(59,130,246,0.3)';
+              case 'drive':   return 'rgba(245,158,11,0.3)';
+              case 'transit': return 'rgba(99,102,241,0.3)';
+              default:        return 'rgba(255,255,255,0.12)';
+            }
+          };
           return (
-            <div className="flex flex-col gap-5 pt-1">
+            <div className="flex flex-col gap-4 pt-1">
 
               {/* Inline header — Mon trajet + time + close */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-xl font-light" style={{ color: 'var(--text-primary)' }}>{t('monTrajet')}</h1>
-                  <p className="text-xs mt-0.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                    {currentTime}
-                    <Signal size={12} strokeWidth={1.5} />
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{t('monTrajet')}</h1>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--bg-card)' }}>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{currentTime}</span>
+                    <Signal size={12} strokeWidth={1.5} style={{ color: 'var(--text-muted)' }} />
+                  </div>
                 </div>
-                <button onClick={onClose} className="p-1 -mr-1 transition hover:opacity-60" style={{ color: 'var(--text-muted)' }}>
+                <button onClick={onClose} className="p-2 -mr-2 rounded-full transition hover:opacity-60" style={{ color: 'var(--text-muted)' }}>
                   <X size={20} />
                 </button>
               </div>
 
-              {/* Walk With Me — main CTA */}
+              {/* Walk With Me — main CTA (gradient) */}
               <button
                 onClick={() => { onClose(); setShowWalkWithMe(true); }}
-                className="w-full h-12 rounded-xl flex items-center justify-between px-4 transition active:scale-[0.98]"
-                style={{ backgroundColor: 'var(--accent)' }}
+                className="group w-full rounded-2xl flex items-center gap-4 px-4 py-3.5 transition active:scale-[0.98] gradient-accent"
               >
-                <div className="flex items-center gap-3">
-                  <User size={18} style={{ color: 'rgba(0,0,0,0.5)' }} />
-                  <div className="text-left">
-                    <span className="text-sm font-semibold block" style={{ color: '#000' }}>{t('walkWithMe')}</span>
-                    <span className="text-[0.625rem]" style={{ color: 'rgba(0,0,0,0.55)' }}>{t('walkWithMeSubtitle')}</span>
-                  </div>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+                  <Users size={20} style={{ color: '#fff' }} />
                 </div>
-                <ChevronRight size={16} style={{ color: 'rgba(0,0,0,0.4)' }} />
+                <div className="flex-1 text-left">
+                  <span className="text-[0.9375rem] font-semibold block" style={{ color: '#fff' }}>{t('walkWithMe')}</span>
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{t('walkWithMeSubtitle')}</span>
+                </div>
+                <ChevronRight size={20} className="shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: 'rgba(255,255,255,0.6)' }} />
               </button>
 
-              {/* Secondary actions */}
-              <div className="flex gap-3">
+              {/* Plan / Favorites — segmented control */}
+              <div className="flex p-1 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                 <button
                   onClick={() => setEscortState('PLANNING')}
-                  className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
-                  style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition active:scale-[0.98]"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)' }}
                 >
-                  <Route size={15} style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('plan')}</span>
+                  <Route size={15} />
+                  {t('plan')}
                 </button>
                 <button
                   onClick={() => setShowSaved(true)}
-                  className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
-                  style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition active:scale-[0.98]"
+                  style={{ color: 'var(--text-muted)' }}
                 >
-                  <Star size={15} style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('myFavorites')}</span>
+                  <Star size={15} />
+                  {t('myFavorites')}
                   {savedRoutes.length > 0 && (
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>({savedRoutes.length})</span>
+                    <span className="text-[0.625rem] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(232,168,56,0.12)', color: 'var(--accent)' }}>
+                      {savedRoutes.length}
+                    </span>
                   )}
                 </button>
               </div>
 
-              {/* Circle share toggle — green when active */}
+              {/* Circle share toggle */}
               <button
                 onClick={() => setIsSharingLocation(!isSharingLocation)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition active:scale-[0.98]"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition active:scale-[0.98]"
                 style={{
                   backgroundColor: isSharingLocation ? 'rgba(34,197,94,0.08)' : 'var(--bg-card)',
                   border: `1px solid ${isSharingLocation ? 'rgba(34,197,94,0.25)' : 'var(--border)'}`,
                 }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <Signal size={15} style={{ color: isSharingLocation ? '#22c55e' : 'var(--text-muted)' }} />
                   <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('shareWithCircle')}</span>
                 </div>
-                <div className="w-11 h-6 rounded-full relative transition-colors shrink-0" style={{ backgroundColor: isSharingLocation ? '#22c55e' : 'rgba(255,255,255,0.15)' }}>
-                  <div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: isSharingLocation ? '23px' : '4px' }} />
+                <div className="w-10 h-5.5 rounded-full relative transition-colors duration-200 shrink-0" style={{ backgroundColor: isSharingLocation ? '#22c55e' : 'rgba(255,255,255,0.15)' }}>
+                  <div className="absolute top-0.75 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200" style={{ left: isSharingLocation ? '21px' : '3px' }} />
                 </div>
               </button>
 
               {/* Recent Trips */}
               {recentTrips.length > 0 && (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                       {t('recentTrips')}
-                    </h2>
+                    </span>
                     <button
                       onClick={() => setShowSaved(true)}
-                      className="text-xs flex items-center gap-0.5 transition hover:opacity-70"
+                      className="text-xs font-medium flex items-center gap-0.5 transition hover:opacity-70"
                       style={{ color: 'var(--accent)' }}
                     >
-                      {t('seeAll')} <ChevronRight size={12} />
+                      {t('seeAll')} <ChevronRight size={14} />
                     </button>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     {recentTrips.slice(0, 3).map((trip) => {
                       const col = safeColor(trip.danger_score);
                       const sc = safeScore(trip.danger_score);
@@ -730,24 +749,28 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                         <button
                           key={trip.id}
                           onClick={() => { setPrefillDest(trip.to_label); setPrefillDestCoords(null); setEscortState('PLANNING'); }}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition active:scale-[0.98]"
-                          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                          className="group flex items-center gap-3 p-2.5 rounded-xl text-left transition active:scale-[0.98]"
+                          style={{ backgroundColor: 'transparent' }}
                         >
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-sm shrink-0"
+                            style={{ backgroundColor: modeIconBg(trip.mode), border: `2px solid ${modeIconRing(trip.mode)}` }}
+                          >
                             {modeEmoji(trip.mode)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{trip.to_label}</p>
+                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{trip.to_label}</p>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                               {new Date(trip.started_at).toLocaleDateString('fr-FR', { weekday: 'short' })} · {Math.round(trip.duration_s / 60)} min
                             </p>
                           </div>
                           <div
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-[0.625rem] font-medium shrink-0"
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[0.6875rem] font-semibold shrink-0"
                             style={{ backgroundColor: col.bg, color: col.text }}
                           >
                             {sc}
                           </div>
+                          <ChevronRight size={16} className="shrink-0 group-hover:translate-x-0.5 transition-all" style={{ color: 'var(--text-muted)' }} />
                         </button>
                       );
                     })}
@@ -757,19 +780,25 @@ export default function TripView({ onClose }: { onClose: () => void }) {
 
               {/* Stats row */}
               {recentTrips.length > 0 && (
-                <div className="flex gap-3">
-                  <div className="flex-1 px-4 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{recentTrips.length}</span>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tripsThisWeek')}</span>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(232,168,56,0.12)' }}>
+                      <Route size={14} style={{ color: 'var(--accent)' }} />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold leading-none" style={{ color: 'var(--text-primary)' }}>{recentTrips.length}</p>
+                      <p className="text-[0.625rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('tripsThisWeek')}</p>
                     </div>
                   </div>
-                  <div className="flex-1 px-4 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold" style={{ color: '#22c55e' }}>
+                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>
+                      <Shield size={14} style={{ color: '#22c55e' }} />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold leading-none" style={{ color: '#22c55e' }}>
                         {(recentTrips.reduce((acc, r) => acc + safeScore(r.danger_score), 0) / recentTrips.length).toFixed(1)}
-                      </span>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('safetyAvgLabel')}</span>
+                      </p>
+                      <p className="text-[0.625rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('safetyAvgLabel')}</p>
                     </div>
                   </div>
                 </div>

@@ -5,7 +5,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, BookmarkPlus, Map, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, BookmarkPlus, Map, ChevronDown, ChevronUp, Loader2, LocateFixed, MapPin, Footprints } from 'lucide-react';
 import { useStore, RouteOption } from '@/stores/useStore';
 import { Pin } from '@/types';
 import AutocompleteInput from '@/components/AutocompleteInput';
@@ -364,30 +364,34 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  // Active mode for horizontal tabs (first expanded mode, or transit by default)
+  const activeMode: Mode = [...expandedModes][0] ?? 'transit';
+  const currentRoutes = routesByMode[activeMode] || [];
+
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {phase === 'selecting' && (
             <button
               onClick={backToForm}
-              className="w-7 h-7 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              className="p-1.5 -ml-1.5 rounded-full transition"
+              style={{ color: 'var(--text-muted)' }}
             >
-              <ArrowLeft size={14} style={{ color: 'var(--text-muted)' }} />
+              <ArrowLeft size={20} />
             </button>
           )}
-          <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
-            {phase === 'searching' ? t('searching') : phase === 'selecting' ? 'Choose Route' : t('title')}
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {phase === 'searching' ? t('searching') : phase === 'selecting' ? t('chooseRoute') : t('title')}
           </h2>
         </div>
         <button
           onClick={onClose}
-          className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80"
-          style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+          className="p-2 -mr-2 rounded-full transition hover:opacity-60"
+          style={{ color: 'var(--text-muted)' }}
         >
-          ✕
+          <span className="text-base leading-none">✕</span>
         </button>
       </div>
 
@@ -402,178 +406,198 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
         </div>
       )}
 
-      {/* Selecting — grouped by mode */}
+      {/* Selecting — horizontal tabs + route cards */}
       {phase === 'selecting' && (
-        <div className="flex flex-col gap-2.5">
-          {/* Trip summary */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <span className="text-sm">📍</span>
-            <div className="min-w-0 flex-1">
-              {departure.trim() && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>From: <span className="font-bold">{departure.trim()}</span></p>}
-              <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>To: {destination.trim()}</p>
-            </div>
-            {anyLoading && (
-              <Loader2 size={14} className="animate-spin shrink-0" style={{ color: 'var(--text-muted)' }} />
-            )}
-            {!anyLoading && (
-              <span className="text-[0.6rem] font-bold px-2 py-0.5 rounded-full shrink-0"
-                style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
-                {totalRoutes} routes
-              </span>
-            )}
+        <div className="flex flex-col gap-3">
+          {/* Destination summary */}
+          <div className="flex items-center gap-2">
+            <MapPin size={16} style={{ color: '#ef4444' }} />
+            <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
+              {destination.trim()}
+            </span>
+            <span className="ml-auto text-xs font-medium px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: 'rgba(232,168,56,0.12)', color: 'var(--accent)' }}>
+              {anyLoading ? <Loader2 size={12} className="animate-spin" /> : `${totalRoutes} ${totalRoutes === 1 ? 'route' : 'routes'}`}
+            </span>
           </div>
 
-          {/* Mode groups */}
-          {MODES.map(({ id: mode, emoji, label }) => {
-            const routes = routesByMode[mode];
-            const isLoading = loadingModes.has(mode);
-            const isExpanded = expandedModes.has(mode);
-            const bestDuration = routes.length > 0 ? Math.min(...routes.map((r) => r.duration)) : 0;
-            const modeColor = MODE_COLORS[mode];
+          {/* Horizontal mode tabs */}
+          <div className="flex gap-1.5 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ backgroundColor: 'var(--bg-card)' }}>
+            {MODES.map(({ id: mode, emoji, label }) => {
+              const routes = routesByMode[mode];
+              const isLoading = loadingModes.has(mode);
+              const isActive = expandedModes.has(mode);
+              const modeColor = MODE_COLORS[mode];
+              const count = routes.length;
 
-            return (
-              <div key={mode} className="rounded-2xl overflow-hidden" style={{ border: `1.5px solid ${isExpanded ? modeColor + '60' : 'var(--border)'}`, backgroundColor: 'var(--bg-card)' }}>
-                {/* Mode header — always visible */}
+              return (
                 <button
-                  onClick={() => routes.length > 0 && toggleMode(mode)}
-                  disabled={routes.length === 0 && !isLoading}
-                  className="w-full px-3 py-2.5 flex items-center gap-2.5 transition"
-                  style={{ opacity: routes.length === 0 && !isLoading ? 0.4 : 1 }}
+                  key={mode}
+                  onClick={() => {
+                    // Single-select: clear others and toggle this mode
+                    setExpandedModes((prev) => {
+                      const next = new Set<Mode>();
+                      if (!prev.has(mode)) next.add(mode);
+                      return next;
+                    });
+                  }}
+                  disabled={count === 0 && !isLoading}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
+                  style={{
+                    backgroundColor: isActive ? `${modeColor}18` : 'transparent',
+                    color: isActive ? modeColor : 'var(--text-muted)',
+                    border: isActive ? `1px solid ${modeColor}40` : '1px solid transparent',
+                    opacity: count === 0 && !isLoading ? 0.4 : 1,
+                  }}
                 >
-                  <span className="text-lg">{emoji}</span>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                    <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                      {isLoading ? 'Calculating...' :
-                       routes.length === 0 ? 'No routes found' :
-                       `${routes.length} route${routes.length > 1 ? 's' : ''} · best ${fmtDur(bestDuration)}`}
-                    </p>
-                  </div>
-                  {isLoading && <Loader2 size={14} className="animate-spin shrink-0" style={{ color: modeColor }} />}
-                  {!isLoading && routes.length > 0 && (
-                    <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <span>{emoji}</span>
+                  <span>{label}</span>
+                  {isLoading && <Loader2 size={12} className="animate-spin" />}
+                  {!isLoading && count > 0 && (
+                    <span className="text-[0.625rem] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: isActive ? `${modeColor}20` : 'rgba(255,255,255,0.06)' }}>
+                      {count}
                     </span>
                   )}
                 </button>
+              );
+            })}
+          </div>
 
-                {/* Expanded route cards */}
-                {isExpanded && routes.length > 0 && (
-                  <div className="px-2.5 pb-2.5 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)' }}>
-                    {routes.map((opt) => {
-                      const isDetailExpanded = expandedRouteId === opt.id;
-                      const transitRoute = opt.id.startsWith('transit-')
-                        ? transitRoutes.transit[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
-                        : null;
+          {/* Route cards for active mode */}
+          <div className="flex flex-col gap-2 max-h-[45vh] overflow-y-auto pr-0.5">
+            {currentRoutes.map((opt) => {
+              const isDetailExpanded = expandedRouteId === opt.id;
+              const transitRoute = opt.id.startsWith('transit-')
+                ? transitRoutes.transit[parseInt(opt.id.replace('transit-', ''), 10)] ?? null
+                : null;
+              const modeColor = MODE_COLORS[activeMode];
 
-                      return (
-                        <div key={opt.id} className="rounded-xl mt-2" style={{ border: `1.5px solid ${modeColor}25`, backgroundColor: `${modeColor}06` }}>
-                          {/* Route summary row */}
-                          <div className="px-3 py-2 flex items-center gap-2 cursor-pointer" onClick={() => setExpandedRouteId(isDetailExpanded ? null : opt.id)}>
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-black" style={{ color: opt.color }}>
-                                  {transitRoute
-                                    ? `dep ${fmtTime(transitRoute.departureTime)}`
-                                    : opt.label}
-                                </span>
-                                {opt.rerouted && (
-                                  <span className="text-[0.5rem] font-black px-1 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}>
-                                    ↺ rerouted
-                                  </span>
-                                )}
-                                {!transitRoute && <DangerBadge score={opt.dangerScore} />}
+              return (
+                <div key={opt.id}>
+                  {/* Route card */}
+                  <button
+                    onClick={() => setExpandedRouteId(isDetailExpanded ? null : opt.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl transition"
+                    style={{
+                      backgroundColor: isDetailExpanded ? `${modeColor}10` : 'var(--bg-card)',
+                      border: `1px solid ${isDetailExpanded ? `${modeColor}30` : 'var(--border)'}`,
+                    }}
+                  >
+                    {/* Time info */}
+                    <div className="text-left min-w-0 flex-1">
+                      {transitRoute && (
+                        <p className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                          dep {fmtTime(transitRoute.departureTime)}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {fmtDur(opt.duration)}
+                        </p>
+                        {opt.rerouted && (
+                          <span className="text-[0.5rem] font-bold px-1 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366f1' }}>
+                            ↺
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {transitRoute && (
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {transitRoute.transfers} {t('transfers')}
+                          </span>
+                        )}
+                        {!transitRoute && opt.distance > 0 && (
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>
+                        )}
+                        {!transitRoute && <DangerBadge score={opt.dangerScore} />}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => saveRoute(opt, activeMode)}
+                        className="p-2 rounded-lg transition hover:opacity-80"
+                        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                        title="Save route"
+                      >
+                        <BookmarkPlus size={14} style={{ color: 'var(--text-muted)' }} />
+                      </button>
+                      <button
+                        onClick={() => handleSelect(opt, activeMode)}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90 active:scale-95 gradient-accent"
+                        style={{ color: '#fff' }}
+                      >
+                        {t('startRoute')}
+                      </button>
+                    </div>
+                  </button>
+
+                  {/* Expanded transit step details */}
+                  {isDetailExpanded && transitRoute && (
+                    <div className="mt-2 ml-4 pl-4 space-y-3 pb-2" style={{ borderLeft: '2px solid var(--border)' }}>
+                      {transitRoute.steps.map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          {step.mode === 'walking' ? (
+                            <>
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center mt-0.5 shrink-0" style={{ backgroundColor: 'rgba(120,120,120,0.12)' }}>
+                                <Footprints size={14} style={{ color: 'var(--text-muted)' }} />
                               </div>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{fmtDur(opt.duration)}</span>
-                                {opt.distance > 0 && <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>}
-                                {transitRoute && (
-                                  <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                    {transitRoute.transfers} transfer{transitRoute.transfers !== 1 ? 's' : ''}
-                                  </span>
-                                )}
+                              <div>
+                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                                  {step.to === step.from ? `Walk` : `Walk to ${step.to}`}
+                                </p>
+                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatTransitDuration(step.duration)}</p>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{isDetailExpanded ? '▲' : '▼'}</span>
-                              <button onClick={(e) => { e.stopPropagation(); saveRoute(opt, mode); }}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center transition hover:opacity-80"
-                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }} title="Save route">
-                                <BookmarkPlus size={12} style={{ color: 'var(--text-muted)' }} />
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleSelect(opt, mode); }}
-                                className="px-3 py-1.5 rounded-lg text-[0.65rem] font-black transition hover:opacity-90 active:scale-95"
-                                style={{ backgroundColor: modeColor, color: '#fff' }}>
-                                Start
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Expanded details */}
-                          {isDetailExpanded && (
-                            <div className="px-3 pb-2.5 pt-1" style={{ borderTop: `1px solid ${modeColor}15` }}>
-                              {transitRoute ? (
-                                <div className="space-y-2">
-                                  {transitRoute.steps.map((step, i) => (
-                                    <div key={i} className="flex items-start gap-2.5">
-                                      <div className="text-base mt-0.5">{getLineIcon(step.mode)}</div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                          {step.mode !== 'walking' && step.line && (
-                                            <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-black text-white"
-                                              style={{ backgroundColor: step.lineColor || 'var(--accent)' }}>
-                                              {step.line}
-                                            </span>
-                                          )}
-                                          <span className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                                            {step.mode === 'walking' ? `Walk to ${step.to}` : `${step.from} → ${step.to}`}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                          <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                            {formatTransitDuration(step.duration)}
-                                          </span>
-                                          {step.stops != null && step.stops > 0 && (
-                                            <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>· {step.stops} stops</span>
-                                          )}
-                                          {step.departureTime && step.mode !== 'walking' && (
-                                            <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                                              · dep {fmtTime(step.departureTime)}
-                                            </span>
-                                          )}
-                                          {step.headsign && (
-                                            <span className="text-[0.6rem] truncate" style={{ color: 'var(--text-muted)' }}>
-                                              → {step.headsign}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-xs space-y-1" style={{ color: 'var(--text-muted)' }}>
-                                  <p>{fmtDur(opt.duration)} · {fmtDist(opt.distance)}</p>
-                                  {opt.dangerScore > 0 && <p>{opt.dangerScore} incident{opt.dangerScore !== 1 ? 's' : ''} reported near this route</p>}
-                                  {opt.rerouted && <p style={{ color: '#6366f1' }}>This route was rerouted to avoid a danger zone</p>}
-                                </div>
-                              )}
-                            </div>
+                            </>
+                          ) : (
+                            <>
+                              <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 text-white text-xs font-bold shrink-0"
+                                style={{ backgroundColor: step.lineColor || 'var(--accent)' }}
+                              >
+                                {step.line || '?'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                                  {step.from} → {step.to}
+                                </p>
+                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                  {formatTransitDuration(step.duration)}
+                                  {step.stops != null && step.stops > 0 && ` · ${step.stops} stops`}
+                                  {step.departureTime && ` · dep ${fmtTime(step.departureTime)}`}
+                                  {step.headsign && ` → ${step.headsign}`}
+                                </p>
+                              </div>
+                            </>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Expanded non-transit details */}
+                  {isDetailExpanded && !transitRoute && (
+                    <div className="mt-2 ml-4 pl-4 pb-2 text-xs space-y-1" style={{ borderLeft: '2px solid var(--border)', color: 'var(--text-muted)' }}>
+                      <p>{fmtDur(opt.duration)} · {fmtDist(opt.distance)}</p>
+                      {opt.dangerScore > 0 && <p>{opt.dangerScore} incident{opt.dangerScore !== 1 ? 's' : ''} reported near this route</p>}
+                      {opt.rerouted && <p style={{ color: '#6366f1' }}>This route was rerouted to avoid a danger zone</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Empty state when no routes for active mode */}
+            {currentRoutes.length === 0 && !anyLoading && (
+              <p className="text-sm py-6 text-center" style={{ color: 'var(--text-muted)' }}>{t('noRoutesForMode')}</p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Form */}
+      {/* Form — connected timeline style */}
       {phase === 'form' && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {error && (
             <div className="rounded-xl px-4 py-2.5 text-sm font-bold"
               style={{ backgroundColor: 'rgba(239,68,68,0.10)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -581,54 +605,100 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
             </div>
           )}
 
-          {/* Departure */}
-          <div>
-            <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              {t('departure')}
-            </p>
-            <AutocompleteInput
-              value={departure}
-              onChange={(text, coords) => { setDeparture(text); setDepartureCoords(coords ?? null); }}
-              placeholder={t('yourLocation')}
-              localSections={[{
-                title: 'My Places',
-                items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
-                  label: n.name ?? `${n.emoji} ${n.note.slice(0, 30)}`,
-                  sublabel: n.name ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
-                  coords: [n.lng, n.lat] as [number, number],
-                  icon: n.emoji,
-                })),
-              }]}
-            />
+          {/* Route inputs — connected timeline */}
+          <div className="relative">
+            {/* Vertical connector line */}
+            <div className="absolute left-[19px] top-[42px] w-0.5 h-7 rounded-full" style={{ background: 'linear-gradient(to bottom, rgba(245,158,11,0.4), rgba(59,130,246,0.4))' }} />
+
+            {/* Departure */}
+            <div className="relative mb-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-5" style={{ backgroundColor: 'rgba(245,158,11,0.12)', border: '2px solid rgba(245,158,11,0.3)' }}>
+                  <LocateFixed size={16} style={{ color: '#f59e0b' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+                    {t('departure')}
+                  </p>
+                  <AutocompleteInput
+                    value={departure}
+                    onChange={(text, coords) => { setDeparture(text); setDepartureCoords(coords ?? null); }}
+                    placeholder={t('yourLocation')}
+                    localSections={[{
+                      title: 'My Places',
+                      items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
+                        label: n.name ?? `${n.emoji} ${n.note.slice(0, 30)}`,
+                        sublabel: n.name ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
+                        coords: [n.lng, n.lat] as [number, number],
+                        icon: n.emoji,
+                      })),
+                    }]}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Destination */}
+            <div className="relative">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-5" style={{ backgroundColor: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.3)' }}>
+                  <MapPin size={16} style={{ color: '#3b82f6' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+                    {t('destination')} <span style={{ color: 'var(--accent)' }}>*</span>
+                  </p>
+                  <AutocompleteInput
+                    value={destination}
+                    onChange={(text, coords) => { setDest(text); setDestCoords(coords ?? null); }}
+                    placeholder="e.g. Home, Gare du Nord, Café…"
+                    localSections={[{
+                      title: 'My Places',
+                      items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
+                        label: n.name ?? `${n.emoji} ${n.note.slice(0, 30)}`,
+                        sublabel: n.name ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
+                        coords: [n.lng, n.lat] as [number, number],
+                        icon: n.emoji,
+                      })),
+                    }]}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Destination */}
-          <div>
-            <p className="text-[0.65rem] font-black uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              {t('destination')} <span style={{ color: 'var(--accent)' }}>*</span>
-            </p>
-            <AutocompleteInput
-              value={destination}
-              onChange={(text, coords) => { setDest(text); setDestCoords(coords ?? null); }}
-              placeholder="e.g. Home, Gare du Nord, Café…"
-              localSections={[{
-                title: 'My Places',
-                items: placeNotes.filter((n) => favPlaceIds.includes(n.id)).map((n) => ({
-                  label: n.name ?? `${n.emoji} ${n.note.slice(0, 30)}`,
-                  sublabel: n.name ? `${n.emoji} ${n.note.slice(0, 40)}` : undefined,
-                  coords: [n.lng, n.lat] as [number, number],
-                  icon: n.emoji,
-                })),
-              }]}
-            />
-          </div>
+          {/* Quick suggestion chips */}
+          {placeNotes.filter((n) => favPlaceIds.includes(n.id)).length > 0 && (
+            <div>
+              <span className="text-[0.625rem] font-bold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
+                {t('suggestions')}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {placeNotes.filter((n) => favPlaceIds.includes(n.id)).slice(0, 3).map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => { setDest(n.name || n.note.slice(0, 20)); setDestCoords([n.lng, n.lat]); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition active:scale-95"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  >
+                    <MapPin size={11} style={{ color: 'var(--text-muted)' }} />
+                    {n.name || n.note.slice(0, 15)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Search button — no mode pills anymore */}
+          {/* Search button — gradient */}
           <button
             onClick={findRoutes}
             disabled={!destination.trim()}
-            className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition disabled:opacity-40"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff', boxShadow: '0 6px 20px rgba(212,168,83,0.25)' }}
+            className="w-full py-3.5 rounded-2xl font-bold text-[0.9375rem] flex items-center justify-center gap-2.5 transition disabled:opacity-40"
+            style={{
+              background: destination.trim() ? 'linear-gradient(135deg, var(--accent), var(--warn))' : 'var(--bg-card)',
+              color: destination.trim() ? '#fff' : 'var(--text-muted)',
+              boxShadow: destination.trim() ? '0 6px 20px rgba(212,168,83,0.25)' : 'none',
+            }}
           >
             <Map size={16} strokeWidth={2.5} />
             {t('searchRoutes')}
