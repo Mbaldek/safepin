@@ -33,10 +33,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F5F0EB' },
-    { media: '(prefers-color-scheme: dark)', color: '#0F172A' },
-  ],
+  themeColor: '#0F172A',
 };
 
 export default async function RootLayout({
@@ -48,8 +45,8 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} data-theme="light">
-      <body className="min-h-dvh overscroll-none touch-manipulation">
+    <html lang={locale} data-theme="dark">
+      <body className="min-h-dvh overscroll-none touch-manipulation bg-(--surface-base) text-(--text-primary)">
         <a href="#main-content" className="skip-link">Skip to map</a>
         <a href="#bottom-nav" className="skip-link" style={{ left: '140px' }}>Skip to navigation</a>
         <NextIntlClientProvider messages={messages}>
@@ -62,9 +59,9 @@ export default async function RootLayout({
           position="top-center"
           toastOptions={{
             style: {
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-secondary)',
+              background: 'var(--surface-card)',
+              border: '1px solid var(--border-default)',
+              color: 'var(--text-primary)',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 600,
             },

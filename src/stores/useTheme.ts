@@ -8,7 +8,7 @@ type ThemeStore = {
 };
 
 export const useTheme = create<ThemeStore>((set) => ({
-  theme: (typeof window !== 'undefined' && localStorage.getItem('brume-theme') === 'dark') ? 'dark' : 'light',
+  theme: (typeof window !== 'undefined' && localStorage.getItem('brume-theme') === 'light') ? 'light' : 'dark',
   toggleTheme: () =>
     set((state) => {
       const next = state.theme === 'dark' ? 'light' : 'dark';
