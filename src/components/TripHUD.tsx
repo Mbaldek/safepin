@@ -4,10 +4,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Radio, Shield, Check, AlertTriangle } from 'lucide-react';
 import { useStore, TripSession } from '@/stores/useStore';
+import { geocodeReverse } from '@/lib/geocode';
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return '0:00';
@@ -27,8 +28,23 @@ type Props = {
 };
 
 export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
-  const { isSharingLocation, setIsSharingLocation } = useStore();
+  const { isSharingLocation, setIsSharingLocation, userLocation } = useStore();
   const [now, setNow] = useState(Date.now());
+  const [streetName, setStreetName] = useState<string | null>(null);
+  const lastGeocodedRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (!userLocation) return;
+    if (lastGeocodedRef.current) {
+      const dlat = (userLocation.lat - lastGeocodedRef.current.lat) * 111_000;
+      const dlng = (userLocation.lng - lastGeocodedRef.current.lng) * 111_000;
+      if (Math.sqrt(dlat * dlat + dlng * dlng) < 50) return;
+    }
+    lastGeocodedRef.current = { lat: userLocation.lat, lng: userLocation.lng };
+    geocodeReverse(userLocation.lng, userLocation.lat).then((name) => {
+      if (name) setStreetName(name.split(',')[0]);
+    });
+  }, [userLocation]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -83,6 +99,13 @@ export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
             ETA {etaStr}
           </span>
         </div>
+
+        {/* Current street */}
+        {streetName && (
+          <p className="text-[0.6rem] truncate mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            📍 {streetName}
+          </p>
+        )}
 
         {/* Progress bar */}
         <div className="flex items-center gap-2 mb-2.5">
