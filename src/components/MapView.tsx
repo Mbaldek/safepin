@@ -500,6 +500,7 @@ export default function MapView({
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
 
   // Initialize map
   useEffect(() => {
@@ -507,9 +508,10 @@ export default function MapView({
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+      style: STYLE_URLS.custom,
       center: [2.3522, 48.8566],
       zoom: 13,
+      performanceMetricsCollection: false,
     });
 
     navigator.geolocation?.getCurrentPosition(
@@ -911,6 +913,9 @@ export default function MapView({
   // Apply mapStyle to the actual Mapbox map — re-add cluster layers + transit after style loads
   useEffect(() => {
     if (!map.current || !mapReady) return;
+    // Skip if style hasn't changed — handles first run where constructor already loaded the correct style
+    if (prevMapStyleRef.current === mapStyle) return;
+    prevMapStyleRef.current = mapStyle;
     transitCache = null; poiCache = null; heatmapGeoJSON = null;
     setLayersReady(false);
     map.current.once('style.load', () => {

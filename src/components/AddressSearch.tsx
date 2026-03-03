@@ -29,7 +29,7 @@ export default function AddressSearch({ autoFocus }: { autoFocus?: boolean }) {
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       try {
         const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=5&language=fr,en`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=5&language=fr,en&autocomplete=true&types=poi,address,place`
         );
         const data = await res.json();
         setSuggestions(data.features || []);

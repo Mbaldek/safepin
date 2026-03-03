@@ -428,20 +428,21 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           className="fixed inset-0 z-40 flex flex-col items-center justify-center pointer-events-none"
           style={{ background: `rgba(230,57,70,${fabHoldProgress * 0.10})` }}
         >
-          <p className="text-white/70 text-sm font-medium mb-5 tracking-wide">
+          <p className="text-white text-sm font-medium mb-5 tracking-wide">
             Maintiens pour déclencher l&apos;alerte
           </p>
-          <div className="w-52 h-[3px] rounded-full overflow-hidden"
-               style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${fabHoldProgress * 100}%`,
-                backgroundColor: DANGER_RED,
-                transition: 'width 0.05s linear',
-              }}
+          {/* SVG circular ring — r=40, circumference≈251px */}
+          <svg width="100" height="100" className="-rotate-90">
+            <circle cx="50" cy="50" r="40"
+              fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+            <circle cx="50" cy="50" r="40"
+              fill="none" stroke={DANGER_RED} strokeWidth="5"
+              strokeDasharray={251}
+              strokeDashoffset={251 * (1 - fabHoldProgress)}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 0.05s linear' }}
             />
-          </div>
+          </svg>
         </div>
       )}
 
