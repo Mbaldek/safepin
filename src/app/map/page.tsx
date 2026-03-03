@@ -22,6 +22,8 @@ import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
 import IncidentReportModal from '@/components/IncidentReportModal';
 import DetailSheet from '@/components/DetailSheet';
+import { ReportSheet } from '@/components/ReportSheet';
+import { ConfirmFlowModal } from '@/components/ConfirmFlowModal';
 import ThemeToggle from '@/components/ThemeToggle';
 import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
@@ -907,6 +909,14 @@ export default function MapPage() {
       <AnimatePresence>
         {activeSheet === 'detail' && <DetailSheet key="detail" />}
       </AnimatePresence>
+
+      {/* ── New Report Sheet (v2) ── */}
+      <AnimatePresence>
+        <ReportSheet />
+      </AnimatePresence>
+
+      {/* ── Confirm Flow Modal ── */}
+      <ConfirmFlowModal />
 
       {/* ── Place Note sheet — triggered by long-press on map ──────── */}
       <AnimatePresence>

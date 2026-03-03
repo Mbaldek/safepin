@@ -10,21 +10,32 @@ export type Pin = {
   user_id: string;
   lat: number;
   lng: number;
-  category: 'harassment' | 'stalking' | 'dark_area' | 'aggression' | 'drunk' | 'other' | 'theft' | 'verbal_abuse' | 'poor_lighting' | 'unsafe_road' | 'isolated' | 'suspicious' | 'obstacle' | 'construction' | 'bad_parking' | 'accident' | 'medical_emergency' | 'fire' | 'flood';
+  category: string;
   severity: 'low' | 'med' | 'high';
-  description: string;
-  photo_url: string | null;
-  environment: string | null;
-  urban_context: string | null;
-  urban_context_custom: string | null;
-  is_moving: boolean | null;
-  media_urls: MediaItem[] | null;
-  is_emergency: boolean;
-  resolved_at: string | null;
-  last_confirmed_at: string | null;
-  flag_count?: number;
+  description?: string;
+  photo_url?: string | null;
+  media_url?: string | null;
+  media_urls?: MediaItem[] | null;
+  address?: string;
+  environment?: string | null;
+  urban_context?: string | null;
+  urban_context_custom?: string | null;
+  is_moving?: boolean | null;
+  is_emergency?: boolean;
+  resolved_at?: string | null;
+  last_confirmed_at?: string | null;
+  expires_at?: string;
+  flag_count: number;
+  hidden?: boolean;
   hidden_at?: string | null;
   is_simulated?: boolean;
+  // Transport fields
+  is_transport?: boolean;
+  transport_type?: 'metro' | 'rer' | 'bus' | 'tram';
+  transport_line?: string;
+  // Confirmations
+  confirmations?: number;
+  decay_type?: 'people' | 'infra' | 'positive';
   created_at: string;
 };
 
@@ -506,3 +517,87 @@ export const URBAN_CONTEXTS = {
   building:   { label: 'Building',        emoji: '🏢' },
   other:      { label: 'Other',           emoji: '📍' },
 } as const;
+
+// ════════════════════════════════════════════════════════════════════
+// CATEGORY SYSTEM (v2 — grouped by severity)
+// ════════════════════════════════════════════════════════════════════
+
+export const CATEGORY_GROUPS = {
+  urgent: {
+    id: 'urgent',
+    label: 'URGENT',
+    color: { text: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
+    items: ['assault', 'harassment', 'theft', 'following'],
+    decayHours: 24,
+  },
+  warning: {
+    id: 'warning',
+    label: 'ATTENTION',
+    color: { text: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
+    items: ['suspect', 'group', 'unsafe'],
+    decayHours: 12,
+  },
+  infra: {
+    id: 'infra',
+    label: 'INFRASTRUCTURE',
+    color: { text: '#64748B', bg: 'rgba(148,163,184,0.12)' },
+    items: ['lighting', 'blocked', 'closed'],
+    decayHours: 168,
+  },
+  positive: {
+    id: 'positive',
+    label: 'POSITIF',
+    color: { text: '#34D399', bg: 'rgba(52,211,153,0.12)' },
+    items: ['safe', 'help', 'presence'],
+    decayHours: 720,
+  },
+} as const;
+
+export type CategoryGroupId = keyof typeof CATEGORY_GROUPS;
+
+export const CATEGORY_DETAILS: Record<string, {
+  emoji: string;
+  label: string;
+  group: CategoryGroupId;
+}> = {
+  assault: { emoji: '🚨', label: 'Agression', group: 'urgent' },
+  harassment: { emoji: '🚫', label: 'Harcèlement', group: 'urgent' },
+  theft: { emoji: '👜', label: 'Vol', group: 'urgent' },
+  following: { emoji: '👤', label: 'Filature', group: 'urgent' },
+  suspect: { emoji: '👁️', label: 'Suspect', group: 'warning' },
+  group: { emoji: '👥', label: 'Attroupement', group: 'warning' },
+  unsafe: { emoji: '⚠️', label: 'Zone à éviter', group: 'warning' },
+  lighting: { emoji: '💡', label: 'Mal éclairé', group: 'infra' },
+  blocked: { emoji: '🚧', label: 'Passage difficile', group: 'infra' },
+  closed: { emoji: '🚷', label: 'Fermé', group: 'infra' },
+  safe: { emoji: '💚', label: 'Lieu sûr', group: 'positive' },
+  help: { emoji: '🙋', label: 'Aide reçue', group: 'positive' },
+  presence: { emoji: '👮', label: 'Sécurité', group: 'positive' },
+};
+
+export const TRANSPORT_TYPES = [
+  { id: 'metro', emoji: '🚇', label: 'Métro', placeholder: 'Ligne (4, 11...)' },
+  { id: 'rer', emoji: '🚆', label: 'RER', placeholder: 'Ligne (A, B...)' },
+  { id: 'bus', emoji: '🚌', label: 'Bus', placeholder: 'N° (72, 91...)' },
+  { id: 'tram', emoji: '🚊', label: 'Tram', placeholder: 'Ligne' },
+] as const;
+
+// ════════════════════════════════════════════════════════════════════
+// TIME DECAY
+// ════════════════════════════════════════════════════════════════════
+
+export const DECAY_HOURS: Record<string, number> = {
+  assault: 24,
+  harassment: 24,
+  theft: 24,
+  following: 24,
+  suspect: 12,
+  group: 6,
+  unsafe: 48,
+  lighting: 168,
+  blocked: 168,
+  closed: 168,
+  safe: 720,
+  help: 168,
+  presence: 720,
+};

@@ -81,7 +81,25 @@
     "error": "Something went wrong. Please try again.",
     "submitted": "Report submitted. Stay safe.",
     "isMovingDesc": "Were you moving (bus, car, bike…)?",
-    "specifyLocation": "Specify location…"
+    "specifyLocation": "Specify location…",
+    "stepCategory": "Category",
+    "stepTransport": "Transport",
+    "stepDetails": "Details",
+    "inTransport": "In a transport?",
+    "optional": "Optional",
+    "send": "Send",
+    "photo": "Photo",
+    "video": "Video",
+    "audio": "Audio",
+    "yes": "Yes",
+    "no": "No",
+    "continueHint": "Press → to continue"
+  },
+  "confirm": {
+    "title": "Confirm this incident",
+    "addProof": "Add evidence (optional)",
+    "submit": "Confirm incident",
+    "fixedLocation": "Fixed location"
   },
   "detail": {
     "emergencyAlert": "Emergency Alert",
@@ -118,7 +136,12 @@
     "failedResolve": "Failed to resolve",
     "markedResolved": "Marked as resolved",
     "more": "More",
-    "resolve": "Resolve"
+    "resolve": "Resolve",
+    "confirmations": "{count} confirmation(s)",
+    "confirm": "Confirm",
+    "false": "False",
+    "contact": "Contact",
+    "mapPosition": "Position on the map"
   },
   "filters": {
     "title": "Map Filters",
@@ -753,7 +776,18 @@
     "accident": "Accident",
     "medicalEmergency": "Medical emergency",
     "fire": "Fire",
-    "flood": "Flood"
+    "flood": "Flood",
+    "assault": "Assault",
+    "following": "Following",
+    "suspect": "Suspect",
+    "group": "Group",
+    "unsafe": "Unsafe area",
+    "lighting": "Poor lighting",
+    "blocked": "Blocked path",
+    "closed": "Closed",
+    "safe": "Safe place",
+    "help": "Help received",
+    "presence": "Security"
   },
   "walkWithMe": {
     "walkTogether": "Walk together",

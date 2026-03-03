@@ -405,7 +405,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   function startPinEdit(pin: Pin) {
     setEditingPinId(pin.id);
     setEditSeverity(pin.severity);
-    setEditDesc(pin.description);
+    setEditDesc(pin.description ?? '');
     setConfirmDeleteId(null);
   }
 

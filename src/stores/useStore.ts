@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { Pin, AppNotification, PlaceNote, LiveSession, SafeSpace, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
+
+export type ReportTransport = {
+  isTransport: boolean | null;
+  type: string | null;
+  line: string;
+};
 import { supabase } from '@/lib/supabase';
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
@@ -265,6 +271,25 @@ type Store = {
   // Map bottom padding — set by bottom sheets to shift the map's logical center upward
   mapBottomPadding: number;
   setMapBottomPadding: (px: number) => void;
+
+  // Detail sheet expand
+  isDetailExpanded: boolean;
+  setDetailExpanded: (expanded: boolean) => void;
+
+  // Confirm flow
+  showConfirmFlow: boolean;
+  setShowConfirmFlow: (show: boolean) => void;
+  confirmingPin: Pin | null;
+  setConfirmingPin: (pin: Pin | null) => void;
+
+  // Report flow
+  reportStep: number;
+  setReportStep: (step: number) => void;
+  reportCategory: string | null;
+  setReportCategory: (cat: string | null) => void;
+  reportTransport: ReportTransport;
+  setReportTransport: (transport: Partial<ReportTransport>) => void;
+  resetReport: () => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -475,6 +500,31 @@ export const useStore = create<Store>((set) => ({
   // Map bottom padding
   mapBottomPadding: 0,
   setMapBottomPadding: (px) => set({ mapBottomPadding: px }),
+
+  // Detail sheet expand
+  isDetailExpanded: false,
+  setDetailExpanded: (expanded) => set({ isDetailExpanded: expanded }),
+
+  // Confirm flow
+  showConfirmFlow: false,
+  setShowConfirmFlow: (show) => set({ showConfirmFlow: show }),
+  confirmingPin: null,
+  setConfirmingPin: (pin) => set({ confirmingPin: pin }),
+
+  // Report flow
+  reportStep: 1,
+  setReportStep: (step) => set({ reportStep: step }),
+  reportCategory: null,
+  setReportCategory: (cat) => set({ reportCategory: cat }),
+  reportTransport: { isTransport: null, type: null, line: '' },
+  setReportTransport: (transport) => set((state) => ({
+    reportTransport: { ...state.reportTransport, ...transport },
+  })),
+  resetReport: () => set({
+    reportStep: 1,
+    reportCategory: null,
+    reportTransport: { isTransport: null, type: null, line: '' },
+  }),
 }));
 
 // Shallow selectors for performance — prevent unnecessary re-renders

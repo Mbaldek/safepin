@@ -81,7 +81,25 @@
     "error": "Une erreur est survenue. Veuillez réessayer.",
     "submitted": "Signalement envoyé. Restez prudent(e).",
     "isMovingDesc": "Étiez-vous en mouvement (bus, voiture, vélo…) ?",
-    "specifyLocation": "Précisez l'emplacement…"
+    "specifyLocation": "Précisez l'emplacement…",
+    "stepCategory": "Catégorie",
+    "stepTransport": "Transport",
+    "stepDetails": "Détails",
+    "inTransport": "Dans un transport ?",
+    "optional": "Optionnel",
+    "send": "Envoyer",
+    "photo": "Photo",
+    "video": "Vidéo",
+    "audio": "Audio",
+    "yes": "Oui",
+    "no": "Non",
+    "continueHint": "Appuie sur → pour continuer"
+  },
+  "confirm": {
+    "title": "Confirmer cet incident",
+    "addProof": "Ajouter une preuve (optionnel)",
+    "submit": "Confirmer l'incident",
+    "fixedLocation": "Localisation fixe"
   },
   "detail": {
     "emergencyAlert": "Alerte d'urgence",
@@ -118,7 +136,12 @@
     "failedResolve": "Échec de la résolution",
     "markedResolved": "Marqué comme résolu",
     "more": "Plus",
-    "resolve": "Résoudre"
+    "resolve": "Résoudre",
+    "confirmations": "{count} confirmation(s)",
+    "confirm": "Confirmer",
+    "false": "Faux",
+    "contact": "Contact",
+    "mapPosition": "Position sur la carte"
   },
   "filters": {
     "title": "Filtres de carte",
@@ -753,7 +776,18 @@
     "accident": "Accident",
     "medicalEmergency": "Urgence médicale",
     "fire": "Incendie",
-    "flood": "Inondation"
+    "flood": "Inondation",
+    "assault": "Agression",
+    "following": "Filature",
+    "suspect": "Suspect",
+    "group": "Attroupement",
+    "unsafe": "Zone à éviter",
+    "lighting": "Mal éclairé",
+    "blocked": "Passage difficile",
+    "closed": "Fermé",
+    "safe": "Lieu sûr",
+    "help": "Aide reçue",
+    "presence": "Sécurité"
   },
   "walkWithMe": {
     "walkTogether": "Marcher ensemble",

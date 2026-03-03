@@ -4,12 +4,13 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Camera, Check, ChevronRight, Copy, Link2, Share2 } from 'lucide-react';
+import { ArrowLeft, Camera, Check, ChevronRight, Copy, Link2, Share2, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 import { CitySelector } from './CitySelector';
+import { Button, Input, SelectionCard } from './ui';
 
 const STORAGE_KEY = 'brume_onboarding_done';
 
@@ -165,20 +166,17 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
     }
   }
 
-  // ─── Rendered goals list ────────────────────────────────────────────────────
+  // ─── Goals list ───────────────────────────────────────────────────────────────
   const GOALS = [
-    { e: '🛡️', key: 'v2Goal1' as const },
-    { e: '📍', key: 'v2Goal2' as const },
+    { e: '🌙', key: 'v2Goal1' as const },
+    { e: '🗺️', key: 'v2Goal2' as const },
     { e: '👥', key: 'v2Goal3' as const },
-    { e: '🚶‍♀️', key: 'v2Goal4' as const },
-    { e: '💛', key: 'v2Goal5' as const },
+    { e: '💚', key: 'v2Goal4' as const },
+    { e: '📍', key: 'v2Goal5' as const },
   ] as const;
 
   return (
-    <div
-      className="fixed inset-0 z-600 flex flex-col"
-      style={{ background: 'var(--bg-secondary)' }}
-    >
+    <div className="fixed inset-0 z-300 bg-gradient overflow-hidden flex flex-col">
       {/* Hidden file input for avatar upload */}
       <input
         ref={fileInputRef}
@@ -188,7 +186,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
         onChange={handleAvatarChange}
       />
 
-      {/* ── Top bar: back · progress dots · skip ─────────────────────────── */}
+      {/* ── Top bar: back · skip ──────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-4 shrink-0">
         <button
           onClick={goBack}
@@ -197,79 +195,49 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
           }`}
           aria-label={t('back')}
         >
-          <ArrowLeft className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
+          <ArrowLeft className="w-5 h-5 text-(--text-primary)" />
         </button>
-
-        {/* Progress dots */}
-        <div className="flex items-center gap-2">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-full transition-all duration-300"
-              style={{
-                width: i === currentStep ? 24 : 8,
-                height: 8,
-                background:
-                  i === currentStep
-                    ? 'var(--accent-gold)'
-                    : i < currentStep
-                    ? 'rgba(232,168,56,0.5)'
-                    : 'rgba(255,255,255,0.2)',
-              }}
-            />
-          ))}
-        </div>
 
         <button
           onClick={() => void handleComplete()}
           disabled={completing}
-          className="text-sm font-medium transition-opacity disabled:opacity-40"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
+          className="text-sm font-medium text-(--text-tertiary) transition-opacity disabled:opacity-40"
         >
           {t('passer')}
         </button>
       </div>
 
-      {/* ── Sliding screens ──────────────────────────────────────────────── */}
+      {/* ── Sliding screens ──────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden relative">
         <div
           className="absolute inset-0 flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${currentStep * 100}%)` }}
         >
 
-          {/* ── SCREEN 1: Welcome ─────────────────────────────────────────── */}
+          {/* ── SCREEN 1: Welcome ───────────────────────────────────── */}
           <div className="w-full shrink-0 flex flex-col items-center justify-center px-6 py-8">
-            <div className="mb-12">
-              <BreveilSymbol />
+            <div className="mb-10">
+              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur flex items-center justify-center breathe">
+                <Shield className="w-10 h-10 text-(--accent-teal)" />
+              </div>
             </div>
 
-            <h1
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 28,
-                fontStyle: 'italic',
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                marginBottom: 12,
-              }}
-            >
+            <h1 className="text-h2 text-center text-(--text-primary) mb-3">
               {t('welcome')}
             </h1>
-
-            <p style={{ fontSize: 15, color: 'var(--text-muted)', textAlign: 'center', maxWidth: 280, marginBottom: 40 }}>
+            <p className="text-body-sm text-center text-(--text-secondary) max-w-72 mb-10">
               {t('v2Tagline')}
             </p>
 
-            <div className="flex flex-col gap-3 w-full max-w-75">
+            <div className="flex flex-col gap-3 w-full max-w-75 mb-auto">
               {([
                 { e: '🗺️', label: t('v2Prop1') },
-                { e: '🆘',  label: t('v2Prop2') },
-                { e: '💛',  label: t('v2Prop3') },
+                { e: '🆘', label: t('v2Prop2') },
+                { e: '💛', label: t('v2Prop3') },
               ] as const).map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-center gap-2 h-10 px-4 rounded-full"
-                  style={{ background: 'var(--bg-card)', fontSize: 13, color: 'var(--text-secondary)' }}
+                  className="flex items-center justify-center gap-2 h-10 px-4 rounded-full bg-white/10 backdrop-blur text-body-sm text-(--text-secondary)"
                 >
                   <span>{item.e}</span>
                   <span>{item.label}</span>
@@ -277,31 +245,19 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               ))}
             </div>
 
-            <div className="w-full mt-auto pt-8">
-              <button
-                onClick={goNext}
-                className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-              >
+            <div className="w-full pt-8">
+              <Button variant="primary" fullWidth onClick={goNext}>
                 {t('start')} <ChevronRight className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* ── SCREEN 2: Profile ─────────────────────────────────────────── */}
+          {/* ── SCREEN 2: Profile ───────────────────────────────────── */}
           <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 26,
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                marginBottom: 8,
-              }}
-            >
+            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
               {t('nameTitle')}
             </h1>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 40 }}>
+            <p className="text-body-sm text-center text-(--text-secondary) mb-10">
               {t('nameSub')}
             </p>
 
@@ -310,254 +266,161 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="relative w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center mb-2 transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ borderColor: 'rgba(255,255,255,0.15)' }}
+                className="relative w-20 h-20 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center mb-2 transition-opacity hover:opacity-80 disabled:opacity-40"
               >
                 {avatar ? (
                   <img src={avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                 ) : avatarUploading ? (
-                  <div
-                    className="w-5 h-5 border-2 rounded-full animate-spin"
-                    style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'var(--accent-gold)' }}
-                  />
+                  <div className="w-5 h-5 border-2 rounded-full animate-spin border-white/30 border-t-(--accent-teal)" />
                 ) : (
-                  <Camera className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <Camera className="w-6 h-6 text-white/40" />
                 )}
               </button>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('addPhoto')}</span>
+              <span className="text-xs text-white/40">{t('addPhoto')}</span>
             </div>
 
             {/* Name input */}
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('namePlaceholder2')}
-              className="w-full h-12 px-4 rounded-xl mb-6 focus:outline-none"
-              style={{
-                background: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                border: '1.5px solid var(--border)',
-              }}
-            />
+            <div className="mb-6">
+              <Input
+                label={t('namePlaceholder2')}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
 
             {/* City row */}
             <div className="flex items-center gap-3 mb-auto">
-              <span
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full"
-                style={{ background: 'var(--bg-card)', fontSize: 14, color: 'var(--text-primary)' }}
-              >
+              <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-body-sm text-(--text-primary)">
                 📍 {city}
               </span>
               <button
                 onClick={() => setShowCitySelector(true)}
-                style={{ color: 'var(--accent-gold)', fontSize: 14, fontWeight: 500 }}
+                className="text-body-sm font-medium text-(--accent-teal)"
               >
                 {t('changeCity')}
               </button>
             </div>
 
             <div className="w-full mt-auto pt-8">
-              <button
-                onClick={goNext}
-                className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-              >
+              <Button variant="primary" fullWidth onClick={goNext}>
                 {t('continueBtn')} <ChevronRight className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* ── SCREEN 3: Goals ───────────────────────────────────────────── */}
+          {/* ── SCREEN 3: Goals ─────────────────────────────────────── */}
           <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 26,
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                marginBottom: 8,
-              }}
-            >
+            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
               {t('v2GoalsTitle')}
             </h1>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 32 }}>
+            <p className="text-body-sm text-center text-(--text-secondary) mb-8">
               {t('v2GoalsSub')}
             </p>
 
             <div className="flex flex-col gap-3 mb-auto">
-              {GOALS.map((g, i) => {
-                const sel = selectedGoals.includes(i);
-                return (
-                  <button
-                    key={i}
-                    onClick={() => toggleGoal(i)}
-                    className="w-full h-14 px-4 rounded-xl flex items-center gap-3 transition-all border"
-                    style={{
-                      background: sel ? 'rgba(232,168,56,0.08)' : 'var(--bg-card)',
-                      borderColor: sel ? 'rgba(232,168,56,0.3)' : 'var(--border)',
-                    }}
-                  >
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0"
-                      style={{ background: sel ? 'rgba(232,168,56,0.15)' : 'rgba(255,255,255,0.06)' }}
-                    >
-                      {g.e}
-                    </div>
-                    <span className="text-left flex-1" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
-                      {t(g.key)}
-                    </span>
-                    {sel && <Check className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-gold)' }} />}
-                  </button>
-                );
-              })}
+              {GOALS.map((g, i) => (
+                <SelectionCard
+                  key={i}
+                  emoji={g.e}
+                  label={t(g.key)}
+                  selected={selectedGoals.includes(i)}
+                  onClick={() => toggleGoal(i)}
+                />
+              ))}
             </div>
 
             <div className="w-full mt-auto pt-8">
-              <button
-                onClick={goNext}
-                className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-              >
+              <Button variant="primary" fullWidth onClick={goNext}>
                 {t('continueBtn')} <ChevronRight className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* ── SCREEN 4: Permissions ─────────────────────────────────────── */}
+          {/* ── SCREEN 4: Permissions ───────────────────────────────── */}
           <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 26,
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                marginBottom: 8,
-              }}
-            >
+            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
               {t('permissionsTitle')}
             </h1>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 32 }}>
+            <p className="text-body-sm text-center text-(--text-secondary) mb-8">
               {t('permissionsSub')}
             </p>
 
             <div className="flex flex-col gap-4 mb-8">
               {/* Location card */}
-              <div
-                className="p-4 rounded-xl border transition-all"
-                style={{
-                  background: locationGranted ? 'rgba(107,166,142,0.1)' : 'var(--bg-card)',
-                  borderColor: locationGranted ? '#6BA68E' : 'var(--border)',
-                }}
-              >
+              <div className={`p-4 rounded-lg border transition-all ${
+                locationGranted
+                  ? 'bg-(--semantic-success-soft) border-(--semantic-success)'
+                  : 'bg-white/10 backdrop-blur border-white/10'
+              }`}>
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">📍</span>
                   <div className="flex-1">
-                    <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    <h3 className="text-base font-semibold text-(--text-primary) mb-1">
                       {t('locationCardTitle')}
                     </h3>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    <p className="text-body-sm text-(--text-secondary)">
                       {t('locationCardDesc')}
                     </p>
                   </div>
                   {locationGranted ? (
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: '#6BA68E' }}
-                    >
+                    <div className="w-8 h-8 rounded-full bg-(--semantic-success) flex items-center justify-center shrink-0">
                       <Check className="w-4 h-4 text-white" />
                     </div>
                   ) : (
-                    <button
-                      onClick={() => void requestLocation()}
-                      className="px-4 py-1.5 text-[13px] font-medium rounded-full shrink-0"
-                      style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-                    >
+                    <Button size="sm" onClick={() => void requestLocation()}>
                       {t('allow')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
 
               {/* Notifications card */}
-              <div
-                className="p-4 rounded-xl border transition-all"
-                style={{
-                  background: notificationsGranted ? 'rgba(107,166,142,0.1)' : 'var(--bg-card)',
-                  borderColor: notificationsGranted ? '#6BA68E' : 'var(--border)',
-                }}
-              >
+              <div className={`p-4 rounded-lg border transition-all ${
+                notificationsGranted
+                  ? 'bg-(--semantic-success-soft) border-(--semantic-success)'
+                  : 'bg-white/10 backdrop-blur border-white/10'
+              }`}>
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🔔</span>
                   <div className="flex-1">
-                    <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    <h3 className="text-base font-semibold text-(--text-primary) mb-1">
                       {t('notifCardTitle')}
                     </h3>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    <p className="text-body-sm text-(--text-secondary)">
                       {t('notifCardDesc')}
                     </p>
                   </div>
                   {notificationsGranted ? (
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: '#6BA68E' }}
-                    >
+                    <div className="w-8 h-8 rounded-full bg-(--semantic-success) flex items-center justify-center shrink-0">
                       <Check className="w-4 h-4 text-white" />
                     </div>
                   ) : (
-                    <button
-                      onClick={() => void requestNotifications()}
-                      className="px-4 py-1.5 text-[13px] font-medium rounded-full shrink-0"
-                      style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-                    >
+                    <Button size="sm" onClick={() => void requestNotifications()}>
                       {t('allow')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
             </div>
 
-            <div
-              className="flex items-center justify-center gap-2 mb-auto"
-              style={{ fontSize: 11, color: 'var(--text-muted)' }}
-            >
+            <div className="flex items-center justify-center gap-2 mb-auto text-xs text-(--text-tertiary)">
               <span>🔒</span>
               <span>{t('privacyNote')}</span>
             </div>
 
             <div className="w-full mt-auto pt-8">
-              <button
-                onClick={goNext}
-                className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2"
-                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-              >
+              <Button variant="primary" fullWidth onClick={goNext}>
                 {t('continueBtn')} <ChevronRight className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* ── SCREEN 5: Circle ──────────────────────────────────────────── */}
+          {/* ── SCREEN 5: Circle ────────────────────────────────────── */}
           <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 26,
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                marginBottom: 8,
-              }}
-            >
+            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
               {t('circleTitle2')}
             </h1>
-            <p
-              style={{
-                fontSize: 14,
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                maxWidth: 320,
-                margin: '0 auto 32px',
-              }}
-            >
+            <p className="text-body-sm text-center text-(--text-secondary) max-w-80 mx-auto mb-8">
               {t('circleSub2')}
             </p>
 
@@ -566,21 +429,12 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               <div className="relative">
                 <div
                   className="absolute inset-0 blur-xl rounded-full scale-150"
-                  style={{ background: 'rgba(232,168,56,0.15)' }}
+                  style={{ background: 'rgba(59,180,193,0.15)' }}
                 />
                 <div className="relative flex items-center">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 z-30"
-                    style={{ background: '#8B7EC8', borderColor: 'var(--bg-secondary)' }}
-                  >M</div>
-                  <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-lg border-2 -ml-4 z-20"
-                    style={{ background: '#D4687A', borderColor: 'var(--bg-secondary)' }}
-                  >L</div>
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 -ml-3 z-10"
-                    style={{ background: '#6BA68E', borderColor: 'var(--bg-secondary)' }}
-                  >S</div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 border-(--surface-base) z-30 bg-[#8B7EC8]">M</div>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-lg border-2 border-(--surface-base) -ml-4 z-20 bg-(--accent-coral)">L</div>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 border-(--surface-base) -ml-3 z-10 bg-(--semantic-success)">S</div>
                 </div>
               </div>
             </div>
@@ -592,36 +446,26 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder={t('invitePlaceholder')}
-                className="w-full h-12 pl-4 pr-24 rounded-xl focus:outline-none"
-                style={{
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  border: '1.5px solid var(--border)',
-                }}
+                className="w-full h-12 pl-4 pr-24 rounded-md bg-(--surface-card) border border-(--border-default) text-(--text-primary) text-base focus:outline-none focus:border-(--gradient-start)"
                 onKeyDown={(e) => e.key === 'Enter' && void handleInviteContact()}
               />
               <button
                 onClick={() => void handleInviteContact()}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-[13px] font-medium rounded-lg"
-                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm font-medium rounded-sm bg-white text-(--surface-base)"
               >
                 {t('send')}
               </button>
             </div>
 
             {/* Share link row */}
-            <div
-              className="flex items-center justify-center gap-2 mb-4"
-              style={{ fontSize: 14, color: 'var(--text-muted)' }}
-            >
+            <div className="flex items-center justify-center gap-2 mb-4 text-body-sm text-(--text-secondary)">
               <Link2 className="w-4 h-4" />
               <span>{t('orShareLink')}</span>
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-6">
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-70"
-                style={{ background: 'var(--bg-card)', fontSize: 13, color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/10 backdrop-blur text-body-sm text-(--text-secondary) transition-opacity hover:opacity-70"
                 onClick={() => {
                   navigator.clipboard?.writeText(inviteLink)
                     .then(() => toast.success(t('copy') + ' ✓'))
@@ -631,8 +475,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 <Copy className="w-4 h-4" /> {t('copy')}
               </button>
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-70"
-                style={{ background: 'var(--bg-card)', fontSize: 13, color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/10 backdrop-blur text-body-sm text-(--text-secondary) transition-opacity hover:opacity-70"
                 onClick={() => {
                   navigator.share?.({ title: 'Breveil', url: inviteLink }).catch(() => {});
                 }}
@@ -647,19 +490,16 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
                 {invitedContacts.map((c, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-body-sm text-(--text-secondary)"
                     style={{
-                      background: 'rgba(232,168,56,0.1)',
-                      border: '1px solid rgba(232,168,56,0.2)',
-                      fontSize: 13,
-                      color: 'var(--text-secondary)',
+                      background: 'rgba(59,180,193,0.1)',
+                      border: '1px solid rgba(59,180,193,0.2)',
                     }}
                   >
                     <span>{c}</span>
                     <button
                       onClick={() => setInvitedContacts((prev) => prev.filter((x) => x !== c))}
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,0.1)', fontSize: 10, color: 'var(--text-muted)' }}
+                      className="w-4 h-4 rounded-full flex items-center justify-center bg-white/10 text-[10px] text-(--text-tertiary)"
                     >
                       ×
                     </button>
@@ -668,25 +508,18 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               </div>
             )}
 
-            <p className="text-center mb-auto" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <p className="text-center mb-auto text-xs text-(--text-tertiary)">
               {t('addLater')}
             </p>
 
             <div className="w-full mt-auto pt-8 flex flex-col gap-3">
+              <Button variant="primary" fullWidth onClick={() => void handleComplete()} loading={completing}>
+                {t('finish')} {!completing && <ChevronRight className="w-4 h-4" />}
+              </Button>
               <button
                 onClick={() => void handleComplete()}
                 disabled={completing}
-                className="w-full h-12 font-semibold rounded-xl flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: 'var(--accent-gold)', color: 'var(--surface-base)' }}
-              >
-                {completing ? '…' : t('finish')}
-                {!completing && <ChevronRight className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={() => void handleComplete()}
-                disabled={completing}
-                className="w-full h-10 transition-opacity disabled:opacity-40"
-                style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}
+                className="w-full h-10 text-body-sm text-(--text-tertiary) transition-opacity disabled:opacity-40"
               >
                 {t('laterBtn')}
               </button>
@@ -694,6 +527,26 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
           </div>
 
         </div>
+      </div>
+
+      {/* ── Progress dots (bottom) ────────────────────────────────── */}
+      <div className="flex items-center justify-center gap-2 pb-[calc(var(--space-4)+env(safe-area-inset-bottom))] pt-4 shrink-0">
+        {Array.from({ length: totalSteps }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-full transition-all duration-300"
+            style={{
+              width: i === currentStep ? 24 : 8,
+              height: 8,
+              background:
+                i === currentStep
+                  ? 'var(--accent-teal)'
+                  : i < currentStep
+                  ? 'rgba(59,180,193,0.5)'
+                  : 'rgba(255,255,255,0.2)',
+            }}
+          />
+        ))}
       </div>
 
       {/* City selector sheet */}
@@ -707,20 +560,5 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-// ─── Breveil concentric arcs symbol ──────────────────────────────────────────
-function BreveilSymbol() {
-  return (
-    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 40C20 28.954 28.954 20 40 20" stroke="#E8A838" strokeWidth="3" strokeLinecap="round" />
-      <path d="M60 40C60 51.046 51.046 60 40 60" stroke="#E8A838" strokeWidth="3" strokeLinecap="round" />
-      <path d="M26 40C26 32.268 32.268 26 40 26" stroke="#8B7EC8" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M54 40C54 47.732 47.732 54 40 54" stroke="#8B7EC8" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M32 40C32 35.582 35.582 32 40 32" stroke="#E8A838" strokeWidth="2" strokeLinecap="round" />
-      <path d="M48 40C48 44.418 44.418 48 40 48" stroke="#E8A838" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="40" cy="40" r="4" fill="#E8A838" />
-    </svg>
   );
 }
