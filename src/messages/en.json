@@ -743,7 +743,17 @@
     "isolatedArea": "Isolated area",
     "intoxicated": "Intoxicated",
     "suspicious": "Suspicious",
-    "other": "Other"
+    "other": "Other",
+    "catInterpersonal": "Behaviour",
+    "catEnvironment": "Environment",
+    "catEmergency": "Emergency",
+    "obstacle": "Obstacle",
+    "construction": "Construction",
+    "badParking": "Bad parking",
+    "accident": "Accident",
+    "medicalEmergency": "Medical emergency",
+    "fire": "Fire",
+    "flood": "Flood"
   },
   "walkWithMe": {
     "walkTogether": "Walk together",

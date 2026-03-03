@@ -743,7 +743,17 @@
     "isolatedArea": "Zone isolée",
     "intoxicated": "Individu en état d'ébriété",
     "suspicious": "Comportement suspect",
-    "other": "Autre"
+    "other": "Autre",
+    "catInterpersonal": "Comportement",
+    "catEnvironment": "Environnement",
+    "catEmergency": "Urgence",
+    "obstacle": "Obstacle",
+    "construction": "Travaux",
+    "badParking": "Véhicule mal garé",
+    "accident": "Accident",
+    "medicalEmergency": "Urgence médicale",
+    "fire": "Incendie",
+    "flood": "Inondation"
   },
   "walkWithMe": {
     "walkTogether": "Marcher ensemble",

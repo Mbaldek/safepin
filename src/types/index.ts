@@ -10,7 +10,7 @@ export type Pin = {
   user_id: string;
   lat: number;
   lng: number;
-  category: 'harassment' | 'stalking' | 'dark_area' | 'aggression' | 'drunk' | 'other' | 'theft' | 'verbal_abuse' | 'poor_lighting' | 'unsafe_road' | 'isolated' | 'suspicious';
+  category: 'harassment' | 'stalking' | 'dark_area' | 'aggression' | 'drunk' | 'other' | 'theft' | 'verbal_abuse' | 'poor_lighting' | 'unsafe_road' | 'isolated' | 'suspicious' | 'obstacle' | 'construction' | 'bad_parking' | 'accident' | 'medical_emergency' | 'fire' | 'flood';
   severity: 'low' | 'med' | 'high';
   description: string;
   photo_url: string | null;
@@ -456,6 +456,13 @@ export const CATEGORIES = {
   drunk: { label: 'Intoxicated', emoji: '🍺' },
   suspicious: { label: 'Suspicious', emoji: '🔍' },
   other: { label: 'Other', emoji: '⚠️' },
+  obstacle: { label: 'Obstacle', emoji: '🚧' },
+  construction: { label: 'Construction', emoji: '👷' },
+  bad_parking: { label: 'Bad parking', emoji: '🚗' },
+  accident: { label: 'Accident', emoji: '💥' },
+  medical_emergency: { label: 'Medical emergency', emoji: '🚑' },
+  fire: { label: 'Fire', emoji: '🔥' },
+  flood: { label: 'Flood', emoji: '🌊' },
 } as const;
 
 /** Categories shown in the report form (excludes legacy aliases) */

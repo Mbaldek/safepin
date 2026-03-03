@@ -89,3 +89,8 @@ export const springTransition = {
   stiffness: 320,
   mass: 0.8,
 };
+
+/** Simple class name joiner (no tailwind-merge needed). */
+export function cn(...classes: (string | false | null | undefined)[]): string {
+  return classes.filter(Boolean).join(' ');
+}

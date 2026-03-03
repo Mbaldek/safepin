@@ -20,7 +20,7 @@ import { Bell, Search, Menu, X, List } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
-import ReportSheet from '@/components/ReportSheet';
+import IncidentReportModal from '@/components/IncidentReportModal';
 import DetailSheet from '@/components/DetailSheet';
 import ThemeToggle from '@/components/ThemeToggle';
 import AddressSearch from '@/components/AddressSearch';
@@ -810,7 +810,11 @@ export default function MapPage() {
             <button
               onClick={() => setActiveSheet('report')}
               data-tour="report-button"
-              className="absolute bottom-22 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#D4A853] to-[#B8923E] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(212,168,83,0.35)] z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute bottom-22 right-4 w-14 h-14 rounded-full text-white text-2xl flex items-center justify-center z-50 hover:scale-105 active:scale-95 transition"
+              style={{
+                backgroundColor: '#3b82f6',
+                boxShadow: '0 4px 20px rgba(59, 130, 246, 0.35)',
+              }}
             >
               +
             </button>
@@ -874,7 +878,7 @@ export default function MapPage() {
 
         {/* Report sheet — inside map container like other tab overlays */}
         <AnimatePresence>
-          {activeSheet === 'report' && <ReportSheet key="report" userId={userId} />}
+          {activeSheet === 'report' && <IncidentReportModal key="report" userId={userId} />}
         </AnimatePresence>
       </div>
 
