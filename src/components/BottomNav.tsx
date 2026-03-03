@@ -53,6 +53,7 @@ export default function BottomNav() {
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
             className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+            {...(id === 'trip' ? { 'data-tour': 'nav-trip' } : id === 'me' ? { 'data-tour': 'nav-me' } : {})}
           >
             {/* Active dot indicator */}
             {isActive && (

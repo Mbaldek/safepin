@@ -756,5 +756,17 @@
     "gardien": "Guardian",
     "sentinelle": "Sentinel",
     "protecteur": "Protector"
+  },
+  "tour": {
+    "sosTitle": "Your emergency button",
+    "sosDesc": "Hold for 3 seconds to alert your Circle and share your location instantly.",
+    "reportTitle": "Spot something? Report it",
+    "reportDesc": "Tap + to place a pin on the map in 3 taps. Your report helps everyone nearby.",
+    "filtersTitle": "Customize what you see",
+    "filtersDesc": "Filter by severity, time, or location type to focus on what matters most.",
+    "tripTitle": "Plan a safe route",
+    "tripDesc": "Get danger scores per route, share your trip with a contact, and get alerts along the way.",
+    "profileTitle": "Your activity, your impact",
+    "profileDesc": "Track your contributions, earn guardian badges, and manage your trusted circle."
   }
 }

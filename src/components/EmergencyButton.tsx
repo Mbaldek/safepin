@@ -665,6 +665,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         onPointerLeave={handleFabPointerUp}
         onPointerCancel={handleFabPointerUp}
         onContextMenu={(e) => e.preventDefault()}
+        data-tour="sos-button"
         disabled={phase !== 'idle'}
         className={`absolute bottom-6 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-2xl select-none touch-none ${
           phase === 'idle' ? 'animate-sos-glow' : 'opacity-50'

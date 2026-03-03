@@ -39,6 +39,8 @@ import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
 import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
+import { CoachMark } from '@/components/CoachMark';
+import { useTour } from '@/hooks/useTour';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
@@ -111,6 +113,25 @@ export default function MapPage() {
     showSafeSpaces, setShowSafeSpaces,
   } = useStore();
   const tMap = useTranslations('map');
+  const tTour = useTranslations('tour');
+
+  const { isActive: tourActive, currentStep: tourStep, currentStepIndex: tourStepIdx, totalSteps: tourTotal, next: tourNext, skip: tourSkip } = useTour();
+
+  // Resolve tour step strings eagerly (avoids dynamic key call to t())
+  const TOUR_TITLES: Record<string, string> = {
+    sos:     tTour('sosTitle'),
+    report:  tTour('reportTitle'),
+    filters: tTour('filtersTitle'),
+    trip:    tTour('tripTitle'),
+    profile: tTour('profileTitle'),
+  };
+  const TOUR_DESCS: Record<string, string> = {
+    sos:     tTour('sosDesc'),
+    report:  tTour('reportDesc'),
+    filters: tTour('filtersDesc'),
+    trip:    tTour('tripDesc'),
+    profile: tTour('profileDesc'),
+  };
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
   const justCompletedOnboardingRef = useRef(false);
@@ -784,6 +805,7 @@ export default function MapPage() {
             <button
               onClick={openFilterPanel}
               aria-label="Map filters"
+              data-tour="filter-bar"
               className="absolute bottom-6 left-4 w-9 h-9 rounded-xl flex items-center justify-center z-50 transition active:scale-95"
               style={{
                 backgroundColor: showFilterPanel || filterActiveCount > 0
@@ -810,6 +832,7 @@ export default function MapPage() {
             {/* Report button — stacked above SOS on the right */}
             <button
               onClick={() => setActiveSheet('report')}
+              data-tour="report-button"
               className="absolute bottom-22 right-4 w-14 h-14 rounded-full bg-linear-to-br from-[#D4A853] to-[#B8923E] text-white text-2xl flex items-center justify-center shadow-lg shadow-[rgba(212,168,83,0.35)] z-50 hover:scale-105 active:scale-95 transition"
             >
               +
@@ -1002,6 +1025,23 @@ export default function MapPage() {
 
       {/* ── Offline banner ──────────────────────────────────────────── */}
       <OfflineBanner />
+
+      {/* ── Map tour coachmarks ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {tourActive && tourStep && (
+          <CoachMark
+            key={tourStep.id}
+            targetSelector={tourStep.targetSelector}
+            title={TOUR_TITLES[tourStep.id] ?? ''}
+            description={TOUR_DESCS[tourStep.id] ?? ''}
+            position={tourStep.position}
+            currentStep={tourStepIdx + 1}
+            totalSteps={tourTotal}
+            onNext={tourNext}
+            onSkip={tourSkip}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
