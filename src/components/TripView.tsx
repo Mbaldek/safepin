@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { X, Star, ArrowLeft, Route, Signal, User, ChevronRight, Eye, Share2, Shield, Users } from 'lucide-react';
+import { X, Star, ArrowLeft, Route, Signal, User, ChevronRight, Eye, Share2, Shield, Users, MessageCircle } from 'lucide-react';
 import SavedPanel from '@/components/SavedPanel';
 import RoutePlannerForm, { Mode } from '@/components/RoutePlannerForm';
 import TripSummary from '@/components/TripSummary';
@@ -19,6 +19,7 @@ import { useTranslations } from 'next-intl';
 import { springTransition, haversineMeters } from '@/lib/utils';
 import { useMapPadding } from '@/hooks/useMapPadding';
 import { TransitStep } from '@/lib/transit';
+import TripChat from '@/components/TripChat';
 import { tripMonitor, MonitorEvent } from '@/lib/TripMonitor';
 
 function formatCountdown(ms: number): string {
@@ -90,6 +91,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
   // Saved routes
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [recentTrips, setRecentTrips] = useState<RecentTrip[]>([]);
 
   // Circle contacts — shown in active trip awareness bar
@@ -572,6 +574,31 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 <Share2 size={15} style={{ color: 'var(--text-muted)' }} />
                 <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('shareLink')}</span>
               </button>
+
+              {/* Trip Chat */}
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+              >
+                <button
+                  onClick={() => setShowChat(!showChat)}
+                  className="w-full flex items-center justify-between px-4 py-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={15} style={{ color: 'var(--text-muted)' }} />
+                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('tripChat') ?? 'Messages'}</span>
+                  </div>
+                  <ChevronRight
+                    size={14}
+                    style={{ color: 'var(--text-muted)', transform: showChat ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}
+                  />
+                </button>
+                {showChat && activeTrip && (
+                  <div className="px-4 pb-3">
+                    <TripChat tripId={activeTrip.id} />
+                  </div>
+                )}
+              </div>
 
               {/* SOS + Arrived */}
               <div className="flex gap-3">

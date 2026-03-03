@@ -273,6 +273,69 @@ function makeStaticPin(color: string, S: number): { width: number; height: numbe
   return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
 }
 
+/** Rounded-square pin for metro incidents. */
+function makeSquarePin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d')!;
+  const pad = S * 0.15, r = S * 0.18;
+  // White glow
+  ctx.beginPath();
+  ctx.roundRect(pad - 2, pad - 2, S - (pad - 2) * 2, S - (pad - 2) * 2, r + 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  // Colored fill
+  ctx.beginPath();
+  ctx.roundRect(pad, pad, S - pad * 2, S - pad * 2, r);
+  ctx.fillStyle = color; ctx.fill();
+  // Highlight
+  const cx = S * 0.42, cy = S * 0.42, hr = S * 0.11;
+  ctx.beginPath(); ctx.arc(cx, cy, hr, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
+  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
+}
+
+/** Diamond (rotated square) pin for bus incidents. */
+function makeDiamondPin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d')!;
+  const cx = S / 2, cy = S / 2, half = S * 0.35;
+  // White glow
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - half - 2); ctx.lineTo(cx + half + 2, cy);
+  ctx.lineTo(cx, cy + half + 2); ctx.lineTo(cx - half - 2, cy); ctx.closePath();
+  ctx.fillStyle = '#fff'; ctx.fill();
+  // Colored fill
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - half); ctx.lineTo(cx + half, cy);
+  ctx.lineTo(cx, cy + half); ctx.lineTo(cx - half, cy); ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+  // Highlight
+  ctx.beginPath(); ctx.arc(cx - half * 0.15, cy - half * 0.15, half * 0.28, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
+  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
+}
+
+/** Triangle pin for tram incidents. */
+function makeTrianglePin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d')!;
+  const cx = S / 2, h = S * 0.7, topY = S * 0.12;
+  // White glow
+  ctx.beginPath();
+  ctx.moveTo(cx, topY - 2); ctx.lineTo(cx + h / 2 + 2, topY + h + 2); ctx.lineTo(cx - h / 2 - 2, topY + h + 2); ctx.closePath();
+  ctx.fillStyle = '#fff'; ctx.fill();
+  // Colored fill
+  ctx.beginPath();
+  ctx.moveTo(cx, topY + 2); ctx.lineTo(cx + h / 2 - 1, topY + h - 1); ctx.lineTo(cx - h / 2 + 1, topY + h - 1); ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+  // Highlight
+  ctx.beginPath(); ctx.arc(cx - h * 0.06, topY + h * 0.35, h * 0.12, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
+  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
+}
+
 /** Animated canvas pin (pulse opacity + optional expanding glow ring). */
 function makePulsePin(color: string, S: number, glowRing: boolean) {
   let _canvas: HTMLCanvasElement | null = null;
@@ -356,6 +419,7 @@ function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
       properties: {
         id: pin.id,
         severity: pin.severity,
+        environment: pin.environment ?? 'foot',
         opacity: getPinOpacity(pin),
       },
     })),
@@ -407,6 +471,19 @@ function addClusterLayers(m: mapboxgl.Map) {
     m.addImage('pin-sev-med',  makePulsePin('#E8A838', 28, false) as any, { pixelRatio: 2 }); // 14px
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     m.addImage('pin-sev-high', makePulsePin('#E63946', 48, true)  as any, { pixelRatio: 2 }); // 24px w/ glow
+
+    // Metro pins (rounded square)
+    m.addImage('pin-metro-low',  makeSquarePin('#10b981', 26), { pixelRatio: 2 });
+    m.addImage('pin-metro-med',  makeSquarePin('#f59e0b', 28), { pixelRatio: 2 });
+    m.addImage('pin-metro-high', makeSquarePin('#f43f5e', 32), { pixelRatio: 2 });
+    // Bus pins (diamond)
+    m.addImage('pin-bus-low',  makeDiamondPin('#10b981', 26), { pixelRatio: 2 });
+    m.addImage('pin-bus-med',  makeDiamondPin('#f59e0b', 28), { pixelRatio: 2 });
+    m.addImage('pin-bus-high', makeDiamondPin('#f43f5e', 32), { pixelRatio: 2 });
+    // Tram pins (triangle) — also used for environment='tram' if added later
+    m.addImage('pin-tram-low',  makeTrianglePin('#10b981', 26), { pixelRatio: 2 });
+    m.addImage('pin-tram-med',  makeTrianglePin('#f59e0b', 28), { pixelRatio: 2 });
+    m.addImage('pin-tram-high', makeTrianglePin('#f43f5e', 32), { pixelRatio: 2 });
   }
 
   // Individual unclustered pins — symbol layer with custom severity images
@@ -416,11 +493,18 @@ function addClusterLayers(m: mapboxgl.Map) {
     source: SOURCE_ID,
     filter: ['!', ['has', 'point_count']],
     layout: {
-      'icon-image': ['match', ['get', 'severity'],
-        'low',  'pin-sev-low',
-        'med',  'pin-sev-med',
-        'high', 'pin-sev-high',
-        'pin-sev-low',
+      'icon-image': [
+        'case',
+        // Metro → rounded square
+        ['all', ['==', ['get', 'environment'], 'metro'], ['==', ['get', 'severity'], 'high']], 'pin-metro-high',
+        ['all', ['==', ['get', 'environment'], 'metro'], ['==', ['get', 'severity'], 'med']],  'pin-metro-med',
+        ['==', ['get', 'environment'], 'metro'], 'pin-metro-low',
+        // Bus → diamond
+        ['all', ['==', ['get', 'environment'], 'bus'], ['==', ['get', 'severity'], 'high']], 'pin-bus-high',
+        ['all', ['==', ['get', 'environment'], 'bus'], ['==', ['get', 'severity'], 'med']],  'pin-bus-med',
+        ['==', ['get', 'environment'], 'bus'], 'pin-bus-low',
+        // Default → classic circle
+        ['match', ['get', 'severity'], 'low', 'pin-sev-low', 'med', 'pin-sev-med', 'high', 'pin-sev-high', 'pin-sev-low'],
       ],
       'icon-allow-overlap': true,
       'icon-ignore-placement': false,
@@ -500,6 +584,7 @@ export default function MapView({
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
 
   // Initialize map
@@ -1081,6 +1166,51 @@ export default function MapView({
       }
     }
     prevPinIdsRef.current = currentIds;
+
+    // ── Ghost trail for transport pins (metro=vertical, bus=horizontal) ──────
+    ghostTrailRef.current.forEach((m) => m.remove());
+    ghostTrailRef.current = [];
+
+    const SEVERITY_COLORS: Record<string, string> = { low: '#10b981', med: '#f59e0b', high: '#f43f5e' };
+    const GHOST_OFFSETS = [
+      { d: -1, opacity: 0.18 },
+      { d: -0.6, opacity: 0.35 },
+      { d: 0.6, opacity: 0.35 },
+      { d: 1, opacity: 0.18 },
+    ];
+    const TRAIL_SPREAD = 0.0006; // ~60m in degrees
+
+    const transportPins = regularPins.filter(
+      (p) => p.environment === 'metro' || p.environment === 'bus',
+    );
+
+    for (const pin of transportPins) {
+      const isVertical = pin.environment === 'metro';
+      const color = SEVERITY_COLORS[pin.severity] ?? '#f59e0b';
+      const shape = pin.environment === 'metro' ? 'square' : 'diamond';
+
+      for (const ghost of GHOST_OFFSETS) {
+        const lng = isVertical ? pin.lng : pin.lng + ghost.d * TRAIL_SPREAD;
+        const lat = isVertical ? pin.lat + ghost.d * TRAIL_SPREAD : pin.lat;
+
+        const el = document.createElement('div');
+        el.className = isVertical ? 'ghost-trail-v' : 'ghost-trail-h';
+        el.style.cssText = `pointer-events:none;opacity:${ghost.opacity};animation-delay:${Math.abs(ghost.d) * 0.3}s;`;
+
+        const dot = document.createElement('div');
+        if (shape === 'square') {
+          dot.style.cssText = `width:10px;height:10px;border-radius:3px;background:${color};border:1.5px solid rgba(255,255,255,0.6);`;
+        } else {
+          dot.style.cssText = `width:10px;height:10px;background:${color};border:1.5px solid rgba(255,255,255,0.6);transform:rotate(45deg);`;
+        }
+        el.appendChild(dot);
+
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([lng, lat])
+          .addTo(map.current!);
+        ghostTrailRef.current.push(marker);
+      }
+    }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
   // Show / hide Paris transit station dots (Bus / Metro-RER split)

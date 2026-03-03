@@ -49,7 +49,7 @@ export type Comment = {
 
 export type AppNotification = {
   id: string;
-  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact' | 'milestone' | 'digest';
+  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact' | 'milestone' | 'digest' | 'trip_share';
   title: string;
   body: string | null;
   read: boolean;

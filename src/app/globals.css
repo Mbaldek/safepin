@@ -145,6 +145,18 @@ body {
   animation: pin-drop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* Ghost trail drift for transport pins */
+@keyframes ghost-drift-v {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes ghost-drift-h {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-4px); }
+}
+.ghost-trail-v { animation: ghost-drift-v 2.5s ease-in-out infinite; }
+.ghost-trail-h { animation: ghost-drift-h 2.5s ease-in-out infinite; }
+
 /* Gold user-dot pulse */
 @keyframes pulse-gold {
   0%, 100% { box-shadow: 0 0 0 0 rgba(232, 168, 56, 0.5); }
