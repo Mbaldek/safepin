@@ -69,6 +69,13 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
     return () => clearInterval(timer);
   }, []);
 
+  // No actionable info — dismiss silently via effect (not during render)
+  useEffect(() => {
+    if (data && !data.hasSos && data.newPins === 0) {
+      dismissRef.current();
+    }
+  }, [data]);
+
   if (!data) return null;
 
   // SOS briefing
@@ -143,13 +150,6 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
       </motion.div>
     );
   }
-
-  // No actionable info — dismiss silently via effect (not during render)
-  useEffect(() => {
-    if (data && !data.hasSos && data.newPins === 0) {
-      dismissRef.current();
-    }
-  }, [data]);
 
   return null;
 }
