@@ -16,7 +16,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
@@ -645,78 +645,79 @@ export default function MapPage() {
 
       {/* ── Top bar (always visible, 56px) ────────────────────────── */}
       <div className="shrink-0 z-50 relative"
-        style={{ backgroundColor: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.1)', height: 56 }}>
-        <div className="flex items-center justify-between px-4 h-full">
-          <div className="flex items-center gap-2">
-            <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true">
-              <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
-              <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
-              <circle cx="40" cy="22" r="4" fill="#FFFFFF" />
-            </svg>
-            <span style={{ fontSize: 18, fontWeight: 600, color: '#FFFFFF', letterSpacing: '0.05em' }}>BREVEIL</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Search icon — map tab only */}
-            {activeTab === 'map' && (
+        style={{ backgroundColor: 'var(--surface-card)', borderBottom: '1px solid var(--border)', height: 56 }}>
+        <div className="flex items-center gap-3 px-4 h-full">
+          {showSearch && activeTab === 'map' ? (
+            <>
+              {/* Back arrow — exit search */}
               <button
-                onClick={() => setShowSearch((v) => !v)}
-                aria-label={showSearch ? 'Close search' : 'Search location'}
-                className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
-                style={{ backgroundColor: showSearch ? '#3BB4C1' : 'transparent' }}
+                onClick={() => setShowSearch(false)}
+                aria-label="Close search"
+                className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition hover:opacity-80"
               >
-                {showSearch
-                  ? <X size={16} strokeWidth={2.2} style={{ color: '#FFFFFF' }} />
-                  : <Search size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
-                }
+                <ChevronLeft size={20} strokeWidth={2} style={{ color: 'var(--text-primary)' }} />
               </button>
-            )}
-            {/* Notification bell */}
-            <button
-              onClick={() => setShowNotifications(true)}
-              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-              className="relative w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
-            >
-              <Bell size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
-              {unreadCount > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-                  style={{ backgroundColor: '#EF4444', color: '#fff' }}
+              {/* Inline search — fills header */}
+              <div className="flex-1 min-w-0">
+                <AddressSearch autoFocus />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Logo */}
+              <div className="flex items-center gap-2">
+                <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true" className="text-[var(--text-primary)]">
+                  <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" />
+                  <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
+                  <circle cx="40" cy="22" r="4" fill="currentColor" />
+                </svg>
+                <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>BREVEIL</span>
+              </div>
+              <div className="flex-1" />
+              {/* Right icons */}
+              <div className="flex items-center gap-2">
+                {/* Search icon — map tab only */}
+                {activeTab === 'map' && (
+                  <button
+                    onClick={() => setShowSearch(true)}
+                    aria-label="Search location"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                  >
+                    <Search size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                  </button>
+                )}
+                {/* Notification bell */}
+                <button
+                  onClick={() => setShowNotifications(true)}
+                  aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+                  className="relative w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
                 >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            <ThemeToggle />
-            {/* Settings / burger menu */}
-            <button
-              aria-label="Settings"
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
-              style={{ backgroundColor: showSettings ? '#3BB4C1' : 'transparent' }}
-              onClick={() => setShowSettings((v) => !v)}
-            >
-              <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'rgba(255,255,255,0.6)' }} />
-            </button>
-          </div>
+                  <Bell size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                  {unreadCount > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                      style={{ backgroundColor: '#EF4444', color: '#fff' }}
+                    >
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                <ThemeToggle />
+                {/* Settings / burger menu */}
+                <button
+                  aria-label="Settings"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                  style={{ backgroundColor: showSettings ? 'var(--accent)' : 'transparent' }}
+                  onClick={() => setShowSettings((v) => !v)}
+                >
+                  <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {/* ── Search panel — floating below header ─────────────────── */}
-      <AnimatePresence>
-        {activeTab === 'map' && showSearch && (
-          <motion.div
-            key="search-panel"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300, mass: 0.6 }}
-            className="absolute left-0 right-0 z-40 px-3 pt-2 pb-2.5"
-            style={{ top: 56, backgroundColor: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
-          >
-            <AddressSearch autoFocus />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
       <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' && activeTab !== 'community' ? 'hidden' : 'flex flex-col'}`}>
@@ -778,8 +779,14 @@ export default function MapPage() {
               onClick={() => setShowIncidentsList(!showIncidentsList)}
               aria-label={showIncidentsList ? 'Hide incidents list' : 'Show incidents list'}
               data-tour="filter-bar"
-              className="absolute top-3 left-3 h-9 px-3 rounded-xl flex items-center gap-2 shadow-lg z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute top-3 left-3 rounded-xl shadow-lg z-50 hover:scale-105 active:scale-95 transition"
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 16px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
                 backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',
                 border: showIncidentsList ? 'none' : '1px solid var(--border)',
                 backdropFilter: 'blur(12px)',
