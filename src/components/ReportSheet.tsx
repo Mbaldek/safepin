@@ -88,7 +88,7 @@ export function ReportSheet() {
     pill: 'rgba(255,255,255,0.06)',
     accent: '#3BB4C1',
     sel: 'rgba(59,180,193,0.25)',
-    gold: '#F5C341',
+    gold: '#3BB4C1',
   };
 
   const canNext = cat !== null;

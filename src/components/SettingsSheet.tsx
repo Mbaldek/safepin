@@ -30,7 +30,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[#F5C341]">{icon}</span>
+        <span className="text-[#3BB4C1]">{icon}</span>
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
           {title}
         </p>
@@ -70,7 +70,7 @@ function Row({
       </span>
       <div className="flex items-center gap-2 shrink-0 ml-3">
         {badge && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F5C341]/15 text-[#F5C341]">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#3BB4C1]/15 text-[#3BB4C1]">
             {badge}
           </span>
         )}
@@ -97,7 +97,7 @@ function ToggleRow({ label, subtitle, value, onChange }: {
       <button
         onClick={() => onChange(!value)}
         className="relative w-11 h-6 rounded-full shrink-0 ml-4 transition-colors"
-        style={{ backgroundColor: value ? '#F5C341' : 'rgba(255,255,255,0.12)' }}
+        style={{ backgroundColor: value ? '#3BB4C1' : 'rgba(255,255,255,0.12)' }}
       >
         <motion.div
           className="absolute top-0.5 w-5 h-5 rounded-full shadow-sm bg-white"
@@ -243,7 +243,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
         onClick={onClick}
         className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition ${
           active
-            ? 'bg-[#F5C341] text-[#0F172A] border border-[#F5C341]'
+            ? 'bg-[#3BB4C1] text-[#0F172A] border border-[#3BB4C1]'
             : 'bg-white/[0.06] text-[#64748B] border border-white/8 hover:bg-white/10'
         }`}
       >
@@ -283,7 +283,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {section ? (
             <button
               onClick={() => setSection(null)}
-              className="flex items-center gap-1.5 text-sm font-semibold transition active:opacity-60 text-[#F5C341]"
+              className="flex items-center gap-1.5 text-sm font-semibold transition active:opacity-60 text-[#3BB4C1]"
             >
               <ChevronLeft size={16} />
               {t('title')}
@@ -310,10 +310,10 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {/* ── My Profile link ──────────────────────────────────────── */}
           <button
             onClick={() => { setMyKovaInitialTab('stats'); setActiveTab('me'); onClose(); }}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-5 transition active:opacity-70 border border-[#F5C341]/30 bg-white/[0.06]"
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-5 transition active:opacity-70 border border-[#3BB4C1]/30 bg-white/[0.06]"
           >
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #F5C341, #B8923E)' }}>
+              style={{ background: 'linear-gradient(135deg, #3BB4C1, #1E3A5F)' }}>
               {userProfile?.avatar_url
                 ? <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                 : (userProfile?.display_name?.[0] ?? '?').toUpperCase()}
@@ -333,7 +333,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               onClick={() => setLangOpen(!langOpen)}
               className="flex items-center gap-3 px-4 py-3.5 w-full text-left"
             >
-              <Globe size={16} className="text-[#F5C341]" />
+              <Globe size={16} className="text-[#3BB4C1]" />
               <span className="text-sm font-medium text-white flex-1">{t('language')}</span>
               <span className="text-xs font-medium text-[#64748B]">
                 {LOCALE_LABELS[locale]?.flag} {LOCALE_LABELS[locale]?.native ?? locale}
@@ -364,7 +364,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                       }}
                       className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition text-left ${
                         locale === code
-                          ? 'bg-[#F5C341] text-[#0F172A]'
+                          ? 'bg-[#3BB4C1] text-[#0F172A]'
                           : 'bg-white/[0.06] text-white border border-white/8 hover:bg-white/10'
                       }`}
                     >
@@ -390,7 +390,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 onClick={() => setSection(id)}
                 className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
               >
-                <span className="text-[#F5C341]">{icon}</span>
+                <span className="text-[#3BB4C1]">{icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white">{label}</p>
                   <p className="text-xs mt-0.5 truncate text-[#64748B]">{subtitle}</p>
@@ -449,7 +449,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                           <p className="text-xs mt-0.5 text-[#64748B]">{sub}</p>
                         </div>
                         {active && (
-                          <span className="text-sm font-semibold text-[#F5C341]">✓</span>
+                          <span className="text-sm font-semibold text-[#3BB4C1]">✓</span>
                         )}
                       </button>
                     );
@@ -472,7 +472,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 onClick={() => window.open(href, '_blank')}
                 className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
               >
-                <span className="text-[#F5C341]">{icon}</span>
+                <span className="text-[#3BB4C1]">{icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white">{label}</p>
                   <p className="text-xs mt-0.5 truncate text-[#64748B]">{subtitle}</p>
@@ -489,7 +489,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               onClick={() => setSection('billing')}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-60"
             >
-              <span className="text-[#F5C341]"><CreditCard size={16} /></span>
+              <span className="text-[#3BB4C1]"><CreditCard size={16} /></span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white">Subscription</p>
                 <p className="text-xs mt-0.5 truncate text-[#64748B]">Free plan · Breveil Pro coming soon</p>
@@ -511,7 +511,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 onClick={() => setSection(id)}
                 className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
               >
-                <span className="text-[#F5C341]">{icon}</span>
+                <span className="text-[#3BB4C1]">{icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white">{label}</p>
                   <p className="text-xs mt-0.5 truncate text-[#64748B]">{subtitle}</p>
@@ -528,7 +528,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               onClick={() => setSection('admin')}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-60"
             >
-              <span className="text-[#F5C341]"><LayoutDashboard size={16} /></span>
+              <span className="text-[#3BB4C1]"><LayoutDashboard size={16} /></span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white">Admin — Tower Control</p>
                 <p className="text-xs mt-0.5 truncate text-[#64748B]">Moderation & parameters</p>
@@ -615,7 +615,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       {subscription?.plan === 'pro' || subscription?.plan === 'pro_annual'
-                        ? <Crown size={14} className="text-[#F5C341]" />
+                        ? <Crown size={14} className="text-[#3BB4C1]" />
                         : <CheckCircle2 size={14} className="text-[#34D399]" />
                       }
                       <p className="text-sm font-semibold text-white">
@@ -680,8 +680,8 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
             <Section title="Upgrade" icon={<Crown size={13} />}>
               <div className="px-4 py-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Crown size={15} className="text-[#F5C341]" />
-                  <p className="text-sm font-semibold text-[#F5C341]">Breveil Pro</p>
+                  <Crown size={15} className="text-[#3BB4C1]" />
+                  <p className="text-sm font-semibold text-[#3BB4C1]">Breveil Pro</p>
                 </div>
                 <ul className="flex flex-col gap-1.5 mb-4">
                   {[
@@ -692,7 +692,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                     'Priority alert notifications',
                   ].map((f) => (
                     <li key={f} className="flex items-center gap-2 text-xs text-[#94A3B8]">
-                      <span className="text-[#F5C341]">✦</span> {f}
+                      <span className="text-[#3BB4C1]">✦</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -700,14 +700,14 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                   <button
                     onClick={() => handleUpgrade('pro')}
                     disabled={upgrading}
-                    className="w-full py-2.5 rounded-[32px] text-xs font-semibold transition-opacity disabled:opacity-50 bg-[#F5C341] text-[#0F172A]"
+                    className="w-full py-2.5 rounded-[32px] text-xs font-semibold transition-opacity disabled:opacity-50 bg-[#3BB4C1] text-[#0F172A]"
                   >
                     {upgrading ? 'Redirecting…' : 'Upgrade — €4.99/mo'}
                   </button>
                   <button
                     onClick={() => handleUpgrade('pro_annual')}
                     disabled={upgrading}
-                    className="w-full py-2 rounded-[32px] text-xs font-medium transition-opacity disabled:opacity-50 bg-[#F5C341]/15 text-[#F5C341]"
+                    className="w-full py-2 rounded-[32px] text-xs font-medium transition-opacity disabled:opacity-50 bg-[#3BB4C1]/15 text-[#3BB4C1]"
                   >
                     Annual — €39.99/yr (save 33%)
                   </button>
@@ -748,7 +748,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                         href={inv.invoice_pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] font-medium text-[#F5C341]"
+                        className="text-[11px] font-medium text-[#3BB4C1]"
                       >
                         PDF
                       </a>
@@ -800,7 +800,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               <p className="text-xs leading-relaxed text-[#64748B]">
                 You have the right to access, rectify, and erase your personal data. You may also
                 object to or restrict its processing, and request data portability. To exercise
-                these rights, contact us at <span className="text-[#F5C341]">brumeapp@pm.me</span>.
+                these rights, contact us at <span className="text-[#3BB4C1]">brumeapp@pm.me</span>.
               </p>
             </div>
             <Row
@@ -845,7 +845,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 Breveil v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
               </p>
               <p className="text-[11px] mt-0.5 text-[#64748B]">
-                <a href="mailto:brumeapp@pm.me" className="text-[#F5C341]">brumeapp@pm.me</a>
+                <a href="mailto:brumeapp@pm.me" className="text-[#3BB4C1]">brumeapp@pm.me</a>
               </p>
             </div>
           </Section>

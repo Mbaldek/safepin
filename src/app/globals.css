@@ -216,7 +216,7 @@
   --bg-overlay: var(--surface-overlay);
   --text-muted: var(--text-tertiary);
   --text-placeholder: var(--text-tertiary);
-  --accent: var(--accent-gold);
+  --accent: #3BB4C1;
   --accent-glow: var(--shadow-glow);
   --border: var(--border-default);
   --border-hover: var(--border-strong);

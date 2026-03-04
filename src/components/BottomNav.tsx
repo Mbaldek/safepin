@@ -55,7 +55,7 @@ export default function BottomNav() {
             {isActive && (
               <motion.div
                 layoutId="nav-dot"
-                className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#F5C341]"
+                className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#3BB4C1]"
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               />
             )}
@@ -64,7 +64,7 @@ export default function BottomNav() {
             {badge > 0 && (
               <span
                 className={`absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-semibold flex items-center justify-center px-1 z-10 text-white ${
-                  id === 'community' ? 'bg-[#F5C341]' : 'bg-[#EF4444]'
+                  id === 'community' ? 'bg-[#3BB4C1]' : 'bg-[#EF4444]'
                 }`}
               >
                 {badge}
@@ -75,13 +75,13 @@ export default function BottomNav() {
             <Icon
               size={20}
               strokeWidth={isActive ? 2.2 : 1.8}
-              className={`transition-colors duration-150 ${isActive ? 'text-[#F5C341]' : 'text-[#64748B]'}`}
+              className={`transition-colors duration-150 ${isActive ? 'text-[#3BB4C1]' : 'text-[#64748B]'}`}
             />
 
             {/* Label */}
             <span
               className={`text-[0.58rem] font-semibold tracking-wide leading-none transition-colors duration-150 ${
-                isActive ? 'text-[#F5C341]' : 'text-[#64748B]'
+                isActive ? 'text-[#3BB4C1]' : 'text-[#64748B]'
               }`}
             >
               {label}

@@ -7,7 +7,7 @@ interface BreveilLogoProps {
 }
 
 export function BreveilLogo({ size = 40, color, className }: BreveilLogoProps) {
-  const gold = color ?? '#E8A838';
+  const gold = color ?? '#3BB4C1';
   const purple = '#8B7EC8';
 
   return (

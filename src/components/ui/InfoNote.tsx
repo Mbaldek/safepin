@@ -14,7 +14,7 @@ const variantStyles: Record<InfoNoteVariant, string> = {
   success: 'bg-[#34D399]/10 border-[#34D399]/30 text-[#34D399]',
 };
 
-export function InfoNote({ children, variant = 'gold', icon }: InfoNoteProps) {
+export function InfoNote({ children, variant = 'info', icon }: InfoNoteProps) {
   return (
     <div className={`p-4 rounded-xl border ${variantStyles[variant]}`}>
       <p className="text-sm leading-relaxed flex items-start gap-2">

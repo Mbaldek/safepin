@@ -112,7 +112,7 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
                     className="flex gap-3 p-3 rounded-xl"
                     style={{
                       backgroundColor: n.read ? 'var(--bg-card)' : meta.color,
-                      border: n.read ? '1px solid var(--border)' : '1px solid rgba(212,168,83,0.2)',
+                      border: n.read ? '1px solid var(--border)' : '1px solid rgba(59,180,193,0.2)',
                     }}
                   >
                     <span className="text-xl shrink-0">{meta.icon}</span>
