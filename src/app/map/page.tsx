@@ -990,7 +990,7 @@ export default function MapPage() {
 
       {/* ── Onboarding overlay (first launch only) ─────────────────── */}
       {!loading && !onboardingDone && userId && (
-        <OnboardingFunnelV2 onComplete={handleOnboardingDone} />
+        <OnboardingFunnelV2 userId={userId} onComplete={handleOnboardingDone} />
       )}
 
       {/* ── Push notification opt-in ─────────────────────────────────── */}

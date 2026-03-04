@@ -54,7 +54,8 @@
       "Bash(npm run dev)",
       "WebFetch(domain:safepin-pearl.vercel.app)",
       "Bash(sed 's/^\"\"text\"\":\"\"//g')",
-      "Bash(sed 's/\\\\\\\\n/\\\\n/g')"
+      "Bash(sed 's/\\\\\\\\n/\\\\n/g')",
+      "mcp__claude_ai_Supabase__list_extensions"
     ]
   }
 }
