@@ -47,8 +47,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} data-theme="dark">
       <body className="min-h-dvh overscroll-none touch-manipulation bg-(--surface-base) text-(--text-primary)">
-        <a href="#main-content" className="skip-link">Skip to map</a>
-        <a href="#bottom-nav" className="skip-link" style={{ left: '140px' }}>Skip to navigation</a>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded">Skip to content</a>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             {children}

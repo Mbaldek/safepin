@@ -16,12 +16,12 @@ export const VeilSymbol = ({
       {/* Outer arcs — community awareness */}
       <path
         d="M40 12 C18 12, 8 35, 8 50 C8 56, 11 61, 15 64"
-        stroke={isDark ? 'rgba(232,168,56,0.25)' : 'rgba(27,37,65,0.12)'}
+        stroke={isDark ? 'rgba(59,180,193,0.25)' : 'rgba(27,37,65,0.12)'}
         strokeWidth="1.2" fill="none" strokeLinecap="round"
       />
       <path
         d="M40 12 C62 12, 72 35, 72 50 C72 56, 69 61, 65 64"
-        stroke={isDark ? 'rgba(232,168,56,0.25)' : 'rgba(27,37,65,0.12)'}
+        stroke={isDark ? 'rgba(59,180,193,0.25)' : 'rgba(27,37,65,0.12)'}
         strokeWidth="1.2" fill="none" strokeLinecap="round"
       />
       {/* Middle arcs — trusted circle */}
@@ -38,18 +38,18 @@ export const VeilSymbol = ({
       {/* Inner arcs — personal protection */}
       <path
         d="M40 32 C30 32, 28 44, 28 54 C28 58, 31 62, 35 64"
-        stroke={isDark ? 'rgba(232,168,56,0.8)' : 'rgba(27,37,65,0.6)'}
+        stroke={isDark ? 'rgba(59,180,193,0.8)' : 'rgba(27,37,65,0.6)'}
         strokeWidth="1.5" fill="none" strokeLinecap="round"
       />
       <path
         d="M40 32 C50 32, 52 44, 52 54 C52 58, 49 62, 45 64"
-        stroke={isDark ? 'rgba(232,168,56,0.8)' : 'rgba(27,37,65,0.6)'}
+        stroke={isDark ? 'rgba(59,180,193,0.8)' : 'rgba(27,37,65,0.6)'}
         strokeWidth="1.5" fill="none" strokeLinecap="round"
       />
       {/* Central point of light */}
-      <circle cx="40" cy="38" r="3" fill={isDark ? 'rgba(232,168,56,0.9)' : 'rgba(27,37,65,0.7)'} />
+      <circle cx="40" cy="38" r="3" fill={isDark ? 'rgba(59,180,193,0.9)' : 'rgba(27,37,65,0.7)'} />
       <circle cx="40" cy="38" r="6" fill="none"
-        stroke={isDark ? 'rgba(232,168,56,0.25)' : 'rgba(27,37,65,0.15)'}
+        stroke={isDark ? 'rgba(59,180,193,0.25)' : 'rgba(27,37,65,0.15)'}
         strokeWidth="0.8"
       />
       {/* Base dot — the individual, grounded */}
@@ -81,12 +81,12 @@ export const BreveilMonogram = ({
       </text>
       <path
         d="M52 24 C62 28, 68 36, 62 42"
-        stroke={isDark ? 'rgba(232,168,56,0.6)' : 'rgba(232,168,56,0.7)'}
+        stroke={isDark ? 'rgba(59,180,193,0.6)' : 'rgba(59,180,193,0.7)'}
         strokeWidth="1.2" fill="none" strokeLinecap="round"
       />
       <path
         d="M52 42 C65 46, 70 56, 60 62"
-        stroke={isDark ? 'rgba(232,168,56,0.6)' : 'rgba(232,168,56,0.7)'}
+        stroke={isDark ? 'rgba(59,180,193,0.6)' : 'rgba(59,180,193,0.7)'}
         strokeWidth="1.2" fill="none" strokeLinecap="round"
       />
       <path
