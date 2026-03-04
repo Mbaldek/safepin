@@ -643,23 +643,25 @@ export default function MapPage() {
   return (
     <div id="main-content" role="main" className="h-dvh flex flex-col overflow-hidden">
 
-      {/* ── Top bar (always visible) ───────────────────────────────── */}
-      <div className="shrink-0 z-50"
-        style={{ backgroundColor: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="flex items-center justify-between px-4 pt-2.5 pb-2">
-          <div className="flex items-center gap-1.5">
-            <BreveilMonogram size={22} variant="dark" />
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1rem', letterSpacing: '3px', color: '#FFFFFF' }}>
-              BREVEIL
-            </span>
+      {/* ── Top bar (always visible, 56px) ────────────────────────── */}
+      <div className="shrink-0 z-50 relative"
+        style={{ backgroundColor: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.1)', height: 56 }}>
+        <div className="flex items-center justify-between px-4 h-full">
+          <div className="flex items-center gap-2">
+            <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true">
+              <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
+              <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
+              <circle cx="40" cy="22" r="4" fill="#FFFFFF" />
+            </svg>
+            <span style={{ fontSize: 18, fontWeight: 600, color: '#FFFFFF', letterSpacing: '0.05em' }}>BREVEIL</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Search icon — map tab only */}
             {activeTab === 'map' && (
               <button
                 onClick={() => setShowSearch((v) => !v)}
                 aria-label={showSearch ? 'Close search' : 'Search location'}
-                className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
+                className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
                 style={{ backgroundColor: showSearch ? '#3BB4C1' : 'transparent' }}
               >
                 {showSearch
@@ -672,8 +674,7 @@ export default function MapPage() {
             <button
               onClick={() => setShowNotifications(true)}
               aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-              className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
-              style={{ backgroundColor: 'transparent' }}
+              className="relative w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
             >
               <Bell size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
               {unreadCount > 0 && (
@@ -690,7 +691,7 @@ export default function MapPage() {
             {/* Settings / burger menu */}
             <button
               aria-label="Settings"
-              className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
               style={{ backgroundColor: showSettings ? '#3BB4C1' : 'transparent' }}
               onClick={() => setShowSettings((v) => !v)}
             >
@@ -698,24 +699,24 @@ export default function MapPage() {
             </button>
           </div>
         </div>
-        {/* Search panel — slides in below header on map tab */}
-        <AnimatePresence>
-          {activeTab === 'map' && showSearch && (
-            <motion.div
-              key="search-panel"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300, mass: 0.6 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div className="px-3 pb-2.5">
-                <AddressSearch autoFocus />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* ── Search panel — floating below header ─────────────────── */}
+      <AnimatePresence>
+        {activeTab === 'map' && showSearch && (
+          <motion.div
+            key="search-panel"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300, mass: 0.6 }}
+            className="absolute left-0 right-0 z-40 px-3 pt-2 pb-2.5"
+            style={{ top: 56, backgroundColor: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <AddressSearch autoFocus />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
       <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' && activeTab !== 'community' ? 'hidden' : 'flex flex-col'}`}>
