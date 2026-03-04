@@ -9,7 +9,8 @@
 /* ============================================
    FONTS
    ============================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "mapbox-gl/dist/mapbox-gl.css";
 
 /* ============================================
    CSS CUSTOM PROPERTIES — DARK THEME (DEFAULT)
@@ -203,6 +204,25 @@
   --z-tooltip: 700;
   --z-toast: 800;
   --z-max: 9999;
+
+  /* ══════════════════════════════════════════
+     LEGACY COMPATIBILITY
+     Maps old variable names → new design system
+     (used by 65+ existing components)
+     ══════════════════════════════════════════ */
+  --bg-primary: var(--surface-base);
+  --bg-secondary: var(--surface-card);
+  --bg-card: var(--surface-elevated);
+  --bg-overlay: var(--surface-overlay);
+  --text-muted: var(--text-tertiary);
+  --text-placeholder: var(--text-tertiary);
+  --accent: var(--accent-gold);
+  --accent-glow: var(--shadow-glow);
+  --border: var(--border-default);
+  --border-hover: var(--border-strong);
+  --safe: var(--semantic-success);
+  --warn: var(--semantic-warning);
+  --blue: var(--accent-purple);
 }
 
 /* ============================================
@@ -241,6 +261,21 @@
     #3B82F6 50%,
     #6366F1 100%
   );
+
+  /* Legacy compatibility */
+  --bg-primary: var(--surface-base);
+  --bg-secondary: var(--surface-card);
+  --bg-card: var(--surface-elevated);
+  --bg-overlay: var(--surface-overlay);
+  --text-muted: var(--text-tertiary);
+  --text-placeholder: var(--text-tertiary);
+  --accent: #C48A1E;
+  --accent-glow: rgba(196, 138, 30, 0.20);
+  --border: var(--border-default);
+  --border-hover: var(--border-strong);
+  --safe: var(--semantic-success);
+  --warn: var(--semantic-warning);
+  --blue: #6A5FA8;
 }
 
 /* ============================================
