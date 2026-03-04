@@ -8,11 +8,13 @@ import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe, HelpCircle, BookOpen, BarChart3, MapPinned } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Shield, CreditCard, Database, FileText, User, Crown, ExternalLink, Bell, LayoutDashboard, Receipt, CheckCircle2, Clock, Globe, HelpCircle, BookOpen, BarChart3, MapPinned, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_NOTIF_SETTINGS, URBAN_CONTEXTS, type Subscription, type Invoice } from '@/types';
 import { useTranslations, useLocale } from 'next-intl';
-import { springTransition } from '@/lib/utils';
+
+// ─── Brand tokens ─────────────────────────────────────────────────────────────
+const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
 type MapStyle = 'custom' | 'streets' | 'light' | 'dark';
 
@@ -28,12 +30,12 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <span style={{ color: 'var(--accent)' }}>{icon}</span>
-        <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-[#F5C341]">{icon}</span>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
           {title}
         </p>
       </div>
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+      <div className="rounded-2xl overflow-hidden border border-white/12 bg-[#1E293B]">
         {children}
       </div>
     </div>
@@ -46,7 +48,7 @@ function Row({
   label, value, badge, destructive, disabled, onPress, chevron = true,
 }: {
   label: string;
-  value?: string;
+  value?: string | React.ReactNode;
   badge?: string;
   destructive?: boolean;
   disabled?: boolean;
@@ -57,29 +59,26 @@ function Row({
     <button
       onClick={onPress}
       disabled={disabled || !onPress}
-      className="w-full flex items-center justify-between px-4 py-3.5 transition active:opacity-60 border-b last:border-b-0 text-left"
-      style={{ borderColor: 'var(--border)', cursor: onPress && !disabled ? 'pointer' : 'default' }}
+      className="w-full flex items-center justify-between px-4 py-3.5 transition active:opacity-60 border-b last:border-b-0 border-white/8 text-left"
+      style={{ cursor: onPress && !disabled ? 'pointer' : 'default' }}
     >
       <span
-        className="text-sm font-semibold"
-        style={{ color: destructive ? '#ef4444' : disabled ? 'var(--text-muted)' : 'var(--text-primary)' }}
+        className="text-sm font-medium"
+        style={{ color: destructive ? '#EF4444' : disabled ? '#64748B' : '#FFFFFF' }}
       >
         {label}
       </span>
       <div className="flex items-center gap-2 shrink-0 ml-3">
         {badge && (
-          <span
-            className="text-[0.55rem] font-black px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
-          >
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F5C341]/15 text-[#F5C341]">
             {badge}
           </span>
         )}
         {value && (
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{value}</span>
+          <span className="text-xs text-[#64748B]">{value}</span>
         )}
         {chevron && onPress && (
-          <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+          <ChevronRight size={14} className="text-[#64748B]" />
         )}
       </div>
     </button>
@@ -90,20 +89,18 @@ function ToggleRow({ label, subtitle, value, onChange }: {
   label: string; subtitle?: string; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3.5 border-b last:border-b-0"
-      style={{ borderColor: 'var(--border)' }}>
+    <div className="flex items-center justify-between px-4 py-3.5 border-b last:border-b-0 border-white/8">
       <div>
-        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
-        {subtitle && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
+        <p className="text-sm font-medium text-white">{label}</p>
+        {subtitle && <p className="text-xs mt-0.5 text-[#64748B]">{subtitle}</p>}
       </div>
       <button
         onClick={() => onChange(!value)}
         className="relative w-11 h-6 rounded-full shrink-0 ml-4 transition-colors"
-        style={{ backgroundColor: value ? 'var(--accent)' : 'var(--border)' }}
+        style={{ backgroundColor: value ? '#F5C341' : 'rgba(255,255,255,0.12)' }}
       >
         <motion.div
-          className="absolute top-0.5 w-5 h-5 rounded-full shadow-sm"
-          style={{ backgroundColor: '#fff' }}
+          className="absolute top-0.5 w-5 h-5 rounded-full shadow-sm bg-white"
           animate={{ left: value ? '22px' : '2px' }}
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
         />
@@ -114,7 +111,7 @@ function ToggleRow({ label, subtitle, value, onChange }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Section = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin' | 'mapDisplay';
+type SectionId = 'account' | 'notifications' | 'privacy' | 'legal' | 'security' | 'billing' | 'admin' | 'mapDisplay';
 
 const LOCALE_LABELS: Record<string, { native: string; flag: string }> = {
   en: { native: 'English', flag: '🇬🇧' },
@@ -159,7 +156,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
   const [crashReports, setCrashReports] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [section, setSection] = useState<Section | null>(null);
+  const [section, setSection] = useState<SectionId | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [billingLoading, setBillingLoading] = useState(false);
@@ -234,18 +231,32 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
   async function handleDeleteAccount() {
     if (!confirmDelete) { setConfirmDelete(true); return; }
     setDeleting(true);
-    // Soft delete — sign out and mark account for deletion (hard delete via Supabase admin)
     await supabase.auth.signOut();
     toast.success(t('accountDeleted'));
     router.replace('/login');
+  }
+
+  // ─── Chip helper ────────────────────────────────────────────────────────────
+  function Chip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
+    return (
+      <button
+        onClick={onClick}
+        className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition ${
+          active
+            ? 'bg-[#F5C341] text-[#0F172A] border border-[#F5C341]'
+            : 'bg-white/[0.06] text-[#64748B] border border-white/8 hover:bg-white/10'
+        }`}
+      >
+        {children}
+      </button>
+    );
   }
 
   return (
     <>
       {/* Backdrop */}
       <motion.div
-        className="absolute inset-0 z-[200]"
-        style={{ backgroundColor: 'var(--bg-overlay)' }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-400"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={onClose}
@@ -257,40 +268,39 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-2xl z-[201] max-h-[92dvh] overflow-y-auto"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
+        className="fixed bottom-0 left-0 right-0 bg-[#334155] rounded-t-3xl z-500 max-h-[92dvh] overflow-hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={springTransition}
+        transition={spring}
       >
-        <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-9 h-1 bg-white/20 rounded-full" />
+        </div>
 
         {/* ── Fixed header ──────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-5 pt-3 pb-3">
+        <div className="flex items-center justify-between px-6 py-3">
           {section ? (
             <button
               onClick={() => setSection(null)}
-              className="flex items-center gap-1.5 text-sm font-bold transition active:opacity-60"
-              style={{ color: 'var(--accent)' }}
+              className="flex items-center gap-1.5 text-sm font-semibold transition active:opacity-60 text-[#F5C341]"
             >
               <ChevronLeft size={16} />
               {t('title')}
             </button>
           ) : (
-            <div>
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</h2>
-            </div>
+            <h2 className="text-xl font-medium text-white">{t('title')}</h2>
           )}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full transition active:opacity-60"
-            style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)' }}
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white transition hover:bg-white/15"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(92dvh - 80px)' }}>
-        <div className="px-5 pt-2 pb-12">
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(92dvh - 100px)' }}>
+        <div className="px-6 pt-2 pb-12">
 
           <AnimatePresence mode="wait">
           {!section ? (
@@ -300,36 +310,35 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {/* ── My Profile link ──────────────────────────────────────── */}
           <button
             onClick={() => { setMyKovaInitialTab('stats'); setActiveTab('me'); onClose(); }}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-5 transition active:opacity-70"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl mb-5 transition active:opacity-70 border border-[#F5C341]/30 bg-white/[0.06]"
           >
-            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-black text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #F5C341, #B8923E)' }}>
               {userProfile?.avatar_url
                 ? <img src={userProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                 : (userProfile?.display_name?.[0] ?? '?').toUpperCase()}
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-semibold text-white truncate">
                 {userProfile?.display_name ?? 'Set your name'}
               </p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>View profile & activity</p>
+              <p className="text-xs text-[#64748B]">View profile & activity</p>
             </div>
-            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+            <ChevronRight size={16} className="text-[#64748B]" />
           </button>
 
           {/* ── Language picker ───────────────────────────────────────── */}
-          <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <div className="rounded-2xl overflow-hidden mb-3 border border-white/12 bg-[#1E293B]">
             <button
               onClick={() => setLangOpen(!langOpen)}
               className="flex items-center gap-3 px-4 py-3.5 w-full text-left"
             >
-              <Globe size={16} style={{ color: 'var(--accent)' }} />
-              <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{t('language')}</span>
-              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
+              <Globe size={16} className="text-[#F5C341]" />
+              <span className="text-sm font-medium text-white flex-1">{t('language')}</span>
+              <span className="text-xs font-medium text-[#64748B]">
                 {LOCALE_LABELS[locale]?.flag} {LOCALE_LABELS[locale]?.native ?? locale}
               </span>
-              <ChevronRight size={14} className="transition" style={{ color: 'var(--text-muted)', transform: langOpen ? 'rotate(90deg)' : 'none' }} />
+              <ChevronRight size={14} className={`text-[#64748B] transition-transform duration-200 ${langOpen ? 'rotate-90' : ''}`} />
             </button>
             {langOpen && (
               <div className="px-3 pb-3">
@@ -337,8 +346,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                   value={langSearch}
                   onChange={(e) => setLangSearch(e.target.value)}
                   placeholder="Search language…"
-                  className="w-full text-xs rounded-xl px-3 py-2 mb-2 outline-none"
-                  style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  className="w-full text-xs rounded-xl px-3 py-2 mb-2 outline-none bg-white/[0.08] border border-white/12 text-white placeholder:text-[#64748B] focus:border-[#3BB4C1] transition"
                 />
                 <div className="grid grid-cols-2 gap-1.5 max-h-[240px] overflow-y-auto">
                   {Object.entries(LOCALE_LABELS)
@@ -354,12 +362,11 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                         }
                         window.location.reload();
                       }}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-bold transition text-left"
-                      style={
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition text-left ${
                         locale === code
-                          ? { backgroundColor: 'var(--accent)', color: '#fff' }
-                          : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
-                      }
+                          ? 'bg-[#F5C341] text-[#0F172A]'
+                          : 'bg-white/[0.06] text-white border border-white/8 hover:bg-white/10'
+                      }`}
                     >
                       <span className="text-sm">{flag}</span>
                       <span className="truncate">{native}</span>
@@ -371,38 +378,34 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           </div>
 
           {/* ── Group A — Preferences ──────────────────────────────── */}
-          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Preferences</p>
-          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-2 ml-1">Preferences</p>
+          <div className="rounded-2xl overflow-hidden mb-4 border border-white/12 bg-[#1E293B]">
             {([
               { id: 'notifications', label: 'Notifications', subtitle: 'Alerts, radius, quiet hours', icon: <Bell size={16} /> },
               { id: 'mapDisplay',    label: t('mapDisplay'),  subtitle: t('mapDisplayDesc'),           icon: <MapPinned size={16} /> },
               { id: 'account',       label: 'Account',       subtitle: userProfile?.display_name ?? 'Name, email, password', icon: <User size={16} /> },
-            ] as { id: Section; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
+            ] as { id: SectionId; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
               <button
                 key={id}
                 onClick={() => setSection(id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
-                style={{ borderColor: 'var(--border)' }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
               >
-                <span style={{ color: 'var(--accent)' }}>{icon}</span>
+                <span className="text-[#F5C341]">{icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                  <p className="text-sm font-medium text-white">{label}</p>
+                  <p className="text-xs mt-0.5 truncate text-[#64748B]">{subtitle}</p>
                 </div>
-                <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <ChevronRight size={15} className="text-[#64748B] shrink-0" />
               </button>
             ))}
           </div>
 
           {/* ── Restart onboarding (disabled — coming soon) ──────── */}
-          <div
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl mb-4 opacity-40 cursor-not-allowed"
-            style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
-          >
+          <div className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl mb-4 opacity-40 cursor-not-allowed border border-white/12 bg-[#1E293B]">
             <span className="text-base">🎓</span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Relancer le tutoriel</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Bientôt disponible</p>
+              <p className="text-sm font-medium text-white">Relancer le tutoriel</p>
+              <p className="text-xs mt-0.5 text-[#64748B]">Bientôt disponible</p>
             </div>
           </div>
 
@@ -411,24 +414,22 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
             <div className="mb-4">
               <button
                 onClick={() => setMapStyleOpen(!mapStyleOpen)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition active:opacity-60"
-                style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition active:opacity-60 border border-white/12 bg-[#1E293B]"
               >
                 <span className="text-base">🗺️</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Map style</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-sm font-medium text-white">Map style</p>
+                  <p className="text-xs mt-0.5 text-[#64748B]">
                     {mapStyle === 'custom' ? 'Breveil' : mapStyle === 'streets' ? 'Streets' : mapStyle === 'light' ? 'Light' : 'Dark'}
                   </p>
                 </div>
                 <ChevronRight
                   size={15}
-                  className={`transition-transform duration-200 ${mapStyleOpen ? 'rotate-90' : ''}`}
-                  style={{ color: 'var(--text-muted)' }}
+                  className={`text-[#64748B] transition-transform duration-200 ${mapStyleOpen ? 'rotate-90' : ''}`}
                 />
               </button>
               {mapStyleOpen && (
-                <div className="rounded-2xl overflow-hidden mt-1.5" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+                <div className="rounded-2xl overflow-hidden mt-1.5 border border-white/12 bg-[#1E293B]">
                   {([
                     { id: 'custom'  as MapStyle, label: 'Breveil',  emoji: '✦',  sub: 'Custom style' },
                     { id: 'streets' as MapStyle, label: 'Streets',  emoji: '🗺️', sub: 'Standard' },
@@ -440,16 +441,15 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                       <button
                         key={id}
                         onClick={() => { onMapStyleChange(id); setMapStyleOpen(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
-                        style={{ borderColor: 'var(--border)' }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
                       >
                         <span className="text-base">{emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>
+                          <p className="text-sm font-medium text-white">{label}</p>
+                          <p className="text-xs mt-0.5 text-[#64748B]">{sub}</p>
                         </div>
                         {active && (
-                          <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>✓</span>
+                          <span className="text-sm font-semibold text-[#F5C341]">✓</span>
                         )}
                       </button>
                     );
@@ -460,8 +460,8 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           )}
 
           {/* ── Group B — Help & Information ──────────────────────── */}
-          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Help & Information</p>
-          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-2 ml-1">Help & Information</p>
+          <div className="rounded-2xl overflow-hidden mb-4 border border-white/12 bg-[#1E293B]">
             {([
               { label: 'User Guide',          subtitle: 'How to use Breveil',          icon: <BookOpen size={16} />,   href: '/guide.html' },
               { label: 'FAQ',                  subtitle: 'Frequently asked questions', icon: <HelpCircle size={16} />, href: '/faq.html' },
@@ -470,74 +470,70 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               <button
                 key={label}
                 onClick={() => window.open(href, '_blank')}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
-                style={{ borderColor: 'var(--border)' }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
               >
-                <span style={{ color: 'var(--accent)' }}>{icon}</span>
+                <span className="text-[#F5C341]">{icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                  <p className="text-sm font-medium text-white">{label}</p>
+                  <p className="text-xs mt-0.5 truncate text-[#64748B]">{subtitle}</p>
                 </div>
-                <ExternalLink size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <ExternalLink size={13} className="text-[#64748B] shrink-0" />
               </button>
             ))}
           </div>
 
           {/* ── Group C — Subscription ────────────────────────────── */}
-          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Subscription</p>
-          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-2 ml-1">Subscription</p>
+          <div className="rounded-2xl overflow-hidden mb-4 border border-white/12 bg-[#1E293B]">
             <button
               onClick={() => setSection('billing')}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-60"
-              style={{ borderColor: 'var(--border)' }}
             >
-              <span style={{ color: 'var(--accent)' }}><CreditCard size={16} /></span>
+              <span className="text-[#F5C341]"><CreditCard size={16} /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Subscription</p>
-                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>Free plan · Breveil Pro coming soon</p>
+                <p className="text-sm font-medium text-white">Subscription</p>
+                <p className="text-xs mt-0.5 truncate text-[#64748B]">Free plan · Breveil Pro coming soon</p>
               </div>
-              <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <ChevronRight size={15} className="text-[#64748B] shrink-0" />
             </button>
           </div>
 
           {/* ── Group D — Privacy & Security ──────────────────────── */}
-          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Privacy & Security</p>
-          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-2 ml-1">Privacy & Security</p>
+          <div className="rounded-2xl overflow-hidden mb-4 border border-white/12 bg-[#1E293B]">
             {([
               { id: 'privacy',  label: 'Privacy & Data', subtitle: 'Analytics, GDPR, delete account', icon: <Database size={16} /> },
               { id: 'security', label: 'Security',       subtitle: '2FA, sessions, sign out',         icon: <Shield size={16} /> },
               { id: 'legal',    label: 'Legal',           subtitle: 'Privacy policy, ToS, GDPR',       icon: <FileText size={16} /> },
-            ] as { id: Section; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
+            ] as { id: SectionId; label: string; subtitle: string; icon: React.ReactNode }[]).map(({ id, label, subtitle, icon }) => (
               <button
                 key={id}
                 onClick={() => setSection(id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 text-left transition active:opacity-60"
-                style={{ borderColor: 'var(--border)' }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-b-0 border-white/8 text-left transition active:opacity-60"
               >
-                <span style={{ color: 'var(--accent)' }}>{icon}</span>
+                <span className="text-[#F5C341]">{icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                  <p className="text-sm font-medium text-white">{label}</p>
+                  <p className="text-xs mt-0.5 truncate text-[#64748B]">{subtitle}</p>
                 </div>
-                <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <ChevronRight size={15} className="text-[#64748B] shrink-0" />
               </button>
             ))}
           </div>
 
           {/* ── Group E — Admin ───────────────────────────────────── */}
-          <p className="text-[0.6rem] font-black uppercase tracking-widest mb-2 ml-1" style={{ color: 'var(--text-muted)' }}>Admin</p>
-          <div className="rounded-2xl overflow-hidden mb-3" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-2 ml-1">Admin</p>
+          <div className="rounded-2xl overflow-hidden mb-3 border border-white/12 bg-[#1E293B]">
             <button
               onClick={() => setSection('admin')}
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:opacity-60"
-              style={{ borderColor: 'var(--border)' }}
             >
-              <span style={{ color: 'var(--accent)' }}><LayoutDashboard size={16} /></span>
+              <span className="text-[#F5C341]"><LayoutDashboard size={16} /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Admin — Tower Control</p>
-                <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>Moderation & parameters</p>
+                <p className="text-sm font-medium text-white">Admin — Tower Control</p>
+                <p className="text-xs mt-0.5 truncate text-[#64748B]">Moderation & parameters</p>
               </div>
-              <ChevronRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <ChevronRight size={15} className="text-[#64748B] shrink-0" />
             </button>
           </div>
 
@@ -552,10 +548,9 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 toast.success('Onboarding reset — rechargement...');
                 setTimeout(() => { window.location.href = '/map'; }, 1000);
               }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl mt-2 mb-1 transition active:opacity-60"
-              style={{ border: '1px solid rgba(249,115,22,0.35)', backgroundColor: 'rgba(249,115,22,0.07)' }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl mt-2 mb-1 transition active:opacity-60 border border-orange-500/35 bg-orange-500/[0.07]"
             >
-              <span className="text-sm font-bold" style={{ color: '#f97316' }}>🔧 Reset Onboarding (Admin)</span>
+              <span className="text-sm font-semibold text-orange-500">🔧 Reset Onboarding (Admin)</span>
             </button>
           )}
 
@@ -565,12 +560,11 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               await supabase.auth.signOut({ scope: 'global' });
               router.replace('/login');
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl mt-2 mb-1 transition active:opacity-60"
-            style={{ border: '1px solid rgba(239,68,68,0.20)', backgroundColor: 'rgba(239,68,68,0.05)' }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl mt-2 mb-1 transition active:opacity-60 border border-[#EF4444]/20 bg-[#EF4444]/[0.05]"
           >
-            <span className="text-sm font-bold" style={{ color: '#ef4444' }}>Sign out</span>
+            <span className="text-sm font-semibold text-[#EF4444]">Sign out</span>
           </button>
-          <p className="text-center text-[0.6rem] pb-2" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center text-[11px] pb-2 text-[#64748B]">
             Breveil v0.1.0-beta
           </p>
 
@@ -613,43 +607,43 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {/* ── Subscription & Billing ───────────────────────────────── */}
           <Section title="Current Plan" icon={<CreditCard size={13} />}>
             {billingLoading ? (
-              <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>Loading…</div>
+              <div className="px-4 py-6 text-center text-xs text-[#64748B]">Loading…</div>
             ) : (
               <>
                 {/* Plan status */}
-                <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="px-4 py-4 border-b border-white/8">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       {subscription?.plan === 'pro' || subscription?.plan === 'pro_annual'
-                        ? <Crown size={14} style={{ color: '#f59e0b' }} />
-                        : <CheckCircle2 size={14} style={{ color: '#10b981' }} />
+                        ? <Crown size={14} className="text-[#F5C341]" />
+                        : <CheckCircle2 size={14} className="text-[#34D399]" />
                       }
-                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                      <p className="text-sm font-semibold text-white">
                         {subscription?.plan === 'pro' ? 'Breveil Pro'
                           : subscription?.plan === 'pro_annual' ? 'Breveil Pro Annual'
                           : 'Free'}
                       </p>
                     </div>
                     <span
-                      className="text-[0.6rem] font-black px-2 py-0.5 rounded-full"
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                       style={
                         subscription?.status === 'active' || !subscription
-                          ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
+                          ? { backgroundColor: 'rgba(52,211,153,0.15)', color: '#34D399' }
                           : subscription.status === 'past_due'
-                          ? { backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }
-                          : { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' }
+                          ? { backgroundColor: 'rgba(251,191,36,0.15)', color: '#FBBF24' }
+                          : { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748B' }
                       }
                     >
                       {subscription?.status ?? 'Active'}
                     </span>
                   </div>
                   {subscription?.current_period_end ? (
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs text-[#64748B]">
                       {subscription.cancel_at_period_end ? 'Cancels' : 'Renews'} on{' '}
                       {new Date(subscription.current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   ) : (
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs text-[#64748B]">
                       All core features included at no cost.
                     </p>
                   )}
@@ -657,7 +651,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
 
                 {/* Manage subscription via Stripe portal */}
                 {subscription && subscription.plan !== 'free' && (
-                  <div className="px-4 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <div className="px-4 py-3.5 border-b border-white/8">
                     <button
                       onClick={async () => {
                         try {
@@ -671,8 +665,7 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                           window.location.href = url;
                         } catch { toast.error(t('billingPortalFailed')); }
                       }}
-                      className="w-full text-center text-xs font-semibold py-2 rounded-xl flex items-center justify-center gap-1.5 transition hover:opacity-80"
-                      style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                      className="w-full text-center text-xs font-medium py-2 rounded-xl flex items-center justify-center gap-1.5 transition hover:opacity-80 bg-white/[0.08] text-white"
                     >
                       <ExternalLink size={12} /> Manage subscription
                     </button>
@@ -687,8 +680,8 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
             <Section title="Upgrade" icon={<Crown size={13} />}>
               <div className="px-4 py-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Crown size={15} style={{ color: '#f59e0b' }} />
-                  <p className="text-sm font-black" style={{ color: '#f59e0b' }}>Breveil Pro</p>
+                  <Crown size={15} className="text-[#F5C341]" />
+                  <p className="text-sm font-semibold text-[#F5C341]">Breveil Pro</p>
                 </div>
                 <ul className="flex flex-col gap-1.5 mb-4">
                   {[
@@ -698,8 +691,8 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                     'Advanced trip analytics',
                     'Priority alert notifications',
                   ].map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                      <span style={{ color: '#f59e0b' }}>✦</span> {f}
+                    <li key={f} className="flex items-center gap-2 text-xs text-[#94A3B8]">
+                      <span className="text-[#F5C341]">✦</span> {f}
                     </li>
                   ))}
                 </ul>
@@ -707,16 +700,14 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                   <button
                     onClick={() => handleUpgrade('pro')}
                     disabled={upgrading}
-                    className="w-full py-2.5 rounded-xl text-xs font-black transition-opacity disabled:opacity-50"
-                    style={{ backgroundColor: '#f59e0b', color: '#000' }}
+                    className="w-full py-2.5 rounded-[32px] text-xs font-semibold transition-opacity disabled:opacity-50 bg-[#F5C341] text-[#0F172A]"
                   >
                     {upgrading ? 'Redirecting…' : 'Upgrade — €4.99/mo'}
                   </button>
                   <button
                     onClick={() => handleUpgrade('pro_annual')}
                     disabled={upgrading}
-                    className="w-full py-2 rounded-xl text-xs font-bold transition-opacity disabled:opacity-50"
-                    style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}
+                    className="w-full py-2 rounded-[32px] text-xs font-medium transition-opacity disabled:opacity-50 bg-[#F5C341]/15 text-[#F5C341]"
                   >
                     Annual — €39.99/yr (save 33%)
                   </button>
@@ -728,28 +719,28 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {/* Invoices */}
           <Section title="Invoices & Receipts" icon={<Receipt size={13} />}>
             {billingLoading ? (
-              <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>Loading…</div>
+              <div className="px-4 py-6 text-center text-xs text-[#64748B]">Loading…</div>
             ) : invoices.length === 0 ? (
               <div className="px-4 py-6 text-center">
-                <Clock size={22} className="mx-auto mb-2 opacity-30" style={{ color: 'var(--text-muted)' }} />
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No invoices yet.</p>
-                <p className="text-[0.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <Clock size={22} className="mx-auto mb-2 opacity-30 text-[#64748B]" />
+                <p className="text-xs text-[#64748B]">No invoices yet.</p>
+                <p className="text-[11px] mt-0.5 text-[#64748B]">
                   Invoices will appear here once you subscribe to Breveil Pro.
                 </p>
               </div>
             ) : (
               invoices.map((inv) => (
-                <div key={inv.id} className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div key={inv.id} className="px-4 py-3.5 flex items-center justify-between border-b border-white/8">
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-xs font-medium text-white">
                       {inv.description ?? 'Breveil subscription'}
                     </p>
-                    <p className="text-[0.65rem]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] text-[#64748B]">
                       {new Date(inv.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-xs font-semibold text-white">
                       {(inv.amount_cents / 100).toFixed(2)} {inv.currency.toUpperCase()}
                     </span>
                     {inv.invoice_pdf_url ? (
@@ -757,18 +748,17 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                         href={inv.invoice_pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[0.65rem] font-semibold"
-                        style={{ color: 'var(--accent)' }}
+                        className="text-[11px] font-medium text-[#F5C341]"
                       >
                         PDF
                       </a>
                     ) : (
                       <span
-                        className="text-[0.6rem] font-black px-1.5 py-0.5 rounded-full"
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                         style={
                           inv.status === 'paid'
-                            ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
-                            : { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748b' }
+                            ? { backgroundColor: 'rgba(52,211,153,0.15)', color: '#34D399' }
+                            : { backgroundColor: 'rgba(100,116,139,0.12)', color: '#64748B' }
                         }
                       >
                         {inv.status}
@@ -803,14 +793,14 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               disabled
               chevron={false}
             />
-            <div className="px-4 py-3.5 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            <div className="px-4 py-3.5 border-b last:border-b-0 border-white/8">
+              <p className="text-sm font-medium text-white mb-1">
                 Your GDPR rights
               </p>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs leading-relaxed text-[#64748B]">
                 You have the right to access, rectify, and erase your personal data. You may also
                 object to or restrict its processing, and request data portability. To exercise
-                these rights, contact us at <span style={{ color: 'var(--accent)' }}>brumeapp@pm.me</span>.
+                these rights, contact us at <span className="text-[#F5C341]">brumeapp@pm.me</span>.
               </p>
             </div>
             <Row
@@ -831,31 +821,31 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               label="Privacy Policy"
               onPress={() => window.open('/privacy', '_blank')}
               chevron={false}
-              value={<ExternalLink size={12} style={{ color: 'var(--text-muted)' }} /> as unknown as string}
+              value={<ExternalLink size={12} className="text-[#64748B]" />}
             />
             <Row
               label="Terms of Service"
               onPress={() => window.open('/terms', '_blank')}
               chevron={false}
-              value={<ExternalLink size={12} style={{ color: 'var(--text-muted)' }} /> as unknown as string}
+              value={<ExternalLink size={12} className="text-[#64748B]" />}
             />
             <Row
               label="Cookie Policy"
               onPress={() => window.open('/cookies', '_blank')}
               chevron={false}
-              value={<ExternalLink size={12} style={{ color: 'var(--text-muted)' }} /> as unknown as string}
+              value={<ExternalLink size={12} className="text-[#64748B]" />}
             />
-            <div className="px-4 py-3.5" style={{ borderTop: '1px solid var(--border)' }}>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="px-4 py-3.5 border-t border-white/8">
+              <p className="text-xs text-[#64748B]">
                 Breveil complies with the EU General Data Protection Regulation (GDPR / RGPD) and
                 the French Loi Informatique et Libertés. Data is stored in the EU. No data is sold
                 to third parties.
               </p>
-              <p className="text-[0.6rem] mt-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] mt-2 leading-relaxed text-[#64748B]">
                 Breveil v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France
               </p>
-              <p className="text-[0.6rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                <a href="mailto:brumeapp@pm.me" style={{ color: 'var(--accent)' }}>brumeapp@pm.me</a>
+              <p className="text-[11px] mt-0.5 text-[#64748B]">
+                <a href="mailto:brumeapp@pm.me" className="text-[#F5C341]">brumeapp@pm.me</a>
               </p>
             </div>
           </Section>
@@ -866,33 +856,25 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {/* ── Map Display ─────────────────────────────────────────── */}
           <Section title={t('mapDisplay')} icon={<MapPinned size={13} />}>
             {/* Urban context chips */}
-            <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
-              <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('locationType')}</p>
+            <div className="px-4 py-3.5 border-b border-white/8">
+              <p className="text-xs font-semibold mb-2 text-white">{t('locationType')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {(['all', ...Object.keys(URBAN_CONTEXTS)] as const).map((key) => {
                   const isAll = key === 'all';
                   const active = mapFilters.urban === key;
                   const emoji = isAll ? null : URBAN_CONTEXTS[key as keyof typeof URBAN_CONTEXTS]?.emoji;
                   return (
-                    <button
-                      key={key}
-                      onClick={() => setMapFilters({ ...mapFilters, urban: key })}
-                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition"
-                      style={active
-                        ? { backgroundColor: 'var(--accent)', color: '#fff', border: '1.5px solid var(--accent)' }
-                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                      }
-                    >
+                    <Chip key={key} active={active} onClick={() => setMapFilters({ ...mapFilters, urban: key })}>
                       {emoji ? `${emoji} ` : ''}{isAll ? t('any') : (URBAN_CONTEXTS[key as keyof typeof URBAN_CONTEXTS]?.label ?? key)}
-                    </button>
+                    </Chip>
                   );
                 })}
               </div>
             </div>
 
             {/* Time of day chips */}
-            <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
-              <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('timeOfDay')}</p>
+            <div className="px-4 py-3.5 border-b border-white/8">
+              <p className="text-xs font-semibold mb-2 text-white">{t('timeOfDay')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {([
                   { id: 'all', label: t('anyTime') },
@@ -903,17 +885,9 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
                 ] as const).map(({ id, label }) => {
                   const active = mapFilters.timeOfDay === id;
                   return (
-                    <button
-                      key={id}
-                      onClick={() => setMapFilters({ ...mapFilters, timeOfDay: id as typeof mapFilters.timeOfDay })}
-                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition"
-                      style={active
-                        ? { backgroundColor: 'var(--accent)', color: '#fff', border: '1.5px solid var(--accent)' }
-                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                      }
-                    >
+                    <Chip key={id} active={active} onClick={() => setMapFilters({ ...mapFilters, timeOfDay: id as typeof mapFilters.timeOfDay })}>
                       {label}
-                    </button>
+                    </Chip>
                   );
                 })}
               </div>
@@ -934,22 +908,17 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
           {/* ── Notifications ────────────────────────────────────────── */}
           <Section title="Notifications" icon={<Bell size={13} />}>
             {/* Proximity radius */}
-            <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
-              <p className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Alert radius</p>
+            <div className="px-4 py-3.5 border-b border-white/8">
+              <p className="text-sm font-medium mb-2 text-white">Alert radius</p>
               <div className="flex flex-wrap gap-1.5">
                 {RADIUS_OPTIONS.map((o) => (
-                  <button
+                  <Chip
                     key={o.value}
+                    active={(notifSettings?.proximity_radius_m ?? 1000) === o.value}
                     onClick={() => patchNotif({ proximity_radius_m: o.value })}
-                    className="px-3 py-1 rounded-full text-xs font-bold transition"
-                    style={
-                      (notifSettings?.proximity_radius_m ?? 1000) === o.value
-                        ? { backgroundColor: 'var(--accent)', color: '#fff' }
-                        : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                    }
                   >
                     {o.label}
-                  </button>
+                  </Chip>
                 ))}
               </div>
             </div>
@@ -984,25 +953,23 @@ export default function SettingsSheet({ onClose, mapStyle, onMapStyleChange }: P
               onChange={(v) => patchNotif({ quiet_hours_enabled: v })}
             />
             {(notifSettings?.quiet_hours_enabled) && (
-              <div className="px-4 py-3.5 flex items-center gap-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="px-4 py-3.5 flex items-center gap-4 border-t border-white/8">
                 <div className="flex-1">
-                  <p className="text-[0.65rem] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-placeholder)' }}>From</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-1.5">From</p>
                   <input
                     type="time"
                     value={notifSettings?.quiet_start ?? '22:00'}
                     onChange={(e) => patchNotif({ quiet_start: e.target.value })}
-                    className="w-full rounded-xl px-3 py-2 text-sm font-bold outline-none"
-                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                    className="w-full rounded-xl px-3 py-2 text-sm font-medium outline-none bg-white/[0.08] border border-white/12 text-white focus:border-[#3BB4C1] transition"
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[0.65rem] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-placeholder)' }}>To</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B] mb-1.5">To</p>
                   <input
                     type="time"
                     value={notifSettings?.quiet_end ?? '07:00'}
                     onChange={(e) => patchNotif({ quiet_end: e.target.value })}
-                    className="w-full rounded-xl px-3 py-2 text-sm font-bold outline-none"
-                    style={{ backgroundColor: 'var(--bg-secondary)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+                    className="w-full rounded-xl px-3 py-2 text-sm font-medium outline-none bg-white/[0.08] border border-white/12 text-white focus:border-[#3BB4C1] transition"
                   />
                 </div>
               </div>
