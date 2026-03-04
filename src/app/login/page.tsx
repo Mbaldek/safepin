@@ -25,8 +25,8 @@ export default function LoginPage() {
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'An error occurred');
       setLoading(false);
     }
   };
@@ -56,8 +56,8 @@ export default function LoginPage() {
         if (error) throw error;
         router.push('/map');
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

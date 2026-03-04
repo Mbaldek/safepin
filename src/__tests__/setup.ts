@@ -1,6 +1,7 @@
 // src/__tests__/setup.ts — Test setup: mock Supabase, Mapbox, next-intl
 
 import '@testing-library/jest-dom/vitest';
+import React from 'react';
 import { vi } from 'vitest';
 
 // Mock Supabase client
@@ -53,16 +54,16 @@ vi.mock('framer-motion', async () => {
     motion: new Proxy({}, {
       get: (_target, prop: string) => {
         // Return a forwardRef component for any motion.xxx element
-        const { forwardRef, createElement } = require('react');
-        return forwardRef((props: Record<string, unknown>, ref: unknown) => {
+        const MotionComponent = React.forwardRef(function MotionProxy(props: Record<string, unknown>, ref: unknown) {
           const filteredProps: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(props)) {
             if (!['initial', 'animate', 'exit', 'transition', 'whileHover', 'whileTap', 'whileFocus', 'whileInView', 'layout', 'layoutId', 'variants'].includes(key)) {
               filteredProps[key] = value;
             }
           }
-          return createElement(prop, { ...filteredProps, ref });
+          return React.createElement(prop, { ...filteredProps, ref });
         });
+        return MotionComponent;
       },
     }),
   };

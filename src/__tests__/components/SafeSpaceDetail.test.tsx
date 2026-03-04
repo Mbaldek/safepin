@@ -167,7 +167,7 @@ describe('SafeSpaceDetailSheet', () => {
   it('shows the "Get Directions" button', () => {
     const space = createMockSpace();
     render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Get Directions')).toBeInTheDocument();
+    expect(screen.getByText('Plan Route')).toBeInTheDocument();
   });
 
   it('has a dialog with proper aria attributes', () => {

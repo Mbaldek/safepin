@@ -137,6 +137,7 @@ describe('updateStreak', () => {
       return {};
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return { from: fromMock } as any;
   }
 

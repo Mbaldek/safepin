@@ -165,7 +165,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
     <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 80 }}>
       <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Qu'est-ce qui compte pour toi ?</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Qu&apos;est-ce qui compte pour toi ?</h1>
         <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Choisis ce qui te parle</p>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
@@ -281,7 +281,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
           </div>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Bienvenue{firstName ? `, ${firstName}` : ''} !</h1>
-        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>Ton parcours sécurité commence aujourd'hui.</p>
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>Ton parcours sécurité commence aujourd&apos;hui.</p>
         <div style={{ width: '100%', background: 'rgba(52,211,153,0.15)', borderRadius: 12, padding: 16, border: '1px solid #34D399', display: 'flex', alignItems: 'center', gap: 12 }}>
           <Check size={20} color="#34D399" />
           <span style={{ fontSize: 14, color: '#34D399' }}>Compte créé avec succès !</span>
