@@ -668,25 +668,44 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         onContextMenu={(e) => e.preventDefault()}
         data-tour="sos-button"
         disabled={phase !== 'idle'}
-        className={`absolute bottom-6 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-2xl select-none touch-none ${
-          phase === 'idle' ? 'animate-sos-glow' : 'opacity-50'
-        }`}
-        style={{ backgroundColor: DANGER_RED, color: 'white' }}
         aria-label="Emergency alert — hold 3 seconds to activate"
+        className="select-none touch-none"
+        style={{
+          position: 'fixed',
+          bottom: 80,
+          right: 20,
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #EF4444, #DC2626)',
+          border: '2px solid rgba(239,68,68,0.3)',
+          cursor: 'pointer',
+          boxShadow: '0 4px 20px rgba(239,68,68,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 13,
+          fontWeight: 800,
+          color: '#fff',
+          letterSpacing: '0.05em',
+          zIndex: 50,
+          opacity: phase === 'idle' ? 1 : 0.5,
+          transition: 'transform 0.1s ease, opacity 0.15s ease',
+        }}
       >
         {fabHoldProgress > 0 && (
-          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 56 56" fill="none">
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 52 52" fill="none">
             <circle
-              cx="28" cy="28" r="26"
+              cx="26" cy="26" r="24"
               stroke="white" strokeWidth="1.5"
-              strokeDasharray={`${fabHoldProgress * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
+              strokeDasharray={`${fabHoldProgress * 150.8} 150.8`}
               strokeLinecap="round"
-              transform="rotate(-90 28 28)"
+              transform="rotate(-90 26 26)"
               opacity="0.35"
             />
           </svg>
         )}
-        🆘
+        SOS
       </button>
     </>
   );

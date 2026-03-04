@@ -16,7 +16,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Plus } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
@@ -778,7 +778,7 @@ export default function MapPage() {
         )}
 
         {/* Contextual rolling banner — map tab only */}
-        {activeTab === 'map' && <ContextBanner onIncidentTap={() => setShowCityContext(true)} />}
+        {activeTab === 'map' && <ContextBanner onIncidentTap={() => setShowIncidentsList(true)} />}
 
         {/* Session briefing card — shown once per session on map tab */}
         <AnimatePresence>
@@ -832,21 +832,33 @@ export default function MapPage() {
               )}
             </button>
             {/* Report button — stacked above SOS on the right */}
-            <button
+            <motion.button
               onClick={() => {
                 const loc = useStore.getState().userLocation;
                 if (loc) setNewPinCoords({ lat: loc.lat, lng: loc.lng });
                 setActiveSheet('report');
               }}
+              whileTap={{ scale: 0.93 }}
               data-tour="report-button"
-              className="absolute bottom-22 right-4 w-14 h-14 rounded-full text-white text-2xl flex items-center justify-center z-50 hover:scale-105 active:scale-95 transition"
               style={{
-                backgroundColor: '#3b82f6',
-                boxShadow: '0 4px 20px rgba(59, 130, 246, 0.35)',
+                position: 'fixed',
+                bottom: 140,
+                right: 20,
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3BB4C1, #0E7490)',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(59,180,193,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
               }}
             >
-              +
-            </button>
+              <Plus size={22} color="#fff" strokeWidth={2} />
+            </motion.button>
           </>
         )}
 
