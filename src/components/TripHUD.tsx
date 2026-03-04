@@ -9,6 +9,18 @@ import { motion } from 'framer-motion';
 import { Radio, Shield, Check, AlertTriangle } from 'lucide-react';
 import { useStore, TripSession } from '@/stores/useStore';
 import { geocodeReverse } from '@/lib/geocode';
+import { useTheme } from '@/stores/useTheme';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', textPrimary: '#FFFFFF', textSecondary: '#94A3B8',
+    border: 'rgba(255,255,255,0.08)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', textPrimary: '#0F172A', textSecondary: '#475569',
+    border: 'rgba(15,23,42,0.06)',
+  };
+}
+const FIXED = { accentCyan: '#3BB4C1' };
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return '0:00';
@@ -28,6 +40,8 @@ type Props = {
 };
 
 export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { isSharingLocation, setIsSharingLocation, userLocation } = useStore();
   const [now, setNow] = useState(Date.now());
   const [streetName, setStreetName] = useState<string | null>(null);
@@ -69,8 +83,8 @@ export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       className="absolute bottom-20 left-3 right-3 z-100 rounded-2xl overflow-hidden"
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--bg-primary) 92%, transparent)',
-        border: '1px solid var(--border)',
+        backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(248,250,252,0.92)',
+        border: `1px solid ${C.border}`,
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
@@ -91,34 +105,34 @@ export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm">🛡️</span>
-            <span className="text-xs font-black truncate" style={{ color: 'var(--text-primary)' }}>
+            <span className="text-xs font-black truncate" style={{ color: C.textPrimary }}>
               En route to {trip.destination.label}
             </span>
           </div>
-          <span className="text-xs font-bold shrink-0 ml-2" style={{ color: critical ? '#ef4444' : 'var(--text-muted)' }}>
+          <span className="text-xs font-bold shrink-0 ml-2" style={{ color: critical ? '#ef4444' : C.textSecondary }}>
             ETA {etaStr}
           </span>
         </div>
 
         {/* Current street */}
         {streetName && (
-          <p className="text-[0.6rem] truncate mb-1.5" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[0.6rem] truncate mb-1.5" style={{ color: C.textSecondary }}>
             📍 {streetName}
           </p>
         )}
 
         {/* Progress bar */}
         <div className="flex items-center gap-2 mb-2.5">
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
             <div
               className="h-full rounded-full transition-all duration-1000"
               style={{
                 width: `${progress * 100}%`,
-                backgroundColor: critical ? '#ef4444' : 'var(--accent)',
+                backgroundColor: critical ? '#ef4444' : FIXED.accentCyan,
               }}
             />
           </div>
-          <span className="text-[0.6rem] font-bold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-[0.6rem] font-bold tabular-nums shrink-0" style={{ color: C.textSecondary }}>
             {formatCountdown(remaining)}
           </span>
         </div>
@@ -129,9 +143,9 @@ export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
             onClick={() => setIsSharingLocation(!isSharingLocation)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[0.65rem] font-bold transition active:scale-95"
             style={{
-              backgroundColor: isSharingLocation ? 'rgba(99,102,241,0.12)' : 'var(--bg-card)',
-              color: isSharingLocation ? '#6366f1' : 'var(--text-muted)',
-              border: isSharingLocation ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--border)',
+              backgroundColor: isSharingLocation ? 'rgba(99,102,241,0.12)' : C.card,
+              color: isSharingLocation ? '#6366f1' : C.textSecondary,
+              border: isSharingLocation ? '1px solid rgba(99,102,241,0.3)' : `1px solid ${C.border}`,
             }}
           >
             <Radio size={11} strokeWidth={2.5} />

@@ -5,7 +5,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { toast } from 'sonner';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', textPrimary: '#FFFFFF', textSecondary: '#94A3B8',
+    border: 'rgba(255,255,255,0.08)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', textPrimary: '#0F172A', textSecondary: '#475569',
+    border: 'rgba(15,23,42,0.06)',
+  };
+}
+const FIXED = { accentCyan: '#3BB4C1', success: '#34D399', successSoft: 'rgba(52,211,153,0.12)', successBorder: 'rgba(52,211,153,0.3)' };
 import { motion } from 'framer-motion';
 import { X, Copy, Users, Clock, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -22,6 +34,8 @@ function generateCode() {
 }
 
 export default function WalkWithMePanel({ userId, destination, onClose }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { userProfile, userLocation } = useStore();
   const t = useTranslations('walkWithMe');
   const tEmergency = useTranslations('emergency');
@@ -137,20 +151,21 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 40 }}
-      className="absolute inset-x-0 bottom-16 z-[180] mx-3"
+      className="absolute inset-x-0 bottom-16 mx-3"
+      style={{ zIndex: 180 }}
     >
       <div
         className="rounded-2xl p-4 shadow-xl"
-        style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users size={18} style={{ color: 'var(--accent)' }} />
-            <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{t('title')}</span>
+            <Users size={18} style={{ color: FIXED.accentCyan }} />
+            <span className="text-sm font-black" style={{ color: C.textPrimary }}>{t('title')}</span>
           </div>
           <button onClick={onClose} className="p-1 rounded-full">
-            <X size={16} style={{ color: 'var(--text-muted)' }} />
+            <X size={16} style={{ color: C.textSecondary }} />
           </button>
         </div>
 
@@ -161,15 +176,15 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               onClick={createSession}
               disabled={loading}
               className="w-full py-3 rounded-xl text-sm font-bold text-white transition disabled:opacity-50"
-              style={{ backgroundColor: 'var(--accent)' }}
+              style={{ backgroundColor: FIXED.accentCyan }}
             >
               {loading ? t('creating') : t('startSession')}
             </button>
 
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border)' }} />
-              <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('orJoin')}</span>
-              <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border)' }} />
+              <div className="flex-1 h-px" style={{ backgroundColor: C.border }} />
+              <span className="text-xs font-bold" style={{ color: C.textSecondary }}>{t('orJoin')}</span>
+              <div className="flex-1 h-px" style={{ backgroundColor: C.border }} />
             </div>
 
             <div className="flex gap-2">
@@ -179,13 +194,13 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 placeholder={t('enterCode')}
                 maxLength={6}
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm font-bold text-center tracking-widest"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, color: C.textPrimary }}
               />
               <button
                 onClick={joinSession}
                 disabled={loading || !joinCode.trim()}
                 className="px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-                style={{ backgroundColor: 'var(--accent)' }}
+                style={{ backgroundColor: FIXED.accentCyan }}
               >
                 {t('join')}
               </button>
@@ -196,19 +211,19 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
         {/* Waiting for companion */}
         {session?.status === 'waiting' && (
           <div className="text-center space-y-3">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('shareCode')}</p>
+            <p className="text-xs" style={{ color: C.textSecondary }}>{t('shareCode')}</p>
             <div className="flex items-center justify-center gap-2">
               <span
                 className="text-2xl font-black tracking-[0.3em] px-4 py-2 rounded-xl"
-                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+                style={{ backgroundColor: C.card, color: FIXED.accentCyan, border: `1px solid ${C.border}` }}
               >
                 {session.invite_code}
               </span>
-              <button onClick={copyCode} className="p-2 rounded-xl" style={{ backgroundColor: 'var(--bg-card)' }}>
-                <Copy size={16} style={{ color: 'var(--text-muted)' }} />
+              <button onClick={copyCode} className="p-2 rounded-xl" style={{ backgroundColor: C.card }}>
+                <Copy size={16} style={{ color: C.textSecondary }} />
               </button>
             </div>
-            <div className="animate-pulse text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
+            <div className="animate-pulse text-xs font-bold" style={{ color: C.textSecondary }}>
               {t('waitingCompanion')}
             </div>
           </div>
@@ -220,20 +235,20 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             {/* Timer + status */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shield size={16} style={{ color: '#10b981' }} />
-                <span className="text-xs font-bold" style={{ color: '#10b981' }}>{t('walkTogether')}</span>
+                <Shield size={16} style={{ color: FIXED.success }} />
+                <span className="text-xs font-bold" style={{ color: FIXED.success }}>{t('walkTogether')}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-                <span className="text-sm font-black tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                <Clock size={14} style={{ color: C.textSecondary }} />
+                <span className="text-sm font-black tabular-nums" style={{ color: C.textPrimary }}>
                   {formatTime(elapsed)}
                 </span>
               </div>
             </div>
 
             {destination && (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {t('destination')} <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{destination}</span>
+              <p className="text-xs" style={{ color: C.textSecondary }}>
+                {t('destination')} <span className="font-bold" style={{ color: C.textPrimary }}>{destination}</span>
               </p>
             )}
 
@@ -247,7 +262,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 <button
                   onClick={dismissCheckin}
                   className="px-3 py-1 rounded-lg text-xs font-bold text-white"
-                  style={{ backgroundColor: '#10b981' }}
+                  style={{ backgroundColor: FIXED.success }}
                 >
                   {tEmergency('imSafe')}
                 </button>
@@ -258,7 +273,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             <button
               onClick={endSession}
               className="w-full py-3 rounded-xl text-sm font-bold transition"
-              style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}
+              style={{ backgroundColor: FIXED.successSoft, color: FIXED.success, border: `1px solid ${FIXED.successBorder}` }}
             >
               {t('endWalk')}
             </button>

@@ -2,1266 +2,458 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { Community, CommunityMessage } from '@/types';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8',
+    border: 'rgba(255,255,255,0.08)', hover: 'rgba(255,255,255,0.05)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569',
+    border: 'rgba(15,23,42,0.06)', hover: 'rgba(15,23,42,0.03)',
+  };
+}
+const FIXED = { accentCyan: '#3BB4C1' };
 import { toast } from 'sonner';
-import { Plus, MessageCircle, ChevronRight } from 'lucide-react';
-import StoriesRow from '@/components/StoriesRow';
-import FriendsView from '@/components/FriendsView';
-import NeighborhoodFeed from '@/components/NeighborhoodFeed';
+import { Plus, Search, Send, ChevronLeft, Users, MessageCircle, Globe } from 'lucide-react';
 
-type View = 'home' | 'list' | 'community-detail' | 'chat' | 'create' | 'messages' | 'neighborhoods';
-type CreateType = 'community' | 'group';
+type Tab = 'messages' | 'groups' | 'communities';
 
-import { timeAgo, springTransition } from '@/lib/utils';
+/* ── Helpers ─────────────────────────────────────────────────── */
 
-const EMOJI_OPTIONS = ['🏘️', '🏙️', '🌳', '🛡️', '🔒', '🌍', '🎯', '💡', '🎭', '⚡', '🌐', '🏃', '🚴', '🌙', '🎪'];
+function timeAgo(d: string) {
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  if (s < 60) return 'now';
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
 
-// ─── Unified Card ─────────────────────────────────────────────────────────────
+/* ── Main Component ──────────────────────────────────────────── */
 
-function ItemCard({
-  item, isMember, isOwner = false,
-  onPrimary, onJoin, onLeave, subGroupCount = 0,
-}: {
-  item: Community;
-  isMember: boolean;
-  isOwner?: boolean;
-  onPrimary: () => void;
-  onJoin?: () => void;
-  onLeave?: () => void;
-  subGroupCount?: number;
-}) {
-  const t = useTranslations('community');
-  const isCommunity = item.community_type === 'community';
-  return (
-    <div
-      className="flex items-center gap-3 p-3 rounded-2xl"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-    >
-      <div
-        className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
-      >
-        {item.avatar_emoji}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-          <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>
-            {item.name}
-          </p>
-          {isCommunity && (
-            <span
-              className="text-[0.5rem] px-1.5 py-0.5 rounded-full font-black uppercase tracking-wide shrink-0"
-              style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}
-            >
-              Community
-            </span>
-          )}
-          {item.is_private && (
-            <span className="text-[0.55rem] shrink-0" style={{ color: 'var(--text-muted)' }}>🔒</span>
-          )}
+export default function CommunityView({ onClose }: { onClose: () => void }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
+  const { userId, userProfile, unreadDmCount } = useStore();
+  const [tab, setTab] = useState<Tab>('messages');
+  const [search, setSearch] = useState('');
+
+  // Data
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [memberships, setMemberships] = useState<Set<string>>(new Set());
+  const [lastMessages, setLastMessages] = useState<Record<string, CommunityMessage>>({});
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
+  // DM state
+  const [dmConvos, setDmConvos] = useState<Array<{
+    id: string; partner_id: string; partner_name: string; partner_avatar: string | null;
+    last_message: string | null; last_message_at: string; is_unread: boolean;
+  }>>([]);
+
+  // Chat state
+  const [chatTarget, setChatTarget] = useState<{ id: string; name: string; type: 'community' | 'dm' } | null>(null);
+  const [messages, setMessages] = useState<CommunityMessage[]>([]);
+  const [msgInput, setMsgInput] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  /* ── Fetch communities & memberships ───────────────────────── */
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const [{ data: items }, { data: members }] = await Promise.all([
+        supabase.from('communities').select('*').is('parent_community_id', null).order('created_at', { ascending: false }),
+        supabase.from('community_members').select('community_id').eq('user_id', userId),
+      ]);
+      if (items) setCommunities(items);
+      if (members) setMemberships(new Set(members.map(m => m.community_id)));
+    })();
+  }, [userId]);
+
+  /* ── Fetch last messages per community ─────────────────────── */
+  useEffect(() => {
+    if (!userId || communities.length === 0) return;
+    (async () => {
+      const ids = communities.map(c => c.id);
+      const { data } = await supabase
+        .from('community_messages')
+        .select('*')
+        .in('community_id', ids)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (!data) return;
+      const last: Record<string, CommunityMessage> = {};
+      const unread: Record<string, number> = {};
+      const cutoff = Date.now() - 86_400_000;
+      for (const m of data) {
+        if (!last[m.community_id]) last[m.community_id] = m;
+        if (new Date(m.created_at).getTime() > cutoff && m.user_id !== userId) {
+          unread[m.community_id] = (unread[m.community_id] || 0) + 1;
+        }
+      }
+      setLastMessages(last);
+      setUnreadCounts(unread);
+    })();
+  }, [userId, communities]);
+
+  /* ── Fetch DM conversations ────────────────────────────────── */
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data: convos } = await supabase
+        .from('dm_conversations')
+        .select('*')
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+        .order('last_message_at', { ascending: false });
+      if (!convos) return;
+      const partnerIds = convos.map(c => c.user1_id === userId ? c.user2_id : c.user1_id);
+      const { data: profiles } = await supabase.from('profiles').select('id,display_name,avatar_url').in('id', partnerIds);
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      setDmConvos(convos.map(c => {
+        const pid = c.user1_id === userId ? c.user2_id : c.user1_id;
+        const p = profileMap.get(pid);
+        const readAt = c.user1_id === userId ? c.user1_last_read_at : c.user2_last_read_at;
+        return {
+          id: c.id, partner_id: pid,
+          partner_name: p?.display_name || 'Utilisateur',
+          partner_avatar: p?.avatar_url || null,
+          last_message: c.last_message || null,
+          last_message_at: c.last_message_at || c.created_at,
+          is_unread: !readAt || new Date(c.last_message_at) > new Date(readAt),
+        };
+      }));
+    })();
+  }, [userId]);
+
+  /* ── Chat messages ─────────────────────────────────────────── */
+  useEffect(() => {
+    if (!chatTarget) return;
+    const table = chatTarget.type === 'dm' ? 'direct_messages' : 'community_messages';
+    const col = chatTarget.type === 'dm' ? 'conversation_id' : 'community_id';
+    (async () => {
+      const { data } = await supabase.from(table).select('*').eq(col, chatTarget.id).order('created_at', { ascending: true }).limit(100);
+      if (data) setMessages(data as CommunityMessage[]);
+    })();
+    const channel = supabase.channel(`chat-${chatTarget.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table, filter: `${col}=eq.${chatTarget.id}` },
+        (payload) => setMessages(prev => [...prev, payload.new as CommunityMessage])
+      ).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [chatTarget]);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  /* ── Send message ──────────────────────────────────────────── */
+  const sendMessage = useCallback(async () => {
+    if (!msgInput.trim() || !chatTarget || !userId) return;
+    const text = msgInput.trim();
+    setMsgInput('');
+    if (chatTarget.type === 'dm') {
+      await supabase.from('direct_messages').insert({ conversation_id: chatTarget.id, sender_id: userId, content: text, content_type: 'text' });
+      await supabase.from('dm_conversations').update({ last_message: text, last_message_sender_id: userId, last_message_at: new Date().toISOString() }).eq('id', chatTarget.id);
+    } else {
+      await supabase.from('community_messages').insert({ community_id: chatTarget.id, user_id: userId, display_name: userProfile?.display_name || null, content: text });
+    }
+  }, [msgInput, chatTarget, userId, userProfile]);
+
+  /* ── Join / Leave ──────────────────────────────────────────── */
+  const handleJoin = async (communityId: string) => {
+    if (!userId) return;
+    const { error } = await supabase.from('community_members').insert({ community_id: communityId, user_id: userId });
+    if (error) { toast.error('Impossible de rejoindre'); return; }
+    setMemberships(prev => new Set([...prev, communityId]));
+    toast.success('Rejoint !');
+  };
+
+  /* ── Filter ────────────────────────────────────────────────── */
+  const q = search.toLowerCase();
+  const myGroups = communities.filter(c => c.community_type === 'group' && memberships.has(c.id) && (!q || c.name.toLowerCase().includes(q)));
+  const myCommunities = communities.filter(c => c.community_type === 'community' && memberships.has(c.id) && (!q || c.name.toLowerCase().includes(q)));
+  const discoverCommunities = communities.filter(c => c.community_type === 'community' && !memberships.has(c.id) && (!q || c.name.toLowerCase().includes(q)));
+  const filteredDMs = dmConvos.filter(d => !q || d.partner_name.toLowerCase().includes(q));
+
+  /* ── Chat View ─────────────────────────────────────────────── */
+  if (chatTarget) {
+    return (
+      <div className="fixed inset-0 z-[200] flex flex-col" style={{ backgroundColor: C.bg }}>
+        {/* Chat header */}
+        <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <button onClick={() => setChatTarget(null)} className="p-1"><ChevronLeft size={22} style={{ color: C.textPrimary }} /></button>
+          <h2 className="font-semibold text-base flex-1" style={{ color: C.textPrimary }}>{chatTarget.name}</h2>
         </div>
-        {item.description && (
-          <p className="text-xs line-clamp-1 mb-0.5" style={{ color: 'var(--text-muted)' }}>
-            {item.description}
-          </p>
-        )}
-        <p className="text-[0.6rem] font-bold" style={{ color: 'var(--text-muted)' }}>
-          {t('members', { count: item.member_count })}
-          {isCommunity && subGroupCount > 0 && (
-            <> · {subGroupCount} {subGroupCount === 1 ? 'group' : 'groups'}</>
-          )}
-        </p>
-      </div>
-      <div className="flex flex-col gap-1.5 shrink-0">
-        {isMember ? (
-          <>
-            <button
-              onClick={onPrimary}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-            >
-              {isCommunity ? 'View →' : 'Chat'}
-            </button>
-            {!isOwner && (
-              <button
-                onClick={onLeave}
-                className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
-                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-              >
-                {t('leave')}
-              </button>
-            )}
-          </>
-        ) : (
-          <button
-            onClick={onJoin}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold"
-            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
-          >
-            {t('join')}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          {messages.map(m => {
+            const mine = m.user_id === userId;
+            return (
+              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm ${mine ? 'rounded-br-md' : 'rounded-bl-md'}`}
+                  style={mine ? { background: FIXED.accentCyan, color: '#fff' } : { backgroundColor: C.card, color: C.textPrimary }}>
+                  {!mine && m.display_name && <p className="text-xs font-medium mb-0.5" style={{ color: FIXED.accentCyan }}>{m.display_name}</p>}
+                  <p>{m.content}</p>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={chatEndRef} />
+        </div>
+        {/* Input */}
+        <div className="shrink-0 px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${C.border}` }}>
+          <input
+            value={msgInput}
+            onChange={e => setMsgInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendMessage()}
+            placeholder="Message..."
+            className="flex-1 px-4 py-2.5 rounded-full text-sm outline-none"
+            style={{ backgroundColor: C.card, color: C.textPrimary, border: `1px solid ${C.border}` }}
+          />
+          <button onClick={sendMessage} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: FIXED.accentCyan, color: '#fff' }}>
+            <Send size={18} />
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Tabs config ───────────────────────────────────────────── */
+  const tabs: { id: Tab; label: string; badge?: number }[] = [
+    { id: 'messages', label: 'Messages', badge: unreadDmCount || filteredDMs.filter(d => d.is_unread).length },
+    { id: 'groups', label: 'Groupes' },
+    { id: 'communities', label: 'Communautés' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[200] flex flex-col" style={{ backgroundColor: C.bg }}>
+      {/* ── Header ──────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
+        <h1 className="text-xl font-bold" style={{ color: C.textPrimary }}>Communauté</h1>
+        <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: FIXED.accentCyan, color: '#fff' }}>
+          <Plus size={20} />
+        </button>
+      </div>
+
+      {/* ── Search ──────────────────────────────────────────── */}
+      <div className="px-4 pb-3">
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
+          <Search size={16} style={{ color: C.textSecondary }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher..."
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: C.textPrimary }}
+          />
+        </div>
+      </div>
+
+      {/* ── Tabs ────────────────────────────────────────────── */}
+      <div className="px-4 pb-3 flex gap-2">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className="px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors"
+            style={tab === t.id ? { background: FIXED.accentCyan, color: '#fff' } : { backgroundColor: C.card, color: C.textSecondary }}
+          >
+            {t.label}
+            {(t.badge ?? 0) > 0 && (
+              <span className="min-w-[18px] h-[18px] rounded-full text-[0.65rem] font-bold flex items-center justify-center px-1"
+                style={tab === t.id ? { background: '#fff', color: FIXED.accentCyan } : { background: FIXED.accentCyan, color: '#fff' }}>
+                {t.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Content ─────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-4 pb-24">
+
+        {/* Messages Tab */}
+        {tab === 'messages' && (
+          <div className="space-y-1">
+            {filteredDMs.length === 0 && (
+              <p className="text-center py-12 text-sm" style={{ color: C.textSecondary }}>Aucune conversation</p>
+            )}
+            {filteredDMs.map(dm => (
+              <button
+                key={dm.id}
+                onClick={() => setChatTarget({ id: dm.id, name: dm.partner_name, type: 'dm' })}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-colors hover:opacity-80"
+                style={{ backgroundColor: dm.is_unread ? C.card : 'transparent' }}
+              >
+                <div className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg font-semibold overflow-hidden"
+                  style={{ backgroundColor: C.card, color: C.textSecondary, border: `1px solid ${C.border}` }}>
+                  {dm.partner_avatar
+                    ? <img src={dm.partner_avatar} alt="" className="w-full h-full object-cover" />
+                    : dm.partner_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm ${dm.is_unread ? 'font-semibold' : 'font-medium'}`} style={{ color: C.textPrimary }}>{dm.partner_name}</span>
+                    <span className="text-xs" style={{ color: C.textSecondary }}>{timeAgo(dm.last_message_at)}</span>
+                  </div>
+                  <p className="text-xs truncate mt-0.5" style={{ color: dm.is_unread ? C.textPrimary : C.textSecondary }}>
+                    {dm.last_message || 'Nouvelle conversation'}
+                  </p>
+                </div>
+                {dm.is_unread && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: FIXED.accentCyan }} />}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Groups Tab */}
+        {tab === 'groups' && (
+          <div className="space-y-5">
+            {/* Mon Cercle */}
+            <Section icon="🛡️" title="Mon Cercle">
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="aspect-square rounded-2xl flex items-center justify-center"
+                    style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
+                    <Users size={24} style={{ color: C.textSecondary }} />
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            {/* Mes Groupes */}
+            <Section icon="👥" title="Mes Groupes">
+              {myGroups.length === 0 && <EmptyState text="Aucun groupe rejoint" />}
+              {myGroups.map(g => (
+                <CommunityRow
+                  key={g.id}
+                  emoji={g.avatar_emoji || '👥'}
+                  name={g.name}
+                  subtitle={lastMessages[g.id]?.content || 'Aucun message'}
+                  time={lastMessages[g.id] ? timeAgo(lastMessages[g.id].created_at) : ''}
+                  unread={unreadCounts[g.id] || 0}
+                  onClick={() => setChatTarget({ id: g.id, name: g.name, type: 'community' })}
+                />
+              ))}
+            </Section>
+
+            {/* Autour de vous */}
+            <Section icon="📍" title="Autour de vous">
+              <div className="grid grid-cols-3 gap-2">
+                {communities.filter(c => c.community_type === 'group' && !memberships.has(c.id)).slice(0, 6).map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => handleJoin(g.id)}
+                    className="rounded-2xl p-3 flex flex-col items-center gap-1.5 text-center transition-colors hover:opacity-80"
+                    style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
+                  >
+                    <span className="text-2xl">{g.avatar_emoji || '👥'}</span>
+                    <span className="text-xs font-medium truncate w-full" style={{ color: C.textPrimary }}>{g.name}</span>
+                  </button>
+                ))}
+              </div>
+            </Section>
+          </div>
+        )}
+
+        {/* Communities Tab */}
+        {tab === 'communities' && (
+          <div className="space-y-5">
+            {/* Vos communautés */}
+            <Section icon="🌍" title="Vos communautés">
+              {myCommunities.length === 0 && <EmptyState text="Aucune communauté rejointe" />}
+              {myCommunities.map(c => (
+                <CommunityRow
+                  key={c.id}
+                  emoji={c.avatar_emoji || '🏘️'}
+                  name={c.name}
+                  subtitle={lastMessages[c.id]?.content || c.description || 'Aucun message'}
+                  time={lastMessages[c.id] ? timeAgo(lastMessages[c.id].created_at) : ''}
+                  unread={unreadCounts[c.id] || 0}
+                  onClick={() => setChatTarget({ id: c.id, name: c.name, type: 'community' })}
+                />
+              ))}
+            </Section>
+
+            {/* Découvrir */}
+            <Section icon="🔍" title="Découvrir">
+              {discoverCommunities.length === 0 && <EmptyState text="Toutes les communautés sont rejointes" />}
+              {discoverCommunities.map(c => (
+                <div key={c.id} className="flex items-center gap-3 p-3 rounded-2xl" style={{ backgroundColor: C.card }}>
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0"
+                    style={{ backgroundColor: C.hover }}>
+                    {c.avatar_emoji || '🏘️'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: C.textPrimary }}>{c.name}</p>
+                    <p className="text-xs truncate" style={{ color: C.textSecondary }}>{c.description || 'Communauté'}</p>
+                  </div>
+                  <button
+                    onClick={() => handleJoin(c.id)}
+                    className="px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors hover:opacity-80"
+                    style={{ background: FIXED.accentCyan, color: '#fff' }}
+                  >
+                    Rejoindre
+                  </button>
+                </div>
+              ))}
+            </Section>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+/* ── Small UI Pieces ─────────────────────────────────────────── */
 
-export default function CommunityView({ onClose }: { onClose: () => void }) {
-  const t = useTranslations('community');
-  const { userId, userProfile, unreadDmCount } = useStore();
+function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base">{icon}</span>
+        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
 
-  // Navigation
-  const [view, setView]       = useState<View>('home');
-  const [chatFrom, setChatFrom] = useState<'list' | 'community-detail'>('list');
-
-  // All top-level items (communities + standalone groups)
-  const [items, setItems]               = useState<Community[]>([]);
-  const [myMemberships, setMyMemberships] = useState<Set<string>>(new Set());
-  const [subGroupCounts, setSubGroupCounts] = useState<Record<string, number>>({});
-
-  // Chat
-  const [selectedItem, setSelectedItem] = useState<Community | null>(null);
-  const [messages, setMessages]         = useState<CommunityMessage[]>([]);
-  const [msgInput, setMsgInput]         = useState('');
-  const [sending, setSending]           = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Community detail
-  const [communityDetailOf, setCommunityDetailOf] = useState<Community | null>(null);
-  const [subGroups, setSubGroups]                 = useState<Community[]>([]);
-
-  // Create
-  const [createType, setCreateType]     = useState<CreateType>('community');
-  const [createParentId, setCreateParentId] = useState<string | null>(null);
-  const [showNewPicker, setShowNewPicker] = useState(false);
-  const [newName, setNewName]   = useState('');
-  const [newDesc, setNewDesc]   = useState('');
-  const [newPrivate, setNewPrivate] = useState(false);
-  const [newEmoji, setNewEmoji] = useState('🏘️');
-  const [creating, setCreating] = useState(false);
-
-  // ── Load top-level items ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!userId) return;
-    loadItems();
-    loadMyMemberships();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
-  async function loadItems() {
-    const { data } = await supabase
-      .from('communities')
-      .select('*')
-      .is('parent_community_id', null)
-      .order('created_at', { ascending: false });
-    if (!data) return;
-
-    const { data: memberData } = await supabase.from('community_members').select('community_id');
-    const countMap: Record<string, number> = {};
-    memberData?.forEach((m) => { countMap[m.community_id] = (countMap[m.community_id] ?? 0) + 1; });
-
-    const { data: subData } = await supabase
-      .from('communities')
-      .select('parent_community_id')
-      .not('parent_community_id', 'is', null);
-    const subCountMap: Record<string, number> = {};
-    subData?.forEach((s) => {
-      if (s.parent_community_id) {
-        subCountMap[s.parent_community_id] = (subCountMap[s.parent_community_id] ?? 0) + 1;
-      }
-    });
-
-    setItems(data.map((c) => ({ ...c, community_type: c.community_type ?? 'community', parent_community_id: c.parent_community_id ?? null, member_count: countMap[c.id] ?? 0 })));
-    setSubGroupCounts(subCountMap);
-  }
-
-  async function loadMyMemberships() {
-    const { data } = await supabase
-      .from('community_members')
-      .select('community_id')
-      .eq('user_id', userId!);
-    setMyMemberships(new Set(data?.map((m) => m.community_id) ?? []));
-  }
-
-  // ── Circle contacts (for home view avatar row) ─────────────────────────────
-  const [circleContacts, setCircleContacts] = useState<{ id: string; display_name: string | null }[]>([]);
-
-  useEffect(() => {
-    if (!userId) return;
-    supabase.from('trusted_contacts').select('*')
-      .or(`user_id.eq.${userId},contact_id.eq.${userId}`)
-      .eq('status', 'accepted')
-      .then(async ({ data }) => {
-        if (!data?.length) return;
-        const ids = data.map((r) => r.user_id === userId ? r.contact_id : r.user_id);
-        const { data: profiles } = await supabase.from('profiles').select('id, display_name').in('id', ids);
-        setCircleContacts(profiles ?? []);
-      });
-  }, [userId]);
-
-  // ── Last messages + unread counts (home view rows) ─────────────────────────
-  const [lastMessages, setLastMessages] = useState<Record<string, string>>({});
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (!userId || !myMemberships.size) return;
-    const ids = [...myMemberships];
-    const since = Date.now() - 24 * 3600 * 1000;
-    supabase.from('community_messages')
-      .select('community_id, content, display_name, created_at, user_id')
-      .in('community_id', ids)
-      .order('created_at', { ascending: false })
-      .limit(100)
-      .then(({ data }) => {
-        if (!data) return;
-        const seen = new Set<string>();
-        const msgs: Record<string, string> = {};
-        const unreads: Record<string, number> = {};
-        for (const m of data) {
-          if (!seen.has(m.community_id)) {
-            seen.add(m.community_id);
-            const name = (m.display_name ?? '?').split(' ')[0];
-            msgs[m.community_id] = `${name}: ${m.content}`;
-          }
-          if (m.user_id !== userId && new Date(m.created_at).getTime() > since) {
-            unreads[m.community_id] = (unreads[m.community_id] ?? 0) + 1;
-          }
-        }
-        setLastMessages(msgs);
-        setUnreadCounts(unreads);
-      });
-  }, [myMemberships, userId]);
-
-  // ── Load sub-groups when community-detail opens ────────────────────────────
-  useEffect(() => {
-    if (view !== 'community-detail' || !communityDetailOf) return;
-    supabase
-      .from('communities')
-      .select('*')
-      .eq('parent_community_id', communityDetailOf.id)
-      .order('created_at', { ascending: false })
-      .then(async ({ data }) => {
-        if (!data || data.length === 0) { setSubGroups([]); return; }
-        const ids = data.map((g) => g.id);
-        const { data: memberData } = await supabase
-          .from('community_members')
-          .select('community_id')
-          .in('community_id', ids);
-        const countMap: Record<string, number> = {};
-        memberData?.forEach((m) => { countMap[m.community_id] = (countMap[m.community_id] ?? 0) + 1; });
-        setSubGroups(data.map((g) => ({
-          ...g,
-          community_type: g.community_type ?? 'group',
-          parent_community_id: g.parent_community_id ?? null,
-          member_count: countMap[g.id] ?? 0,
-        })));
-      });
-  }, [communityDetailOf?.id, view]);
-
-  // ── Messages ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!selectedItem) return;
-    setMessages([]);
-    supabase
-      .from('community_messages')
-      .select('*')
-      .eq('community_id', selectedItem.id)
-      .order('created_at', { ascending: true })
-      .limit(100)
-      .then(({ data }) => setMessages(data ?? []));
-  }, [selectedItem?.id]);
-
-  useEffect(() => {
-    if (!selectedItem) return;
-    const ch = supabase
-      .channel(`community-${selectedItem.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'community_messages',
-        filter: `community_id=eq.${selectedItem.id}`,
-      }, (payload) => setMessages((prev) => {
-        const msg = payload.new as CommunityMessage;
-        const tempIdx = prev.findIndex(m => typeof m.id === 'string' && (m.id as string).startsWith('temp-') && m.content === msg.content && m.user_id === msg.user_id);
-        if (tempIdx >= 0) { const next = [...prev]; next[tempIdx] = msg; return next; }
-        return [...prev, msg];
-      }))
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [selectedItem?.id]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // ── Actions ────────────────────────────────────────────────────────────────
-
-  async function joinItem(item: Community) {
-    if (!userId) return;
-    const { error } = await supabase.from('community_members').insert({
-      community_id: item.id, user_id: userId, role: 'member',
-    });
-    if (error) { toast.error(t('failedJoin')); return; }
-    setMyMemberships((prev) => new Set([...prev, item.id]));
-    setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: c.member_count + 1 } : c));
-    toast.success(t('joined', { name: item.name }));
-  }
-
-  async function leaveItem(item: Community) {
-    if (!userId) return;
-    const { error } = await supabase
-      .from('community_members').delete()
-      .eq('community_id', item.id).eq('user_id', userId);
-    if (error) { toast.error(t('failedLeave')); return; }
-    setMyMemberships((prev) => { const s = new Set(prev); s.delete(item.id); return s; });
-    setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, member_count: Math.max(0, c.member_count - 1) } : c));
-    if (selectedItem?.id === item.id) setView('home');
-    toast.success(t('left', { name: item.name }));
-  }
-
-  async function joinSubGroup(group: Community) {
-    if (!userId) return;
-    const { error } = await supabase.from('community_members').insert({
-      community_id: group.id, user_id: userId, role: 'member',
-    });
-    if (error) { toast.error(t('failedJoin')); return; }
-    setMyMemberships((prev) => new Set([...prev, group.id]));
-    setSubGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, member_count: g.member_count + 1 } : g));
-    toast.success(t('joined', { name: group.name }));
-  }
-
-  async function leaveSubGroup(group: Community) {
-    if (!userId) return;
-    await supabase.from('community_members').delete()
-      .eq('community_id', group.id).eq('user_id', userId);
-    setMyMemberships((prev) => { const s = new Set(prev); s.delete(group.id); return s; });
-    setSubGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, member_count: Math.max(0, g.member_count - 1) } : g));
-    toast.success(t('left', { name: group.name }));
-  }
-
-  async function sendMessage() {
-    if (!msgInput.trim() || !userId || !selectedItem || sending) return;
-    const content = msgInput.trim();
-    const tempId = `temp-${Date.now()}`;
-    setMsgInput('');
-    setMessages((prev) => [...prev, {
-      id: tempId, community_id: selectedItem.id, user_id: userId,
-      display_name: userProfile?.display_name ?? null, content,
-      created_at: new Date().toISOString(),
-    } as CommunityMessage]);
-    setSending(true);
-    const { error } = await supabase.from('community_messages').insert({
-      community_id: selectedItem.id, user_id: userId,
-      display_name: userProfile?.display_name ?? null, content,
-    });
-    setSending(false);
-    if (error) {
-      toast.error(t('sendFailed'));
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
-    }
-  }
-
-  async function handleCreate() {
-    if (!newName.trim() || !userId || creating) return;
-    setCreating(true);
-    const { data, error } = await supabase
-      .from('communities')
-      .insert({
-        name: newName.trim(),
-        description: newDesc.trim() || null,
-        is_private: newPrivate,
-        owner_id: userId,
-        avatar_emoji: newEmoji,
-        community_type: createType,
-        parent_community_id: createParentId,
-      })
-      .select()
-      .single();
-    if (error) { toast.error(t('failedCreate')); setCreating(false); return; }
-
-    await supabase.from('community_members').insert({
-      community_id: data.id, user_id: userId, role: 'owner',
-    });
-    setMyMemberships((prev) => new Set([...prev, data.id]));
-
-    const newItem: Community = {
-      ...data,
-      community_type: createType,
-      parent_community_id: createParentId,
-      member_count: 1,
-    };
-
-    if (createParentId) {
-      setSubGroups((prev) => [newItem, ...prev]);
-      setSubGroupCounts((prev) => ({
-        ...prev,
-        [createParentId]: (prev[createParentId] ?? 0) + 1,
-      }));
-      toast.success(t('groupCreated'));
-      setView('community-detail');
-    } else {
-      setItems((prev) => [newItem, ...prev]);
-      toast.success(createType === 'community' ? t('communityCreated') : t('groupCreated'));
-      setView('list');
-    }
-
-    setCreating(false);
-    setNewName(''); setNewDesc(''); setNewPrivate(false); setNewEmoji('🏘️');
-    setCreateParentId(null);
-  }
-
-  function openChat(item: Community, from: 'list' | 'community-detail') {
-    setSelectedItem(item);
-    setChatFrom(from);
-    setView('chat');
-  }
-
-  function openCommunityDetail(community: Community) {
-    setCommunityDetailOf(community);
-    setSubGroups([]);
-    setView('community-detail');
-  }
-
-  function startCreate(type: CreateType, parentId: string | null) {
-    setCreateType(type);
-    setCreateParentId(parentId);
-    setNewName('');
-    setNewDesc('');
-    setNewPrivate(false);
-    setNewEmoji(type === 'community' ? '🏘️' : '👥');
-    setShowNewPicker(false);
-    setView('create');
-  }
-
-  // Pre-compute for list view
-  const myCommunities = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'community');
-  const myGroups      = items.filter((c) => myMemberships.has(c.id) && c.community_type === 'group');
-  const discoverItems = items.filter((c) => !myMemberships.has(c.id) && !c.is_private);
-
-  // ── Close button helper ────────────────────────────────────────────────────
-  const CloseBtn = () => (
-    <button
-      onClick={onClose}
-      className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80 shrink-0"
-      style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-    >
-      ✕
+function CommunityRow({ emoji, name, subtitle, time, unread, onClick }: {
+  emoji: string; name: string; subtitle: string; time: string; unread: number; onClick: () => void;
+}) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
+  return (
+    <button onClick={onClick} className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-colors hover:opacity-80"
+      style={{ backgroundColor: unread > 0 ? C.card : 'transparent' }}>
+      <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0"
+        style={{ backgroundColor: C.hover }}>
+        {emoji}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className={`text-sm ${unread > 0 ? 'font-semibold' : 'font-medium'}`} style={{ color: C.textPrimary }}>{name}</span>
+          {time && <span className="text-xs" style={{ color: C.textSecondary }}>{time}</span>}
+        </div>
+        <p className="text-xs truncate mt-0.5" style={{ color: C.textSecondary }}>{subtitle}</p>
+      </div>
+      {unread > 0 && (
+        <span className="min-w-[20px] h-[20px] rounded-full text-[0.65rem] font-bold flex items-center justify-center px-1 shrink-0"
+          style={{ background: FIXED.accentCyan, color: '#fff' }}>
+          {unread}
+        </span>
+      )}
     </button>
   );
+}
 
-  // ── Sheet wrapper ──────────────────────────────────────────────────────────
-  return (
-    <motion.div
-      className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-95 lg:max-w-none lg:rounded-2xl"
-      style={{
-        backgroundColor: 'var(--bg-secondary)',
-        boxShadow: '0 -10px 40px var(--bg-overlay)',
-        maxHeight: '88dvh',
-      }}
-      initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-      transition={springTransition}
-    >
-      {/* Drag handle */}
-      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0" style={{ backgroundColor: 'var(--border)' }} />
-
-      {/* ── CHAT VIEW ─────────────────────────────────────────────────── */}
-      {view === 'chat' && selectedItem && (() => {
-        const isMember = myMemberships.has(selectedItem.id);
-        return (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <div
-              className="shrink-0 flex items-center gap-3 px-4 py-3"
-              style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-            >
-              <button
-                onClick={() => chatFrom === 'community-detail' ? setView('community-detail') : setView('home')}
-                className="text-xl transition hover:opacity-60"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                ←
-              </button>
-              <span className="text-2xl">{selectedItem.avatar_emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                  {selectedItem.name}
-                </p>
-                <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                  {t('members', { count: selectedItem.member_count })}
-                  {selectedItem.community_type === 'group' && communityDetailOf && ` · ${communityDetailOf.name}`}
-                </p>
-              </div>
-              {selectedItem.is_private && (
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full font-bold"
-                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-                >
-                  🔒 Private
-                </span>
-              )}
-              <CloseBtn />
-            </div>
-
-            <StoriesRow communityId={selectedItem.id} />
-
-            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
-              {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full gap-3">
-                  <span className="text-5xl">{selectedItem.avatar_emoji}</span>
-                  <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{t('noMessages')}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {isMember ? 'Start the conversation!' : 'Join to participate'}
-                  </p>
-                </div>
-              )}
-              {messages.map((m, i) => {
-                const isMe = m.user_id === userId;
-                const prevMsg = messages[i - 1];
-                const showAvatar = !isMe && (!prevMsg || prevMsg.user_id !== m.user_id);
-                return (
-                  <div key={m.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    {!isMe && (
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 self-end ${!showAvatar ? 'invisible' : ''}`}
-                        style={{ background: 'linear-gradient(135deg, var(--accent-gold), #B8923E)' }}
-                      >
-                        {(m.display_name?.[0] ?? '?').toUpperCase()}
-                      </div>
-                    )}
-                    <div className={`flex flex-col max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
-                      {showAvatar && !isMe && (
-                        <span className="text-[0.6rem] font-bold mb-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
-                          {m.display_name ?? 'Anonymous'}
-                        </span>
-                      )}
-                      <div
-                        className="px-3 py-2 rounded-2xl text-sm leading-snug"
-                        style={{
-                          backgroundColor: isMe ? 'var(--accent)' : 'var(--bg-card)',
-                          color: isMe ? '#fff' : 'var(--text-primary)',
-                          borderBottomRightRadius: isMe ? '6px' : undefined,
-                          borderBottomLeftRadius: !isMe ? '6px' : undefined,
-                        }}
-                      >
-                        {m.content}
-                      </div>
-                      <span className="text-[0.55rem] mt-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
-                        {timeAgo(m.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {isMember ? (
-              <div
-                className="shrink-0 flex gap-2 px-4 py-3"
-                style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
-              >
-                <input
-                  value={msgInput}
-                  onChange={(e) => setMsgInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder={t('typePlaceholder')}
-                  className="flex-1 text-sm rounded-2xl px-4 py-2.5 outline-none"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={!msgInput.trim() || sending}
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold transition disabled:opacity-40"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  ↑
-                </button>
-              </div>
-            ) : (
-              <div
-                className="shrink-0 px-4 py-3"
-                style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
-              >
-                <button
-                  onClick={() => joinSubGroup(selectedItem)}
-                  className="w-full py-3 rounded-xl font-bold text-sm"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  Join to send messages
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ── COMMUNITY DETAIL VIEW ──────────────────────────────────────── */}
-      {view === 'community-detail' && communityDetailOf && (() => {
-        const isMember = myMemberships.has(communityDetailOf.id);
-        const isOwner  = communityDetailOf.owner_id === userId;
-        return (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <div
-              className="shrink-0 flex items-center gap-3 px-4 py-3"
-              style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-            >
-              <button
-                onClick={() => setView('list')}
-                className="text-xl transition hover:opacity-60"
-                style={{ color: 'var(--text-muted)' }}
-              >←</button>
-              <span className="text-2xl">{communityDetailOf.avatar_emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-black text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                  {communityDetailOf.name}
-                </p>
-                <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
-                  {t('members', { count: communityDetailOf.member_count })} · {subGroups.length} {subGroups.length === 1 ? 'group' : 'groups'}
-                </p>
-              </div>
-              {isMember ? (
-                !isOwner && (
-                  <button
-                    onClick={() => leaveItem(communityDetailOf)}
-                    className="px-3 py-1 rounded-xl text-[0.6rem] font-bold"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-                  >
-                    {t('leave')}
-                  </button>
-                )
-              ) : (
-                <button
-                  onClick={() => joinItem(communityDetailOf)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold"
-                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--accent)', border: '1.5px solid var(--accent)' }}
-                >
-                  {t('join')}
-                </button>
-              )}
-              <CloseBtn />
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-              {communityDetailOf.description && (
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {communityDetailOf.description}
-                </p>
-              )}
-
-              {isMember && (
-                <button
-                  onClick={() => openChat(communityDetailOf, 'community-detail')}
-                  className="flex items-center justify-between px-4 py-3 rounded-2xl"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-lg">{communityDetailOf.avatar_emoji}</span>
-                    <div className="text-left">
-                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Community Chat</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>General discussion</p>
-                    </div>
-                  </div>
-                  <span className="text-base" style={{ color: 'var(--text-muted)' }}>→</span>
-                </button>
-              )}
-
-              <div>
-                <div className="flex items-center justify-between mb-2.5">
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                    {t('groups')}
-                  </p>
-                  <button
-                    onClick={() => startCreate('group', communityDetailOf.id)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                    style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)' }}
-                  >
-                    <Plus size={11} strokeWidth={2.5} />
-                    {t('addGroup')}
-                  </button>
-                </div>
-
-                {subGroups.length === 0 ? (
-                  <div
-                    className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                  >
-                    <span className="text-3xl">👥</span>
-                    <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No groups yet</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Add the first group to this community</p>
-                    <button
-                      onClick={() => startCreate('group', communityDetailOf.id)}
-                      className="mt-1 px-4 py-2 rounded-xl text-xs font-bold"
-                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                    >
-                      + Add a Group
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {subGroups.map((group) => (
-                      <ItemCard
-                        key={group.id}
-                        item={group}
-                        isMember={myMemberships.has(group.id)}
-                        isOwner={group.owner_id === userId}
-                        onPrimary={() => openChat(group, 'community-detail')}
-                        onJoin={() => joinSubGroup(group)}
-                        onLeave={() => leaveSubGroup(group)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── CREATE VIEW ────────────────────────────────────────────────── */}
-      {view === 'create' && (() => {
-        const isGroup = createType === 'group';
-        return (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <div
-              className="shrink-0 flex items-center gap-3 px-4 py-3"
-              style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-            >
-              <button
-                onClick={() => setView(createParentId ? 'community-detail' : 'home')}
-                className="text-xl hover:opacity-60 transition"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                ←
-              </button>
-              <h2 className="text-lg font-black flex-1" style={{ color: 'var(--text-primary)' }}>
-                {isGroup ? 'New Group' : 'New Community'}
-              </h2>
-              {createParentId && communityDetailOf && (
-                <span
-                  className="text-[0.6rem] px-2 py-1 rounded-full font-bold"
-                  style={{ backgroundColor: 'rgba(99,102,241,0.12)', color: '#6366f1' }}
-                >
-                  in {communityDetailOf.name}
-                </span>
-              )}
-              <CloseBtn />
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-110 mx-auto w-full px-4 py-6 flex flex-col gap-5">
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                    Icon
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {EMOJI_OPTIONS.map((e) => (
-                      <button
-                        key={e}
-                        onClick={() => setNewEmoji(e)}
-                        className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition"
-                        style={{
-                          backgroundColor: newEmoji === e ? 'rgba(212,168,83,0.12)' : 'var(--bg-card)',
-                          border: newEmoji === e ? '2px solid var(--accent)' : '1px solid var(--border)',
-                        }}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-                    Name *
-                  </p>
-                  <input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder={isGroup ? 'e.g. Night Watch, Support Circle…' : 'e.g. Night Runners Paris'}
-                    className="w-full text-sm rounded-xl px-4 py-3 outline-none"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-                    Description
-                  </p>
-                  <textarea
-                    value={newDesc}
-                    onChange={(e) => setNewDesc(e.target.value)}
-                    placeholder={isGroup ? 'What is this group for?' : 'What is this community about?'}
-                    rows={3}
-                    className="w-full text-sm rounded-xl px-4 py-3 outline-none resize-none"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-
-                <button
-                  onClick={() => setNewPrivate(!newPrivate)}
-                  className="flex items-center justify-between px-4 py-3.5 rounded-xl transition"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl">{newPrivate ? '🔒' : '🌐'}</span>
-                    <div className="text-left">
-                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                        {newPrivate ? 'Private' : 'Public'}
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {newPrivate ? 'Invite-only, not discoverable' : 'Anyone can find and join'}
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className="w-11 h-6 rounded-full relative transition-all"
-                    style={{ backgroundColor: newPrivate ? 'var(--accent)' : 'var(--border)' }}
-                  >
-                    <div
-                      className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-                      style={{ left: newPrivate ? '22px' : '2px' }}
-                    />
-                  </div>
-                </button>
-
-                <button
-                  onClick={handleCreate}
-                  disabled={!newName.trim() || creating}
-                  className="w-full py-4 rounded-xl font-bold text-sm transition disabled:opacity-40"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  {creating
-                    ? 'Creating…'
-                    : `Create ${newPrivate ? '🔒 Private' : '🌐 Public'} ${isGroup ? 'Group' : 'Community'}`}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── HOME ─────────────────────────────────────────────────────── */}
-      {view === 'home' && (
-        <div className="flex flex-col flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-
-          {/* ─── Section 1: Mon Cercle ──────────────────────────── */}
-          <section className="px-4 pt-5 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[1rem] font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                <span>💛</span>
-                {t('circle')}
-              </h2>
-              <button
-                onClick={() => setView('messages')}
-                className="text-[0.75rem] font-medium px-3 py-1 rounded-full transition active:opacity-70"
-                style={{ border: '1px solid rgba(212,168,83,0.5)', color: 'var(--accent)' }}
-              >
-                {t('add')}
-              </button>
-            </div>
-
-            {circleContacts.length > 0 ? (
-              <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-                {circleContacts.slice(0, 8).map((c) => (
-                  <button key={c.id} className="flex flex-col items-center gap-1 shrink-0">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-[0.8125rem] font-semibold shrink-0"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(27,37,65,0.9) 0%, rgba(139,126,200,0.3) 100%)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'rgba(255,255,255,0.9)',
-                      }}
-                    >
-                      {(c.display_name?.[0] ?? '?').toUpperCase()}
-                    </div>
-                    <span className="text-[0.6875rem] truncate max-w-[42px] text-center" style={{ color: 'var(--text-muted)' }}>
-                      {c.display_name?.split(' ')[0] ?? '?'}
-                    </span>
-                  </button>
-                ))}
-                {circleContacts.length > 8 && (
-                  <button className="flex flex-col items-center gap-1 shrink-0">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-[0.6875rem] font-medium"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}
-                    >
-                      +{circleContacts.length - 8}
-                    </div>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-between py-2">
-                <span className="text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>{t('inviteFirst')}</span>
-                <button
-                  onClick={() => setView('messages')}
-                  className="text-[0.75rem] font-semibold px-3 py-1 rounded-full shrink-0 ml-3 transition active:opacity-70"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  {t('add')}
-                </button>
-              </div>
-            )}
-
-            <div className="mt-3" style={{ height: 1, backgroundColor: 'var(--border)' }} />
-          </section>
-
-          {/* ─── Section 2: Mes communautés ──────────────────── */}
-          <section className="px-4 pb-3">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-[0.875rem] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {t('communities')}
-              </h2>
-              {(myCommunities.length + myGroups.length) > 0 && (
-                <span
-                  className="text-[0.6875rem] font-medium px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(139,126,200,0.18)', color: '#8B7EC8' }}
-                >
-                  {myCommunities.length + myGroups.length}
-                </span>
-              )}
-            </div>
-
-            {(myCommunities.length + myGroups.length) > 0 ? (
-              <div>
-                {[...myCommunities, ...myGroups].map((c, i, arr) => (
-                  <button
-                    key={c.id}
-                    onClick={() => openChat(c, 'list')}
-                    className="w-full flex items-center gap-3 py-2.5 text-left transition active:opacity-70 -mx-2 px-2 rounded-lg hover:bg-white/[0.03]"
-                    style={{ borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
-                  >
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-[1.125rem] shrink-0"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
-                    >
-                      {c.avatar_emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[0.875rem] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {c.name}
-                      </p>
-                      <p className="text-[0.75rem] truncate" style={{ color: 'var(--text-muted)' }}>
-                        {lastMessages[c.id] ?? t('members', { count: c.member_count })}
-                      </p>
-                    </div>
-                    {(unreadCounts[c.id] ?? 0) > 0 ? (
-                      <div
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-semibold shrink-0"
-                        style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                      >
-                        {unreadCounts[c.id]}
-                      </div>
-                    ) : (
-                      <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-between py-2">
-                <span className="text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>{t('joinCommunity')}</span>
-                <button
-                  onClick={() => setView('list')}
-                  className="text-[0.75rem] font-semibold px-3 py-1 rounded-full shrink-0 ml-3 transition active:opacity-70"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  {t('discover')}
-                </button>
-              </div>
-            )}
-          </section>
-
-          {/* ─── Section 3: Découvrir ────────────────────────── */}
-          {discoverItems.length > 0 && (
-            <>
-              <div className="mx-4" style={{ height: 1, backgroundColor: 'var(--border)' }} />
-              <section className="pt-4 pb-2">
-                <p className="text-[0.875rem] font-semibold px-4 mb-3" style={{ color: 'var(--text-primary)' }}>
-                  {t('aroundYou')}
-                </p>
-                <div className="flex gap-3 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
-                  {discoverItems.slice(0, 8).map((c) => (
-                    <div
-                      key={c.id}
-                      onClick={() => c.community_type === 'community' ? openCommunityDetail(c) : openChat(c, 'list')}
-                      className="shrink-0 rounded-xl flex flex-col items-center justify-between p-3 cursor-pointer transition hover:bg-white/[0.06]"
-                      style={{
-                        width: 140,
-                        minHeight: 100,
-                        backgroundColor: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.07)',
-                      }}
-                    >
-                      <span className="text-[1.75rem] leading-none mt-1">{c.avatar_emoji}</span>
-                      <p
-                        className="text-[0.8125rem] font-semibold text-center leading-tight mt-1.5 line-clamp-2 w-full"
-                        style={{ color: 'rgba(255,255,255,0.8)' }}
-                      >
-                        {c.name}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="text-[0.6875rem]" style={{ color: 'var(--text-muted)' }}>
-                          {c.member_count}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); joinItem(c); }}
-                          className="text-[0.6875rem] font-medium transition active:opacity-70"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          {t('join')}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setView('list')}
-                  className="flex items-center gap-1 px-4 mt-2 text-[0.8125rem] font-medium transition hover:opacity-80"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  {t('seeAllGroups')}
-                  <ChevronRight size={16} />
-                </button>
-              </section>
-            </>
-          )}
-
-          <div className="mx-4" style={{ height: 1, backgroundColor: 'var(--border)' }} />
-
-          {/* ─── Bottom: Messages row ────────────────────────── */}
-          <button
-            onClick={() => setView('messages')}
-            className="flex items-center gap-3 px-4 py-3.5 w-full transition active:opacity-70 text-left hover:bg-white/[0.03] rounded-lg"
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: 'rgba(99,102,241,0.12)' }}
-            >
-              <MessageCircle size={18} strokeWidth={2} style={{ color: '#8B7EC8' }} />
-            </div>
-            <p className="flex-1 text-[0.875rem] font-medium" style={{ color: 'var(--text-primary)' }}>
-              {t('messages')}
-            </p>
-            {unreadDmCount > 0 && (
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6875rem] font-semibold shrink-0"
-                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-              >
-                {unreadDmCount > 9 ? '9+' : unreadDmCount}
-              </div>
-            )}
-            <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
-          </button>
-
-          <div className="pb-4" />
-        </div>
-      )}
-
-      {/* ── MESSAGES (Friends + DMs) ──────────────────────────────────── */}
-      {view === 'messages' && (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <FriendsView onBack={() => setView('home')} />
-        </div>
-      )}
-
-      {/* ── NEIGHBORHOODS VIEW ─────────────────────────────────────────── */}
-      {view === 'neighborhoods' && (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div
-            className="shrink-0 flex items-center gap-3 px-4 py-3"
-            style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-          >
-            <button
-              onClick={() => setView('home')}
-              className="text-xl transition hover:opacity-60"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              ←
-            </button>
-            <h2 className="text-base font-black flex-1" style={{ color: 'var(--text-primary)' }}>{t('neighbourhoods')}</h2>
-            <CloseBtn />
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <NeighborhoodFeed />
-          </div>
-        </div>
-      )}
-
-      {/* ── GROUPS LIST VIEW ─────────────────────────────────────────── */}
-      {view === 'list' && (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <div
-            className="shrink-0 px-4 pt-3 pb-3"
-            style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-          >
-            <div className="max-w-110 mx-auto w-full">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setView('home')}
-                    className="text-xl transition hover:opacity-60"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    ←
-                  </button>
-                  <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{t('groupsCommunities')}</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowNewPicker(!showNewPicker)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                    >
-                      + New
-                    </button>
-                    {showNewPicker && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowNewPicker(false)} />
-                        <div
-                          className="absolute right-0 top-full mt-1.5 z-50 rounded-2xl overflow-hidden shadow-xl"
-                          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minWidth: '190px' }}
-                        >
-                          <button
-                            onClick={() => startCreate('community', null)}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
-                          >
-                            <span className="text-lg">🏛️</span>
-                            <div>
-                              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Community</p>
-                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Contains groups</p>
-                            </div>
-                          </button>
-                          <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />
-                          <button
-                            onClick={() => startCreate('group', null)}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left transition hover:opacity-70"
-                          >
-                            <span className="text-lg">👥</span>
-                            <div>
-                              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>New Group</p>
-                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Standalone chat group</p>
-                            </div>
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <CloseBtn />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="flex-1 overflow-y-auto"
-            onClick={() => showNewPicker && setShowNewPicker(false)}
-          >
-            <div className="max-w-110 mx-auto w-full px-4 py-4 flex flex-col gap-5">
-
-              {myCommunities.length > 0 && (
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                    Your Communities
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {myCommunities.map((c) => (
-                      <ItemCard
-                        key={c.id}
-                        item={c}
-                        isMember
-                        isOwner={c.owner_id === userId}
-                        onPrimary={() => openCommunityDetail(c)}
-                        onLeave={() => leaveItem(c)}
-                        subGroupCount={subGroupCounts[c.id] ?? 0}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {myGroups.length > 0 && (
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                    {t('yourGroups')}
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {myGroups.map((g) => (
-                      <ItemCard
-                        key={g.id}
-                        item={g}
-                        isMember
-                        isOwner={g.owner_id === userId}
-                        onPrimary={() => openChat(g, 'list')}
-                        onLeave={() => leaveItem(g)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {discoverItems.length > 0 && (
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
-                    Discover
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {discoverItems.map((c) => (
-                      <ItemCard
-                        key={c.id}
-                        item={c}
-                        isMember={false}
-                        onPrimary={() =>
-                          c.community_type === 'community'
-                            ? openCommunityDetail(c)
-                            : openChat(c, 'list')
-                        }
-                        onJoin={() => joinItem(c)}
-                        subGroupCount={subGroupCounts[c.id] ?? 0}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {myCommunities.length === 0 && myGroups.length === 0 && discoverItems.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 gap-4">
-                  <span className="text-5xl">💬</span>
-                  <div className="text-center">
-                    <p className="text-lg font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-                      Nothing here yet
-                    </p>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                      Create a community or a standalone group
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => startCreate('community', null)}
-                      className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                    >
-                      🏛️ Community
-                    </button>
-                    <button
-                      onClick={() => startCreate('group', null)}
-                      className="px-4 py-2.5 rounded-xl font-bold text-sm"
-                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-                    >
-                      👥 Group
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
+function EmptyState({ text }: { text: string }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
+  return <p className="text-center py-8 text-sm" style={{ color: C.textSecondary }}>{text}</p>;
 }

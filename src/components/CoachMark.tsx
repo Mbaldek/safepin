@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from '@/stores/useTheme';
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -21,6 +22,26 @@ interface CoachMarkProps {
   doneLabel?: string;
 }
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
 const TOOLTIP_WIDTH = 280;
 const GAP = 14; // px between target edge and tooltip
 
@@ -37,6 +58,8 @@ export function CoachMark({
   nextLabel = 'Next →',
   doneLabel = 'Got it!',
 }: CoachMarkProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
@@ -124,8 +147,8 @@ export function CoachMark({
         style={{
           ...tooltipStyle,
           zIndex: 201,
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border)',
+          backgroundColor: C.card,
+          border: `1px solid ${C.border}`,
           borderRadius: 16,
           padding: 16,
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
@@ -136,30 +159,30 @@ export function CoachMark({
         <Arrow position={position} offset={arrowOffset} />
 
         {/* Content */}
-        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: C.textPrimary }}>
           {title}
         </p>
-        <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs leading-relaxed mb-4" style={{ color: C.textSecondary }}>
           {description}
         </p>
 
         {/* Footer */}
         <div className="flex items-center justify-between">
-          <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-xs tabular-nums" style={{ color: C.textSecondary }}>
             {currentStep}/{totalSteps}
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={onSkip}
               className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: C.textSecondary }}
             >
               {skipLabel}
             </button>
             <button
               onClick={onNext}
               className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
-              style={{ backgroundColor: 'var(--accent)', color: 'var(--surface-base)' }}
+              style={{ backgroundColor: FIXED.accentCyan, color: C.bg }}
             >
               {currentStep === totalSteps ? doneLabel : nextLabel}
             </button>
@@ -178,11 +201,13 @@ const ARROW = 12; // px
 const HALF = ARROW / 2;
 
 function Arrow({ position, offset }: { position: TooltipPosition; offset: number }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const base: React.CSSProperties = {
     position: 'absolute',
     width: ARROW,
     height: ARROW,
-    backgroundColor: 'var(--bg-card)',
+    backgroundColor: C.card,
     transform: 'rotate(45deg)',
   };
 
@@ -199,8 +224,8 @@ function Arrow({ position, offset }: { position: TooltipPosition; offset: number
             ...base,
             top: -HALF,
             left: safeOffset - HALF,
-            borderTop: '1px solid var(--border)',
-            borderLeft: '1px solid var(--border)',
+            borderTop: `1px solid ${C.border}`,
+            borderLeft: `1px solid ${C.border}`,
           }}
         />
       );
@@ -212,8 +237,8 @@ function Arrow({ position, offset }: { position: TooltipPosition; offset: number
             ...base,
             bottom: -HALF,
             left: safeOffset - HALF,
-            borderBottom: '1px solid var(--border)',
-            borderRight: '1px solid var(--border)',
+            borderBottom: `1px solid ${C.border}`,
+            borderRight: `1px solid ${C.border}`,
           }}
         />
       );
@@ -225,8 +250,8 @@ function Arrow({ position, offset }: { position: TooltipPosition; offset: number
             ...base,
             left: -HALF,
             top: safeOffsetV - HALF,
-            borderLeft: '1px solid var(--border)',
-            borderBottom: '1px solid var(--border)',
+            borderLeft: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${C.border}`,
           }}
         />
       );
@@ -238,8 +263,8 @@ function Arrow({ position, offset }: { position: TooltipPosition; offset: number
             ...base,
             right: -HALF,
             top: safeOffsetV - HALF,
-            borderRight: '1px solid var(--border)',
-            borderTop: '1px solid var(--border)',
+            borderRight: `1px solid ${C.border}`,
+            borderTop: `1px solid ${C.border}`,
           }}
         />
       );

@@ -6,6 +6,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { CATEGORIES, Pin } from '@/types';
 
 const CAT_I18N: Record<string, string> = {
@@ -14,10 +15,31 @@ const CAT_I18N: Record<string, string> = {
 };
 import { timeAgoLong as timeAgo, haversineMeters, springTransition } from '@/lib/utils';
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444', semanticDangerSoft: 'rgba(239,68,68,0.12)',
+  semanticSuccess: '#34D399', semanticSuccessSoft: 'rgba(52,211,153,0.12)',
+};
+
 // ── Severity brand tokens ──────────────────────────────────────────────────────
 
 const SEV_COLOR: Record<string, string> = {
-  low: '#F4A940', med: 'var(--accent-gold)', high: '#E63946',
+  low: '#FBBF24', med: FIXED.accentGold, high: FIXED.semanticDanger,
 };
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -29,7 +51,8 @@ function formatDist(m: number) {
 
 // ── Veil Symbol (empty state icon) ────────────────────────────────────────────
 
-function VeilSymbol() {
+function VeilSymbol({ isDark }: { isDark: boolean }) {
+  const dotFill = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.12)';
   return (
     <svg
       width="60"
@@ -47,7 +70,7 @@ function VeilSymbol() {
       <path d="M 90 20 Q 90 95 60 138" stroke="rgba(139,126,200,0.5)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
       <path d="M 42 20 Q 42 88 60 130" stroke="rgba(232,168,56,0.8)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
       <path d="M 78 20 Q 78 88 60 130" stroke="rgba(232,168,56,0.8)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <circle cx="60" cy="148" r="2" fill="rgba(255,255,255,0.15)" />
+      <circle cx="60" cy="148" r="2" fill={dotFill} />
     </svg>
   );
 }
@@ -59,13 +82,15 @@ function IncidentCard({ pin, dist, t }: {
   dist: number | null;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { setSelectedPin, setActiveSheet, setMapFlyTo, liveSessions } = useStore();
   const tCat = useTranslations('categories');
   const cat = CATEGORIES[pin.category as keyof typeof CATEGORIES];
   const isEmergency = pin.is_emergency;
   const isLive = liveSessions.some((s) => s.pin_id === pin.id && !s.ended_at);
   const isDanger = isEmergency || pin.severity === 'high';
-  const sevColor = isEmergency ? '#E63946' : (SEV_COLOR[pin.severity] ?? 'var(--accent-gold)');
+  const sevColor = isEmergency ? FIXED.semanticDanger : (SEV_COLOR[pin.severity] ?? FIXED.accentGold);
   const sevLabel = isEmergency
     ? t('urgent')
     : pin.severity === 'low' ? t('mild')
@@ -85,9 +110,9 @@ function IncidentCard({ pin, dist, t }: {
       onClick={handleTap}
       className="w-full text-left flex items-start gap-3 rounded-xl p-3.5 transition active:scale-[0.98]"
       style={{
-        backgroundColor: isDanger ? 'rgba(230,57,70,0.03)' : 'var(--bg-card)',
-        border: `1px solid ${isDanger ? 'rgba(230,57,70,0.15)' : 'var(--border)'}`,
-        borderLeft: isDanger ? '3px solid #E63946' : `1px solid var(--border)`,
+        backgroundColor: isDanger ? FIXED.semanticDangerSoft : C.card,
+        border: `1px solid ${isDanger ? 'rgba(239,68,68,0.15)' : C.border}`,
+        borderLeft: isDanger ? `3px solid ${FIXED.semanticDanger}` : `1px solid ${C.border}`,
       }}
     >
       {/* Icon circle */}
@@ -102,22 +127,22 @@ function IncidentCard({ pin, dist, t }: {
       {/* Content */}
       <div className="flex flex-1 flex-col gap-0.5 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+          <span className="text-[14px] font-semibold truncate" style={{ color: C.textPrimary }}>
             {typeLabel}
           </span>
           {isLive && (
             <span
               className="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse"
-              style={{ backgroundColor: '#E63946', color: '#fff' }}
+              style={{ backgroundColor: FIXED.semanticDanger, color: '#fff' }}
             >
               ● {t('live')}
             </span>
           )}
         </div>
-        <span className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-[12px] truncate" style={{ color: C.textSecondary }}>
           {pin.description}
         </span>
-        <span className="text-[11px]" style={{ color: 'var(--text-placeholder)' }}>
+        <span className="text-[11px]" style={{ color: C.textTertiary }}>
           {timeAgo(pin.created_at)}
           {dist !== null && ` · ~${formatDist(dist)}`}
         </span>
@@ -158,6 +183,8 @@ const SEV_ORDER: Record<string, number> = { high: 0, med: 1, low: 2 };
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function IncidentsView({ onClose }: { onClose: () => void }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const t = useTranslations('incidents');
   const { pins, userLocation, liveSessions, mapFilters, setMapFilters } = useStore();
   const [radiusFilter, setRadiusFilter] = useState<RadiusFilter>('all');
@@ -214,8 +241,8 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
     <motion.div
       className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden"
       style={{
-        backgroundColor: 'var(--bg-secondary)',
-        boxShadow: '0 -10px 40px var(--bg-overlay)',
+        backgroundColor: C.elevated,
+        boxShadow: `0 -10px 40px ${isDark ? 'rgba(15,23,42,0.8)' : 'rgba(248,250,252,0.8)'}`,
         maxHeight: '78dvh',
       }}
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -224,24 +251,24 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
       {/* Drag handle */}
       <div
         className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0"
-        style={{ backgroundColor: 'var(--border)' }}
+        style={{ backgroundColor: C.border }}
       />
 
       {/* ── Sticky header ─────────────────────────────────────────── */}
       <div
         className="shrink-0 px-4 pt-3 pb-3"
-        style={{ borderBottom: '1px solid var(--border)' }}
+        style={{ borderBottom: `1px solid ${C.border}` }}
       >
         {/* Title row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-[16px] font-semibold" style={{ color: C.textPrimary }}>
               {t('nearbyIncidents')}
             </h2>
             {filtered.length > 0 && (
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)' }}
+                style={{ backgroundColor: C.card, color: C.textSecondary }}
               >
                 {filtered.length}
               </span>
@@ -250,7 +277,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
           <button
             onClick={onClose}
             className="text-xs rounded-full px-3 py-1.5 font-medium transition active:opacity-70"
-            style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            style={{ color: C.textSecondary, border: `1px solid ${C.border}` }}
           >
             ✕
           </button>
@@ -265,8 +292,8 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
               className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition"
               style={
                 mapFilters.age === id
-                  ? { backgroundColor: 'var(--accent)', color: '#fff' }
-                  : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                  ? { backgroundColor: FIXED.accentCyan, color: '#fff' }
+                  : { backgroundColor: C.card, color: C.textSecondary, border: `1px solid ${C.border}` }
               }
             >
               {t(key)}
@@ -276,7 +303,7 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
 
         {/* Radius filter chips */}
         <div className="flex gap-1.5 mb-2 items-center">
-          <span className="text-[10px] font-semibold shrink-0" style={{ color: 'var(--text-placeholder)' }}>
+          <span className="text-[10px] font-semibold shrink-0" style={{ color: C.textTertiary }}>
             {t('radius')}
           </span>
           {RADIUS_FILTERS.map(({ id, label }) => {
@@ -288,10 +315,10 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                 className="px-2.5 py-1 rounded-full text-[10px] font-semibold transition"
                 style={
                   disabled
-                    ? { backgroundColor: 'var(--bg-card)', color: 'var(--text-placeholder)', border: '1px solid var(--border)', cursor: 'default', opacity: 0.5 }
+                    ? { backgroundColor: C.card, color: C.textTertiary, border: `1px solid ${C.border}`, cursor: 'default', opacity: 0.5 }
                     : radiusFilter === id
-                      ? { backgroundColor: 'var(--blue)', color: '#fff' }
-                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                      ? { backgroundColor: FIXED.accentCyan, color: '#fff' }
+                      : { backgroundColor: C.card, color: C.textSecondary, border: `1px solid ${C.border}` }
                 }
               >
                 {id === 'all' ? t('any') : label}
@@ -318,8 +345,8 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                   isActive
                     ? color
                       ? { backgroundColor: `${color}20`, color, border: `1.5px solid ${color}60` }
-                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1.5px solid var(--border-hover)' }
-                    : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                      : { backgroundColor: C.card, color: C.textPrimary, border: `1.5px solid ${C.borderMid}` }
+                    : { backgroundColor: C.card, color: C.textSecondary, border: `1px solid ${C.border}` }
                 }
               >
                 {label}
@@ -342,19 +369,19 @@ export default function IncidentsView({ onClose }: { onClose: () => void }) {
                 background: 'radial-gradient(circle, rgba(232,168,56,0.08) 0%, transparent 70%)',
               }}
             >
-              <VeilSymbol />
+              <VeilSymbol isDark={isDark} />
             </div>
-            <p className="mt-4 text-center text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
+            <p className="mt-4 text-center text-[16px] font-medium" style={{ color: C.textPrimary }}>
               {hasFilters ? t('noResults') : t('allClear')}
             </p>
-            <p className="mt-1 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
+            <p className="mt-1 text-center text-[13px]" style={{ color: C.textSecondary }}>
               {hasFilters ? t('broadenFilters') : t('allClearSub')}
             </p>
             {hasFilters && (
               <button
                 onClick={clearAll}
                 className="mt-4 px-4 py-2 rounded-xl text-[12px] font-semibold transition active:opacity-70"
-                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                style={{ backgroundColor: C.card, color: C.textSecondary, border: `1px solid ${C.border}` }}
               >
                 {t('clearFilters')}
               </button>

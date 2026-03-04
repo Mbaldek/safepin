@@ -9,6 +9,7 @@ import { PlaceNote, SavedRoute } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { geocodeForward } from '@/lib/geocode';
+import { useTheme } from '@/stores/useTheme';
 
 const MODES_LIST = [
   { id: 'walk',    emoji: '🚶' },
@@ -20,6 +21,26 @@ type Mode = typeof MODES_LIST[number]['id'];
 
 const MODES: Record<string, string> = { walk: '🚶', bike: '🚴', drive: '🚗', transit: '🚇' };
 const PLACE_EMOJIS = ['📌', '🏠', '💼', '🍽️', '❤️', '🌳', '🔒', '🚶', '⭐', '⚠️'];
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
 
 type Props = {
   savedRoutes: SavedRoute[];
@@ -42,6 +63,8 @@ export default function SavedPanel({
   onAddPlace,
   onRouteAdded,
 }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { placeNotes, favPlaceIds, toggleFavPlace, deletePlaceNote, userId, userLocation } = useStore();
   const [tab, setTab] = useState<'places' | 'routes'>('places');
 
@@ -161,9 +184,9 @@ export default function SavedPanel({
 
   // ── Common input style ────────────────────────────────────────────────────
   const inputStyle = {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1.5px solid var(--border)',
-    color: 'var(--text-primary)',
+    backgroundColor: C.elevated,
+    border: `1.5px solid ${C.border}`,
+    color: C.textPrimary,
   };
 
   return (
@@ -172,7 +195,7 @@ export default function SavedPanel({
       {/* Tabs */}
       <div
         className="flex gap-1 px-1 py-1 rounded-2xl shrink-0"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
       >
         {(['places', 'routes'] as const).map((t) => (
           <button
@@ -180,8 +203,8 @@ export default function SavedPanel({
             onClick={() => setTab(t)}
             className="flex-1 py-1.5 rounded-xl text-xs font-black transition"
             style={{
-              backgroundColor: tab === t ? 'var(--accent)' : 'transparent',
-              color: tab === t ? '#fff' : 'var(--text-muted)',
+              backgroundColor: tab === t ? FIXED.accentCyan : 'transparent',
+              color: tab === t ? '#fff' : C.textSecondary,
             }}
           >
             {t === 'places'
@@ -200,10 +223,10 @@ export default function SavedPanel({
             {favPlaces.length === 0 && !addingPlace && (
               <div className="flex flex-col items-center gap-2 py-6 text-center">
                 <span className="text-3xl">📍</span>
-                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm font-bold" style={{ color: C.textPrimary }}>
                   No favorite places yet
                 </p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs" style={{ color: C.textSecondary }}>
                   Add one below, or long-press on the map to pin a spot.
                 </p>
               </div>
@@ -216,13 +239,13 @@ export default function SavedPanel({
                 <div
                   key={n.id}
                   className="rounded-2xl overflow-hidden"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid rgba(245,158,11,0.35)' }}
+                  style={{ backgroundColor: C.card, border: '1.5px solid rgba(245,158,11,0.35)' }}
                 >
                   <div className="flex items-center gap-2 px-3 pt-3 pb-1">
                     <span className="text-lg shrink-0">{n.emoji}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                      {sub && <p className="text-[0.6rem] truncate" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
+                      <p className="text-sm font-bold truncate" style={{ color: C.textPrimary }}>{label}</p>
+                      {sub && <p className="text-[0.6rem] truncate" style={{ color: C.textSecondary }}>{sub}</p>}
                     </div>
                     <button
                       onClick={() => toggleFavPlace(n.id)}
@@ -247,7 +270,7 @@ export default function SavedPanel({
                     <button
                       onClick={() => onLoadPlace(n, 'to')}
                       className="flex-1 py-1.5 rounded-xl text-xs font-bold transition"
-                      style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: 'var(--accent)', border: '1px solid rgba(212,168,83,0.2)' }}
+                      style={{ backgroundColor: 'rgba(212,168,83,0.10)', color: FIXED.accentCyan, border: '1px solid rgba(212,168,83,0.2)' }}
                     >📍 Go here</button>
                   </div>
                 </div>
@@ -258,9 +281,9 @@ export default function SavedPanel({
             {addingPlace ? (
               <div
                 className="rounded-2xl p-3 flex flex-col gap-2"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
+                style={{ backgroundColor: C.card, border: `1.5px solid ${FIXED.accentCyan}` }}
               >
-                <p className="text-[0.6rem] font-black uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
+                <p className="text-[0.6rem] font-black uppercase tracking-widest" style={{ color: FIXED.accentCyan }}>
                   New Favorite Place
                 </p>
 
@@ -272,8 +295,8 @@ export default function SavedPanel({
                       onClick={() => setPEmoji(e)}
                       className="w-8 h-8 rounded-xl text-base flex items-center justify-center"
                       style={{
-                        backgroundColor: pEmoji === e ? 'var(--accent)' : 'var(--bg-secondary)',
-                        border: pEmoji === e ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        backgroundColor: pEmoji === e ? FIXED.accentCyan : C.elevated,
+                        border: pEmoji === e ? `2px solid ${FIXED.accentCyan}` : `1px solid ${C.border}`,
                       }}
                     >{e}</button>
                   ))}
@@ -303,7 +326,7 @@ export default function SavedPanel({
                   <button
                     onClick={() => setAddingPlace(false)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold transition"
-                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
                   >
                     <X size={11} className="inline mr-1" />Cancel
                   </button>
@@ -311,7 +334,7 @@ export default function SavedPanel({
                     onClick={submitPlace}
                     disabled={(!pName.trim() && !pAddr.trim()) || pSaving}
                     className="flex-1 py-2 rounded-xl text-xs font-black transition disabled:opacity-40"
-                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    style={{ backgroundColor: FIXED.accentCyan, color: '#fff' }}
                   >
                     {pSaving ? '…' : <><Check size={11} className="inline mr-1" />Add ⭐</>}
                   </button>
@@ -321,7 +344,7 @@ export default function SavedPanel({
               <button
                 onClick={() => setAddingPlace(true)}
                 className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-2xl text-xs font-bold transition"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border)', color: 'var(--text-muted)' }}
+                style={{ backgroundColor: C.card, border: `1px dashed ${C.border}`, color: C.textSecondary }}
               >
                 <Plus size={13} />
                 Add a place
@@ -333,7 +356,7 @@ export default function SavedPanel({
               <button
                 onClick={onAddPlace}
                 className="text-[0.6rem] text-center transition hover:opacity-70"
-                style={{ color: 'var(--text-placeholder)' }}
+                style={{ color: C.textTertiary }}
               >
                 or long-press on the map to pin a location
               </button>
@@ -347,10 +370,10 @@ export default function SavedPanel({
             {sortedRoutes.length === 0 && !addingRoute && (
               <div className="flex flex-col items-center gap-2 py-6 text-center">
                 <span className="text-3xl">🗺️</span>
-                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm font-bold" style={{ color: C.textPrimary }}>
                   No saved routes yet
                 </p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs" style={{ color: C.textSecondary }}>
                   Add one below or find a route and tap the bookmark icon.
                 </p>
               </div>
@@ -363,8 +386,8 @@ export default function SavedPanel({
                   key={r.id}
                   className="flex items-center gap-1 rounded-xl overflow-hidden"
                   style={{
-                    backgroundColor: 'var(--bg-card)',
-                    border: isFav ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid var(--border)',
+                    backgroundColor: C.card,
+                    border: isFav ? '1.5px solid rgba(245,158,11,0.5)' : `1px solid ${C.border}`,
                   }}
                 >
                   <button
@@ -378,10 +401,10 @@ export default function SavedPanel({
                     className="flex-1 flex items-center justify-between py-2.5 pr-2 text-left min-w-0"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                      <p className="text-xs font-bold truncate" style={{ color: C.textPrimary }}>
                         {r.from_label ? `${r.from_label} → ` : ''}{r.to_label}
                       </p>
-                      <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-[0.6rem]" style={{ color: C.textSecondary }}>
                         {MODES[r.mode] ?? ''} {r.mode} · {r.trip_count}× used
                       </p>
                     </div>
@@ -407,11 +430,11 @@ export default function SavedPanel({
                       disabled={sharingId === r.id}
                       className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-70"
                       style={{
-                        backgroundColor: r.is_public ? 'rgba(34,197,94,0.10)' : 'var(--bg-secondary)',
+                        backgroundColor: r.is_public ? 'rgba(34,197,94,0.10)' : C.elevated,
                       }}
                       title={r.is_public ? 'Shared publicly' : 'Share route'}
                     >
-                      <Share2 size={12} style={{ color: r.is_public ? '#22c55e' : 'var(--text-muted)' }} />
+                      <Share2 size={12} style={{ color: r.is_public ? '#22c55e' : C.textSecondary }} />
                     </button>
                     <button
                       onClick={() => onDeleteRoute(r.id)}
@@ -429,9 +452,9 @@ export default function SavedPanel({
             {addingRoute ? (
               <div
                 className="rounded-2xl p-3 flex flex-col gap-2"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--accent)' }}
+                style={{ backgroundColor: C.card, border: `1.5px solid ${FIXED.accentCyan}` }}
               >
-                <p className="text-[0.6rem] font-black uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
+                <p className="text-[0.6rem] font-black uppercase tracking-widest" style={{ color: FIXED.accentCyan }}>
                   New Saved Route
                 </p>
 
@@ -443,8 +466,8 @@ export default function SavedPanel({
                       onClick={() => setRMode(id)}
                       className="flex-1 py-1.5 rounded-xl text-sm transition"
                       style={{
-                        backgroundColor: rMode === id ? 'var(--accent)' : 'var(--bg-secondary)',
-                        border: rMode === id ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        backgroundColor: rMode === id ? FIXED.accentCyan : C.elevated,
+                        border: rMode === id ? `2px solid ${FIXED.accentCyan}` : `1px solid ${C.border}`,
                       }}
                     >{emoji}</button>
                   ))}
@@ -474,7 +497,7 @@ export default function SavedPanel({
                   <button
                     onClick={() => setAddingRoute(false)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold transition"
-                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
                   >
                     <X size={11} className="inline mr-1" />Cancel
                   </button>
@@ -482,7 +505,7 @@ export default function SavedPanel({
                     onClick={submitRoute}
                     disabled={!rTo.trim() || rSaving}
                     className="flex-1 py-2 rounded-xl text-xs font-black transition disabled:opacity-40"
-                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    style={{ backgroundColor: FIXED.accentCyan, color: '#fff' }}
                   >
                     {rSaving ? '…' : <><Check size={11} className="inline mr-1" />Save</>}
                   </button>
@@ -492,7 +515,7 @@ export default function SavedPanel({
               <button
                 onClick={() => setAddingRoute(true)}
                 className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-2xl text-xs font-bold transition"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border)', color: 'var(--text-muted)' }}
+                style={{ backgroundColor: C.card, border: `1px dashed ${C.border}`, color: C.textSecondary }}
               >
                 <Plus size={13} />
                 Add a route

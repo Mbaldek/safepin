@@ -64,10 +64,16 @@ export default function ContextBanner() {
 
   return (
     <div
-      className="absolute top-[64px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2 rounded-3xl"
+      className="absolute top-[64px] left-1/2 -translate-x-1/2 z-40 rounded-3xl"
       style={{
-        backgroundColor: '#1E293B',
-        border: '1px solid rgba(255,255,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '8px 16px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        backgroundColor: 'var(--surface-card)',
+        border: '1px solid var(--border)',
         boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
         cursor: msg.action ? 'pointer' : 'default',
       }}
@@ -76,13 +82,14 @@ export default function ContextBanner() {
       <span className="text-xs">{msg.icon}</span>
       <span
         className="text-xs font-bold truncate max-w-[180px]"
-        style={{ color: msg.key === 'share' ? 'var(--safe)' : '#FFFFFF' }}
+        style={{ color: msg.key === 'share' ? 'var(--safe)' : 'var(--text-primary)' }}
       >
         {msg.text}
       </span>
       {msg.dismiss && (
         <button
-          className="text-xs opacity-50 ml-1 leading-none text-white"
+          className="text-xs opacity-50 ml-1 leading-none"
+          style={{ color: 'var(--text-muted)' }}
           onClick={(e) => { e.stopPropagation(); msg.dismiss!(); }}
         >
           ×

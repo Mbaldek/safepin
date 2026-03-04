@@ -16,11 +16,11 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Tag, User } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
-import DetailSheet from '@/components/DetailSheet';
+import { PinDetailSheet } from '@/components/map/PinDetailSheet';
 import { ReportSheet } from '@/components/ReportSheet';
 import { ConfirmFlowModal } from '@/components/ConfirmFlowModal';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -32,7 +32,6 @@ import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
 import OnboardingFunnelV2, { useOnboardingDone } from '@/components/OnboardingFunnelV2';
-import PlaceNoteSheet from '@/components/PlaceNoteSheet';
 import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -45,10 +44,10 @@ import { useTour } from '@/hooks/useTour';
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
-const SettingsSheet = dynamic(() => import('@/components/SettingsSheet'), { ssr: false });
+const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
-const CommunityView = dynamic(() => import('@/components/CommunityView'), { ssr: false });
+const CommunityHub = dynamic(() => import('@/components/community/CommunityHub'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -92,14 +91,13 @@ export default function MapPage() {
   const router = useRouter();
   const {
     pins, setPins, addPin, updatePin,
-    activeSheet, setActiveSheet,
+    activeSheet, setActiveSheet, selectedPin, setSelectedPin,
     activeTab, setActiveTab,
     setUserProfile, setUserId, userId,
     addNotification, notifications,
     setPendingRoutes,
     isSharingLocation, setIsSharingLocation, setWatchedLocation,
-    userLocation, userProfile,
-    newPlaceNoteCoords, setNewPlaceNoteCoords,
+    userLocation, userProfile, setNewPinCoords,
     selectedPlaceNote, setSelectedPlaceNote,
     setLiveSessions, addLiveSession, updateLiveSession,
     showIncidentsList, setShowIncidentsList,
@@ -111,6 +109,7 @@ export default function MapPage() {
     showWalkWithMe, setShowWalkWithMe,
     mapFilters,
     showSafeSpaces, setShowSafeSpaces,
+    showPinLabels, setShowPinLabels,
   } = useStore();
   const tMap = useTranslations('map');
   const tTour = useTranslations('tour');
@@ -703,6 +702,25 @@ export default function MapPage() {
                     </span>
                   )}
                 </button>
+                {/* Pin labels toggle — map tab only */}
+                {activeTab === 'map' && (
+                  <button
+                    onClick={() => setShowPinLabels(!showPinLabels)}
+                    aria-label={showPinLabels ? 'Hide pin labels' : 'Show pin labels'}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                    style={{ backgroundColor: showPinLabels ? 'var(--accent)' : 'transparent' }}
+                  >
+                    <Tag size={16} strokeWidth={2} style={{ color: showPinLabels ? '#FFFFFF' : 'var(--text-muted)' }} />
+                  </button>
+                )}
+                {/* Profile — opens MyKovaView */}
+                <button
+                  onClick={() => setActiveTab('me')}
+                  aria-label="Mon profil"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                >
+                  <User size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                </button>
                 <ThemeToggle />
                 {/* Settings / burger menu */}
                 <button
@@ -730,9 +748,25 @@ export default function MapPage() {
           showPolice={showPolice}
           showHeatmap={showHeatmap}
           showScores={showScores}
+          showPinLabels={showPinLabels}
           onTransitLoadingChange={setTransitLoading}
           onPoiLoadingChange={setPoiLoading}
         />
+
+        {/* Center pin — visible when report sheet is open */}
+        {activeSheet === 'report' && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-40"
+               style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <svg width={36} height={44} viewBox="0 0 36 44" fill="none">
+                <path d="M18 0C8.06 0 0 8.06 0 18c0 12.6 18 26 18 26s18-13.4 18-26C36 8.06 27.94 0 18 0z" fill="#3b82f6"/>
+                <circle cx="18" cy="18" r="8" fill="#fff"/>
+              </svg>
+              <div style={{ width: 2, height: 8, background: 'rgba(59,130,246,0.4)', borderRadius: 1 }} />
+            </div>
+          </div>
+        )}
+
         <EmergencyButton userId={userId} />
 
         {/* Location sharing chip — visible while Walk With Me broadcast is active */}
@@ -817,7 +851,11 @@ export default function MapPage() {
             </button>
             {/* Report button — stacked above SOS on the right */}
             <button
-              onClick={() => setActiveSheet('report')}
+              onClick={() => {
+                const loc = useStore.getState().userLocation;
+                if (loc) setNewPinCoords({ lat: loc.lat, lng: loc.lng });
+                setActiveSheet('report');
+              }}
               data-tour="report-button"
               className="absolute bottom-22 right-4 w-14 h-14 rounded-full text-white text-2xl flex items-center justify-center z-50 hover:scale-105 active:scale-95 transition"
               style={{
@@ -841,11 +879,12 @@ export default function MapPage() {
               trip={activeTrip}
               nudge={tripNudge}
               onImSafe={() => {
-                setActiveTrip(null);
+                // Signal COMPLETED — TripView syncs via useEffect and calls completeTrip('safe')
+                if (activeTrip) setActiveTrip({ ...activeTrip, state: 'COMPLETED' });
                 setActiveRoute(null);
                 setTransitSegments(null);
                 setPendingRoutes(null);
-                setActiveTab('trip'); // open trip tab to show summary
+                setActiveTab('trip');
               }}
               onOpenTrip={() => setActiveTab('trip')}
             />
@@ -855,7 +894,7 @@ export default function MapPage() {
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence>
           {activeTab === 'community' && userId && (
-            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} />
+            <CommunityHub key="community-tab" onClose={() => setActiveTab('map')} onViewAllGroups={() => {}} />
           )}
         </AnimatePresence>
 
@@ -909,10 +948,29 @@ export default function MapPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Sheets (top-level so they render over any tab) ─────────── */}
-      <AnimatePresence>
-        {activeSheet === 'detail' && <DetailSheet key="detail" />}
-      </AnimatePresence>
+      {/* ── Pin Detail Sheet ─────────────────────────────────────── */}
+      <PinDetailSheet
+        pin={selectedPin}
+        isOpen={activeSheet === 'detail' && !!selectedPin}
+        onClose={() => { setActiveSheet('none'); setSelectedPin(null); }}
+        onConfirm={async (pinId) => {
+          const p = pins.find((x) => x.id === pinId);
+          if (!p) return;
+          const { data, error } = await supabase.from('pins').update({ confirmations: (p.confirmations || 1) + 1 }).eq('id', pinId).select().single();
+          if (!error && data) updatePin(data);
+        }}
+        onResolved={async (pinId) => {
+          await supabase.from('pins').update({ hidden: true }).eq('id', pinId);
+          setActiveSheet('none'); setSelectedPin(null);
+        }}
+        onFalse={async (pinId) => {
+          const p = pins.find((x) => x.id === pinId);
+          if (!p) return;
+          await supabase.from('pins').update({ flag_count: (p.flag_count || 0) + 1 }).eq('id', pinId);
+          setActiveSheet('none'); setSelectedPin(null);
+        }}
+        onContact={() => {}}
+      />
 
       {/* ── New Report Sheet (v2) ── */}
       <AnimatePresence>
@@ -921,19 +979,6 @@ export default function MapPage() {
 
       {/* ── Confirm Flow Modal ── */}
       <ConfirmFlowModal />
-
-      {/* ── Place Note sheet — triggered by long-press on map ──────── */}
-      <AnimatePresence>
-        {newPlaceNoteCoords && userId && (
-          <PlaceNoteSheet
-            key="place-note"
-            coords={newPlaceNoteCoords}
-            userId={userId}
-            onClose={() => setNewPlaceNoteCoords(null)}
-            onSaved={() => setNewPlaceNoteCoords(null)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── Place Note popup — tap a note marker on the map ────────── */}
       <AnimatePresence>
@@ -952,6 +997,7 @@ export default function MapPage() {
           <WalkWithMePanel
             key="walk-with-me"
             userId={userId}
+            destination={activeTrip?.destination?.label ?? ''}
             onClose={() => setShowWalkWithMe(false)}
           />
         )}
@@ -986,11 +1032,7 @@ export default function MapPage() {
       </AnimatePresence>
 
       {/* ── Settings sheet ─────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showSettings && (
-          <SettingsSheet key="settings" onClose={() => setShowSettings(false)} mapStyle={mapStyle} onMapStyleChange={setMapStyle} />
-        )}
-      </AnimatePresence>
+      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* ── Onboarding overlay (first launch only) ─────────────────── */}
       {!loading && !onboardingDone && userId && (

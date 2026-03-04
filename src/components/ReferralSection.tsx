@@ -6,10 +6,33 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Gift, Copy, Share2, Users } from 'lucide-react';
+import { useTheme } from '@/stores/useTheme';
 
 type Props = { userId: string };
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
 export default function ReferralSection({ userId }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -67,15 +90,15 @@ export default function ReferralSection({ userId }: Props) {
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <Gift size={16} style={{ color: '#8b5cf6' }} />
-        <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>Invite Friends</span>
+        <span className="text-sm font-black" style={{ color: C.textPrimary }}>Invite Friends</span>
       </div>
 
-      <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-xs mb-3" style={{ color: C.textSecondary }}>
         Share Breveil with friends. Every signup with your code earns you bonus trust points!
       </p>
 
@@ -83,16 +106,16 @@ export default function ReferralSection({ userId }: Props) {
       <div className="flex items-center gap-2 mb-3">
         <div
           className="flex-1 px-3 py-2.5 rounded-xl text-center font-black tracking-widest text-sm"
-          style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent)', border: '1px solid var(--border)' }}
+          style={{ backgroundColor: C.bg, color: FIXED.accentCyan, border: `1px solid ${C.border}` }}
         >
           {referralCode}
         </div>
         <button
           onClick={copyCode}
           className="p-2.5 rounded-xl transition active:scale-95"
-          style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
+          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
         >
-          <Copy size={16} style={{ color: 'var(--text-muted)' }} />
+          <Copy size={16} style={{ color: C.textSecondary }} />
         </button>
       </div>
 

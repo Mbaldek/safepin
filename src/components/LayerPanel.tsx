@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import CollapsibleSection from '@/components/CollapsibleSection';
+import { useTheme } from '@/stores/useTheme';
 
 type MapStyle = 'custom' | 'streets' | 'light' | 'dark';
 
@@ -47,8 +48,29 @@ const STYLES: { id: MapStyle; label: string; emoji: string }[] = [
 
 const springConfig = { type: 'spring', damping: 32, stiffness: 300, mass: 0.8 } as const;
 
-function Toggle({ on, loading, onToggle, label, color, emoji }: {
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
+function Toggle({ on, loading, onToggle, label, color, emoji, textMuted, borderColor }: {
   on: boolean; loading?: boolean; onToggle: () => void; label: string; color: string; emoji: string;
+  textMuted: string; borderColor: string;
 }) {
   return (
     <button
@@ -60,7 +82,7 @@ function Toggle({ on, loading, onToggle, label, color, emoji }: {
       }}
     >
       <span className="text-sm">{emoji}</span>
-      <span className="flex-1 text-xs font-bold" style={{ color: on ? color : 'var(--text-muted)' }}>
+      <span className="flex-1 text-xs font-bold" style={{ color: on ? color : textMuted }}>
         {label}
       </span>
       {loading ? (
@@ -68,7 +90,7 @@ function Toggle({ on, loading, onToggle, label, color, emoji }: {
       ) : (
         <div
           className="w-8 h-4.5 rounded-full relative transition-colors"
-          style={{ backgroundColor: on ? color : 'var(--border)' }}
+          style={{ backgroundColor: on ? color : borderColor }}
         >
           <div
             className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-all"
@@ -81,6 +103,8 @@ function Toggle({ on, loading, onToggle, label, color, emoji }: {
 }
 
 export default function LayerPanel(props: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const t = useTranslations('layers');
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -101,14 +125,14 @@ export default function LayerPanel(props: Props) {
             className="absolute inset-0 z-58"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ backgroundColor: 'var(--bg-overlay)' }}
+            style={{ backgroundColor: isDark ? 'rgba(15,23,42,0.8)' : 'rgba(248,250,252,0.8)' }}
             onClick={props.onClose}
           />
 
           {/* Bottom sheet */}
           <motion.div
             className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 z-60 rounded-t-2xl max-h-[70vh] overflow-y-auto"
-            style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}
+            style={{ backgroundColor: C.elevated, borderTop: `1px solid ${C.border}` }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -116,12 +140,12 @@ export default function LayerPanel(props: Props) {
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: C.border }} />
             </div>
 
             {/* Header */}
             <div className="px-5 pb-2">
-              <h3 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-base font-black" style={{ color: C.textPrimary }}>
                 Layers
               </h3>
             </div>
@@ -135,9 +159,9 @@ export default function LayerPanel(props: Props) {
                     onClick={() => props.onStyleChange(id)}
                     className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl text-[0.65rem] font-bold transition"
                     style={{
-                      backgroundColor: props.mapStyle === id ? 'var(--accent)' : 'var(--bg-card)',
-                      color: props.mapStyle === id ? '#fff' : 'var(--text-muted)',
-                      border: props.mapStyle === id ? 'none' : '1px solid var(--border)',
+                      backgroundColor: props.mapStyle === id ? FIXED.accentCyan : C.card,
+                      color: props.mapStyle === id ? '#fff' : C.textSecondary,
+                      border: props.mapStyle === id ? 'none' : `1px solid ${C.border}`,
                     }}
                   >
                     <span className="text-sm">{emoji}</span>
@@ -156,9 +180,9 @@ export default function LayerPanel(props: Props) {
               onToggle={() => toggle('poi')}
             >
               <div className="flex flex-col gap-0.5">
-                <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label={t('pharmacies')} color="#10b981" emoji="💊" />
-                <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label={t('hospitals')} color="#ef4444" emoji="🏥" />
-                <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading} label={t('police')}     color="#3b82f6" emoji="🚔" />
+                <Toggle on={props.showPharmacy} onToggle={props.onPharmacyToggle} loading={props.poiLoading} label={t('pharmacies')} color="#10b981" emoji="💊" textMuted={C.textSecondary} borderColor={C.border} />
+                <Toggle on={props.showHospital} onToggle={props.onHospitalToggle} loading={props.poiLoading} label={t('hospitals')} color="#ef4444" emoji="🏥" textMuted={C.textSecondary} borderColor={C.border} />
+                <Toggle on={props.showPolice}   onToggle={props.onPoliceToggle}   loading={props.poiLoading} label={t('police')}     color="#3b82f6" emoji="🚔" textMuted={C.textSecondary} borderColor={C.border} />
               </div>
             </CollapsibleSection>
 
@@ -171,8 +195,8 @@ export default function LayerPanel(props: Props) {
               onToggle={() => toggle('transport')}
             >
               <div className="flex flex-col gap-0.5">
-                <Toggle on={props.showBus} onToggle={props.onBusToggle} loading={props.transitLoading && !props.showBus} label={t('busStops')} color="#f59e0b" emoji="🚌" />
-                <Toggle on={props.showMetroRER} onToggle={props.onMetroRERToggle} loading={props.transitLoading && !props.showMetroRER} label={t('metroRER')} color="#6366f1" emoji="🚇" />
+                <Toggle on={props.showBus} onToggle={props.onBusToggle} loading={props.transitLoading && !props.showBus} label={t('busStops')} color="#f59e0b" emoji="🚌" textMuted={C.textSecondary} borderColor={C.border} />
+                <Toggle on={props.showMetroRER} onToggle={props.onMetroRERToggle} loading={props.transitLoading && !props.showMetroRER} label={t('metroRER')} color="#6366f1" emoji="🚇" textMuted={C.textSecondary} borderColor={C.border} />
               </div>
             </CollapsibleSection>
 
@@ -185,9 +209,9 @@ export default function LayerPanel(props: Props) {
               onToggle={() => toggle('data')}
             >
               <div className="flex flex-col gap-0.5">
-                <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color="var(--accent-gold)" emoji="🔥" />
-                <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" />
-                <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" />
+                <Toggle on={props.showHeatmap} onToggle={props.onHeatmapToggle} label={t('heatmap')} color={FIXED.accentGold} emoji="🔥" textMuted={C.textSecondary} borderColor={C.border} />
+                <Toggle on={props.showScores} onToggle={props.onScoresToggle} label={t('safetyScores')} color="#6366f1" emoji="🗺️" textMuted={C.textSecondary} borderColor={C.border} />
+                <Toggle on={props.showSafeSpaces} onToggle={props.onSafeSpacesToggle} label={t('safeSpaces')} color="#22c55e" emoji="🛡️" textMuted={C.textSecondary} borderColor={C.border} />
               </div>
             </CollapsibleSection>
 
@@ -201,7 +225,7 @@ export default function LayerPanel(props: Props) {
                 onToggle={() => toggle('admin')}
               >
                 <div className="flex flex-col gap-0.5">
-                  <Toggle on={!!props.showSimulated} onToggle={props.onSimulatedToggle} label="Simulated" color="#f59e0b" emoji="🤖" />
+                  <Toggle on={!!props.showSimulated} onToggle={props.onSimulatedToggle} label="Simulated" color="#f59e0b" emoji="🤖" textMuted={C.textSecondary} borderColor={C.border} />
                 </div>
               </CollapsibleSection>
             )}

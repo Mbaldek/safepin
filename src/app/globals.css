@@ -614,8 +614,18 @@ body {
 }
 
 /* ============================================
-   MAP PIN — TRANSPORT RIPPLE
+   MAP PIN ANIMATIONS
    ============================================ */
+@keyframes radar-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.pin-pulse1 { animation: radar-pulse 2.1s ease-out infinite; animation-delay: 0s; }
+.pin-pulse2 { animation: radar-pulse 2.1s ease-out infinite; animation-delay: 0.7s; }
+.pin-pulse3 { animation: radar-pulse 2.1s ease-out infinite; animation-delay: 1.4s; }
+
+/* Legacy ripple (kept for backward compat) */
 @keyframes pin-ripple {
   0% { transform: scale(1); opacity: 0.6; }
   100% { transform: scale(3); opacity: 0; }

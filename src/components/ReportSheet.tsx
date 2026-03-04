@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Camera, Video, Mic, MapPin, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
 
 const groups = [
@@ -57,6 +58,27 @@ const trans = [
   { id: 'tram', e: '🚊', label: 'Tram', p: 'Ligne' },
 ];
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444', semanticDangerSoft: 'rgba(239,68,68,0.12)',
+  semanticSuccess: '#34D399', semanticSuccessSoft: 'rgba(52,211,153,0.12)',
+};
+
 interface CategoryItem {
   id: string;
   emoji: string;
@@ -64,6 +86,8 @@ interface CategoryItem {
 }
 
 export function ReportSheet() {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { activeSheet, setActiveSheet, newPinCoords, userId, addPin } = useStore();
 
   const [step, setStep] = useState(1);
@@ -98,15 +122,15 @@ export function ReportSheet() {
   const selectedGroup = cat ? groups.find(g => g.items.some(i => i.id === cat.id)) : null;
 
   const c = {
-    bg: 'var(--bg-primary)',
-    card: 'var(--bg-card)',
-    text: 'var(--text-primary)',
-    muted: 'var(--text-muted)',
-    border: 'var(--border)',
-    pill: 'var(--bg-secondary)',
-    accent: 'var(--accent)',
-    sel: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-    gold: 'var(--accent)',
+    bg: C.bg,
+    card: C.card,
+    text: C.textPrimary,
+    muted: C.textSecondary,
+    border: C.border,
+    pill: C.elevated,
+    accent: FIXED.accentCyan,
+    sel: `${FIXED.accentCyan}40`,
+    gold: FIXED.accentCyan,
   };
 
   const canNext = cat !== null;

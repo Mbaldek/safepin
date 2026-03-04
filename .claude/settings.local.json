@@ -55,7 +55,14 @@
       "WebFetch(domain:safepin-pearl.vercel.app)",
       "Bash(sed 's/^\"\"text\"\":\"\"//g')",
       "Bash(sed 's/\\\\\\\\n/\\\\n/g')",
-      "mcp__claude_ai_Supabase__list_extensions"
+      "mcp__claude_ai_Supabase__list_extensions",
+      "Bash(npx eslint)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 92328 //F)",
+      "Bash(TRANSCRIPT=\"C:/Users/mathi/.claude/projects/c--Users-mathi-Desktop-safepin/1a9fdf69-ca08-44fa-bd2d-61a10879c7ab.jsonl\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(while read f)",
+      "Bash(do basename \"$f\" .tsx)"
     ]
   }
 }

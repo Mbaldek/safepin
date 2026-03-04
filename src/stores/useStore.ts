@@ -241,6 +241,10 @@ type Store = {
   showSafeSpaces: boolean;
   setShowSafeSpaces: (v: boolean) => void;
 
+  // Pin labels toggle
+  showPinLabels: boolean;
+  setShowPinLabels: (v: boolean) => void;
+
   // Simulation toggle (admin-only, default hidden)
   showSimulated: boolean;
   setShowSimulated: (v: boolean) => void;
@@ -300,9 +304,7 @@ export const useStore = create<Store>((set) => ({
   // Pins
   pins: [],
   setPins: (pins) => set({ pins }),
-  addPin: (pin) => set((state) => ({
-    pins: state.pins.some((p) => p.id === pin.id) ? state.pins : [pin, ...state.pins],
-  })),
+  addPin: (pin) => set((state) => ({ pins: [...state.pins, pin] })),
   updatePin: (pin) => set((state) => ({ pins: state.pins.map((p) => p.id === pin.id ? pin : p) })),
 
   // Map filters
@@ -465,6 +467,10 @@ export const useStore = create<Store>((set) => ({
   setSafeSpaces: (spaces) => set({ safeSpaces: spaces }),
   showSafeSpaces: true,
   setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
+
+  // Pin labels toggle (persisted)
+  showPinLabels: loadLS('brume_show_pin_labels', true),
+  setShowPinLabels: (v) => { saveLS('brume_show_pin_labels', v); set({ showPinLabels: v }); },
 
   // Simulation toggle (persisted so it survives page navigation)
   showSimulated: loadLS('brume_show_simulated', false),

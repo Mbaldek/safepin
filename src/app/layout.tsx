@@ -47,7 +47,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} data-theme="dark">
       <body className="min-h-dvh overscroll-none touch-manipulation bg-(--surface-base) text-(--text-primary)">
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded">Skip to content</a>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:px-4 focus:py-2 focus:rounded" style={{ background: '#0F172A', color: '#FFFFFF' }}>Skip to content</a>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             {children}
@@ -58,9 +58,9 @@ export default async function RootLayout({
           position="top-center"
           toastOptions={{
             style: {
-              background: 'var(--surface-card)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)',
+              background: '#1E293B',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#FFFFFF',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 600,
             },

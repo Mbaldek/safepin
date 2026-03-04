@@ -6,7 +6,20 @@ import { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { useTranslations } from 'next-intl';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    card: '#1E293B', t1: '#FFFFFF', t2: '#94A3B8',
+    border: 'rgba(255,255,255,0.08)', bg: '#0F172A',
+  } : {
+    card: '#FFFFFF', t1: '#0F172A', t2: '#475569',
+    border: 'rgba(15,23,42,0.07)', bg: '#F8FAFC',
+  };
+}
+
+const F = { cyan: '#3BB4C1' };
 
 type TripMessage = {
   id: string;
@@ -26,6 +39,8 @@ const QUICK_REPLIES = [
 
 export default function TripChat({ tripId }: { tripId: string }) {
   const userId = useStore((s) => s.userId);
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const t = useTranslations('trip');
   const [messages, setMessages] = useState<TripMessage[]>([]);
   const [text, setText] = useState('');
@@ -44,7 +59,6 @@ export default function TripChat({ tripId }: { tripId: string }) {
         .order('created_at', { ascending: true });
 
       if (!cancelled && data) {
-        // Hydrate sender names
         const senderIds = [...new Set(data.map((m) => m.sender_id))];
         const { data: profiles } = await supabase
           .from('profiles')
@@ -112,9 +126,9 @@ export default function TripChat({ tripId }: { tripId: string }) {
             disabled={sending}
             className="text-xs px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
             style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
+              backgroundColor: C.card,
+              border: `1px solid ${C.border}`,
+              color: C.t1,
             }}
           >
             {qr.emoji} {qr.label}
@@ -129,8 +143,8 @@ export default function TripChat({ tripId }: { tripId: string }) {
         style={{ maxHeight: '150px' }}
       >
         {messages.length === 0 && (
-          <p className="text-xs text-center py-3" style={{ color: 'var(--text-muted)' }}>
-            {t('chatEmpty') ?? 'No messages yet'}
+          <p className="text-xs text-center py-3" style={{ color: C.t2 }}>
+            {t('chatEmpty') ?? 'Aucun message'}
           </p>
         )}
         {messages.map((msg) => {
@@ -141,16 +155,16 @@ export default function TripChat({ tripId }: { tripId: string }) {
               className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
             >
               {!isMe && (
-                <span className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-[10px] mb-0.5" style={{ color: C.t2 }}>
                   {msg.sender_name}
                 </span>
               )}
               <div
                 className="text-xs px-3 py-1.5 rounded-xl max-w-[85%]"
                 style={{
-                  backgroundColor: isMe ? 'var(--accent)' : 'var(--bg-card)',
-                  color: isMe ? 'var(--surface-base)' : 'var(--text-primary)',
-                  border: isMe ? 'none' : '1px solid var(--border)',
+                  backgroundColor: isMe ? F.cyan : C.card,
+                  color: isMe ? C.bg : C.t1,
+                  border: isMe ? 'none' : `1px solid ${C.border}`,
                 }}
               >
                 {msg.content}
@@ -172,18 +186,18 @@ export default function TripChat({ tripId }: { tripId: string }) {
           placeholder={t('chatPlaceholder') ?? 'Message...'}
           className="flex-1 text-xs px-3 py-2 rounded-xl outline-none"
           style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
+            backgroundColor: C.card,
+            border: `1px solid ${C.border}`,
+            color: C.t1,
           }}
         />
         <button
           type="submit"
           disabled={sending || !text.trim()}
           className="p-2 rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
-          style={{ backgroundColor: 'var(--accent)' }}
+          style={{ backgroundColor: F.cyan }}
         >
-          <Send size={14} color="var(--surface-base)" />
+          <Send size={14} color={C.bg} />
         </button>
       </form>
     </div>

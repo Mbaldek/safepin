@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Building2, AlertTriangle, Train, X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 
 type TransitStop = {
   id: number;
@@ -34,7 +35,29 @@ function stopTypeLabel(railway?: string): string {
   return 'Transit stop';
 }
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
 export default function CityContextPanel({ onClose }: { onClose: () => void }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { userLocation, pins } = useStore();
 
   const [district, setDistrict] = useState<string | null>(null);
@@ -90,26 +113,26 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="flex flex-col w-full h-full"
-      style={{ backgroundColor: 'var(--bg-primary)' }}
+      style={{ backgroundColor: C.bg }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 shrink-0"
         style={{
-          backgroundColor: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border)',
+          backgroundColor: C.elevated,
+          borderBottom: `1px solid ${C.border}`,
         }}
       >
-        <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+        <h2 className="text-base font-black" style={{ color: C.textPrimary }}>
           City Context
         </h2>
         <button
           onClick={onClose}
           className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:opacity-70"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
           aria-label="Close city context panel"
         >
-          <X size={15} strokeWidth={2.2} style={{ color: 'var(--text-muted)' }} />
+          <X size={15} strokeWidth={2.2} style={{ color: C.textSecondary }} />
         </button>
       </div>
 
@@ -120,8 +143,8 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
         <div
           className="rounded-2xl p-4 flex items-center gap-3"
           style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
+            backgroundColor: C.card,
+            border: `1px solid ${C.border}`,
           }}
         >
           <div
@@ -133,7 +156,7 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
           <div className="flex-1 min-w-0">
             <p
               className="text-[0.6rem] uppercase tracking-widest font-bold mb-0.5"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: C.textSecondary }}
             >
               Current district
             </p>
@@ -141,14 +164,14 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
               <div className="flex items-center gap-2">
                 <div
                   className="w-4 h-4 border-2 rounded-full animate-spin"
-                  style={{ borderColor: 'var(--border)', borderTopColor: '#6366f1' }}
+                  style={{ borderColor: C.border, borderTopColor: '#6366f1' }}
                 />
-                <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-sm font-bold" style={{ color: C.textSecondary }}>
                   Detecting…
                 </span>
               </div>
             ) : (
-              <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-bold truncate" style={{ color: C.textPrimary }}>
                 {district ?? 'Unknown area'}
               </p>
             )}
@@ -159,8 +182,8 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
         <div
           className="rounded-2xl p-4 flex items-center gap-3"
           style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
+            backgroundColor: C.card,
+            border: `1px solid ${C.border}`,
           }}
         >
           <div
@@ -172,16 +195,16 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
           <div className="flex-1 min-w-0">
             <p
               className="text-[0.6rem] uppercase tracking-widest font-bold mb-0.5"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: C.textSecondary }}
             >
               Active reports
             </p>
-            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm font-bold" style={{ color: C.textPrimary }}>
               {isLoading ? (
-                <span style={{ color: 'var(--text-muted)' }}>Loading…</span>
+                <span style={{ color: C.textSecondary }}>Loading…</span>
               ) : (
                 <>
-                  <span style={{ color: nearbyPinCount > 0 ? '#3BB4C1' : 'var(--text-primary)' }}>
+                  <span style={{ color: nearbyPinCount > 0 ? '#3BB4C1' : C.textPrimary }}>
                     {nearbyPinCount}
                   </span>
                   {' active '}
@@ -197,14 +220,14 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
         <div
           className="rounded-2xl overflow-hidden"
           style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
+            backgroundColor: C.card,
+            border: `1px solid ${C.border}`,
           }}
         >
           {/* Transit header */}
           <div
             className="flex items-center gap-3 px-4 py-3"
-            style={{ borderBottom: '1px solid var(--border)' }}
+            style={{ borderBottom: `1px solid ${C.border}` }}
           >
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -214,14 +237,14 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
             </div>
             <p
               className="text-[0.6rem] uppercase tracking-widest font-bold"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: C.textSecondary }}
             >
               Nearby Transit
             </p>
             {isLoading && (
               <div
                 className="ml-auto w-4 h-4 border-2 rounded-full animate-spin"
-                style={{ borderColor: 'var(--border)', borderTopColor: '#10b981' }}
+                style={{ borderColor: C.border, borderTopColor: '#10b981' }}
               />
             )}
           </div>
@@ -233,18 +256,18 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
                 <div
                   key={i}
                   className="h-9 rounded-xl animate-pulse"
-                  style={{ backgroundColor: 'var(--bg-secondary)' }}
+                  style={{ backgroundColor: C.elevated }}
                 />
               ))}
             </div>
           ) : stops.length === 0 ? (
             <div className="px-4 py-4 flex items-center gap-2">
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-sm" style={{ color: C.textSecondary }}>
                 No metro stops found nearby
               </span>
             </div>
           ) : (
-            <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex flex-col divide-y" style={{ borderColor: C.border }}>
               {stops.map((stop) => (
                 <div
                   key={stop.id}
@@ -256,7 +279,7 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
                     </span>
                     <p
                       className="text-sm font-bold truncate"
-                      style={{ color: 'var(--text-primary)' }}
+                      style={{ color: C.textPrimary }}
                     >
                       {stop.tags.name ?? 'Unnamed stop'}
                     </p>
@@ -281,13 +304,13 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
         {!userLocation && fetchState === 'idle' && (
           <div
             className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
           >
             <span className="text-3xl">📍</span>
-            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm font-bold" style={{ color: C.textPrimary }}>
               Location not available
             </p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs" style={{ color: C.textSecondary }}>
               Enable location access to see city context
             </p>
           </div>

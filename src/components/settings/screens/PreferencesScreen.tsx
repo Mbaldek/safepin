@@ -1,0 +1,163 @@
+'use client';
+
+import { useState } from 'react';
+import { useTheme } from '@/stores/useTheme';
+import SettingsSection from '../components/SettingsSection';
+import SettingsRow from '../components/SettingsRow';
+import SettingsToggle from '../components/SettingsToggle';
+
+export interface PreferencesScreenProps {
+  onBack: () => void;
+}
+
+function getCurrentLocale(): string {
+  if (typeof document === 'undefined') return 'fr';
+  const match = document.cookie.match(/NEXT_LOCALE=(\w+)/);
+  return match?.[1] ?? 'fr';
+}
+
+export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
+  const { theme, toggleTheme } = useTheme();
+  const darkMode = theme === 'dark';
+
+  const [currentLocale, setCurrentLocale] = useState(getCurrentLocale);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [haptic, setHaptic] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('brume_haptic') !== 'false';
+  });
+
+  const handleHapticChange = (v: boolean) => {
+    setHaptic(v);
+    localStorage.setItem('brume_haptic', String(v));
+  };
+
+  const handleLocaleChange = (locale: string) => {
+    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
+    setCurrentLocale(locale);
+    setShowLangPicker(false);
+    window.location.reload();
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '20px 20px 12px',
+        }}
+      >
+        <button
+          onClick={onBack}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: '#334155',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#94A3B8',
+            fontSize: 18,
+          }}
+        >
+          ‹
+        </button>
+        <span style={{ fontSize: 19, fontWeight: 600, color: '#fff' }}>
+          Préférences
+        </span>
+      </div>
+
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Affichage */}
+        <SettingsSection label="Affichage">
+          <SettingsRow
+            icon={darkMode ? 'Moon' : 'Sun'}
+            iconColor="#F5C341"
+            label="Mode sombre"
+            rightEl={<SettingsToggle value={darkMode} onChange={toggleTheme} />}
+          />
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <SettingsRow
+            icon="Map"
+            iconColor="#22D3EE"
+            label="Style de carte"
+            subtitle="Breveil"
+          />
+        </SettingsSection>
+
+        {/* Langue */}
+        <SettingsSection label="Langue">
+          {showLangPicker ? (
+            <div>
+              <button
+                onClick={() => handleLocaleChange('fr')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: currentLocale === 'fr' ? 'rgba(59,180,193,0.1)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  color: '#fff',
+                  fontSize: 15,
+                  fontWeight: 500,
+                }}
+              >
+                <span>Français</span>
+                {currentLocale === 'fr' && <span style={{ color: '#3BB4C1' }}>✓</span>}
+              </button>
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+              <button
+                onClick={() => handleLocaleChange('en')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: currentLocale === 'en' ? 'rgba(59,180,193,0.1)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  color: '#fff',
+                  fontSize: 15,
+                  fontWeight: 500,
+                }}
+              >
+                <span>English</span>
+                {currentLocale === 'en' && <span style={{ color: '#3BB4C1' }}>✓</span>}
+              </button>
+            </div>
+          ) : (
+            <SettingsRow
+              icon="Globe"
+              iconColor="#60A5FA"
+              label="Langue"
+              subtitle={currentLocale === 'fr' ? 'Français' : 'English'}
+              onPress={() => setShowLangPicker(true)}
+            />
+          )}
+        </SettingsSection>
+
+        {/* Système */}
+        <SettingsSection label="Système">
+          <SettingsRow
+            icon="Smartphone"
+            label="Retour haptique"
+            rightEl={<SettingsToggle value={haptic} onChange={handleHapticChange} />}
+          />
+        </SettingsSection>
+      </div>
+    </div>
+  );
+}

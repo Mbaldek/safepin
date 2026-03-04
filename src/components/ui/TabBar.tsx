@@ -1,5 +1,22 @@
 'use client';
 
+import { useTheme } from '@/stores/useTheme';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)',
+  } : {
+    textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)',
+  };
+}
+
+const FIXED = {
+  accentCyan: '#3BB4C1',
+  accentCyanSoft: 'rgba(59,180,193,0.12)',
+};
+
 interface TabItem {
   id: string;
   icon: React.ReactNode;
@@ -13,23 +30,54 @@ interface TabBarProps {
 }
 
 export function TabBar({ items, activeTab, onChange }: TabBarProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
+
   return (
     <nav
-      className="fixed bottom-4 left-4 right-4 flex justify-around items-center py-3 px-4 bg-white/[0.08] backdrop-blur-xl rounded-[32px] border border-white/8 z-300"
-      style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+      style={{
+        position: 'fixed',
+        bottom: 16,
+        left: 16,
+        right: 16,
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        padding: '12px 16px',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+        background: isDark ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: `1px solid ${C.border}`,
+        borderRadius: 32,
+        zIndex: 300,
+      }}
     >
-      {items.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => onChange(item.id)}
-          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all ${
-            activeTab === item.id ? 'text-white bg-white/10' : 'text-slate-500'
-          }`}
-        >
-          {item.icon}
-          <span className="text-[11px] font-medium">{item.label}</span>
-        </button>
-      ))}
+      {items.map((item) => {
+        const isActive = activeTab === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => onChange(item.id)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              padding: '8px 16px',
+              borderRadius: 16,
+              transition: 'all 150ms',
+              border: 'none',
+              cursor: 'pointer',
+              background: isActive ? FIXED.accentCyanSoft : 'transparent',
+              color: isActive ? FIXED.accentCyan : C.textTertiary,
+            }}
+          >
+            {item.icon}
+            <span style={{ fontSize: 11, fontWeight: 500 }}>{item.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }

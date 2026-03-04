@@ -18,7 +18,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
-import SettingsSheet from '@/components/SettingsSheet';
+import SettingsSheet from '@/components/settings/SettingsSheet';
 import CommunityView from '@/components/CommunityView';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
@@ -475,17 +475,12 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
               <h1 className="font-serif text-[20px] font-light text-foreground">{t('title')}</h1>
               <button
                 type="button"
-                onClick={() => setShowSettings(true)}
+                onClick={onClose}
                 className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-                style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
-                aria-label="Paramètres"
+                style={{ backgroundColor: 'var(--interactive-hover)' }}
+                aria-label="Fermer"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="rgba(255,255,255,0.4)" strokeWidth="1.8"
-                  strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                </svg>
+                <X size={18} style={{ color: 'var(--text-muted)' }} />
               </button>
             </div>
 
@@ -1077,7 +1072,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         </div>{/* /flex-1 overflow-y-auto */}
       </motion.div>
 
-      {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
+      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
       {showVerification && <VerificationView onClose={() => setShowVerification(false)} />}
 
       <AnimatePresence>

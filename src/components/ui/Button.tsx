@@ -2,8 +2,25 @@
 
 import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from '@/stores/useTheme';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    textPrimary: '#FFFFFF',
+    borderMid: 'rgba(255,255,255,0.12)',
+  } : {
+    textPrimary: '#0F172A',
+    borderMid: 'rgba(15,23,42,0.10)',
+  };
+}
+
+const FIXED = {
+  accentCyan: '#3BB4C1',
+  semanticDanger: '#EF4444',
+  semanticDangerSoft: 'rgba(239,68,68,0.12)',
+};
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -35,18 +52,23 @@ function Spinner() {
   );
 }
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-white text-slate-900',
-  secondary: 'bg-transparent text-white border border-white/12',
-  ghost: 'bg-transparent text-white/60',
-  danger: 'bg-red-500 text-white',
+const sizeMap: Record<ButtonSize, React.CSSProperties> = {
+  sm: { padding: '10px 16px', fontSize: 14 },
+  md: { padding: '16px 24px', fontSize: 16 },
+  lg: { padding: '20px 32px', fontSize: 18 },
 };
 
-const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'px-4 py-2.5 text-sm',
-  md: 'px-6 py-4 text-base',
-  lg: 'px-8 py-5 text-lg',
-};
+function getVariantStyle(variant: ButtonVariant, C: ReturnType<typeof getColors>): React.CSSProperties {
+  switch (variant) {
+    case 'primary':
+      return { background: FIXED.accentCyan, color: '#fff' };
+    case 'secondary':
+    case 'ghost':
+      return { background: 'transparent', color: C.textPrimary, border: `1px solid ${C.borderMid}` };
+    case 'danger':
+      return { background: FIXED.semanticDangerSoft, color: FIXED.semanticDanger, border: '1px solid rgba(239,68,68,0.2)' };
+  }
+}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -65,7 +87,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
+    const isDark = useTheme((s) => s.theme) === 'dark';
+    const C = getColors(isDark);
     const isDisabled = disabled || loading;
+
+    const variantStyle = getVariantStyle(variant, C);
 
     return (
       <motion.button
@@ -76,11 +102,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={!isDisabled ? { y: -1 } : {}}
         whileTap={!isDisabled ? { scale: 0.98 } : {}}
         transition={spring}
-        className={`inline-flex items-center justify-center gap-3 font-semibold rounded-[32px] transition-all ${sizeStyles[size]} ${variantStyles[variant]} ${fullWidth ? 'w-full' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
+        className={className}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 12,
+          fontWeight: 600,
+          borderRadius: 32,
+          transition: 'all 150ms',
+          width: fullWidth ? '100%' : undefined,
+          opacity: isDisabled ? 0.4 : 1,
+          cursor: isDisabled ? 'not-allowed' : 'pointer',
+          border: 'none',
+          ...sizeMap[size],
+          ...variantStyle,
+          ...rest.style,
+        }}
         aria-label={rest['aria-label']}
         id={rest.id}
         name={rest.name}
-        style={rest.style}
         data-tour={rest['data-tour']}
       >
         {loading ? <Spinner /> : <>{icon}{children}</>}

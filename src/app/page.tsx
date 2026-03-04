@@ -4,9 +4,12 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/stores/useTheme';
 
 export default function Home() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     // Handle OAuth code exchange if redirected here with ?code=
@@ -31,14 +34,14 @@ export default function Home() {
   return (
     <div
       className="min-h-dvh flex flex-col items-center justify-center"
-      style={{ background: 'linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%)' }}
+      style={{ background: isDark ? '#0F172A' : '#F8FAFC' }}
     >
       <svg width={60} height={60} viewBox="0 0 80 80" fill="none" className="mb-4 animate-pulse">
-        <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
-        <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
-        <circle cx="40" cy="22" r="4" fill="#FFFFFF" />
+        <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#3BB4C1" strokeWidth="4" strokeLinecap="round" fill="none" />
+        <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#3BB4C1" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
+        <circle cx="40" cy="22" r="4" fill="#3BB4C1" />
       </svg>
-      <div className="text-2xl font-light tracking-wide text-white animate-pulse">
+      <div className="text-2xl font-light tracking-wide animate-pulse" style={{ color: '#3BB4C1' }}>
         Breveil
       </div>
     </div>

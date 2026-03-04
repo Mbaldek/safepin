@@ -16,6 +16,7 @@ import { SavedRoute } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/stores/useTheme';
 import { springTransition, haversineMeters } from '@/lib/utils';
 import { useMapPadding } from '@/hooks/useMapPadding';
 import { TransitStep } from '@/lib/transit';
@@ -55,9 +56,31 @@ type RecentTrip = {
   started_at: string;
 };
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TripView({ onClose }: { onClose: () => void }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const {
     userProfile, userId, pins, userLocation,
     activeTrip, setActiveTrip,
@@ -309,6 +332,14 @@ export default function TripView({ onClose }: { onClose: () => void }) {
     setIsSharingLocation(false);
   }, [activeTrip, userId, setActiveTrip, setActiveRoute, setPendingRoutes, setTransitSegments, setIsSharingLocation]);
 
+  // Sync: when page.tsx signals COMPLETED via store, trigger the full completion flow
+  useEffect(() => {
+    if (activeTrip?.state === 'COMPLETED' && escortState !== 'COMPLETED') {
+      completeTrip('safe');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrip?.state]);
+
   function loadSavedRoute(r: SavedRoute) {
     setPrefillDep(r.from_label ?? '');
     setPrefillDepCoords(null);
@@ -352,15 +383,15 @@ export default function TripView({ onClose }: { onClose: () => void }) {
       ref={sheetRef}
       className={`sheet-motion absolute z-201 flex flex-col overflow-hidden bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-[380px] lg:max-w-none lg:rounded-2xl ${escortState !== 'IDLE' || showSaved ? 'lg:top-2' : ''}`}
       style={{
-        backgroundColor: 'var(--bg-secondary)',
-        boxShadow: '0 -10px 40px var(--bg-overlay)',
+        backgroundColor: C.elevated,
+        boxShadow: isDark ? '0 -10px 40px rgba(0,0,0,0.4)' : '0 -10px 40px rgba(0,0,0,0.08)',
         ...((escortState !== 'IDLE' || showSaved) ? { maxHeight: '72dvh' } : {}),
       }}
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
       transition={springTransition}
     >
       {/* Drag handle */}
-      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0 lg:hidden" style={{ backgroundColor: 'var(--border)' }} />
+      <div className="w-9 h-1 rounded-full mx-auto mt-3 shrink-0 lg:hidden" style={{ backgroundColor: C.border }} />
 
       {/* Header — saved panel + completed */}
       {(escortState === 'IDLE' && showSaved || escortState === 'COMPLETED') && (
@@ -370,17 +401,17 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               <button
                 onClick={() => setShowSaved(false)}
                 className="w-7 h-7 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
               >
-                <ArrowLeft size={14} style={{ color: 'var(--text-muted)' }} />
+                <ArrowLeft size={14} style={{ color: C.textSecondary }} />
               </button>
             )}
-            <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>{headerTitle}</h2>
+            <h2 className="text-base font-black" style={{ color: C.textPrimary }}>{headerTitle}</h2>
           </div>
           <button
             onClick={onClose}
             className="text-xs rounded-full px-3 py-1.5 font-bold transition hover:opacity-80"
-            style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            style={{ color: C.textSecondary, border: `1px solid ${C.border}` }}
           >
             ✕ {t('close')}
           </button>
@@ -393,7 +424,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
           {/* Elapsed timer */}
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: isDangerMode ? '#f4a940' : '#22c55e' }} />
-            <span className="text-base font-semibold" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+            <span className="text-base font-semibold" style={{ color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
               {formatCountdown(Math.max(0, now - new Date(activeTrip.startedAt).getTime()))}
             </span>
           </div>
@@ -460,22 +491,22 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               <div
                 className="p-4 rounded-xl"
                 style={{
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
+                  backgroundColor: C.card,
+                  border: `1px solid ${C.border}`,
                   ...(isDangerMode ? { borderLeft: '3px solid #f4a940' } : {}),
                 }}
               >
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-2xl">{modeEmoji(activeTrip.mode)}</span>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
                       {activeTrip.destination.label}
                     </h2>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                      <span className="text-xs font-medium" style={{ color: FIXED.accentCyan }}>
                         ~{Math.ceil(remaining / 60_000)} min
                       </span>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <span className="text-xs" style={{ color: C.textSecondary }}>
                         · {fmtDist(Math.max(0, activeTrip.route.distance * (1 - progress)))} {t('remaining')}
                       </span>
                     </div>
@@ -485,11 +516,11 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 <div className="relative h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${progress * 100}%`, backgroundColor: 'var(--accent)' }}
+                    style={{ width: `${progress * 100}%`, backgroundColor: FIXED.accentCyan }}
                   />
                   <div
-                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow"
-                    style={{ left: `calc(${progress * 100}% - 5px)` }}
+                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full shadow"
+                    style={{ left: `calc(${progress * 100}% - 5px)`, background: '#FFFFFF' }}
                   />
                 </div>
                 {isDangerMode && (
@@ -537,7 +568,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               {circleContacts.length > 0 && (
                 <div
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                  style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
                 >
                   <div className="flex -space-x-2 shrink-0">
                     {circleContacts.slice(0, 4).map((c, i) => (
@@ -547,21 +578,21 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                         style={{
                           zIndex: 4 - i,
                           backgroundColor: 'rgba(139,126,200,0.6)',
-                          border: '2px solid var(--bg-secondary)',
+                          border: `2px solid ${C.elevated}`,
                         }}
                       >
                         {(c.display_name?.[0] ?? '?').toUpperCase()}
                       </div>
                     ))}
                   </div>
-                  <span className="flex-1 text-[0.6875rem]" style={{ color: 'var(--text-muted)' }}>
+                  <span className="flex-1 text-[0.6875rem]" style={{ color: C.textSecondary }}>
                     {circleContacts.length === 1
                       ? `${circleContacts[0].display_name?.split(' ')[0] ?? '?'} ${t('followingYou')}`
                       : circleContacts.length === 2
                       ? `${circleContacts[0].display_name?.split(' ')[0] ?? '?'}, ${circleContacts[1].display_name?.split(' ')[0] ?? '?'} ${t('followingYou')}`
                       : `${circleContacts[0].display_name?.split(' ')[0] ?? '?'}, ${circleContacts[1].display_name?.split(' ')[0] ?? '?'} ${t('andMore', { n: circleContacts.length - 2 })} ${t('followingYou')}`}
                   </span>
-                  <Eye size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <Eye size={14} className="shrink-0" style={{ color: C.textSecondary }} />
                 </div>
               )}
 
@@ -569,28 +600,28 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               <button
                 onClick={shareLink}
                 className="w-full h-11 rounded-xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
-                style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+                style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}
               >
-                <Share2 size={15} style={{ color: 'var(--text-muted)' }} />
-                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('shareLink')}</span>
+                <Share2 size={15} style={{ color: C.textSecondary }} />
+                <span className="text-sm" style={{ color: C.textPrimary }}>{t('shareLink')}</span>
               </button>
 
               {/* Trip Chat */}
               <div
                 className="rounded-xl overflow-hidden"
-                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
               >
                 <button
                   onClick={() => setShowChat(!showChat)}
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
                   <div className="flex items-center gap-2">
-                    <MessageCircle size={15} style={{ color: 'var(--text-muted)' }} />
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('tripChat') ?? 'Messages'}</span>
+                    <MessageCircle size={15} style={{ color: C.textSecondary }} />
+                    <span className="text-sm" style={{ color: C.textPrimary }}>{t('tripChat') ?? 'Messages'}</span>
                   </div>
                   <ChevronRight
                     size={14}
-                    style={{ color: 'var(--text-muted)', transform: showChat ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}
+                    style={{ color: C.textSecondary, transform: showChat ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}
                   />
                 </button>
                 {showChat && activeTrip && (
@@ -612,7 +643,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={() => completeTrip('safe')}
                   className="flex-1 h-12 rounded-xl flex items-center justify-center transition active:scale-[0.98]"
-                  style={{ backgroundColor: 'var(--accent)' }}
+                  style={{ backgroundColor: FIXED.accentCyan }}
                 >
                   <span className="text-sm font-semibold" style={{ color: '#000' }}>{t('arrived')} ✓</span>
                 </button>
@@ -684,13 +715,13 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               {/* Inline header — Mon trajet + time + close */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{t('monTrajet')}</h1>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--bg-card)' }}>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{currentTime}</span>
-                    <Signal size={12} strokeWidth={1.5} style={{ color: 'var(--text-muted)' }} />
+                  <h1 className="text-xl font-semibold" style={{ color: C.textPrimary }}>{t('monTrajet')}</h1>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ backgroundColor: C.card }}>
+                    <span className="text-xs" style={{ color: C.textSecondary }}>{currentTime}</span>
+                    <Signal size={12} strokeWidth={1.5} style={{ color: C.textSecondary }} />
                   </div>
                 </div>
-                <button onClick={onClose} className="p-2 -mr-2 rounded-full transition hover:opacity-60" style={{ color: 'var(--text-muted)' }}>
+                <button onClick={onClose} className="p-2 -mr-2 rounded-full transition hover:opacity-60" style={{ color: C.textSecondary }}>
                   <X size={20} />
                 </button>
               </div>
@@ -711,11 +742,11 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               </button>
 
               {/* Plan / Favorites — segmented control */}
-              <div className="flex p-1 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div className="flex p-1 rounded-xl" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
                 <button
                   onClick={() => setEscortState('PLANNING')}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition active:scale-[0.98]"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: C.textPrimary }}
                 >
                   <Route size={15} />
                   {t('plan')}
@@ -723,12 +754,12 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={() => setShowSaved(true)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition active:scale-[0.98]"
-                  style={{ color: 'var(--text-muted)' }}
+                  style={{ color: C.textSecondary }}
                 >
                   <Star size={15} />
                   {t('myFavorites')}
                   {savedRoutes.length > 0 && (
-                    <span className="text-[0.625rem] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(232,168,56,0.12)', color: 'var(--accent)' }}>
+                    <span className="text-[0.625rem] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(232,168,56,0.12)', color: FIXED.accentCyan }}>
                       {savedRoutes.length}
                     </span>
                   )}
@@ -740,16 +771,16 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                 onClick={() => setIsSharingLocation(!isSharingLocation)}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition active:scale-[0.98]"
                 style={{
-                  backgroundColor: isSharingLocation ? 'rgba(34,197,94,0.08)' : 'var(--bg-card)',
-                  border: `1px solid ${isSharingLocation ? 'rgba(34,197,94,0.25)' : 'var(--border)'}`,
+                  backgroundColor: isSharingLocation ? 'rgba(34,197,94,0.08)' : C.card,
+                  border: `1px solid ${isSharingLocation ? 'rgba(34,197,94,0.25)' : C.border}`,
                 }}
               >
                 <div className="flex items-center gap-2.5">
-                  <Signal size={15} style={{ color: isSharingLocation ? '#22c55e' : 'var(--text-muted)' }} />
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('shareWithCircle')}</span>
+                  <Signal size={15} style={{ color: isSharingLocation ? '#22c55e' : C.textSecondary }} />
+                  <span className="text-sm" style={{ color: C.textPrimary }}>{t('shareWithCircle')}</span>
                 </div>
                 <div className="w-10 h-5.5 rounded-full relative transition-colors duration-200 shrink-0" style={{ backgroundColor: isSharingLocation ? '#22c55e' : 'rgba(255,255,255,0.15)' }}>
-                  <div className="absolute top-0.75 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200" style={{ left: isSharingLocation ? '21px' : '3px' }} />
+                  <div className="absolute top-0.75 w-4 h-4 rounded-full shadow-sm transition-all duration-200" style={{ left: isSharingLocation ? '21px' : '3px', background: '#FFFFFF' }} />
                 </div>
               </button>
 
@@ -757,13 +788,13 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               {recentTrips.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>
                       {t('recentTrips')}
                     </span>
                     <button
                       onClick={() => setShowSaved(true)}
                       className="text-xs font-medium flex items-center gap-0.5 transition hover:opacity-70"
-                      style={{ color: 'var(--accent)' }}
+                      style={{ color: FIXED.accentCyan }}
                     >
                       {t('seeAll')} <ChevronRight size={14} />
                     </button>
@@ -786,8 +817,8 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                             {modeEmoji(trip.mode)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{trip.to_label}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-sm font-medium truncate" style={{ color: C.textPrimary }}>{trip.to_label}</p>
+                            <p className="text-xs" style={{ color: C.textSecondary }}>
                               {new Date(trip.started_at).toLocaleDateString('fr-FR', { weekday: 'short' })} · {Math.round(trip.duration_s / 60)} min
                             </p>
                           </div>
@@ -797,7 +828,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                           >
                             {sc}
                           </div>
-                          <ChevronRight size={16} className="shrink-0 group-hover:translate-x-0.5 transition-all" style={{ color: 'var(--text-muted)' }} />
+                          <ChevronRight size={16} className="shrink-0 group-hover:translate-x-0.5 transition-all" style={{ color: C.textSecondary }} />
                         </button>
                       );
                     })}
@@ -808,16 +839,16 @@ export default function TripView({ onClose }: { onClose: () => void }) {
               {/* Stats row */}
               {recentTrips.length > 0 && (
                 <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(232,168,56,0.12)' }}>
-                      <Route size={14} style={{ color: 'var(--accent)' }} />
+                      <Route size={14} style={{ color: FIXED.accentCyan }} />
                     </div>
                     <div>
-                      <p className="text-lg font-bold leading-none" style={{ color: 'var(--text-primary)' }}>{recentTrips.length}</p>
-                      <p className="text-[0.625rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('tripsThisWeek')}</p>
+                      <p className="text-lg font-bold leading-none" style={{ color: C.textPrimary }}>{recentTrips.length}</p>
+                      <p className="text-[0.625rem] mt-0.5" style={{ color: C.textSecondary }}>{t('tripsThisWeek')}</p>
                     </div>
                   </div>
-                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>
                       <Shield size={14} style={{ color: '#22c55e' }} />
                     </div>
@@ -825,7 +856,7 @@ export default function TripView({ onClose }: { onClose: () => void }) {
                       <p className="text-lg font-bold leading-none" style={{ color: '#22c55e' }}>
                         {(recentTrips.reduce((acc, r) => acc + safeScore(r.danger_score), 0) / recentTrips.length).toFixed(1)}
                       </p>
-                      <p className="text-[0.625rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t('safetyAvgLabel')}</p>
+                      <p className="text-[0.625rem] mt-0.5" style={{ color: C.textSecondary }}>{t('safetyAvgLabel')}</p>
                     </div>
                   </div>
                 </div>

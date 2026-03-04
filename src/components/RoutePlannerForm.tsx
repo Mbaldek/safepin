@@ -15,6 +15,7 @@ import { useTranslations } from 'next-intl';
 import { haversineMetersLngLat } from '@/lib/utils';
 import { geocodeForward } from '@/lib/geocode';
 import { fetchTransitRoute, TransitRoute, TransitStep, formatTransitDuration, getLineIcon } from '@/lib/transit';
+import { useTheme } from '@/stores/useTheme';
 
 export type Mode = 'walk' | 'bike' | 'drive' | 'transit';
 
@@ -194,9 +195,33 @@ function DangerBadge({ score }: { score: number }) {
 type RoutesByMode = Record<Mode, RouteOption[]>;
 type TransitByMode = Record<Mode, TransitRoute[]>;
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function RoutePlannerForm({ onRouteSelected, onClose, initialDestination, initialDeparture, initialDestCoords, initialDepartureCoords }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { userLocation, pins, userProfile, placeNotes, favPlaceIds, setPendingRoutes, setTransitSegments } = useStore();
   const t = useTranslations('trip');
 
@@ -377,19 +402,19 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
             <button
               onClick={backToForm}
               className="p-1.5 -ml-1.5 rounded-full transition"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: C.textSecondary }}
             >
               <ArrowLeft size={20} />
             </button>
           )}
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
             {phase === 'searching' ? t('searching') : phase === 'selecting' ? t('chooseRoute') : t('title')}
           </h2>
         </div>
         <button
           onClick={onClose}
           className="p-2 -mr-2 rounded-full transition hover:opacity-60"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: C.textSecondary }}
         >
           <span className="text-base leading-none">✕</span>
         </button>
@@ -400,9 +425,9 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
         <div className="flex flex-col items-center justify-center py-10 gap-4">
           <div
             className="w-10 h-10 border-4 rounded-full animate-spin"
-            style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
+            style={{ borderColor: C.border, borderTopColor: FIXED.accentCyan }}
           />
-          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('searching')}</p>
+          <p className="text-sm font-bold" style={{ color: C.textPrimary }}>{t('searching')}</p>
         </div>
       )}
 
@@ -412,16 +437,16 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
           {/* Destination summary */}
           <div className="flex items-center gap-2">
             <MapPin size={16} style={{ color: '#ef4444' }} />
-            <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-sm truncate" style={{ color: C.textSecondary }}>
               {destination.trim()}
             </span>
-            <span className="ml-auto text-xs font-medium px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: 'rgba(232,168,56,0.12)', color: 'var(--accent)' }}>
+            <span className="ml-auto text-xs font-medium px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: 'rgba(232,168,56,0.12)', color: FIXED.accentCyan }}>
               {anyLoading ? <Loader2 size={12} className="animate-spin" /> : `${totalRoutes} ${totalRoutes === 1 ? 'route' : 'routes'}`}
             </span>
           </div>
 
           {/* Horizontal mode tabs */}
-          <div className="flex gap-1.5 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ backgroundColor: 'var(--bg-card)' }}>
+          <div className="flex gap-1.5 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ backgroundColor: C.card }}>
             {MODES.map(({ id: mode, emoji, label }) => {
               const routes = routesByMode[mode];
               const isLoading = loadingModes.has(mode);
@@ -444,7 +469,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
                   style={{
                     backgroundColor: isActive ? `${modeColor}18` : 'transparent',
-                    color: isActive ? modeColor : 'var(--text-muted)',
+                    color: isActive ? modeColor : C.textSecondary,
                     border: isActive ? `1px solid ${modeColor}40` : '1px solid transparent',
                     opacity: count === 0 && !isLoading ? 0.4 : 1,
                   }}
@@ -478,19 +503,19 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                     onClick={() => setExpandedRouteId(isDetailExpanded ? null : opt.id)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl transition"
                     style={{
-                      backgroundColor: isDetailExpanded ? `${modeColor}10` : 'var(--bg-card)',
-                      border: `1px solid ${isDetailExpanded ? `${modeColor}30` : 'var(--border)'}`,
+                      backgroundColor: isDetailExpanded ? `${modeColor}10` : C.card,
+                      border: `1px solid ${isDetailExpanded ? `${modeColor}30` : C.border}`,
                     }}
                   >
                     {/* Time info */}
                     <div className="text-left min-w-0 flex-1">
                       {transitRoute && (
-                        <p className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                        <p className="text-xs font-medium" style={{ color: FIXED.accentCyan }}>
                           dep {fmtTime(transitRoute.departureTime)}
                         </p>
                       )}
                       <div className="flex items-center gap-2">
-                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
                           {fmtDur(opt.duration)}
                         </p>
                         {opt.rerouted && (
@@ -501,12 +526,12 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         {transitRoute && (
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <span className="text-xs" style={{ color: C.textSecondary }}>
                             {transitRoute.transfers} {t('transfers')}
                           </span>
                         )}
                         {!transitRoute && opt.distance > 0 && (
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtDist(opt.distance)}</span>
+                          <span className="text-xs" style={{ color: C.textSecondary }}>{fmtDist(opt.distance)}</span>
                         )}
                         {!transitRoute && <DangerBadge score={opt.dangerScore} />}
                       </div>
@@ -517,10 +542,10 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                       <button
                         onClick={() => saveRoute(opt, activeMode)}
                         className="p-2 rounded-lg transition hover:opacity-80"
-                        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                         title="Save route"
                       >
-                        <BookmarkPlus size={14} style={{ color: 'var(--text-muted)' }} />
+                        <BookmarkPlus size={14} style={{ color: C.textSecondary }} />
                       </button>
                       <button
                         onClick={() => handleSelect(opt, activeMode)}
@@ -534,34 +559,34 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
 
                   {/* Expanded transit step details */}
                   {isDetailExpanded && transitRoute && (
-                    <div className="mt-2 ml-4 pl-4 space-y-3 pb-2" style={{ borderLeft: '2px solid var(--border)' }}>
+                    <div className="mt-2 ml-4 pl-4 space-y-3 pb-2" style={{ borderLeft: `2px solid ${C.border}` }}>
                       {transitRoute.steps.map((step, idx) => (
                         <div key={idx} className="flex items-start gap-3">
                           {step.mode === 'walking' ? (
                             <>
                               <div className="w-7 h-7 rounded-full flex items-center justify-center mt-0.5 shrink-0" style={{ backgroundColor: 'rgba(120,120,120,0.12)' }}>
-                                <Footprints size={14} style={{ color: 'var(--text-muted)' }} />
+                                <Footprints size={14} style={{ color: C.textSecondary }} />
                               </div>
                               <div>
-                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                                <p className="text-sm" style={{ color: C.textPrimary }}>
                                   {step.to === step.from ? `Walk` : `Walk to ${step.to}`}
                                 </p>
-                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatTransitDuration(step.duration)}</p>
+                                <p className="text-xs" style={{ color: C.textSecondary }}>{formatTransitDuration(step.duration)}</p>
                               </div>
                             </>
                           ) : (
                             <>
                               <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 text-white text-xs font-bold shrink-0"
-                                style={{ backgroundColor: step.lineColor || 'var(--accent)' }}
+                                style={{ backgroundColor: step.lineColor || FIXED.accentCyan }}
                               >
                                 {step.line || '?'}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                                <p className="text-sm" style={{ color: C.textPrimary }}>
                                   {step.from} → {step.to}
                                 </p>
-                                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-xs" style={{ color: C.textSecondary }}>
                                   {formatTransitDuration(step.duration)}
                                   {step.stops != null && step.stops > 0 && ` · ${step.stops} stops`}
                                   {step.departureTime && ` · dep ${fmtTime(step.departureTime)}`}
@@ -577,7 +602,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
 
                   {/* Expanded non-transit details */}
                   {isDetailExpanded && !transitRoute && (
-                    <div className="mt-2 ml-4 pl-4 pb-2 text-xs space-y-1" style={{ borderLeft: '2px solid var(--border)', color: 'var(--text-muted)' }}>
+                    <div className="mt-2 ml-4 pl-4 pb-2 text-xs space-y-1" style={{ borderLeft: `2px solid ${C.border}`, color: C.textSecondary }}>
                       <p>{fmtDur(opt.duration)} · {fmtDist(opt.distance)}</p>
                       {opt.dangerScore > 0 && <p>{opt.dangerScore} incident{opt.dangerScore !== 1 ? 's' : ''} reported near this route</p>}
                       {opt.rerouted && <p style={{ color: '#6366f1' }}>This route was rerouted to avoid a danger zone</p>}
@@ -589,7 +614,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
 
             {/* Empty state when no routes for active mode */}
             {currentRoutes.length === 0 && !anyLoading && (
-              <p className="text-sm py-6 text-center" style={{ color: 'var(--text-muted)' }}>{t('noRoutesForMode')}</p>
+              <p className="text-sm py-6 text-center" style={{ color: C.textSecondary }}>{t('noRoutesForMode')}</p>
             )}
           </div>
         </div>
@@ -617,7 +642,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                   <LocateFixed size={16} style={{ color: '#f59e0b' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[0.625rem] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider mb-1" style={{ color: C.textSecondary }}>
                     {t('departure')}
                   </p>
                   <AutocompleteInput
@@ -645,8 +670,8 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                   <MapPin size={16} style={{ color: '#3b82f6' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[0.625rem] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
-                    {t('destination')} <span style={{ color: 'var(--accent)' }}>*</span>
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider mb-1" style={{ color: C.textSecondary }}>
+                    {t('destination')} <span style={{ color: FIXED.accentCyan }}>*</span>
                   </p>
                   <AutocompleteInput
                     value={destination}
@@ -670,7 +695,7 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
           {/* Quick suggestion chips */}
           {placeNotes.filter((n) => favPlaceIds.includes(n.id)).length > 0 && (
             <div>
-              <span className="text-[0.625rem] font-bold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-[0.625rem] font-bold uppercase tracking-wider mb-2 block" style={{ color: C.textSecondary }}>
                 {t('suggestions')}
               </span>
               <div className="flex flex-wrap gap-2">
@@ -679,9 +704,9 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
                     key={n.id}
                     onClick={() => { setDest(n.name || n.note.slice(0, 20)); setDestCoords([n.lng, n.lat]); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition active:scale-95"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, color: C.textPrimary }}
                   >
-                    <MapPin size={11} style={{ color: 'var(--text-muted)' }} />
+                    <MapPin size={11} style={{ color: C.textSecondary }} />
                     {n.name || n.note.slice(0, 15)}
                   </button>
                 ))}
@@ -695,8 +720,8 @@ export default function RoutePlannerForm({ onRouteSelected, onClose, initialDest
             disabled={!destination.trim()}
             className="w-full py-3.5 rounded-2xl font-bold text-[0.9375rem] flex items-center justify-center gap-2.5 transition disabled:opacity-40"
             style={{
-              background: destination.trim() ? 'linear-gradient(135deg, var(--accent), var(--warn))' : 'var(--bg-card)',
-              color: destination.trim() ? '#fff' : 'var(--text-muted)',
+              background: destination.trim() ? `linear-gradient(135deg, ${FIXED.accentCyan}, ${FIXED.accentGold})` : C.card,
+              color: destination.trim() ? '#fff' : C.textSecondary,
               boxShadow: destination.trim() ? '0 6px 20px rgba(212,168,83,0.25)' : 'none',
             }}
           >

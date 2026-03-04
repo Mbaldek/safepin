@@ -8,6 +8,27 @@ import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { MapPin, Navigation, X } from 'lucide-react';
 import { haversineMeters } from '@/lib/utils';
+import { useTheme } from '@/stores/useTheme';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
 
 const DISMISS_MS = 8_000;
 const LS_KEY = 'brume_last_session_ts';
@@ -20,6 +41,8 @@ type BriefingData = {
 };
 
 export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => void }) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { userLocation, pins, setShowIncidentsList } = useStore();
   const [data, setData] = useState<BriefingData | null>(null);
   const [progress, setProgress] = useState(100);
@@ -124,29 +147,29 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
         exit={{ opacity: 0, y: -12 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className="absolute top-3 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[180] rounded-2xl p-3.5 shadow-lg"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <span className="text-lg">📍</span>
             <div>
-              <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-black" style={{ color: C.textPrimary }}>
                 {data.newPins} report{data.newPins > 1 ? 's' : ''} nearby
               </p>
             </div>
           </div>
-          <button onClick={onDismiss} className="p-1 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-            <X size={12} style={{ color: 'var(--text-muted)' }} />
+          <button onClick={onDismiss} className="p-1 rounded-full" style={{ backgroundColor: C.elevated }}>
+            <X size={12} style={{ color: C.textSecondary }} />
           </button>
         </div>
         <button
           onClick={() => { setShowIncidentsList(true); onDismiss(); }}
           className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition hover:opacity-90"
-          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+          style={{ backgroundColor: FIXED.accentCyan, color: '#fff' }}
         >
           <MapPin size={12} /> View reports
         </button>
-        <ProgressBar progress={progress} color="var(--border)" fill="var(--accent)" />
+        <ProgressBar progress={progress} color={C.border} fill={FIXED.accentCyan} />
       </motion.div>
     );
   }

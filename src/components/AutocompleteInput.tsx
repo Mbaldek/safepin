@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 
 export interface ACSuggestion {
   label: string;
@@ -25,6 +26,26 @@ interface Props {
   autoFocus?: boolean;
 }
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
+    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
+    inputBg: 'rgba(255,255,255,0.06)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
+    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
+    inputBg: 'rgba(15,23,42,0.04)',
+  };
+}
+const FIXED = {
+  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
+  accentGold: '#F5C341', semanticDanger: '#EF4444',
+};
+
 export default function AutocompleteInput({
   value,
   onChange,
@@ -32,6 +53,8 @@ export default function AutocompleteInput({
   localSections,
   autoFocus,
 }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { userLocation } = useStore();
   const [open, setOpen]         = useState(false);
   const [geoResults, setGeoResults] = useState<ACSuggestion[]>([]);
@@ -96,16 +119,16 @@ export default function AutocompleteInput({
         placeholder={placeholder}
         className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
         style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1.5px solid var(--border)',
-          color: 'var(--text-primary)',
+          backgroundColor: C.card,
+          border: `1.5px solid ${C.border}`,
+          color: C.textPrimary,
         }}
       />
 
       {hasDropdown && (
         <div
           className="absolute left-0 right-0 top-full mt-1.5 rounded-2xl overflow-hidden shadow-xl z-50 max-h-64 overflow-y-auto"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
         >
           {/* Static local sections (My Places, My Routes) */}
           {localSections?.map((section) =>
@@ -113,7 +136,7 @@ export default function AutocompleteInput({
               <div key={section.title}>
                 <p
                   className="text-[0.6rem] font-black uppercase tracking-widest px-4 pt-2.5 pb-1"
-                  style={{ color: 'var(--text-muted)' }}
+                  style={{ color: C.textSecondary }}
                 >
                   {section.title}
                 </p>
@@ -125,18 +148,18 @@ export default function AutocompleteInput({
                   >
                     {item.icon && <span className="text-base shrink-0">{item.icon}</span>}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                      <p className="text-sm font-bold truncate" style={{ color: C.textPrimary }}>
                         {item.label}
                       </p>
                       {item.sublabel && (
-                        <p className="text-[0.65rem] truncate" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[0.65rem] truncate" style={{ color: C.textSecondary }}>
                           {item.sublabel}
                         </p>
                       )}
                     </div>
                   </button>
                 ))}
-                <div className="h-px mx-3" style={{ backgroundColor: 'var(--border)' }} />
+                <div className="h-px mx-3" style={{ backgroundColor: C.border }} />
               </div>
             ) : null
           )}
@@ -146,15 +169,15 @@ export default function AutocompleteInput({
             <div className="px-4 py-3 flex items-center gap-2">
               <div
                 className="w-3 h-3 border-2 rounded-full animate-spin shrink-0"
-                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
+                style={{ borderColor: C.border, borderTopColor: FIXED.accentCyan }}
               />
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Searching…</p>
+              <p className="text-xs" style={{ color: C.textSecondary }}>Searching…</p>
             </div>
           ) : geoResults.length > 0 ? (
             <div>
               <p
                 className="text-[0.6rem] font-black uppercase tracking-widest px-4 pt-2.5 pb-1"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: C.textSecondary }}
               >
                 Places
               </p>
@@ -166,11 +189,11 @@ export default function AutocompleteInput({
                 >
                   <span className="text-base shrink-0">📍</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-sm font-bold truncate" style={{ color: C.textPrimary }}>
                       {item.label}
                     </p>
                     {item.sublabel && (
-                      <p className="text-[0.65rem] truncate" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-[0.65rem] truncate" style={{ color: C.textSecondary }}>
                         {item.sublabel}
                       </p>
                     )}

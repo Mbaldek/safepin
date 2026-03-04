@@ -11,6 +11,7 @@ import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
+import { MapPin } from './MapPin';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -43,6 +44,30 @@ const STYLE_URLS: Record<string, string> = {
   light:   'mapbox://styles/mapbox/light-v11',
   dark:    'mapbox://styles/mapbox/dark-v11',
 };
+
+/** Our custom layer IDs — never hide these. */
+const OWN_LAYERS = new Set([
+  SOURCE_ID, 'clusters', 'cluster-count', 'unclustered-point',
+  TRANSIT_CIRCLE, TRANSIT_LABEL,
+  POI_CIRCLE, POI_LABEL,
+  SAFE_CIRCLE, SAFE_LABEL, SAFE_PARTNER,
+  HEAT_LYR, 'safety-scores-fill',
+  WATCH_CIRCLE, WATCH_LABEL,
+  ROUTE_LYR,
+]);
+
+/** Hide built-in Mapbox circle/dot layers from the base style.
+ *  Keeps our own layers (OWN_LAYERS) and all text/line/fill layers. */
+function hideBuiltinPOIDots(m: mapboxgl.Map) {
+  const style = m.getStyle();
+  if (!style?.layers) return;
+  for (const layer of style.layers) {
+    if (OWN_LAYERS.has(layer.id)) continue;
+    if (layer.type === 'circle') {
+      m.setLayoutProperty(layer.id, 'visibility', 'none');
+    }
+  }
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   assault: '#EF4444', harassment: '#EF4444', theft: '#EF4444', following: '#EF4444',
@@ -426,8 +451,14 @@ function addClusterLayers(m: mapboxgl.Map) {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
     cluster: true,
-    clusterMaxZoom: 11,
-    clusterRadius: 35,
+    clusterMaxZoom: 15,
+    clusterRadius: 70,
+    clusterProperties: {
+      urgent:   ['+', ['case', ['==', ['get', 'categoryGroup'], 'urgent'],  1, 0]],
+      warning:  ['+', ['case', ['==', ['get', 'categoryGroup'], 'warning'], 1, 0]],
+      infra:    ['+', ['case', ['==', ['get', 'categoryGroup'], 'infra'],   1, 0]],
+      positive: ['+', ['case', ['==', ['get', 'categoryGroup'], 'positive'],1, 0]],
+    },
   });
 
   // Cluster circle
@@ -437,9 +468,17 @@ function addClusterLayers(m: mapboxgl.Map) {
     source: SOURCE_ID,
     filter: ['has', 'point_count'],
     paint: {
-      'circle-color': '#f43f5e',
+      'circle-color': [
+        'case',
+        ['>=', ['get', 'urgent'],  ['max', ['get', 'warning'], ['get', 'infra'], ['get', 'positive']]], '#EF4444',
+        ['>=', ['get', 'warning'], ['max', ['get', 'urgent'],  ['get', 'infra'], ['get', 'positive']]], '#F59E0B',
+        ['>=', ['get', 'positive'],['max', ['get', 'urgent'],  ['get', 'warning'],['get', 'infra']]],   '#34D399',
+        '#64748B',
+      ],
       'circle-radius': ['step', ['get', 'point_count'], 20, 5, 28, 20, 36],
       'circle-opacity': 0.88,
+      'circle-stroke-width': 3,
+      'circle-stroke-color': 'rgba(255,255,255,0.3)',
     },
   });
 
@@ -506,6 +545,13 @@ function addClusterLayers(m: mapboxgl.Map) {
       ],
       'icon-allow-overlap': true,
       'icon-ignore-placement': false,
+      'icon-size': [
+        'interpolate', ['linear'], ['zoom'],
+        8,  0.4,
+        11, 0.65,
+        14, 1.0,
+        18, 1.2,
+      ],
     },
     paint: {
       'icon-opacity': ['get', 'opacity'],
@@ -552,6 +598,7 @@ export type MapViewProps = {
   showPolice: boolean;
   showHeatmap: boolean;
   showScores: boolean;
+  showPinLabels: boolean;
   onTransitLoadingChange?: (v: boolean) => void;
   onPoiLoadingChange?: (v: boolean) => void;
 };
@@ -565,6 +612,7 @@ export default function MapView({
   showPolice,
   showHeatmap,
   showScores,
+  showPinLabels,
   onTransitLoadingChange,
   onPoiLoadingChange,
 }: MapViewProps) {
@@ -573,18 +621,21 @@ export default function MapView({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  const reportMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile, mapBottomPadding } = useStore();
   const { theme } = useTheme();
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
+  const [filteredTransportPins, setFilteredTransportPins] = useState<Pin[]>([]);
+  const [zoomLevel, setZoomLevel] = useState(13);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
-  const transportMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
+  const LABEL_ZOOM_THRESHOLD = 13;
+  const effectiveLabels = showPinLabels && zoomLevel >= LABEL_ZOOM_THRESHOLD;
 
   // Initialize map
   useEffect(() => {
@@ -623,15 +674,16 @@ export default function MapView({
       }
     });
 
-    // Long-press (2 s) → open Place Note sheet
+    // Long-press (2 s) → open Report sheet (add pin funnel)
     map.current.on('mousedown', (e) => {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
       longPressTimer.current = setTimeout(() => {
         longPressTimer.current = null;
         const store = useStore.getState();
         const blockedTab = store.activeTab === 'trip' || store.activeTab === 'me' || store.showIncidentsList;
-        if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
-          store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        if (store.activeSheet === 'none' && !blockedTab) {
+          store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+          store.setActiveSheet('report');
         }
       }, 2000);
     });
@@ -645,15 +697,21 @@ export default function MapView({
     map.current.on('contextmenu', (e) => {
       const store = useStore.getState();
       const blockedTab = store.activeTab === 'trip' || store.activeTab === 'me' || store.showIncidentsList;
-      if (store.activeSheet === 'none' && !store.newPlaceNoteCoords && !blockedTab) {
-        store.setNewPlaceNoteCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      if (store.activeSheet === 'none' && !blockedTab) {
+        store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        store.setActiveSheet('report');
       }
     });
 
     map.current.on('load', () => {
+      hideBuiltinPOIDots(map.current!);
       addClusterLayers(map.current!);
       setLayersReady(true);
       setMapReady(true);
+    });
+
+    map.current.on('zoomend', () => {
+      if (map.current) setZoomLevel(Math.round(map.current.getZoom()));
     });
 
     return () => {
@@ -680,52 +738,30 @@ export default function MapView({
     });
   }, [mapBottomPadding, mapReady]);
 
-  // Draggable marker for incident reporting
+  // Center-pin for incident reporting: pin stays at map center, coords update on moveend
   useEffect(() => {
-    if (!map.current || !mapReady) return;
+    const m = map.current;
+    if (!m || !mapReady) return;
 
-    const unsub = useStore.subscribe((state) => {
-      const m = map.current;
-      if (!m) return;
-      const coords = state.newPinCoords;
-      const isReport = state.activeSheet === 'report';
+    const onMoveEnd = () => {
+      const store = useStore.getState();
+      if (store.activeSheet !== 'report') return;
+      const center = m.getCenter();
+      store.setNewPinCoords({ lat: center.lat, lng: center.lng });
+    };
 
-      // Remove marker when report mode exits
-      if (!isReport || !coords) {
-        if (reportMarkerRef.current) {
-          reportMarkerRef.current.remove();
-          reportMarkerRef.current = null;
-        }
-        return;
-      }
-
-      // Create marker if it doesn't exist
-      if (!reportMarkerRef.current) {
-        const el = document.createElement('div');
-        el.className = 'report-pin-marker';
-        el.innerHTML = '<div class="report-pin-dot"></div><div class="report-pin-pulse"></div>';
-        reportMarkerRef.current = new mapboxgl.Marker({
-          element: el,
-          draggable: true,
-          anchor: 'center',
-        })
-          .setLngLat([coords.lng, coords.lat])
-          .addTo(m);
-
-        reportMarkerRef.current.on('dragend', () => {
-          const lngLat = reportMarkerRef.current!.getLngLat();
-          useStore.getState().setNewPinCoords({ lat: lngLat.lat, lng: lngLat.lng });
-        });
-      } else {
-        // Update position if coords changed externally (map click)
-        const cur = reportMarkerRef.current.getLngLat();
-        if (Math.abs(cur.lat - coords.lat) > 0.00001 || Math.abs(cur.lng - coords.lng) > 0.00001) {
-          reportMarkerRef.current.setLngLat([coords.lng, coords.lat]);
+    // Set initial coords when report opens without them
+    const unsub = useStore.subscribe((state, prev) => {
+      if (state.activeSheet === 'report' && prev.activeSheet !== 'report') {
+        if (!state.newPinCoords) {
+          const center = m.getCenter();
+          state.setNewPinCoords({ lat: center.lat, lng: center.lng });
         }
       }
     });
 
-    return () => unsub();
+    m.on('moveend', onMoveEnd);
+    return () => { m.off('moveend', onMoveEnd); unsub(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady]);
 
@@ -1013,6 +1049,7 @@ export default function MapView({
     transitCache = null; poiCache = null; heatmapGeoJSON = null;
     setLayersReady(false);
     map.current.once('style.load', () => {
+      hideBuiltinPOIDots(map.current!);
       addClusterLayers(map.current!);
       const anyTransit = showBus || showMetroRER;
       if (anyTransit) {
@@ -1170,30 +1207,12 @@ export default function MapView({
     }
     prevPinIdsRef.current = currentIds;
 
-    // ── Transport pins — HTML markers using createPinElement ────────────────
-    transportMarkersRef.current.forEach((m) => m.remove());
-    transportMarkersRef.current = [];
+    // ── Transport pins — rendered as <MapPin> in JSX ────────────────
+    setFilteredTransportPins(pins.filter((pin) => passesFilters(pin) && pin.is_transport));
 
-    // Ghost trail cleanup
+    // Ghost trail cleanup (kept for legacy)
     ghostTrailRef.current.forEach((m) => m.remove());
     ghostTrailRef.current = [];
-
-    const transportPins = pins.filter((pin) => passesFilters(pin) && pin.is_transport);
-
-    for (const pin of transportPins) {
-      const el = createPinElement(pin);
-
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setSelectedPin(pin);
-        setActiveSheet('detail');
-      });
-
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([pin.lng, pin.lat])
-        .addTo(map.current!);
-      transportMarkersRef.current.push(marker);
-    }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
   // Show / hide Paris transit station dots (Bus / Metro-RER split)
@@ -1279,6 +1298,16 @@ export default function MapView({
       m.setLayoutProperty(HEAT_LYR, 'visibility', showHeatmap ? 'visible' : 'none');
     }
   }, [showHeatmap, mapReady, layersReady]);
+
+  // Toggle text labels on Mapbox symbol layers
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+    const vis = effectiveLabels ? 'visible' : 'none';
+    for (const id of [TRANSIT_LABEL, POI_LABEL, SAFE_LABEL]) {
+      if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', vis);
+    }
+  }, [effectiveLabels, mapReady, layersReady]);
 
   // Toggle safety scores layer
   useEffect(() => {
@@ -1465,6 +1494,19 @@ export default function MapView({
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
+
+      {map.current && filteredTransportPins.map((pin) => (
+        <MapPin
+          key={pin.id}
+          map={map.current!}
+          pin={pin}
+          onClick={(p) => {
+            setSelectedPin(p as Pin);
+            setActiveSheet('detail');
+          }}
+          showLabels={effectiveLabels}
+        />
+      ))}
 
       <SafeSpaceDetailSheet space={selectedSafeSpace} onClose={() => setSelectedSafeSpace(null)} />
     </div>

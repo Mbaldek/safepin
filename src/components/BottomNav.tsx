@@ -3,9 +3,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MapPin, MessageCircle, Navigation, User, type LucideIcon } from 'lucide-react';
+import { MapPin, MessageCircle, Navigation, Sparkles, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { useTranslations } from 'next-intl';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    textTertiary: '#64748B',
+    border: 'rgba(255,255,255,0.08)',
+  } : {
+    textTertiary: '#94A3B8',
+    border: 'rgba(15,23,42,0.06)',
+  };
+}
+const FIXED = { accentCyan: '#3BB4C1', semanticDanger: '#EF4444' };
 
 type Tab = 'map' | 'community' | 'trip' | 'me';
 
@@ -13,10 +25,12 @@ const TAB_KEYS: { id: Tab; key: 'map' | 'community' | 'trip' | 'me'; Icon: Lucid
   { id: 'map',       key: 'map',       Icon: MapPin        },
   { id: 'community', key: 'community', Icon: MessageCircle },
   { id: 'trip',      key: 'trip',      Icon: Navigation    },
-  { id: 'me',        key: 'me',        Icon: User          },
+  { id: 'me',        key: 'me',        Icon: Sparkles      },
 ];
 
 export default function BottomNav() {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { activeTab, setActiveTab, pins, unreadDmCount } = useStore();
   const t = useTranslations('nav');
 
@@ -29,10 +43,14 @@ export default function BottomNav() {
     <nav
       id="bottom-nav"
       aria-label="Main navigation"
-      className="shrink-0 flex items-stretch bg-white/[0.08] backdrop-blur-xl border-t border-white/8"
+      className="shrink-0 flex items-stretch"
       style={{
         height: '64px',
         paddingBottom: 'env(safe-area-inset-bottom)',
+        background: isDark ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: `1px solid ${C.border}`,
       }}
     >
       {TAB_KEYS.map(({ id, key, Icon }) => {
@@ -55,7 +73,8 @@ export default function BottomNav() {
             {isActive && (
               <motion.div
                 layoutId="nav-dot"
-                className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#3BB4C1]"
+                className="absolute bottom-1.5 w-1 h-1 rounded-full"
+                style={{ background: FIXED.accentCyan }}
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               />
             )}
@@ -63,26 +82,32 @@ export default function BottomNav() {
             {/* Badge */}
             {badge > 0 && (
               <span
-                className={`absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-semibold flex items-center justify-center px-1 z-10 text-white ${
-                  id === 'community' ? 'bg-[#3BB4C1]' : 'bg-[#EF4444]'
-                }`}
+                className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-semibold flex items-center justify-center px-1 z-10"
+                style={{ color: '#fff', background: id === 'community' ? FIXED.accentCyan : FIXED.semanticDanger }}
               >
                 {badge}
               </span>
+            )}
+
+            {/* Online dot — Julia AI */}
+            {id === 'me' && (
+              <span
+                className="absolute top-2 right-[calc(50%-14px)] w-[7px] h-[7px] rounded-full z-10"
+                style={{ backgroundColor: '#34D399', boxShadow: '0 0 4px #34D399' }}
+              />
             )}
 
             {/* Icon */}
             <Icon
               size={20}
               strokeWidth={isActive ? 2.2 : 1.8}
-              className={`transition-colors duration-150 ${isActive ? 'text-[#3BB4C1]' : 'text-[#64748B]'}`}
+              style={{ color: isActive ? FIXED.accentCyan : C.textTertiary, transition: 'color 150ms' }}
             />
 
             {/* Label */}
             <span
-              className={`text-[0.58rem] font-semibold tracking-wide leading-none transition-colors duration-150 ${
-                isActive ? 'text-[#3BB4C1]' : 'text-[#64748B]'
-              }`}
+              className="text-[0.58rem] font-semibold tracking-wide leading-none"
+              style={{ color: isActive ? FIXED.accentCyan : C.textTertiary, transition: 'color 150ms' }}
             >
               {label}
             </span>
