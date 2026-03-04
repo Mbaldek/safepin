@@ -1,16 +1,18 @@
-// src/components/OnboardingFunnelV2.tsx — 5-step onboarding funnel (v2)
+// src/components/OnboardingFunnelV2.tsx — 5-step onboarding funnel (v0 design)
 
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Camera, Check, ChevronRight, Copy, Link2, Share2, Shield } from 'lucide-react';
+import {
+  ArrowLeft, Camera, Check, ChevronRight,
+  Copy, Link2, Share2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 import { CitySelector } from './CitySelector';
-import { Button, Input, SelectionCard } from './ui';
 
 const STORAGE_KEY = 'brume_onboarding_done';
 
@@ -32,6 +34,64 @@ export function useOnboardingDone(
   return [done, markDone];
 }
 
+// ─── BreveilSymbol SVG ────────────────────────────────────────────────────────
+function BreveilSymbol() {
+  return (
+    <svg
+      width="80"
+      height="80"
+      viewBox="0 0 80 80"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer arcs - Gold */}
+      <path
+        d="M20 40C20 28.954 28.954 20 40 20"
+        stroke="#E8A838"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M60 40C60 51.046 51.046 60 40 60"
+        stroke="#E8A838"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+
+      {/* Middle arcs - Aurora Purple */}
+      <path
+        d="M26 40C26 32.268 32.268 26 40 26"
+        stroke="#8B7EC8"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M54 40C54 47.732 47.732 54 40 54"
+        stroke="#8B7EC8"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+
+      {/* Inner arcs - Gold */}
+      <path
+        d="M32 40C32 35.582 35.582 32 40 32"
+        stroke="#E8A838"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M48 40C48 44.418 44.418 48 40 48"
+        stroke="#E8A838"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+
+      {/* Center dot */}
+      <circle cx="40" cy="40" r="4" fill="#E8A838" />
+    </svg>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => void }) {
   const t = useTranslations('onboarding');
@@ -40,7 +100,6 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
   const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState('');
   const [city, setCity] = useState('Paris');
-  const [cityCoords, setCityCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -84,9 +143,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
       }).eq('id', userId);
     }
 
-    // Sync middleware cookie
     document.cookie = 'ob_done=1;path=/;max-age=31536000';
-    // Clear all onboarding localStorage flags
     ['brume_onboarding_done', 'ob_done', 'onboardingDone', 'onboarding_done', 'onboarding_step', 'onboardingStep']
       .forEach((k) => localStorage.removeItem(k));
     localStorage.setItem(STORAGE_KEY, '1');
@@ -105,7 +162,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
       });
       setLocationGranted(true);
     } catch {
-      // user denied — that's fine, Continue still works
+      // user denied
     }
   }
 
@@ -115,7 +172,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
       const result = await Notification.requestPermission();
       if (result === 'granted') setNotificationsGranted(true);
     } catch {
-      // not supported in this browser
+      // not supported
     }
   }
 
@@ -166,17 +223,27 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
     }
   }
 
-  // ─── Goals list ───────────────────────────────────────────────────────────────
-  const GOALS = [
-    { e: '🌙', key: 'v2Goal1' as const },
-    { e: '🗺️', key: 'v2Goal2' as const },
-    { e: '👥', key: 'v2Goal3' as const },
-    { e: '💚', key: 'v2Goal4' as const },
-    { e: '📍', key: 'v2Goal5' as const },
-  ] as const;
+  // Goals data
+  const goals = [
+    { emoji: '🛡️', text: t('v2Goal1') },
+    { emoji: '📍', text: t('v2Goal2') },
+    { emoji: '👥', text: t('v2Goal3') },
+    { emoji: '🚶‍♀️', text: t('v2Goal4') },
+    { emoji: '💛', text: t('v2Goal5') },
+  ];
 
   return (
-    <div className="fixed inset-0 z-300 bg-gradient overflow-hidden flex flex-col">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        overflow: 'hidden',
+        background: 'var(--surface-base)',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       {/* Hidden file input for avatar upload */}
       <input
         ref={fileInputRef}
@@ -186,320 +253,650 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
         onChange={handleAvatarChange}
       />
 
-      {/* ── Top bar: back · skip ──────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-4 shrink-0">
+      {/* ── Top Bar ──────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', flexShrink: 0 }}>
         <button
           onClick={goBack}
-          className={`w-10 h-10 flex items-center justify-center rounded-full transition-opacity ${
-            currentStep === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
+          style={{
+            width: 40,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '50%',
+            opacity: currentStep === 0 ? 0 : 1,
+            pointerEvents: currentStep === 0 ? 'none' : 'auto',
+            transition: 'opacity 200ms',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
           aria-label={t('back')}
         >
-          <ArrowLeft className="w-5 h-5 text-(--text-primary)" />
+          <ArrowLeft style={{ width: 20, height: 20, color: 'var(--text-primary)' }} />
         </button>
+
+        {/* Progress Dots */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: i === currentStep ? 24 : 8,
+                height: 8,
+                borderRadius: 9999,
+                transition: 'all 300ms',
+                background:
+                  i === currentStep
+                    ? '#3BB4C1'
+                    : i < currentStep
+                    ? 'rgba(59, 180, 193, 0.6)'
+                    : 'rgba(148, 163, 184, 0.3)',
+              }}
+            />
+          ))}
+        </div>
 
         <button
           onClick={() => void handleComplete()}
           disabled={completing}
-          className="text-sm font-medium text-(--text-tertiary) transition-opacity disabled:opacity-40"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: 'pointer',
+            opacity: completing ? 0.4 : 1,
+            transition: 'color 200ms',
+          }}
         >
           {t('passer')}
         </button>
       </div>
 
-      {/* ── Sliding screens ──────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden relative">
+      {/* ── Content Area — horizontal slide ───────────────────────── */}
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <div
-          className="absolute inset-0 flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${currentStep * 100}%)` }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            transition: 'transform 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+            transform: `translateX(-${currentStep * 100}%)`,
+          }}
         >
-
-          {/* ── SCREEN 1: Welcome ───────────────────────────────────── */}
-          <div className="w-full shrink-0 flex flex-col items-center justify-center px-6 py-8">
-            <div className="mb-10">
-              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur flex items-center justify-center breathe">
-                <Shield className="w-10 h-10 text-(--accent-teal)" />
-              </div>
+          {/* ── SCREEN 1: Welcome ──────────────────────────────────── */}
+          <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
+            {/* Breveil Symbol */}
+            <div style={{ marginBottom: 48 }}>
+              <BreveilSymbol />
             </div>
 
-            <h1 className="text-h2 text-center text-(--text-primary) mb-3">
+            {/* Title */}
+            <h1 style={{ fontSize: 28, color: 'var(--text-primary)', fontStyle: 'italic', textAlign: 'center', marginBottom: 12, fontWeight: 400 }}>
               {t('welcome')}
             </h1>
-            <p className="text-body-sm text-center text-(--text-secondary) max-w-72 mb-10">
+
+            {/* Subtitle */}
+            <p style={{ fontSize: 15, color: 'var(--text-secondary)', textAlign: 'center', maxWidth: 280, marginBottom: 40 }}>
               {t('v2Tagline')}
             </p>
 
-            <div className="flex flex-col gap-3 w-full max-w-75 mb-auto">
-              {([
-                { e: '🗺️', label: t('v2Prop1') },
-                { e: '🆘', label: t('v2Prop2') },
-                { e: '💛', label: t('v2Prop3') },
-              ] as const).map((item, i) => (
+            {/* Value Props */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 300, marginBottom: 'auto' }}>
+              {[
+                { emoji: '🗺️', text: t('v2Prop1') },
+                { emoji: '🆘', text: t('v2Prop2') },
+                { emoji: '💛', text: t('v2Prop3') },
+              ].map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-center gap-2 h-10 px-4 rounded-full bg-white/10 backdrop-blur text-body-sm text-(--text-secondary)"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    height: 40,
+                    padding: '0 16px',
+                    background: 'var(--surface-card)',
+                    borderRadius: 9999,
+                    fontSize: 13,
+                    color: 'var(--text-primary)',
+                  }}
                 >
-                  <span>{item.e}</span>
-                  <span>{item.label}</span>
+                  <span>{item.emoji}</span>
+                  <span>{item.text}</span>
                 </div>
               ))}
             </div>
 
-            <div className="w-full pt-8">
-              <Button variant="primary" fullWidth onClick={goNext}>
-                {t('start')} <ChevronRight className="w-4 h-4" />
-              </Button>
+            {/* CTA */}
+            <div style={{ width: '100%', marginTop: 'auto', paddingTop: 32 }}>
+              <button
+                onClick={goNext}
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: '#3BB4C1',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  transition: 'opacity 200ms',
+                }}
+              >
+                {t('start')}
+                <ChevronRight style={{ width: 16, height: 16 }} />
+              </button>
             </div>
           </div>
 
-          {/* ── SCREEN 2: Profile ───────────────────────────────────── */}
-          <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
+          {/* ── SCREEN 2: Profile ──────────────────────────────────── */}
+          <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '32px 24px' }}>
+            {/* Title */}
+            <h1 style={{ fontSize: 26, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 8, fontWeight: 400 }}>
               {t('nameTitle')}
             </h1>
-            <p className="text-body-sm text-center text-(--text-secondary) mb-10">
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 40 }}>
               {t('nameSub')}
             </p>
 
-            {/* Avatar */}
-            <div className="flex flex-col items-center mb-8">
+            {/* Profile Photo */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="relative w-20 h-20 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center mb-2 transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  border: avatar ? 'none' : '2px dashed rgba(148, 163, 184, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8,
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  opacity: avatarUploading ? 0.4 : 1,
+                  transition: 'opacity 200ms',
+                  padding: 0,
+                }}
               >
                 {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                  <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                 ) : avatarUploading ? (
-                  <div className="w-5 h-5 border-2 rounded-full animate-spin border-white/30 border-t-(--accent-teal)" />
+                  <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #3BB4C1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 ) : (
-                  <Camera className="w-6 h-6 text-white/40" />
+                  <Camera style={{ width: 24, height: 24, color: 'var(--text-secondary)' }} />
                 )}
               </button>
-              <span className="text-xs text-white/40">{t('addPhoto')}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                {t('addPhoto')}
+              </span>
             </div>
 
-            {/* Name input */}
-            <div className="mb-6">
-              <Input
-                label={t('namePlaceholder2')}
+            {/* Name Input */}
+            <div style={{ marginBottom: 24 }}>
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                placeholder={t('namePlaceholder2')}
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: 'var(--surface-card)',
+                  padding: '0 16px',
+                  borderRadius: 12,
+                  color: 'var(--text-primary)',
+                  fontSize: 16,
+                  border: 'none',
+                  borderBottom: '2px solid transparent',
+                  outline: 'none',
+                  transition: 'border-color 200ms',
+                }}
+                onFocus={(e) => { e.target.style.borderBottomColor = '#3BB4C1'; }}
+                onBlur={(e) => { e.target.style.borderBottomColor = 'transparent'; }}
               />
             </div>
 
-            {/* City row */}
-            <div className="flex items-center gap-3 mb-auto">
-              <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-body-sm text-(--text-primary)">
-                📍 {city}
+            {/* City Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'auto' }}>
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '6px 12px',
+                background: 'var(--surface-card)',
+                borderRadius: 9999,
+                fontSize: 14,
+                color: 'var(--text-primary)',
+              }}>
+                <span>📍</span>
+                <span>{city}</span>
               </span>
               <button
                 onClick={() => setShowCitySelector(true)}
-                className="text-body-sm font-medium text-(--accent-teal)"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#3BB4C1',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
               >
                 {t('changeCity')}
               </button>
             </div>
 
-            <div className="w-full mt-auto pt-8">
-              <Button variant="primary" fullWidth onClick={goNext}>
-                {t('continueBtn')} <ChevronRight className="w-4 h-4" />
-              </Button>
+            {/* CTA */}
+            <div style={{ width: '100%', marginTop: 'auto', paddingTop: 32 }}>
+              <button
+                onClick={goNext}
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: '#3BB4C1',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                }}
+              >
+                {t('continueBtn')}
+                <ChevronRight style={{ width: 16, height: 16 }} />
+              </button>
             </div>
           </div>
 
-          {/* ── SCREEN 3: Goals ─────────────────────────────────────── */}
-          <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
+          {/* ── SCREEN 3: Goals ────────────────────────────────────── */}
+          <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '32px 24px' }}>
+            <h1 style={{ fontSize: 26, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 8, fontWeight: 400 }}>
               {t('v2GoalsTitle')}
             </h1>
-            <p className="text-body-sm text-center text-(--text-secondary) mb-8">
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 32 }}>
               {t('v2GoalsSub')}
             </p>
 
-            <div className="flex flex-col gap-3 mb-auto">
-              {GOALS.map((g, i) => (
-                <SelectionCard
-                  key={i}
-                  emoji={g.e}
-                  label={t(g.key)}
-                  selected={selectedGoals.includes(i)}
-                  onClick={() => toggleGoal(i)}
-                />
-              ))}
+            {/* Goal Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 'auto' }}>
+              {goals.map((goal, i) => {
+                const isSelected = selectedGoals.includes(i);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggleGoal(i)}
+                    style={{
+                      width: '100%',
+                      height: 56,
+                      padding: '0 16px',
+                      borderRadius: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      background: isSelected ? 'rgba(59, 180, 193, 0.1)' : 'var(--surface-card)',
+                      border: isSelected ? '1px solid #3BB4C1' : '1px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 200ms',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
+                        flexShrink: 0,
+                        background: isSelected ? 'rgba(59, 180, 193, 0.2)' : 'var(--surface-elevated)',
+                      }}
+                    >
+                      {goal.emoji}
+                    </div>
+                    <span style={{ fontSize: 14, color: 'var(--text-primary)', textAlign: 'left', flex: 1 }}>
+                      {goal.text}
+                    </span>
+                    {isSelected && (
+                      <Check style={{ width: 20, height: 20, color: '#3BB4C1', flexShrink: 0 }} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="w-full mt-auto pt-8">
-              <Button variant="primary" fullWidth onClick={goNext}>
-                {t('continueBtn')} <ChevronRight className="w-4 h-4" />
-              </Button>
+            {/* CTA */}
+            <div style={{ width: '100%', marginTop: 'auto', paddingTop: 32 }}>
+              <button
+                onClick={goNext}
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: '#3BB4C1',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                }}
+              >
+                {t('continueBtn')}
+                <ChevronRight style={{ width: 16, height: 16 }} />
+              </button>
             </div>
           </div>
 
-          {/* ── SCREEN 4: Permissions ───────────────────────────────── */}
-          <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
+          {/* ── SCREEN 4: Permissions ──────────────────────────────── */}
+          <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '32px 24px' }}>
+            <h1 style={{ fontSize: 26, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 8, fontWeight: 400 }}>
               {t('permissionsTitle')}
             </h1>
-            <p className="text-body-sm text-center text-(--text-secondary) mb-8">
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 32 }}>
               {t('permissionsSub')}
             </p>
 
-            <div className="flex flex-col gap-4 mb-8">
-              {/* Location card */}
-              <div className={`p-4 rounded-lg border transition-all ${
-                locationGranted
-                  ? 'bg-(--semantic-success-soft) border-(--semantic-success)'
-                  : 'bg-white/10 backdrop-blur border-white/10'
-              }`}>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">📍</span>
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-(--text-primary) mb-1">
+            {/* Permission Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
+              {/* Location */}
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: locationGranted ? '1px solid var(--semantic-success)' : '1px solid transparent',
+                  background: locationGranted ? 'rgba(52, 211, 153, 0.1)' : 'var(--surface-card)',
+                  transition: 'all 200ms',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>📍</span>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
                       {t('locationCardTitle')}
                     </h3>
-                    <p className="text-body-sm text-(--text-secondary)">
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                       {t('locationCardDesc')}
                     </p>
                   </div>
                   {locationGranted ? (
-                    <div className="w-8 h-8 rounded-full bg-(--semantic-success) flex items-center justify-center shrink-0">
-                      <Check className="w-4 h-4 text-white" />
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--semantic-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Check style={{ width: 16, height: 16, color: '#FFFFFF' }} />
                     </div>
                   ) : (
-                    <Button size="sm" onClick={() => void requestLocation()}>
+                    <button
+                      onClick={() => void requestLocation()}
+                      style={{
+                        padding: '6px 16px',
+                        background: '#3BB4C1',
+                        color: '#FFFFFF',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        borderRadius: 9999,
+                        border: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        transition: 'opacity 200ms',
+                      }}
+                    >
                       {t('allow')}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* Notifications card */}
-              <div className={`p-4 rounded-lg border transition-all ${
-                notificationsGranted
-                  ? 'bg-(--semantic-success-soft) border-(--semantic-success)'
-                  : 'bg-white/10 backdrop-blur border-white/10'
-              }`}>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">🔔</span>
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-(--text-primary) mb-1">
+              {/* Notifications */}
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: notificationsGranted ? '1px solid var(--semantic-success)' : '1px solid transparent',
+                  background: notificationsGranted ? 'rgba(52, 211, 153, 0.1)' : 'var(--surface-card)',
+                  transition: 'all 200ms',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>🔔</span>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
                       {t('notifCardTitle')}
                     </h3>
-                    <p className="text-body-sm text-(--text-secondary)">
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                       {t('notifCardDesc')}
                     </p>
                   </div>
                   {notificationsGranted ? (
-                    <div className="w-8 h-8 rounded-full bg-(--semantic-success) flex items-center justify-center shrink-0">
-                      <Check className="w-4 h-4 text-white" />
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--semantic-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Check style={{ width: 16, height: 16, color: '#FFFFFF' }} />
                     </div>
                   ) : (
-                    <Button size="sm" onClick={() => void requestNotifications()}>
+                    <button
+                      onClick={() => void requestNotifications()}
+                      style={{
+                        padding: '6px 16px',
+                        background: '#3BB4C1',
+                        color: '#FFFFFF',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        borderRadius: 9999,
+                        border: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        transition: 'opacity 200ms',
+                      }}
+                    >
                       {t('allow')}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2 mb-auto text-xs text-(--text-tertiary)">
+            {/* Privacy Reassurance */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)', marginBottom: 'auto' }}>
               <span>🔒</span>
               <span>{t('privacyNote')}</span>
             </div>
 
-            <div className="w-full mt-auto pt-8">
-              <Button variant="primary" fullWidth onClick={goNext}>
-                {t('continueBtn')} <ChevronRight className="w-4 h-4" />
-              </Button>
+            {/* CTA */}
+            <div style={{ width: '100%', marginTop: 'auto', paddingTop: 32 }}>
+              <button
+                onClick={goNext}
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: '#3BB4C1',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                }}
+              >
+                {t('continueBtn')}
+                <ChevronRight style={{ width: 16, height: 16 }} />
+              </button>
             </div>
           </div>
 
-          {/* ── SCREEN 5: Circle ────────────────────────────────────── */}
-          <div className="w-full shrink-0 flex flex-col px-6 py-8">
-            <h1 className="text-h2 text-center text-(--text-primary) mb-2">
+          {/* ── SCREEN 5: Circle ───────────────────────────────────── */}
+          <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '32px 24px' }}>
+            <h1 style={{ fontSize: 26, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 8, fontWeight: 400 }}>
               {t('circleTitle2')}
             </h1>
-            <p className="text-body-sm text-center text-(--text-secondary) max-w-80 mx-auto mb-8">
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', textAlign: 'center', maxWidth: 320, margin: '0 auto 32px' }}>
               {t('circleSub2')}
             </p>
 
-            {/* Avatar cluster illustration */}
-            <div className="flex items-center justify-center mb-8">
-              <div className="relative">
-                <div
-                  className="absolute inset-0 blur-xl rounded-full scale-150"
-                  style={{ background: 'rgba(59,180,193,0.15)' }}
-                />
-                <div className="relative flex items-center">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 border-(--surface-base) z-30 bg-[#8B7EC8]">M</div>
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold text-lg border-2 border-(--surface-base) -ml-4 z-20 bg-(--accent-coral)">L</div>
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 border-(--surface-base) -ml-3 z-10 bg-(--semantic-success)">S</div>
+            {/* Avatar Illustration */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 32 }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(59, 180, 193, 0.2)', filter: 'blur(20px)', borderRadius: '50%', transform: 'scale(1.5)' }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#8B7EC8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 600, fontSize: 14, border: '2px solid var(--surface-base)', zIndex: 30 }}>M</div>
+                  <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F87171', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 600, fontSize: 18, border: '2px solid var(--surface-base)', marginLeft: -16, zIndex: 20 }}>L</div>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--semantic-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 600, fontSize: 14, border: '2px solid var(--surface-base)', marginLeft: -12, zIndex: 10 }}>S</div>
                 </div>
               </div>
             </div>
 
-            {/* Invite input */}
-            <div className="relative mb-4">
+            {/* Invite Input */}
+            <div style={{ position: 'relative', marginBottom: 16 }}>
               <input
                 type="text"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder={t('invitePlaceholder')}
-                className="w-full h-12 pl-4 pr-24 rounded-md bg-(--surface-card) border border-(--border-default) text-(--text-primary) text-base focus:outline-none focus:border-(--gradient-start)"
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: 'var(--surface-card)',
+                  paddingLeft: 16,
+                  paddingRight: 96,
+                  borderRadius: 12,
+                  color: 'var(--text-primary)',
+                  fontSize: 16,
+                  border: 'none',
+                  outline: 'none',
+                }}
+                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 2px rgba(59,180,193,0.5)'; }}
+                onBlur={(e) => { e.target.style.boxShadow = 'none'; }}
                 onKeyDown={(e) => e.key === 'Enter' && void handleInviteContact()}
               />
               <button
                 onClick={() => void handleInviteContact()}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm font-medium rounded-sm bg-white text-(--surface-base)"
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  padding: '6px 16px',
+                  background: '#3BB4C1',
+                  color: '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  borderRadius: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 200ms',
+                }}
               >
                 {t('send')}
               </button>
             </div>
 
-            {/* Share link row */}
-            <div className="flex items-center justify-center gap-2 mb-4 text-body-sm text-(--text-secondary)">
-              <Link2 className="w-4 h-4" />
+            {/* Share Link Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              <Link2 style={{ width: 16, height: 16 }} />
               <span>{t('orShareLink')}</span>
             </div>
 
-            <div className="flex items-center justify-center gap-3 mb-6">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/10 backdrop-blur text-body-sm text-(--text-secondary) transition-opacity hover:opacity-70"
                 onClick={() => {
                   navigator.clipboard?.writeText(inviteLink)
                     .then(() => toast.success(t('copy') + ' ✓'))
                     .catch(() => {});
                 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  background: 'var(--surface-card)',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  color: 'var(--text-primary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 200ms',
+                }}
               >
-                <Copy className="w-4 h-4" /> {t('copy')}
+                <Copy style={{ width: 16, height: 16 }} />
+                {t('copy')}
               </button>
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/10 backdrop-blur text-body-sm text-(--text-secondary) transition-opacity hover:opacity-70"
                 onClick={() => {
                   navigator.share?.({ title: 'Breveil', url: inviteLink }).catch(() => {});
                 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  background: 'var(--surface-card)',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  color: 'var(--text-primary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 200ms',
+                }}
               >
-                <Share2 className="w-4 h-4" /> {t('shareBtn')}
+                <Share2 style={{ width: 16, height: 16 }} />
+                {t('shareBtn')}
               </button>
             </div>
 
-            {/* Invited contact chips */}
+            {/* Invited Contacts */}
             {invitedContacts.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {invitedContacts.map((c, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-body-sm text-(--text-secondary)"
                     style={{
-                      background: 'rgba(59,180,193,0.1)',
-                      border: '1px solid rgba(59,180,193,0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 12px',
+                      background: 'rgba(59, 180, 193, 0.1)',
+                      border: '1px solid rgba(59, 180, 193, 0.3)',
+                      borderRadius: 9999,
+                      fontSize: 13,
+                      color: 'var(--text-primary)',
                     }}
                   >
                     <span>{c}</span>
                     <button
                       onClick={() => setInvitedContacts((prev) => prev.filter((x) => x !== c))}
-                      className="w-4 h-4 rounded-full flex items-center justify-center bg-white/10 text-[10px] text-(--text-tertiary)"
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: 'rgba(148, 163, 184, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 10,
+                        color: 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background 200ms',
+                      }}
                     >
                       ×
                     </button>
@@ -508,45 +905,63 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
               </div>
             )}
 
-            <p className="text-center mb-auto text-xs text-(--text-tertiary)">
+            {/* Helper Text */}
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 'auto' }}>
               {t('addLater')}
             </p>
 
-            <div className="w-full mt-auto pt-8 flex flex-col gap-3">
-              <Button variant="primary" fullWidth onClick={() => void handleComplete()} loading={completing}>
-                {t('finish')} {!completing && <ChevronRight className="w-4 h-4" />}
-              </Button>
+            {/* CTA */}
+            <div style={{ width: '100%', marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <button
                 onClick={() => void handleComplete()}
                 disabled={completing}
-                className="w-full h-10 text-body-sm text-(--text-tertiary) transition-opacity disabled:opacity-40"
+                style={{
+                  width: '100%',
+                  height: 48,
+                  background: '#3BB4C1',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  opacity: completing ? 0.6 : 1,
+                  transition: 'opacity 200ms',
+                }}
+              >
+                {completing ? (
+                  <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #FFF', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <>
+                    {t('finish')}
+                    <ChevronRight style={{ width: 16, height: 16 }} />
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => void handleComplete()}
+                disabled={completing}
+                style={{
+                  width: '100%',
+                  height: 40,
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 14,
+                  border: 'none',
+                  cursor: 'pointer',
+                  opacity: completing ? 0.4 : 1,
+                  transition: 'opacity 200ms, color 200ms',
+                }}
               >
                 {t('laterBtn')}
               </button>
             </div>
           </div>
-
         </div>
-      </div>
-
-      {/* ── Progress dots (bottom) ────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-2 pb-[calc(var(--space-4)+env(safe-area-inset-bottom))] pt-4 shrink-0">
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full transition-all duration-300"
-            style={{
-              width: i === currentStep ? 24 : 8,
-              height: 8,
-              background:
-                i === currentStep
-                  ? 'var(--accent-teal)'
-                  : i < currentStep
-                  ? 'rgba(59,180,193,0.5)'
-                  : 'rgba(255,255,255,0.2)',
-            }}
-          />
-        ))}
       </div>
 
       {/* City selector sheet */}
