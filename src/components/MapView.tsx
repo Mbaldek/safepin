@@ -7,7 +7,6 @@ import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { Pin, CATEGORY_DETAILS } from '@/types';
-import { getPinSize, getPinOpacity as getPinOpacityUtil, getPinColor } from '@/lib/pin-utils';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
@@ -44,6 +43,65 @@ const STYLE_URLS: Record<string, string> = {
   light:   'mapbox://styles/mapbox/light-v11',
   dark:    'mapbox://styles/mapbox/dark-v11',
 };
+
+const CATEGORY_COLORS: Record<string, string> = {
+  assault: '#EF4444', harassment: '#EF4444', theft: '#EF4444', following: '#EF4444',
+  suspect: '#F59E0B', group: '#F59E0B', unsafe: '#F59E0B',
+  lighting: '#64748B', blocked: '#64748B', closed: '#64748B',
+  safe: '#34D399', help: '#34D399', presence: '#34D399',
+};
+
+const DECAY_HOURS: Record<string, number> = {
+  assault: 24, harassment: 24, theft: 24, following: 24,
+  suspect: 12, group: 6, unsafe: 48,
+  lighting: 168, blocked: 168, closed: 168,
+  safe: 720, help: 168, presence: 720,
+};
+
+function getPinSize(confirmations: number): number {
+  if (confirmations >= 10) return 28;
+  if (confirmations >= 4) return 22;
+  if (confirmations >= 2) return 18;
+  return 14;
+}
+
+function getPinOpacity(createdAt: string, category: string): number {
+  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  const maxHours = DECAY_HOURS[category] || 24;
+  return Math.max(1 - (hoursAgo / maxHours) * 0.7, 0.3);
+}
+
+function getPinColor(category: string): string {
+  return CATEGORY_COLORS[category] || '#94A3B8';
+}
+
+function createPinElement(pin: Pin): HTMLElement {
+  const size = getPinSize(pin.confirmations || 1);
+  const opacity = getPinOpacity(pin.created_at, pin.category);
+  const color = getPinColor(pin.category);
+  const isHotspot = (pin.confirmations || 1) >= 10;
+  const isTransport = pin.is_transport;
+
+  const container = document.createElement('div');
+  container.style.cssText = `position:relative;width:${size}px;height:${size}px;cursor:pointer;transform:translate(-50%,-50%);`;
+
+  const circle = document.createElement('div');
+  circle.style.cssText = `width:100%;height:100%;border-radius:50%;background:${color};opacity:${opacity};border:${(pin.confirmations||1)>=4?'2px solid rgba(255,255,255,0.3)':'none'};box-shadow:${isHotspot?`0 0 12px ${color}`:'none'};transition:transform 0.2s ease;`;
+  container.appendChild(circle);
+
+  if (isTransport) {
+    for (let i = 0; i < 2; i++) {
+      const ripple = document.createElement('div');
+      ripple.style.cssText = `position:absolute;inset:0;border-radius:50%;border:2px solid ${color};opacity:0;animation:pin-ripple 2s ease-out infinite;animation-delay:${i*0.7}s;`;
+      container.appendChild(ripple);
+    }
+  }
+
+  container.onmouseenter = () => circle.style.transform = 'scale(1.2)';
+  container.onmouseleave = () => circle.style.transform = 'scale(1)';
+
+  return container;
+}
 
 // Module-level caches so they survive style switches
 let transitCache: GeoJSON.FeatureCollection | null = null;
@@ -335,7 +393,7 @@ function getEffectiveOpacity(pin: Pin): number {
   const effectiveTime = pin.last_confirmed_at
     ? new Date(Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())).toISOString()
     : pin.created_at;
-  return getPinOpacityUtil(effectiveTime, pin.category);
+  return getPinOpacity(effectiveTime, pin.category);
 }
 
 /** Get category group id for a pin. */
@@ -1112,7 +1170,7 @@ export default function MapView({
     }
     prevPinIdsRef.current = currentIds;
 
-    // ── Transport pins — HTML markers with ripple animation ─────────────────
+    // ── Transport pins — HTML markers using createPinElement ────────────────
     transportMarkersRef.current.forEach((m) => m.remove());
     transportMarkersRef.current = [];
 
@@ -1123,75 +1181,18 @@ export default function MapView({
     const transportPins = pins.filter((pin) => passesFilters(pin) && pin.is_transport);
 
     for (const pin of transportPins) {
-      const confirmations = pin.confirmations ?? 1;
-      const size = getPinSize(confirmations);
-      const color = getPinColor(pin.category);
-      const opacity = getEffectiveOpacity(pin);
-      const hasBorder = confirmations >= 4;
-      const hasGlow = confirmations >= 10;
+      const el = createPinElement(pin);
 
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = `width:${size + 16}px;height:${size + 16}px;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:${opacity}`;
-
-      // Ripple rings (3 concentric circles)
-      for (let i = 0; i < 3; i++) {
-        const ripple = document.createElement('div');
-        ripple.className = 'pin-ripple';
-        ripple.style.cssText = `border:2px solid ${color};animation-delay:${i * 0.6}s;`;
-        wrapper.appendChild(ripple);
-      }
-
-      // Inner dot
-      const dot = document.createElement('div');
-      let dotStyle = `width:${size}px;height:${size}px;border-radius:50%;background:${color};position:relative;z-index:1;`;
-      if (hasBorder) dotStyle += `border:2px solid rgba(255,255,255,0.3);`;
-      if (hasGlow) dotStyle += `box-shadow:0 0 8px ${color}88, 0 0 16px ${color}44;`;
-      dot.style.cssText = dotStyle;
-
-      wrapper.appendChild(dot);
-
-      wrapper.addEventListener('click', (e) => {
+      el.addEventListener('click', (e) => {
         e.stopPropagation();
         setSelectedPin(pin);
         setActiveSheet('detail');
       });
 
-      const marker = new mapboxgl.Marker({ element: wrapper, anchor: 'center' })
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([pin.lng, pin.lat])
         .addTo(map.current!);
       transportMarkersRef.current.push(marker);
-
-      // Ghost trail for transport (metro=vertical, bus=horizontal)
-      const isVertical = pin.environment === 'metro';
-      const GHOST_OFFSETS = [
-        { d: -1, ghostOpacity: 0.18 },
-        { d: -0.6, ghostOpacity: 0.35 },
-        { d: 0.6, ghostOpacity: 0.35 },
-        { d: 1, ghostOpacity: 0.18 },
-      ];
-      const TRAIL_SPREAD = 0.0006;
-      const shape = pin.environment === 'metro' ? 'square' : 'diamond';
-
-      for (const ghost of GHOST_OFFSETS) {
-        const lng = isVertical ? pin.lng : pin.lng + ghost.d * TRAIL_SPREAD;
-        const lat = isVertical ? pin.lat + ghost.d * TRAIL_SPREAD : pin.lat;
-
-        const el = document.createElement('div');
-        el.style.cssText = `pointer-events:none;opacity:${ghost.ghostOpacity * opacity};`;
-
-        const ghostDot = document.createElement('div');
-        if (shape === 'square') {
-          ghostDot.style.cssText = `width:10px;height:10px;border-radius:3px;background:${color};border:1.5px solid rgba(255,255,255,0.6);`;
-        } else {
-          ghostDot.style.cssText = `width:10px;height:10px;background:${color};border:1.5px solid rgba(255,255,255,0.6);transform:rotate(45deg);`;
-        }
-        el.appendChild(ghostDot);
-
-        const ghostMarker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([lng, lat])
-          .addTo(map.current!);
-        ghostTrailRef.current.push(ghostMarker);
-      }
     }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
 
