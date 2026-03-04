@@ -45,29 +45,29 @@ export default function LocationChip() {
 
   return (
     <div
-      className="absolute top-[76px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 h-9 px-4 rounded-full shadow-md"
+      className="absolute top-[64px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2 rounded-3xl"
       style={{
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border)',
+        backgroundColor: '#1E293B',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
       }}
     >
-      {/* Gold dot indicator */}
       <span
-        className="w-2 h-2 rounded-full shrink-0 pulse-gold"
-        style={{ backgroundColor: 'var(--accent)' }}
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ backgroundColor: '#3BB4C1' }}
       />
       <span
         className="text-xs font-bold truncate max-w-[180px]"
-        style={{ color: 'var(--text-primary)' }}
+        style={{ color: '#FFFFFF' }}
       >
         {locationName}
       </span>
       {nearbyCount > 0 && (
         <>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>·</span>
+          <span className="text-xs" style={{ color: '#94A3B8' }}>·</span>
           <span
             className="text-xs font-bold whitespace-nowrap"
-            style={{ color: 'var(--text-muted)' }}
+            style={{ color: '#94A3B8' }}
           >
             {nearbyCount} incident{nearbyCount > 1 ? 's' : ''}
           </span>

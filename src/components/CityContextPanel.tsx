@@ -165,9 +165,9 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
         >
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: 'rgba(245,158,11,0.12)' }}
+            style={{ backgroundColor: 'rgba(59,180,193,0.12)' }}
           >
-            <AlertTriangle size={18} strokeWidth={2} style={{ color: '#f59e0b' }} />
+            <AlertTriangle size={18} strokeWidth={2} style={{ color: '#3BB4C1' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p
@@ -181,7 +181,7 @@ export default function CityContextPanel({ onClose }: { onClose: () => void }) {
                 <span style={{ color: 'var(--text-muted)' }}>Loading…</span>
               ) : (
                 <>
-                  <span style={{ color: nearbyPinCount > 0 ? '#f59e0b' : 'var(--text-primary)' }}>
+                  <span style={{ color: nearbyPinCount > 0 ? '#3BB4C1' : 'var(--text-primary)' }}>
                     {nearbyPinCount}
                   </span>
                   {' active '}
