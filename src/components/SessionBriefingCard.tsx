@@ -144,8 +144,13 @@ export default function SessionBriefingCard({ onDismiss }: { onDismiss: () => vo
     );
   }
 
-  // No actionable info — dismiss silently
-  onDismiss();
+  // No actionable info — dismiss silently via effect (not during render)
+  useEffect(() => {
+    if (data && !data.hasSos && data.newPins === 0) {
+      dismissRef.current();
+    }
+  }, [data]);
+
   return null;
 }
 
