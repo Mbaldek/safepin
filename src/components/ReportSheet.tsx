@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Camera, Video, Mic, MapPin, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
@@ -74,21 +74,39 @@ export function ReportSheet() {
   const [desc, setDesc] = useState('');
   const [media, setMedia] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+
+  // Reverse geocode when coords change
+  useEffect(() => {
+    if (!newPinCoords) { setAddress(null); return; }
+    let cancelled = false;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return;
+    fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${newPinCoords.lng},${newPinCoords.lat}.json?access_token=${token}&limit=1&language=fr`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        const name = data.features?.[0]?.place_name;
+        setAddress(name ?? null);
+      })
+      .catch(() => { if (!cancelled) setAddress(null); });
+    return () => { cancelled = true; };
+  }, [newPinCoords]);
 
   if (activeSheet !== 'report') return null;
 
   const selectedGroup = cat ? groups.find(g => g.items.some(i => i.id === cat.id)) : null;
 
   const c = {
-    bg: '#0F172A',
-    card: '#1E293B',
-    text: '#FFFFFF',
-    muted: '#94A3B8',
-    border: 'rgba(255,255,255,0.1)',
-    pill: 'rgba(255,255,255,0.06)',
-    accent: '#3BB4C1',
-    sel: 'rgba(59,180,193,0.25)',
-    gold: '#3BB4C1',
+    bg: 'var(--bg-primary)',
+    card: 'var(--bg-card)',
+    text: 'var(--text-primary)',
+    muted: 'var(--text-muted)',
+    border: 'var(--border)',
+    pill: 'var(--bg-secondary)',
+    accent: 'var(--accent)',
+    sel: 'color-mix(in srgb, var(--accent) 25%, transparent)',
+    gold: 'var(--accent)',
   };
 
   const canNext = cat !== null;
@@ -107,6 +125,7 @@ export function ReportSheet() {
     setTLine('');
     setDesc('');
     setMedia(false);
+    setAddress(null);
   };
 
   const handleClose = () => {
@@ -153,17 +172,16 @@ export function ReportSheet() {
 
   return (
     <AnimatePresence>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 201,
+          width: '100%',
+          maxWidth: 480,
+          pointerEvents: 'auto',
           background: c.card,
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
@@ -177,12 +195,16 @@ export function ReportSheet() {
           </button>
           <div style={{ flex: 1, textAlign: 'center' }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>
-              {step === 1 ? 'Signaler' : step === 2 ? 'Transport' : step === 3 ? 'Détails' : 'Envoyé'}
+              {step === 1 ? 'Signaler' : step === 2 ? 'Transport' : step === 3 ? 'Validation' : 'Envoyé'}
             </span>
           </div>
-          {step < 4 ? (
-            <button onClick={next} disabled={step === 1 && !canNext} style={{ width: 32, height: 32, borderRadius: '50%', background: (step === 1 && !canNext) ? c.pill : c.gold, border: 'none', color: (step === 1 && !canNext) ? c.muted : '#1A1A2E', cursor: (step === 1 && !canNext) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (step === 1 && !canNext) ? 0.4 : 1 }}>
+          {step === 2 ? (
+            <button onClick={next} style={{ width: 32, height: 32, borderRadius: '50%', background: c.gold, border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ArrowRight size={16} />
+            </button>
+          ) : step === 3 ? (
+            <button onClick={handleSubmit} disabled={isSubmitting} style={{ width: 32, height: 32, borderRadius: '50%', background: '#34D399', border: 'none', color: '#FFFFFF', cursor: isSubmitting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isSubmitting ? 0.6 : 1 }}>
+              <Check size={16} />
             </button>
           ) : <div style={{ width: 32 }} />}
         </div>
@@ -193,10 +215,12 @@ export function ReportSheet() {
           {/* Step 1: Chips */}
           {step === 1 && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                <MapPin size={13} color={c.muted} />
-                <span style={{ fontSize: 12, color: c.muted }}>
-                  {newPinCoords ? `${newPinCoords.lat.toFixed(4)}, ${newPinCoords.lng.toFixed(4)}` : 'Position actuelle'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, minWidth: 0 }}>
+                <MapPin size={13} color={c.muted} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: c.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {newPinCoords
+                    ? (address ?? `${newPinCoords.lat.toFixed(4)}, ${newPinCoords.lng.toFixed(4)}`)
+                    : 'Position actuelle'}
                 </span>
               </div>
 
@@ -211,7 +235,7 @@ export function ReportSheet() {
                       return (
                         <button
                           key={item.id}
-                          onClick={() => setCat(item)}
+                          onClick={() => { setCat(item); setStep(2); }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -252,7 +276,7 @@ export function ReportSheet() {
               {transport === null && (
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => setTransport(true)} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Oui</button>
-                  <button onClick={() => setTransport(false)} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Non</button>
+                  <button onClick={() => { setTransport(false); setStep(3); }} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Non</button>
                 </div>
               )}
 
@@ -269,7 +293,7 @@ export function ReportSheet() {
                 </>
               )}
 
-              {transport === false && <p style={{ fontSize: 13, color: c.muted, marginTop: 8 }}>Appuie sur → pour continuer</p>}
+              {/* transport === false auto-advances to step 3 */}
             </>
           )}
 
@@ -306,6 +330,7 @@ export function ReportSheet() {
           )}
         </div>
       </motion.div>
+      </div>
     </AnimatePresence>
   );
 }
