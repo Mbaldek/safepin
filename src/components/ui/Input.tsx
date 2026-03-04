@@ -1,79 +1,55 @@
 'use client';
 
-import { forwardRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { forwardRef, useState, useId } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
-  hint?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, type = 'text', className = '', ...props }, ref) => {
-    const [showPassword, setShowPassword] = useState(false);
-    const isPassword = type === 'password';
-    const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
+  ({ label, error, type = 'text', value, onChange, disabled = false, required = false, className = '', ...props }, ref) => {
+    const id = useId();
+    const [focused, setFocused] = useState(false);
+    const isActive = focused || (typeof value === 'string' && value.length > 0);
 
     return (
-      <div className="relative">
+      <div className={`relative ${className}`}>
         <input
           ref={ref}
-          type={inputType}
-          className={`
-            w-full px-4 pt-5 pb-2
-            bg-[var(--surface-card)]
-            border border-[var(--border-default)]
-            rounded-[var(--radius-md)]
-            text-[var(--text-primary)] text-base
-            placeholder-transparent
-            transition-all duration-[var(--duration-fast)]
-            focus:outline-none focus:border-[var(--gradient-start)] focus:shadow-[var(--shadow-glow)]
-            peer
-            ${error ? 'border-[var(--semantic-danger)]' : ''}
-            ${isPassword ? 'pr-12' : ''}
-            ${className}
-          `.replace(/\s+/g, ' ').trim()}
-          placeholder={label || ' '}
+          id={id}
+          type={type}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          disabled={disabled}
+          className={`w-full ${label ? 'pt-6 pb-2' : 'py-4'} px-4 bg-white/[0.08] text-white text-base rounded-xl border outline-none transition-all ${
+            error
+              ? 'border-red-500'
+              : focused
+                ? 'border-[#3BB4C1] shadow-[0_0_20px_rgba(59,180,193,0.3)]'
+                : 'border-white/12'
+          }`}
           {...props}
         />
-
         {label && (
           <label
-            className={`
-              absolute left-4 top-1/2 -translate-y-1/2
-              text-[var(--text-tertiary)] text-base
-              pointer-events-none
-              transition-all duration-[var(--duration-fast)]
-              peer-focus:top-3 peer-focus:text-xs peer-focus:text-[var(--text-secondary)]
-              peer-[:not(:placeholder-shown)]:top-3 peer-[:not(:placeholder-shown)]:text-xs
-              ${error ? 'text-[var(--semantic-danger)]' : ''}
-            `.replace(/\s+/g, ' ').trim()}
+            htmlFor={id}
+            className={`absolute left-4 pointer-events-none transition-all ${
+              isActive
+                ? 'top-2 text-xs text-slate-400'
+                : 'top-1/2 -translate-y-1/2 text-base text-slate-500'
+            }`}
           >
             {label}
+            {required && <span className="text-red-400">*</span>}
           </label>
         )}
-
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        )}
-
-        {error && (
-          <p className="mt-2 text-sm text-[var(--semantic-danger)]">{error}</p>
-        )}
-
-        {hint && !error && (
-          <p className="mt-2 text-sm text-[var(--text-tertiary)]">{hint}</p>
-        )}
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = 'Input';

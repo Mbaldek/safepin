@@ -2,42 +2,35 @@
 
 import { forwardRef } from 'react';
 
+type CardVariant = 'default' | 'elevated' | 'glass' | 'selection';
+
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'glass';
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  variant?: CardVariant;
+  selected?: boolean;
   children: React.ReactNode;
 }
 
+const variantStyles: Record<CardVariant, (selected: boolean) => string> = {
+  default: () => 'bg-[#1E293B] border border-white/12',
+  elevated: () => 'bg-[#334155] shadow-lg',
+  glass: () => 'bg-white/[0.08] backdrop-blur-xl border border-white/8',
+  selection: (selected) =>
+    `border ${selected ? 'bg-white/10 border-[#3BB4C1]' : 'border-white/12 hover:bg-white/5'}`,
+};
+
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ variant = 'default', padding = 'md', children, className = '', ...props }, ref) => {
-    const variants = {
-      default: 'bg-[var(--surface-card)] border border-[var(--border-subtle)]',
-      elevated: 'bg-[var(--surface-elevated)] shadow-[var(--shadow-md)]',
-      glass: 'bg-[var(--surface-glass)] backdrop-blur-[20px] border border-[var(--border-subtle)]',
-    };
-
-    const paddings = {
-      none: '',
-      sm: 'p-3',
-      md: 'p-4',
-      lg: 'p-6',
-    };
-
+  ({ variant = 'default', selected = false, children, className = '', onClick, ...props }, ref) => {
     return (
       <div
         ref={ref}
-        className={`
-          rounded-[var(--radius-lg)]
-          ${variants[variant]}
-          ${paddings[padding]}
-          ${className}
-        `.replace(/\s+/g, ' ').trim()}
+        onClick={onClick}
+        className={`rounded-2xl transition-all ${variantStyles[variant](selected)} ${onClick ? 'cursor-pointer' : ''} ${className}`}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 Card.displayName = 'Card';

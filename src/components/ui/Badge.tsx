@@ -1,34 +1,24 @@
 'use client';
 
+type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'gold' | 'cyan';
+
 interface BadgeProps {
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
-  size?: 'sm' | 'md';
+  variant?: BadgeVariant;
   children: React.ReactNode;
 }
 
-export function Badge({ variant = 'default', size = 'md', children }: BadgeProps) {
-  const variants = {
-    default: 'bg-[var(--interactive-active)] text-[var(--text-primary)]',
-    success: 'bg-[var(--semantic-success-soft)] text-[var(--semantic-success)]',
-    warning: 'bg-[var(--semantic-warning-soft)] text-[var(--semantic-warning)]',
-    danger: 'bg-[var(--semantic-danger-soft)] text-[var(--semantic-danger)]',
-    info: 'bg-[var(--semantic-info-soft)] text-[var(--semantic-info)]',
-  };
+const variantStyles: Record<BadgeVariant, string> = {
+  default: 'bg-white/10 text-white',
+  success: 'bg-[#34D399]/15 text-[#34D399]',
+  warning: 'bg-[#FBBF24]/15 text-[#FBBF24]',
+  danger: 'bg-[#EF4444]/15 text-[#EF4444]',
+  gold: 'bg-[#F5C341]/15 text-[#F5C341]',
+  cyan: 'bg-[#22D3EE]/15 text-[#22D3EE]',
+};
 
-  const sizes = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-3 py-1 text-sm',
-  };
-
+export function Badge({ children, variant = 'default' }: BadgeProps) {
   return (
-    <span
-      className={`
-        inline-flex items-center gap-1
-        font-medium rounded-full
-        ${variants[variant]}
-        ${sizes[size]}
-      `.replace(/\s+/g, ' ').trim()}
-    >
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${variantStyles[variant]}`}>
       {children}
     </span>
   );

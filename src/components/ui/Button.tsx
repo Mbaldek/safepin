@@ -1,70 +1,92 @@
 'use client';
 
 import { forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+interface ButtonProps {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   fullWidth?: boolean;
   loading?: boolean;
+  icon?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  'aria-label'?: string;
+  id?: string;
+  name?: string;
+  style?: React.CSSProperties;
+  'data-tour'?: string;
 }
 
+function Spinner() {
+  return (
+    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" className="animate-spin">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const variantStyles: Record<ButtonVariant, string> = {
+  primary: 'bg-white text-slate-900',
+  secondary: 'bg-transparent text-white border border-white/12',
+  ghost: 'bg-transparent text-white/60',
+  danger: 'bg-red-500 text-white',
+};
+
+const sizeStyles: Record<ButtonSize, string> = {
+  sm: 'px-4 py-2.5 text-sm',
+  md: 'px-6 py-4 text-base',
+  lg: 'px-8 py-5 text-lg',
+};
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', fullWidth, loading, disabled, children, className = '', ...props }, ref) => {
-    const baseStyles = `
-      inline-flex items-center justify-center gap-2
-      font-semibold rounded-[var(--radius-2xl)]
-      transition-all duration-[var(--duration-fast)]
-      disabled:opacity-50 disabled:cursor-not-allowed
-    `;
-
-    const variants = {
-      primary: `
-        bg-white text-[var(--surface-base)]
-        hover:translate-y-[-1px] hover:shadow-[var(--shadow-md)]
-        active:translate-y-0
-      `,
-      secondary: `
-        bg-transparent text-[var(--text-primary)]
-        border border-[var(--border-default)]
-        hover:bg-[var(--interactive-hover)] hover:border-[var(--border-strong)]
-      `,
-      ghost: `
-        bg-transparent text-[var(--text-secondary)]
-        hover:text-[var(--text-primary)] hover:bg-[var(--interactive-hover)]
-      `,
-      danger: `
-        bg-[var(--semantic-danger)] text-white
-        hover:opacity-90
-      `,
-    };
-
-    const sizes = {
-      sm: 'px-4 py-2 text-sm',
-      md: 'px-6 py-4 text-base',
-      lg: 'px-8 py-5 text-lg',
-    };
+  (
+    {
+      children,
+      variant = 'primary',
+      size = 'md',
+      fullWidth = true,
+      disabled = false,
+      loading = false,
+      icon,
+      className = '',
+      type = 'button',
+      onClick,
+      ...rest
+    },
+    ref,
+  ) => {
+    const isDisabled = disabled || loading;
 
     return (
-      <button
+      <motion.button
         ref={ref}
-        disabled={disabled || loading}
-        className={`
-          ${baseStyles}
-          ${variants[variant]}
-          ${sizes[size]}
-          ${fullWidth ? 'w-full' : ''}
-          ${className}
-        `.replace(/\s+/g, ' ').trim()}
-        {...props}
+        type={type}
+        onClick={onClick}
+        disabled={isDisabled}
+        whileHover={!isDisabled ? { y: -1 } : {}}
+        whileTap={!isDisabled ? { scale: 0.98 } : {}}
+        transition={spring}
+        className={`inline-flex items-center justify-center gap-3 font-semibold rounded-[32px] transition-all ${sizeStyles[size]} ${variantStyles[variant]} ${fullWidth ? 'w-full' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
+        aria-label={rest['aria-label']}
+        id={rest.id}
+        name={rest.name}
+        style={rest.style}
+        data-tour={rest['data-tour']}
       >
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-        {children}
-      </button>
+        {loading ? <Spinner /> : <>{icon}{children}</>}
+      </motion.button>
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';

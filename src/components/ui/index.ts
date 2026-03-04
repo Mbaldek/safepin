@@ -5,3 +5,7 @@ export { SelectionCard } from './SelectionCard';
 export { Sheet } from './Sheet';
 export { Badge } from './Badge';
 export { Chip } from './Chip';
+export { TabBar } from './TabBar';
+export { InfoNote } from './InfoNote';
+export { StreakBadge } from './StreakBadge';
+export { BreveilLogo, BreveilLogoSmall, BreveilLogoMedium, BreveilLogoLarge, BreveilLogoXL } from './BreveilLogo';

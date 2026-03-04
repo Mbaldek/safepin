@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { toast } from 'sonner';
 import { CitySelector } from './CitySelector';
+import { BreveilLogoXL } from './ui/BreveilLogo';
 
 const STORAGE_KEY = 'brume_onboarding_done';
 
@@ -34,63 +35,6 @@ export function useOnboardingDone(
   return [done, markDone];
 }
 
-// ─── BreveilSymbol SVG ────────────────────────────────────────────────────────
-function BreveilSymbol() {
-  return (
-    <svg
-      width="80"
-      height="80"
-      viewBox="0 0 80 80"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Outer arcs - Gold */}
-      <path
-        d="M20 40C20 28.954 28.954 20 40 20"
-        stroke="#E8A838"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M60 40C60 51.046 51.046 60 40 60"
-        stroke="#E8A838"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-
-      {/* Middle arcs - Aurora Purple */}
-      <path
-        d="M26 40C26 32.268 32.268 26 40 26"
-        stroke="#8B7EC8"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M54 40C54 47.732 47.732 54 40 54"
-        stroke="#8B7EC8"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-
-      {/* Inner arcs - Gold */}
-      <path
-        d="M32 40C32 35.582 35.582 32 40 32"
-        stroke="#E8A838"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M48 40C48 44.418 44.418 48 40 48"
-        stroke="#E8A838"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-
-      {/* Center dot */}
-      <circle cx="40" cy="40" r="4" fill="#E8A838" />
-    </svg>
-  );
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => void }) {
@@ -330,7 +274,7 @@ export default function OnboardingFunnelV2({ onComplete }: { onComplete?: () => 
           <div style={{ width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
             {/* Breveil Symbol */}
             <div style={{ marginBottom: 48 }}>
-              <BreveilSymbol />
+              <BreveilLogoXL />
             </div>
 
             {/* Title */}
