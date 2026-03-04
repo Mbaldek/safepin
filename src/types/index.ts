@@ -601,3 +601,18 @@ export const DECAY_HOURS: Record<string, number> = {
   help: 720,
   presence: 720,
 };
+
+// ════════════════════════════════════════════════════════════════════
+// EMAIL LOGS
+// ════════════════════════════════════════════════════════════════════
+
+export type EmailLog = {
+  id: string;
+  user_id: string;
+  email_type: string;
+  recipient: string;
+  status: 'sent' | 'failed';
+  resend_id: string | null;
+  error_message: string | null;
+  created_at: string;
+};

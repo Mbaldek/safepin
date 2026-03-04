@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
-import { Pin, UserReport, AdminParam, LiveSession, SafeSpace, DayHours } from '@/types';
+import { Pin, UserReport, AdminParam, LiveSession, SafeSpace, DayHours, EmailLog } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { geocodeForward } from '@/lib/geocode';
@@ -2665,9 +2665,139 @@ function InviteCodesTab() {
   );
 }
 
+// ─── Emails tab ──────────────────────────────────────────────────────────────
+
+const EMAIL_TYPES = ['all', 'welcome', 'first_report', 'inactive_reengagement', 'streak_milestone_7', 'streak_milestone_30'] as const;
+
+const EMAIL_TYPE_LABELS: Record<string, string> = {
+  welcome: 'Welcome',
+  first_report: 'First Report',
+  inactive_reengagement: 'Inactive (7d)',
+  streak_milestone_7: 'Streak 7d',
+  streak_milestone_30: 'Streak 30d',
+};
+
+function EmailsTab() {
+  const [logs, setLogs] = useState<EmailLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('all');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('email_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (filter !== 'all') query = query.eq('email_type', filter);
+      const { data, error } = await query;
+      if (error) throw error;
+      setLogs((data as EmailLog[]) ?? []);
+    } catch {
+      toast.error('Failed to load email logs');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const sent = logs.filter((l) => l.status === 'sent').length;
+  const failed = logs.filter((l) => l.status === 'failed').length;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-gray-900">Lifecycle Emails</h2>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500">Total</p>
+          <p className="text-2xl font-black text-gray-900">{logs.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500">Sent</p>
+          <p className="text-2xl font-black text-green-700">{sent}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-medium text-gray-500">Failed</p>
+          <p className="text-2xl font-black text-red-700">{failed}</p>
+        </div>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2 flex-wrap">
+        {EMAIL_TYPES.map((t) => (
+          <button
+            key={t}
+            onClick={() => setFilter(t)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+              filter === t ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {t === 'all' ? 'All' : EMAIL_TYPE_LABELS[t] ?? t}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="py-12 text-center text-gray-400">Loading...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Recipient</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Resend ID</th>
+                  <th className="px-4 py-3">Sent At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {logs.map((l) => (
+                  <tr key={l.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                        {EMAIL_TYPE_LABELS[l.email_type] ?? l.email_type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-600">{l.recipient}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
+                        l.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {l.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-400">
+                      {l.resend_id ? l.resend_id.slice(0, 12) + '...' : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {new Date(l.created_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+                {logs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No emails sent yet</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation' | 'spaces' | 'invite-codes';
+type AdminTab = 'overview' | 'analytics' | 'pins' | 'users' | 'reports' | 'params' | 'live' | 'simulation' | 'spaces' | 'invite-codes' | 'emails';
 
 const TABS: { id: AdminTab; label: string; emoji: string }[] = [
   { id: 'overview',    label: 'Overview',    emoji: '📊' },
@@ -2680,6 +2810,7 @@ const TABS: { id: AdminTab; label: string; emoji: string }[] = [
   { id: 'simulation',  label: 'Simulation',  emoji: '🤖' },
   { id: 'spaces',      label: 'Safe Spaces', emoji: '🛡️' },
   { id: 'invite-codes', label: 'Invites',    emoji: '🎟️' },
+  { id: 'emails',       label: 'Emails',     emoji: '📧' },
 ];
 
 export default function AdminPage() {
@@ -2737,6 +2868,7 @@ export default function AdminPage() {
         {activeTab === 'simulation' && <SimulationTab />}
         {activeTab === 'spaces'     && <SafeSpacesTab />}
         {activeTab === 'invite-codes' && <InviteCodesTab />}
+        {activeTab === 'emails' && <EmailsTab />}
       </main>
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">Breveil v1.0 · © {new Date().getFullYear()} DBEK — 75 rue de Lourmel, 75015 Paris, France · <a href="mailto:brumeapp@pm.me" className="hover:text-gray-600">brumeapp@pm.me</a></p>
