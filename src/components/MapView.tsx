@@ -6,7 +6,8 @@ import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
-import { Pin } from '@/types';
+import { Pin, CATEGORY_DETAILS } from '@/types';
+import { getPinSize, getPinOpacity as getPinOpacityUtil, getPinColor } from '@/lib/pin-utils';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
@@ -258,126 +259,57 @@ function addHeatmapLayer(m: mapboxgl.Map, geojson: GeoJSON.FeatureCollection) {
 
 // ── Custom pin image helpers ──────────────────────────────────────────────────
 
-/** Static canvas pin image (e.g. mild severity). */
-function makeStaticPin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
+const GROUP_COLORS: Record<string, string> = {
+  urgent: '#EF4444',
+  warning: '#F59E0B',
+  infra: '#64748B',
+  positive: '#34D399',
+};
+
+/** Category-based canvas pin. Draws circle with optional border + glow. */
+function makeCategoryPin(
+  color: string,
+  displaySize: number,
+  hasBorder: boolean,
+  hasGlow: boolean,
+): { width: number; height: number; data: Uint8Array } {
+  // Canvas at 2× for HiDPI (pixelRatio:2 halves display size)
+  const S = displaySize * 2;
   const c = document.createElement('canvas');
   c.width = S; c.height = S;
   const ctx = c.getContext('2d')!;
-  const cx = S / 2, cy = S / 2, dotR = S * 0.35;
+  const cx = S / 2, cy = S / 2;
+  const dotR = S * 0.30;
+
+  // Glow shadow
+  if (hasGlow) {
+    ctx.beginPath(); ctx.arc(cx, cy, dotR + 6, 0, Math.PI * 2);
+    ctx.fillStyle = color + '44'; // 27% opacity glow
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, dotR + 10, 0, Math.PI * 2);
+    ctx.fillStyle = color + '22'; // 13% opacity outer glow
+    ctx.fill();
+  }
+
+  // White outer ring (border)
+  if (hasBorder) {
+    ctx.beginPath(); ctx.arc(cx, cy, dotR + 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
+  }
+
+  // White base ring
   ctx.beginPath(); ctx.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
   ctx.fillStyle = '#fff'; ctx.fill();
+
+  // Colored dot
   ctx.beginPath(); ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
   ctx.fillStyle = color; ctx.fill();
+
+  // Highlight reflection
   ctx.beginPath(); ctx.arc(cx - dotR * 0.18, cy - dotR * 0.18, dotR * 0.32, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
-}
 
-/** Rounded-square pin for metro incidents. */
-function makeSquarePin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  const pad = S * 0.15, r = S * 0.18;
-  // White glow
-  ctx.beginPath();
-  ctx.roundRect(pad - 2, pad - 2, S - (pad - 2) * 2, S - (pad - 2) * 2, r + 2);
-  ctx.fillStyle = '#fff'; ctx.fill();
-  // Colored fill
-  ctx.beginPath();
-  ctx.roundRect(pad, pad, S - pad * 2, S - pad * 2, r);
-  ctx.fillStyle = color; ctx.fill();
-  // Highlight
-  const cx = S * 0.42, cy = S * 0.42, hr = S * 0.11;
-  ctx.beginPath(); ctx.arc(cx, cy, hr, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
   return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
-}
-
-/** Diamond (rotated square) pin for bus incidents. */
-function makeDiamondPin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  const cx = S / 2, cy = S / 2, half = S * 0.35;
-  // White glow
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - half - 2); ctx.lineTo(cx + half + 2, cy);
-  ctx.lineTo(cx, cy + half + 2); ctx.lineTo(cx - half - 2, cy); ctx.closePath();
-  ctx.fillStyle = '#fff'; ctx.fill();
-  // Colored fill
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - half); ctx.lineTo(cx + half, cy);
-  ctx.lineTo(cx, cy + half); ctx.lineTo(cx - half, cy); ctx.closePath();
-  ctx.fillStyle = color; ctx.fill();
-  // Highlight
-  ctx.beginPath(); ctx.arc(cx - half * 0.15, cy - half * 0.15, half * 0.28, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
-}
-
-/** Triangle pin for tram incidents. */
-function makeTrianglePin(color: string, S: number): { width: number; height: number; data: Uint8Array } {
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  const cx = S / 2, h = S * 0.7, topY = S * 0.12;
-  // White glow
-  ctx.beginPath();
-  ctx.moveTo(cx, topY - 2); ctx.lineTo(cx + h / 2 + 2, topY + h + 2); ctx.lineTo(cx - h / 2 - 2, topY + h + 2); ctx.closePath();
-  ctx.fillStyle = '#fff'; ctx.fill();
-  // Colored fill
-  ctx.beginPath();
-  ctx.moveTo(cx, topY + 2); ctx.lineTo(cx + h / 2 - 1, topY + h - 1); ctx.lineTo(cx - h / 2 + 1, topY + h - 1); ctx.closePath();
-  ctx.fillStyle = color; ctx.fill();
-  // Highlight
-  ctx.beginPath(); ctx.arc(cx - h * 0.06, topY + h * 0.35, h * 0.12, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
-}
-
-/** Animated canvas pin (pulse opacity + optional expanding glow ring). */
-function makePulsePin(color: string, S: number, glowRing: boolean) {
-  let _canvas: HTMLCanvasElement | null = null;
-  let _ctx: CanvasRenderingContext2D | null = null;
-  let _map: mapboxgl.Map | null = null;
-  const cx = S / 2, cy = S / 2, dotR = S * 0.35;
-  const obj = {
-    width: S,
-    height: S,
-    data: new Uint8ClampedArray(S * S * 4) as unknown as Uint8Array,
-    onAdd(m: mapboxgl.Map) {
-      _map = m;
-      _canvas = document.createElement('canvas');
-      _canvas.width = S; _canvas.height = S;
-      _ctx = _canvas.getContext('2d')!;
-    },
-    render(): boolean {
-      if (!_ctx) return false;
-      _ctx.clearRect(0, 0, S, S);
-      const t = (performance.now() / 2000) % 1;
-      if (glowRing) {
-        const ringR = dotR + (cx - dotR - 2) * t;
-        const alpha = 0.45 * (1 - t);
-        _ctx.beginPath(); _ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-        _ctx.strokeStyle = color + Math.round(alpha * 255).toString(16).padStart(2, '0');
-        _ctx.lineWidth = 3; _ctx.stroke();
-      }
-      const pulse = 0.75 + 0.25 * Math.sin(t * Math.PI * 2);
-      _ctx.globalAlpha = pulse;
-      _ctx.beginPath(); _ctx.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
-      _ctx.fillStyle = '#fff'; _ctx.fill();
-      _ctx.beginPath(); _ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
-      _ctx.fillStyle = color; _ctx.fill();
-      _ctx.beginPath(); _ctx.arc(cx - dotR * 0.18, cy - dotR * 0.18, dotR * 0.32, 0, Math.PI * 2);
-      _ctx.fillStyle = 'rgba(255,255,255,0.3)'; _ctx.fill();
-      _ctx.globalAlpha = 1;
-      obj.data = new Uint8ClampedArray(_ctx.getImageData(0, 0, S, S).data) as unknown as Uint8Array;
-      _map?.triggerRepaint();
-      return true;
-    },
-  };
-  return obj;
 }
 
 /** Safe space pin: emoji inside a #6BA68E semi-transparent circle. */
@@ -398,16 +330,18 @@ function makeSafePin(emoji: string): { width: number; height: number; data: Uint
   return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
 }
 
-function getPinOpacity(pin: Pin): number {
-  const base = pin.last_confirmed_at
-    ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
-    : new Date(pin.created_at).getTime();
-  const ageH = (Date.now() - base) / 3_600_000;
-  if (ageH >= 24) return 0;
-  if (ageH >= 18) return 0.25;
-  if (ageH >= 12) return 0.5;
-  if (ageH >= 6)  return 0.75;
-  return 1;
+/** Compute effective opacity for a pin, accounting for last_confirmed_at. */
+function getEffectiveOpacity(pin: Pin): number {
+  const effectiveTime = pin.last_confirmed_at
+    ? new Date(Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())).toISOString()
+    : pin.created_at;
+  return getPinOpacityUtil(effectiveTime, pin.category);
+}
+
+/** Get category group id for a pin. */
+function getCategoryGroupId(pin: Pin): string {
+  const details = CATEGORY_DETAILS[pin.category];
+  return details?.group ?? 'infra';
 }
 
 function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
@@ -418,9 +352,10 @@ function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
       geometry: { type: 'Point', coordinates: [pin.lng, pin.lat] },
       properties: {
         id: pin.id,
-        severity: pin.severity,
-        environment: pin.environment ?? 'foot',
-        opacity: getPinOpacity(pin),
+        category: pin.category,
+        categoryGroup: getCategoryGroupId(pin),
+        confirmations: pin.confirmations ?? 1,
+        opacity: getEffectiveOpacity(pin),
       },
     })),
   };
@@ -464,29 +399,22 @@ function addClusterLayers(m: mapboxgl.Map) {
     paint: { 'text-color': '#fff' },
   });
 
-  // Register custom severity pin images (2× for HiDPI; pixelRatio:2 halves display size)
-  if (!m.hasImage('pin-sev-low')) {
-    m.addImage('pin-sev-low',  makeStaticPin('#F4A940', 24), { pixelRatio: 2 }); // 12px display
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    m.addImage('pin-sev-med',  makePulsePin('var(--accent-gold)', 28, false) as any, { pixelRatio: 2 }); // 14px
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    m.addImage('pin-sev-high', makePulsePin('#E63946', 48, true)  as any, { pixelRatio: 2 }); // 24px w/ glow
-
-    // Metro pins (rounded square)
-    m.addImage('pin-metro-low',  makeSquarePin('#10b981', 26), { pixelRatio: 2 });
-    m.addImage('pin-metro-med',  makeSquarePin('#f59e0b', 28), { pixelRatio: 2 });
-    m.addImage('pin-metro-high', makeSquarePin('#f43f5e', 32), { pixelRatio: 2 });
-    // Bus pins (diamond)
-    m.addImage('pin-bus-low',  makeDiamondPin('#10b981', 26), { pixelRatio: 2 });
-    m.addImage('pin-bus-med',  makeDiamondPin('#f59e0b', 28), { pixelRatio: 2 });
-    m.addImage('pin-bus-high', makeDiamondPin('#f43f5e', 32), { pixelRatio: 2 });
-    // Tram pins (triangle) — also used for environment='tram' if added later
-    m.addImage('pin-tram-low',  makeTrianglePin('#10b981', 26), { pixelRatio: 2 });
-    m.addImage('pin-tram-med',  makeTrianglePin('#f59e0b', 28), { pixelRatio: 2 });
-    m.addImage('pin-tram-high', makeTrianglePin('#f43f5e', 32), { pixelRatio: 2 });
+  // Register category-group pin images: 4 groups × 4 tiers = 16 icons
+  if (!m.hasImage('pin-urgent-sm')) {
+    const tiers: [string, number, boolean, boolean][] = [
+      ['sm', 14, false, false],  // 1 confirmation
+      ['md', 18, false, false],  // 2-3 confirmations
+      ['lg', 22, true,  false],  // 4-9 confirmations (+ border)
+      ['xl', 28, true,  true],   // 10+ confirmations (+ border + glow)
+    ];
+    for (const [groupId, color] of Object.entries(GROUP_COLORS)) {
+      for (const [tier, size, border, glow] of tiers) {
+        m.addImage(`pin-${groupId}-${tier}`, makeCategoryPin(color, size, border, glow), { pixelRatio: 2 });
+      }
+    }
   }
 
-  // Individual unclustered pins — symbol layer with custom severity images
+  // Individual unclustered pins — icon based on categoryGroup + confirmation tier
   m.addLayer({
     id: 'unclustered-point',
     type: 'symbol',
@@ -495,16 +423,28 @@ function addClusterLayers(m: mapboxgl.Map) {
     layout: {
       'icon-image': [
         'case',
-        // Metro → rounded square
-        ['all', ['==', ['get', 'environment'], 'metro'], ['==', ['get', 'severity'], 'high']], 'pin-metro-high',
-        ['all', ['==', ['get', 'environment'], 'metro'], ['==', ['get', 'severity'], 'med']],  'pin-metro-med',
-        ['==', ['get', 'environment'], 'metro'], 'pin-metro-low',
-        // Bus → diamond
-        ['all', ['==', ['get', 'environment'], 'bus'], ['==', ['get', 'severity'], 'high']], 'pin-bus-high',
-        ['all', ['==', ['get', 'environment'], 'bus'], ['==', ['get', 'severity'], 'med']],  'pin-bus-med',
-        ['==', ['get', 'environment'], 'bus'], 'pin-bus-low',
-        // Default → classic circle
-        ['match', ['get', 'severity'], 'low', 'pin-sev-low', 'med', 'pin-sev-med', 'high', 'pin-sev-high', 'pin-sev-low'],
+        // urgent
+        ['all', ['==', ['get', 'categoryGroup'], 'urgent'], ['>=', ['get', 'confirmations'], 10]], 'pin-urgent-xl',
+        ['all', ['==', ['get', 'categoryGroup'], 'urgent'], ['>=', ['get', 'confirmations'], 4]],  'pin-urgent-lg',
+        ['all', ['==', ['get', 'categoryGroup'], 'urgent'], ['>=', ['get', 'confirmations'], 2]],  'pin-urgent-md',
+        ['==', ['get', 'categoryGroup'], 'urgent'], 'pin-urgent-sm',
+        // warning
+        ['all', ['==', ['get', 'categoryGroup'], 'warning'], ['>=', ['get', 'confirmations'], 10]], 'pin-warning-xl',
+        ['all', ['==', ['get', 'categoryGroup'], 'warning'], ['>=', ['get', 'confirmations'], 4]],  'pin-warning-lg',
+        ['all', ['==', ['get', 'categoryGroup'], 'warning'], ['>=', ['get', 'confirmations'], 2]],  'pin-warning-md',
+        ['==', ['get', 'categoryGroup'], 'warning'], 'pin-warning-sm',
+        // infra
+        ['all', ['==', ['get', 'categoryGroup'], 'infra'], ['>=', ['get', 'confirmations'], 10]], 'pin-infra-xl',
+        ['all', ['==', ['get', 'categoryGroup'], 'infra'], ['>=', ['get', 'confirmations'], 4]],  'pin-infra-lg',
+        ['all', ['==', ['get', 'categoryGroup'], 'infra'], ['>=', ['get', 'confirmations'], 2]],  'pin-infra-md',
+        ['==', ['get', 'categoryGroup'], 'infra'], 'pin-infra-sm',
+        // positive
+        ['all', ['==', ['get', 'categoryGroup'], 'positive'], ['>=', ['get', 'confirmations'], 10]], 'pin-positive-xl',
+        ['all', ['==', ['get', 'categoryGroup'], 'positive'], ['>=', ['get', 'confirmations'], 4]],  'pin-positive-lg',
+        ['all', ['==', ['get', 'categoryGroup'], 'positive'], ['>=', ['get', 'confirmations'], 2]],  'pin-positive-md',
+        ['==', ['get', 'categoryGroup'], 'positive'], 'pin-positive-sm',
+        // fallback
+        'pin-infra-sm',
       ],
       'icon-allow-overlap': true,
       'icon-ignore-placement': false,
@@ -585,6 +525,7 @@ export default function MapView({
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
+  const transportMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
 
   // Initialize map
@@ -1116,10 +1057,10 @@ export default function MapView({
       markersRef.current.push(marker);
     });
 
-    // ── Regular pins via GeoJSON clustering ───────────────────────────────────
-    const regularPins = pins.filter((pin) => {
+    // ── Shared filter logic ─────────────────────────────────────────────────
+    function passesFilters(pin: Pin): boolean {
       if (pin.is_emergency) return false;
-      if (getPinOpacity(pin) === 0) return false;
+      if (getEffectiveOpacity(pin) <= 0) return false;
       // Severity
       if (mapFilters.severity !== 'all' && pin.severity !== mapFilters.severity) return false;
       // Age
@@ -1140,7 +1081,10 @@ export default function MapView({
         if (mapFilters.timeOfDay === 'night'      && (h >= 6 && h < 22))  return false;
       }
       return true;
-    });
+    }
+
+    // ── Regular pins via GeoJSON clustering (exclude transport) ──────────────
+    const regularPins = pins.filter((pin) => passesFilters(pin) && !pin.is_transport);
 
     const source = map.current.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
@@ -1148,13 +1092,14 @@ export default function MapView({
     }
 
     // Pin drop animation for newly arrived pins
-    const currentIds = new Set(regularPins.map((p) => p.id));
+    const allVisiblePins = pins.filter(passesFilters);
+    const currentIds = new Set(allVisiblePins.map((p) => p.id));
     const prevIds = prevPinIdsRef.current;
     if (prevIds.size > 0 && map.current) {
       const m = map.current;
-      for (const pin of regularPins) {
+      for (const pin of allVisiblePins) {
         if (prevIds.has(pin.id)) continue;
-        const dropColor = { low: '#F4A940', med: 'var(--accent-gold)', high: '#E63946' }[pin.severity] ?? 'var(--accent-gold)';
+        const dropColor = getPinColor(pin.category);
         const el = document.createElement('div');
         el.className = 'pin-drop';
         el.style.cssText = `width:18px;height:18px;border-radius:50%;background:${dropColor};border:2.5px solid #fff;box-shadow:0 2px 6px ${dropColor}66;pointer-events:none;`;
@@ -1167,26 +1112,64 @@ export default function MapView({
     }
     prevPinIdsRef.current = currentIds;
 
-    // ── Ghost trail for transport pins (metro=vertical, bus=horizontal) ──────
+    // ── Transport pins — HTML markers with ripple animation ─────────────────
+    transportMarkersRef.current.forEach((m) => m.remove());
+    transportMarkersRef.current = [];
+
+    // Ghost trail cleanup
     ghostTrailRef.current.forEach((m) => m.remove());
     ghostTrailRef.current = [];
 
-    const SEVERITY_COLORS: Record<string, string> = { low: '#10b981', med: '#f59e0b', high: '#f43f5e' };
-    const GHOST_OFFSETS = [
-      { d: -1, opacity: 0.18 },
-      { d: -0.6, opacity: 0.35 },
-      { d: 0.6, opacity: 0.35 },
-      { d: 1, opacity: 0.18 },
-    ];
-    const TRAIL_SPREAD = 0.0006; // ~60m in degrees
-
-    const transportPins = regularPins.filter(
-      (p) => p.environment === 'metro' || p.environment === 'bus',
-    );
+    const transportPins = pins.filter((pin) => passesFilters(pin) && pin.is_transport);
 
     for (const pin of transportPins) {
+      const confirmations = pin.confirmations ?? 1;
+      const size = getPinSize(confirmations);
+      const color = getPinColor(pin.category);
+      const opacity = getEffectiveOpacity(pin);
+      const hasBorder = confirmations >= 4;
+      const hasGlow = confirmations >= 10;
+
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = `width:${size + 16}px;height:${size + 16}px;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:${opacity}`;
+
+      // Ripple rings (3 concentric circles)
+      for (let i = 0; i < 3; i++) {
+        const ripple = document.createElement('div');
+        ripple.className = 'pin-ripple';
+        ripple.style.cssText = `border:2px solid ${color};animation-delay:${i * 0.6}s;`;
+        wrapper.appendChild(ripple);
+      }
+
+      // Inner dot
+      const dot = document.createElement('div');
+      let dotStyle = `width:${size}px;height:${size}px;border-radius:50%;background:${color};position:relative;z-index:1;`;
+      if (hasBorder) dotStyle += `border:2px solid rgba(255,255,255,0.3);`;
+      if (hasGlow) dotStyle += `box-shadow:0 0 8px ${color}88, 0 0 16px ${color}44;`;
+      dot.style.cssText = dotStyle;
+
+      wrapper.appendChild(dot);
+
+      wrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSelectedPin(pin);
+        setActiveSheet('detail');
+      });
+
+      const marker = new mapboxgl.Marker({ element: wrapper, anchor: 'center' })
+        .setLngLat([pin.lng, pin.lat])
+        .addTo(map.current!);
+      transportMarkersRef.current.push(marker);
+
+      // Ghost trail for transport (metro=vertical, bus=horizontal)
       const isVertical = pin.environment === 'metro';
-      const color = SEVERITY_COLORS[pin.severity] ?? '#f59e0b';
+      const GHOST_OFFSETS = [
+        { d: -1, ghostOpacity: 0.18 },
+        { d: -0.6, ghostOpacity: 0.35 },
+        { d: 0.6, ghostOpacity: 0.35 },
+        { d: 1, ghostOpacity: 0.18 },
+      ];
+      const TRAIL_SPREAD = 0.0006;
       const shape = pin.environment === 'metro' ? 'square' : 'diamond';
 
       for (const ghost of GHOST_OFFSETS) {
@@ -1194,21 +1177,20 @@ export default function MapView({
         const lat = isVertical ? pin.lat + ghost.d * TRAIL_SPREAD : pin.lat;
 
         const el = document.createElement('div');
-        el.className = isVertical ? 'ghost-trail-v' : 'ghost-trail-h';
-        el.style.cssText = `pointer-events:none;opacity:${ghost.opacity};animation-delay:${Math.abs(ghost.d) * 0.3}s;`;
+        el.style.cssText = `pointer-events:none;opacity:${ghost.ghostOpacity * opacity};`;
 
-        const dot = document.createElement('div');
+        const ghostDot = document.createElement('div');
         if (shape === 'square') {
-          dot.style.cssText = `width:10px;height:10px;border-radius:3px;background:${color};border:1.5px solid rgba(255,255,255,0.6);`;
+          ghostDot.style.cssText = `width:10px;height:10px;border-radius:3px;background:${color};border:1.5px solid rgba(255,255,255,0.6);`;
         } else {
-          dot.style.cssText = `width:10px;height:10px;background:${color};border:1.5px solid rgba(255,255,255,0.6);transform:rotate(45deg);`;
+          ghostDot.style.cssText = `width:10px;height:10px;background:${color};border:1.5px solid rgba(255,255,255,0.6);transform:rotate(45deg);`;
         }
-        el.appendChild(dot);
+        el.appendChild(ghostDot);
 
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        const ghostMarker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([lng, lat])
           .addTo(map.current!);
-        ghostTrailRef.current.push(marker);
+        ghostTrailRef.current.push(ghostMarker);
       }
     }
   }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);

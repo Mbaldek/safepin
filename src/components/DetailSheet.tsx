@@ -1,175 +1,279 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronUp, ChevronDown, MapPin, Users, Check,
-  Flag, Share2, ThumbsDown, MessageCircle, X,
-} from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ChevronUp, ChevronDown, CheckCircle, Flag, ExternalLink, ThumbsDown, MessageCircle } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
-import { CATEGORY_DETAILS, CATEGORY_GROUPS } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { CATEGORY_DETAILS } from '@/types';
 import { formatTimeAgo } from '@/lib/pin-utils';
-import { springTransition } from '@/lib/tokens';
-import { Button } from '@/components/ui';
+
+// ============================================
+// DETAIL SHEET — V0 INTEGRATION
+// Expand/collapse avec confirmations
+// ============================================
 
 export function DetailSheet() {
+  // Store connection
   const {
-    activeSheet, setActiveSheet,
-    selectedPin, setSelectedPin,
-    isDetailExpanded, setDetailExpanded,
-    setShowConfirmFlow, setConfirmingPin,
+    activeSheet,
+    setActiveSheet,
+    selectedPin,
+    setSelectedPin,
+    isDetailExpanded,
+    setDetailExpanded,
+    updatePin,
   } = useStore();
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const dragStartY = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Don't render if not active or no pin selected
   if (activeSheet !== 'detail' || !selectedPin) return null;
 
-  const catDetails = CATEGORY_DETAILS[selectedPin.category];
-  const groupDetails = catDetails ? CATEGORY_GROUPS[catDetails.group] : null;
-  const timeLabel = formatTimeAgo(selectedPin.created_at);
-  const confirmCount = selectedPin.confirmations ?? 0;
+  const pin = selectedPin;
+  const catDetails = CATEGORY_DETAILS[pin.category];
 
+  // Drag handlers
+  const handleDragStart = (clientY: number) => {
+    setIsDragging(true);
+    dragStartY.current = clientY;
+  };
+
+  const handleDragEnd = (clientY: number) => {
+    setIsDragging(false);
+    const delta = dragStartY.current - clientY;
+    if (Math.abs(delta) > 50) {
+      setDetailExpanded(delta > 0);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => handleDragStart(e.clientY);
+  const handleMouseUp = (e: React.MouseEvent) => { if (isDragging) handleDragEnd(e.clientY); };
+  const handleTouchStart = (e: React.TouchEvent) => handleDragStart(e.touches[0].clientY);
+  const handleTouchEnd = (e: React.TouchEvent) => { if (isDragging) handleDragEnd(e.changedTouches[0].clientY); };
+
+  // Actions
   const handleClose = () => {
     setActiveSheet('none');
     setSelectedPin(null);
     setDetailExpanded(false);
   };
 
-  const handleConfirm = () => {
-    setConfirmingPin(selectedPin);
-    setShowConfirmFlow(true);
+  const handleConfirm = async () => {
+    if (isConfirming) return;
+    setIsConfirming(true);
+    try {
+      const { data, error } = await supabase
+        .from('pins')
+        .update({ confirmations: (pin.confirmations || 1) + 1 })
+        .eq('id', pin.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) updatePin(data);
+    } catch (error) {
+      console.error('Error confirming:', error);
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
-  return (
-    <motion.div
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={springTransition}
-      className="fixed bottom-0 left-0 right-0 z-201 bg-(--surface-elevated) rounded-t-xl overflow-hidden"
-    >
-      <motion.div
-        animate={{ height: isDetailExpanded ? '80vh' : 180 }}
-        transition={springTransition}
-        className="overflow-hidden"
-      >
-        {/* Handle */}
-        <div
-          className="flex justify-center pt-3 pb-2 cursor-pointer"
-          onClick={() => setDetailExpanded(!isDetailExpanded)}
-        >
-          <div className="w-9 h-1 rounded-full bg-(--border-strong)" />
-        </div>
+  const handleResolved = async () => {
+    try {
+      const { error } = await supabase
+        .from('pins')
+        .update({ hidden: true })
+        .eq('id', pin.id);
 
-        <div className="px-4 pb-6">
-          {/* Preview (always visible) */}
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ background: groupDetails?.color.bg }}
-            >
-              <span className="text-2xl">{catDetails?.emoji}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-(--text-primary)">{catDetails?.label}</p>
-              <p className="text-xs text-(--text-tertiary)">
-                {selectedPin.is_transport && `${selectedPin.transport_type?.toUpperCase()} ${selectedPin.transport_line} \u2022 `}
-                {timeLabel}
+      if (!error) handleClose();
+    } catch (error) {
+      console.error('Error resolving:', error);
+    }
+  };
+
+  const handleFalse = async () => {
+    try {
+      const { error } = await supabase
+        .from('pins')
+        .update({ flag_count: (pin.flag_count || 0) + 1 })
+        .eq('id', pin.id);
+
+      if (!error) handleClose();
+    } catch (error) {
+      console.error('Error flagging:', error);
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Signalement: ${catDetails?.label || pin.category}`,
+        text: pin.description || '',
+        url: window.location.href,
+      });
+    }
+  };
+
+  const handleContact = () => {
+    // TODO: Open contact modal or messaging
+    console.log('Contact clicked');
+  };
+
+  const transportLabel = pin.is_transport && pin.transport_type
+    ? `${pin.transport_type.charAt(0).toUpperCase() + pin.transport_type.slice(1)} L${pin.transport_line}`
+    : null;
+
+  return (
+    <div
+      ref={sheetRef}
+      className={`
+        fixed bottom-0 left-0 right-0 z-[201]
+        bg-[#1E293B] rounded-t-3xl
+        transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
+        ${isDragging ? 'transition-none' : ''}
+      `}
+      style={{
+        height: isDetailExpanded ? '80vh' : '180px',
+      }}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={() => setIsDragging(false)}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Handle */}
+      <div
+        className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onClick={() => setDetailExpanded(!isDetailExpanded)}
+      >
+        <div className="w-10 h-1 rounded-full bg-white/20" />
+      </div>
+
+      <div className="px-5 overflow-y-auto" style={{ maxHeight: isDetailExpanded ? 'calc(80vh - 40px)' : '140px' }}>
+        {/* Header Row */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">{catDetails?.emoji || '📍'}</span>
+            <div>
+              <h2 className="text-white font-semibold text-lg">{catDetails?.label || pin.category}</h2>
+              <p className="text-[#94A3B8] text-sm">
+                {transportLabel && `${transportLabel} • `}
+                {formatTimeAgo(pin.created_at)}
               </p>
             </div>
-            <button
-              onClick={() => setDetailExpanded(!isDetailExpanded)}
-              className="w-8 h-8 rounded-full bg-(--interactive-hover) flex items-center justify-center text-(--text-secondary)"
-            >
-              {isDetailExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-            </button>
           </div>
-
-          {/* Confirmations bar (always visible) */}
-          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[rgba(59,180,193,0.1)]">
-            <Users size={14} className="text-(--gradient-start)" />
-            <span className="text-xs font-medium text-(--gradient-start)">
-              {confirmCount} confirmation{confirmCount > 1 ? 's' : ''}
-            </span>
-            <div className="flex-1" />
-            <button
-              onClick={handleConfirm}
-              className="px-3 py-1.5 rounded-lg bg-(--gradient-start) text-white text-xs font-semibold flex items-center gap-1"
-            >
-              <Check size={12} /> Confirmer
-            </button>
-          </div>
-
-          {/* Expanded content */}
-          <AnimatePresence>
-            {isDetailExpanded && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ delay: 0.1 }}
-                className="mt-4 overflow-y-auto"
-                style={{ maxHeight: 'calc(80vh - 200px)' }}
-              >
-                {/* Location */}
-                <div className="p-3 rounded-xl bg-(--interactive-hover) mb-3">
-                  <div className="flex items-start gap-2">
-                    <MapPin size={14} className="text-(--text-tertiary) mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-(--text-primary)">
-                        {selectedPin.address || 'Position sur la carte'}
-                      </p>
-                      {selectedPin.is_transport && (
-                        <p className="text-xs text-(--text-tertiary) mt-1">
-                          {selectedPin.transport_type?.toUpperCase()} Ligne {selectedPin.transport_line}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                {selectedPin.description && (
-                  <p className="text-sm text-(--text-primary) leading-relaxed mb-3">
-                    &ldquo;{selectedPin.description}&rdquo;
-                  </p>
-                )}
-
-                {/* Media */}
-                {selectedPin.media_url && (
-                  <div className="mb-4 rounded-xl overflow-hidden bg-(--surface-card) h-40 flex items-center justify-center">
-                    <img
-                      src={selectedPin.media_url}
-                      alt=""
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={handleConfirm}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-(--gradient-start) text-white text-sm font-semibold"
-                  >
-                    <Check size={16} /> Confirmer
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-(--semantic-success-soft) text-(--semantic-success) text-sm font-semibold">
-                    <Flag size={16} /> Résolu
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-(--interactive-hover) text-(--text-secondary) text-sm font-medium border border-(--border-default)">
-                    <Share2 size={16} />
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-(--interactive-hover) text-(--text-secondary) text-sm font-medium border border-(--border-default)">
-                    <ThumbsDown size={16} /> Faux
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-(--interactive-hover) text-(--text-secondary) text-sm font-medium border border-(--border-default)">
-                    <MessageCircle size={16} /> Contact
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <button
+            onClick={() => setDetailExpanded(!isDetailExpanded)}
+            className="p-1 text-white/60 hover:text-white transition-colors"
+            aria-label={isDetailExpanded ? 'Réduire' : 'Agrandir'}
+          >
+            {isDetailExpanded ? <ChevronDown size={24} /> : <ChevronUp size={24} />}
+          </button>
         </div>
-      </motion.div>
-    </motion.div>
+
+        {/* Confirmation Bar */}
+        <div className="flex items-center justify-between bg-[#3BB4C1]/10 rounded-xl px-4 py-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">👥</span>
+            <span className="text-[#3BB4C1] font-medium">
+              {pin.confirmations || 1} confirmation{(pin.confirmations || 1) > 1 ? 's' : ''}
+            </span>
+          </div>
+          <button
+            onClick={handleConfirm}
+            disabled={isConfirming}
+            className="bg-[#3BB4C1] text-white px-4 py-1.5 rounded-lg font-medium text-sm hover:bg-[#3BB4C1]/90 transition-colors disabled:opacity-50"
+          >
+            {isConfirming ? '...' : 'Confirmer'}
+          </button>
+        </div>
+
+        {/* Expanded Content */}
+        {isDetailExpanded && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Location Details */}
+            <div className="mb-4">
+              <div className="flex items-start gap-2 text-white">
+                <span className="text-lg">📍</span>
+                <div>
+                  <p className="font-medium">{pin.address || 'Position sur la carte'}</p>
+                  {pin.is_transport && pin.transport_line && (
+                    <p className="text-[#94A3B8] text-sm">
+                      Ligne {pin.transport_line}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            {pin.description && (
+              <div className="mb-4">
+                <p className="text-white/90 italic leading-relaxed">
+                  &quot;{pin.description}&quot;
+                </p>
+              </div>
+            )}
+
+            {/* Media */}
+            {pin.media_url && (
+              <div className="mb-5 rounded-xl overflow-hidden bg-white/5">
+                <img
+                  src={pin.media_url}
+                  alt="Photo du signalement"
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <button
+                onClick={handleConfirm}
+                disabled={isConfirming}
+                className="flex items-center justify-center gap-2 bg-[#3BB4C1] text-white py-3 rounded-xl font-medium hover:bg-[#3BB4C1]/90 transition-colors disabled:opacity-50"
+              >
+                <CheckCircle size={18} />
+                <span>Confirmer</span>
+              </button>
+              <button
+                onClick={handleResolved}
+                className="flex items-center justify-center gap-2 bg-[#34D399]/15 text-[#34D399] py-3 rounded-xl font-medium hover:bg-[#34D399]/25 transition-colors"
+              >
+                <Flag size={18} />
+                <span>Résolu</span>
+              </button>
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 bg-white/[0.06] text-white border border-white/10 py-3 rounded-xl font-medium hover:bg-white/10 transition-colors"
+              >
+                <ExternalLink size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pb-6">
+              <button
+                onClick={handleFalse}
+                className="flex items-center justify-center gap-2 bg-white/[0.06] text-white border border-white/10 py-3 rounded-xl font-medium hover:bg-white/10 transition-colors"
+              >
+                <ThumbsDown size={18} />
+                <span>Faux</span>
+              </button>
+              <button
+                onClick={handleContact}
+                className="flex items-center justify-center gap-2 bg-white/[0.06] text-white border border-white/10 py-3 rounded-xl font-medium hover:bg-white/10 transition-colors"
+              >
+                <MessageCircle size={18} />
+                <span>Contact</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
