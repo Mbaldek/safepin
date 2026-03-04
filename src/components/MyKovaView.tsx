@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
 import SettingsSheet from '@/components/settings/SettingsSheet';
-import CommunityView from '@/components/CommunityView';
+import CommunityHub from '@/components/community/CommunityHub';
 import { computeExpertiseTags } from '@/lib/expertise';
 import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
 import LocationHistoryViewer from '@/components/LocationHistoryViewer';
@@ -1083,7 +1083,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
       <AnimatePresence>
         {showCommunity && (
-          <CommunityView key="community-overlay" onClose={() => setShowCommunity(false)} />
+          <CommunityHub key="community-overlay" onClose={() => setShowCommunity(false)} onViewAllGroups={() => {}} />
         )}
       </AnimatePresence>
     </>

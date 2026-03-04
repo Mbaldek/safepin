@@ -1,3 +1,4 @@
+// DEPRECATED — remplacé par CommunityHub (src/components/community/CommunityHub.tsx)
 // src/components/CommunityView.tsx
 
 'use client';

@@ -1,31 +1,52 @@
 // src/components/TrustedCircleCard.tsx — Primary Trusted Circle card for Community tab landing
+// NOT WIRED YET — cleaned up, ready to connect in SecuriteScreen (next sprint).
 
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { TrustedContact } from '@/types';
 import { toast } from 'sonner';
 import { UserPlus, X, Check, Radio, MapPin, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { useContactPresence } from '@/lib/usePresence';
 import { useTranslations } from 'next-intl';
 
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
+    t1: '#FFFFFF', t2: '#94A3B8', t3: '#64748B',
+    border: 'rgba(255,255,255,0.08)',
+  } : {
+    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
+    t1: '#0F172A', t2: '#475569', t3: '#94A3B8',
+    border: 'rgba(15,23,42,0.07)',
+  };
+}
+
+const F = {
+  cyan: '#3BB4C1',
+  success: '#34D399', successSoft: 'rgba(52,211,153,0.12)', successBorder: 'rgba(52,211,153,0.25)',
+  gold: '#F5C341', goldSoft: 'rgba(245,195,65,0.06)', goldBorder: 'rgba(245,195,65,0.2)',
+  blue: '#3b82f6',
+};
+
 type ContactRow = TrustedContact & { display_name: string | null; contact_user_id: string };
 type InviteRow  = TrustedContact & { sender_name: string | null };
 
-const COLORS = ['var(--accent-gold)','#6366f1','#22c55e','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f97316'];
+const COLORS = [F.gold, '#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
 function nameColor(name: string | null) {
   if (!name) return '#6b7280';
   let h = 0;
   for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
   return COLORS[Math.abs(h) % COLORS.length];
 }
-function Avatar({ name, size = 36 }: { name: string | null; size?: number }) {
+function AvatarCircle({ name, size = 36 }: { name: string | null; size?: number }) {
   return (
     <div
-      className="rounded-full flex items-center justify-center text-white font-black shrink-0"
-      style={{ width: size, height: size, backgroundColor: nameColor(name), fontSize: size * 0.38 }}
+      className="rounded-full flex items-center justify-center font-black shrink-0"
+      style={{ width: size, height: size, backgroundColor: nameColor(name), color: '#fff', fontSize: size * 0.38 }}
     >
       {(name?.[0] ?? '?').toUpperCase()}
     </div>
@@ -33,7 +54,7 @@ function Avatar({ name, size = 36 }: { name: string | null; size?: number }) {
 }
 
 const PRESENCE_COLORS = { online: '#22c55e', recent: '#f59e0b', offline: '#9ca3af' };
-const CHECKIN_COOLDOWN = 60 * 60 * 1000; // 1 hour
+const CHECKIN_COOLDOWN = 60 * 60 * 1000;
 const MAX_VISIBLE = 5;
 
 export default function TrustedCircleCard({
@@ -46,6 +67,8 @@ export default function TrustedCircleCard({
   compact?: boolean;
 }) {
   const { addNotification, isSharingLocation, watchedLocations } = useStore();
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const t = useTranslations('community');
   const [contacts, setContacts]               = useState<ContactRow[]>([]);
   const [pendingReceived, setPendingReceived] = useState<InviteRow[]>([]);
@@ -59,7 +82,6 @@ export default function TrustedCircleCard({
   const [loading, setLoading]                 = useState(true);
   const [checkingIn, setCheckingIn]           = useState(false);
 
-  // Presence tracking
   const contactIds = useMemo(() => contacts.map((c) => c.contact_user_id), [contacts]);
   const presenceMap = useContactPresence(contactIds);
 
@@ -172,7 +194,6 @@ export default function TrustedCircleCard({
   }
 
   async function checkInWithCircle() {
-    // Rate limit: 1 per hour
     const lastCheckin = localStorage.getItem('brume_last_checkin');
     if (lastCheckin && Date.now() - Number(lastCheckin) < CHECKIN_COOLDOWN) {
       const minsLeft = Math.ceil((CHECKIN_COOLDOWN - (Date.now() - Number(lastCheckin))) / 60_000);
@@ -184,11 +205,9 @@ export default function TrustedCircleCard({
     const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', userId).single();
     const senderName = profile?.display_name ?? 'Someone';
 
-    // Send a DM to each trusted contact
     let sent = 0;
     for (const contact of contacts) {
       const cid = contact.contact_user_id;
-      // Find or create conversation
       const [u1, u2] = [userId, cid].sort();
       let { data: convo } = await supabase
         .from('dm_conversations')
@@ -210,11 +229,11 @@ export default function TrustedCircleCard({
       await supabase.from('direct_messages').insert({
         conversation_id: convo.id,
         sender_id: userId,
-        content: `🛡️ ${senderName} checked in — they're safe`,
+        content: `🛡️ ${senderName} a fait un check-in — tout va bien`,
         content_type: 'text',
       });
       await supabase.from('dm_conversations').update({
-        last_message: `🛡️ ${senderName} checked in`,
+        last_message: `🛡️ ${senderName} a fait un check-in`,
         last_message_sender_id: userId,
         last_message_at: new Date().toISOString(),
       }).eq('id', convo.id);
@@ -238,57 +257,56 @@ export default function TrustedCircleCard({
     return (
       <div
         className="rounded-2xl p-3.5 flex flex-col gap-2.5"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm">💛</span>
-            <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{t('circle')}</p>
+            <p className="text-xs font-black" style={{ color: C.t1 }}>{t('circle')}</p>
             {contacts.length > 0 && (
               <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                style={{ backgroundColor: C.elevated, color: C.t2 }}>
                 {contacts.length}
               </span>
             )}
           </div>
           {onlineCount > 0 && (
             <span className="flex items-center gap-1 text-[0.55rem] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+              style={{ backgroundColor: F.successSoft, color: F.success }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: F.success }} />
               {t('circleOnline', { n: onlineCount })}
             </span>
           )}
         </div>
         {contacts.length > 0 ? (
           <div className="flex items-center gap-1.5">
-            {/* Avatar stack */}
             <div className="flex -space-x-2">
               {contacts.slice(0, 6).map((c) => (
                 <div key={c.id} className="relative">
-                  <Avatar name={c.display_name} size={28} />
+                  <AvatarCircle name={c.display_name} size={28} />
                   <span
                     className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border"
                     style={{
                       backgroundColor: PRESENCE_COLORS[presenceMap[c.contact_user_id]?.status ?? 'offline'],
-                      borderColor: 'var(--bg-card)',
+                      borderColor: C.card,
                     }}
                   />
                 </div>
               ))}
               {contacts.length > 6 && (
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-[0.5rem] font-black"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                  style={{ backgroundColor: C.elevated, color: C.t2 }}>
                   +{contacts.length - 6}
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('noContactsYet')}</p>
+          <p className="text-[0.6rem]" style={{ color: C.t2 }}>{t('noContactsYet')}</p>
         )}
         {pendingReceived.length > 0 && (
-          <p className="text-[0.55rem] font-bold" style={{ color: 'var(--accent)' }}>
-            {pendingReceived.length} pending invite{pendingReceived.length > 1 ? 's' : ''}
+          <p className="text-[0.55rem] font-bold" style={{ color: F.cyan }}>
+            {pendingReceived.length} invitation{pendingReceived.length > 1 ? 's' : ''} en attente
           </p>
         )}
       </div>
@@ -299,26 +317,26 @@ export default function TrustedCircleCard({
   return (
     <div
       className="rounded-2xl p-4 flex flex-col gap-3"
-      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-base">💛</span>
-          <p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-sm font-black" style={{ color: C.t1 }}>
             {t('circle')}
           </p>
           {contacts.length > 0 && (
             <span
               className="text-[0.6rem] font-black px-1.5 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+              style={{ backgroundColor: C.elevated, color: C.t2 }}
             >
               {contacts.length}
             </span>
           )}
           {isSharingLocation && (
             <span className="flex items-center gap-1 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
+              style={{ backgroundColor: F.successSoft, color: F.success }}>
               <Radio size={9} strokeWidth={2.5} />
               {t('sharingLive')}
             </span>
@@ -328,8 +346,8 @@ export default function TrustedCircleCard({
           onClick={() => { setShowAdd(!showAdd); setSearchQuery(''); setSearchResults([]); }}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition hover:opacity-80"
           style={{
-            backgroundColor: showAdd ? 'var(--accent)' : 'var(--bg-secondary)',
-            color: showAdd ? '#fff' : 'var(--text-muted)',
+            backgroundColor: showAdd ? F.cyan : C.elevated,
+            color: showAdd ? '#fff' : C.t2,
           }}
         >
           <UserPlus size={11} strokeWidth={2.5} />
@@ -341,9 +359,9 @@ export default function TrustedCircleCard({
       {showAdd && (
         <div
           className="rounded-xl p-3 flex flex-col gap-2.5"
-          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
         >
-          <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-xs font-bold" style={{ color: C.t1 }}>
             {t('searchByName')}
           </p>
           <div className="flex gap-2">
@@ -351,15 +369,15 @@ export default function TrustedCircleCard({
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setSearchResults([]); }}
               onKeyDown={(e) => { if (e.key === 'Enter') searchByName(); }}
-              placeholder="e.g. Marie, Alex…"
+              placeholder="ex. Marie, Alex…"
               className="flex-1 text-sm rounded-xl px-3 py-2 outline-none"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)', color: 'var(--text-primary)' }}
+              style={{ backgroundColor: C.card, border: `1.5px solid ${C.border}`, color: C.t1 }}
             />
             <button
               onClick={searchByName}
               disabled={!searchQuery.trim() || searching}
               className="px-3 py-2 rounded-xl text-xs font-bold transition disabled:opacity-40"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+              style={{ backgroundColor: F.cyan, color: '#fff' }}
             >
               {searching ? '…' : t('find')}
             </button>
@@ -369,25 +387,25 @@ export default function TrustedCircleCard({
               {searchResults.map((r) => (
                 <div key={r.id} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2.5">
-                    <Avatar name={r.display_name} size={28} />
-                    <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                      {r.display_name ?? 'Unknown'}
+                    <AvatarCircle name={r.display_name} size={28} />
+                    <span className="text-sm font-bold" style={{ color: C.t1 }}>
+                      {r.display_name ?? 'Inconnu'}
                     </span>
                   </div>
                   <button
                     onClick={() => sendInviteTo(r)}
                     disabled={inviting}
                     className="px-3 py-1.5 rounded-xl text-xs font-black transition disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    style={{ backgroundColor: F.cyan, color: '#fff' }}
                   >
-                    {inviting ? '…' : 'Invite'}
+                    {inviting ? '…' : 'Inviter'}
                   </button>
                 </div>
               ))}
             </div>
           )}
           {searchQuery.trim() && searchResults.length === 0 && !searching && (
-            <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs text-center" style={{ color: C.t2 }}>
               {t('noUserFound')}
             </p>
           )}
@@ -399,29 +417,29 @@ export default function TrustedCircleCard({
         <div
           key={inv.id}
           className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-          style={{ backgroundColor: 'rgba(212,168,83,0.06)', border: '1.5px solid rgba(212,168,83,0.2)' }}
+          style={{ backgroundColor: F.goldSoft, border: `1.5px solid ${F.goldBorder}` }}
         >
           <div className="flex items-center gap-2.5">
-            <Avatar name={inv.sender_name} size={30} />
+            <AvatarCircle name={inv.sender_name} size={30} />
             <div>
-              <p className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>
-                {inv.sender_name ?? 'Someone'}
+              <p className="text-xs font-black" style={{ color: C.t1 }}>
+                {inv.sender_name ?? 'Quelqu\u2019un'}
               </p>
-              <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{t('wantsToJoin')}</p>
+              <p className="text-[0.6rem]" style={{ color: C.t2 }}>{t('wantsToJoin')}</p>
             </div>
           </div>
           <div className="flex gap-1.5">
             <button
               onClick={() => respondInvite(inv.id, false)}
               className="w-7 h-7 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}
             >
-              <X size={12} style={{ color: 'var(--text-muted)' }} />
+              <X size={12} style={{ color: C.t2 }} />
             </button>
             <button
               onClick={() => respondInvite(inv.id, true)}
               className="w-7 h-7 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: '#22c55e' }}
+              style={{ backgroundColor: F.success }}
             >
               <Check size={12} color="#fff" strokeWidth={2.5} />
             </button>
@@ -433,16 +451,16 @@ export default function TrustedCircleCard({
       {isEmpty && !showAdd && (
         <div className="flex flex-col items-center gap-2 py-4 text-center">
           <span className="text-3xl">👥</span>
-          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-sm font-bold" style={{ color: C.t1 }}>
             {t('addFirstContacts')}
           </p>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs leading-relaxed" style={{ color: C.t2 }}>
             {t('circleDescription')}
           </p>
           <button
             onClick={() => setShowAdd(true)}
             className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+            style={{ backgroundColor: F.cyan, color: '#fff' }}
           >
             <UserPlus size={11} strokeWidth={2.5} className="inline mr-1.5" style={{ verticalAlign: '-1px' }} />
             {t('inviteContact')}
@@ -460,39 +478,39 @@ export default function TrustedCircleCard({
               <div
                 key={c.id}
                 className="flex items-center justify-between px-3 py-2 rounded-xl"
-                style={{ backgroundColor: 'var(--bg-secondary)' }}
+                style={{ backgroundColor: C.elevated }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="relative shrink-0">
-                    <Avatar name={c.display_name} size={32} />
+                    <AvatarCircle name={c.display_name} size={32} />
                     <span
                       className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
                       style={{
                         backgroundColor: PRESENCE_COLORS[presence?.status ?? 'offline'],
-                        borderColor: 'var(--bg-secondary)',
+                        borderColor: C.elevated,
                       }}
                     />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {c.display_name ?? 'Unknown'}
+                      <p className="text-sm font-bold truncate" style={{ color: C.t1 }}>
+                        {c.display_name ?? 'Inconnu'}
                       </p>
                       {isSharing && (
-                        <MapPin size={10} strokeWidth={2.5} style={{ color: '#3b82f6' }} className="shrink-0" />
+                        <MapPin size={10} strokeWidth={2.5} style={{ color: F.blue }} className="shrink-0" />
                       )}
                     </div>
                     {presence && presence.status !== 'online' && presence.label && (
-                      <p className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>{presence.label}</p>
+                      <p className="text-[0.55rem]" style={{ color: C.t2 }}>{presence.label}</p>
                     )}
                   </div>
                 </div>
                 <button
                   onClick={() => removeContact(c.id)}
                   className="w-6 h-6 rounded-full flex items-center justify-center transition hover:opacity-70 shrink-0"
-                  style={{ backgroundColor: 'var(--bg-card)' }}
+                  style={{ backgroundColor: C.card }}
                 >
-                  <X size={11} style={{ color: 'var(--text-muted)' }} />
+                  <X size={11} style={{ color: C.t2 }} />
                 </button>
               </div>
             );
@@ -502,21 +520,21 @@ export default function TrustedCircleCard({
             <div
               key={s.id}
               className="flex items-center justify-between px-3 py-2 rounded-xl opacity-50"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--border)' }}
+              style={{ backgroundColor: C.elevated, border: `1px dashed ${C.border}` }}
             >
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs"
-                  style={{ backgroundColor: 'var(--bg-card)' }}>
+                  style={{ backgroundColor: C.card }}>
                   ⏳
                 </div>
-                <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('invitePending')}</p>
+                <p className="text-xs font-bold" style={{ color: C.t2 }}>{t('invitePending')}</p>
               </div>
               <button
                 onClick={() => removeContact(s.id)}
                 className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: 'var(--bg-card)' }}
+                style={{ backgroundColor: C.card }}
               >
-                <X size={10} style={{ color: 'var(--text-muted)' }} />
+                <X size={10} style={{ color: C.t2 }} />
               </button>
             </div>
           ))}
@@ -525,7 +543,7 @@ export default function TrustedCircleCard({
             <button
               onClick={() => setShowAll(!showAll)}
               className="flex items-center justify-center gap-1 py-1.5 text-xs font-bold transition"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: C.t2 }}
             >
               {showAll ? <><ChevronUp size={12} /> {t('showLess')}</> : <><ChevronDown size={12} /> {t('seeAll', { n: contacts.length })}</>}
             </button>
@@ -540,7 +558,7 @@ export default function TrustedCircleCard({
             onClick={checkInWithCircle}
             disabled={checkingIn}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition active:scale-[0.98] disabled:opacity-50"
-            style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}
+            style={{ backgroundColor: F.successSoft, border: `1px solid ${F.successBorder}`, color: F.success }}
           >
             <Heart size={12} strokeWidth={2.5} />
             {checkingIn ? t('checkInSending') : t('checkIn')}
@@ -549,16 +567,16 @@ export default function TrustedCircleCard({
             <button
               onClick={onSeeOnMap}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}`, color: C.t1 }}
             >
-              <MapPin size={12} strokeWidth={2.5} style={{ color: 'var(--accent)' }} />
+              <MapPin size={12} strokeWidth={2.5} style={{ color: F.cyan }} />
               {t('seeOnMap')}
             </button>
           )}
         </div>
       )}
 
-      <p className="text-[0.6rem] text-center leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-[0.6rem] text-center leading-relaxed" style={{ color: C.t2 }}>
         {t('circleDescription')}
       </p>
     </div>

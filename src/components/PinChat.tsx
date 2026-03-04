@@ -1,3 +1,4 @@
+// V2 — pas encore branché
 // src/components/PinChat.tsx
 
 'use client';

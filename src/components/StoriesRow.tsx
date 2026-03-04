@@ -1,3 +1,4 @@
+// V2 — pas encore branché
 // src/components/StoriesRow.tsx
 
 'use client';

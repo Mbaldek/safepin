@@ -796,7 +796,7 @@ export default function MapPage() {
         )}
 
         {/* Contextual rolling banner — map tab only */}
-        {activeTab === 'map' && <ContextBanner />}
+        {activeTab === 'map' && <ContextBanner onIncidentTap={() => setShowCityContext(true)} />}
 
         {/* Session briefing card — shown once per session on map tab */}
         <AnimatePresence>

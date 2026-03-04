@@ -1,3 +1,4 @@
+// DEPRECATED — V2
 // src/components/FriendsView.tsx
 
 'use client';

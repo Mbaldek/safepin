@@ -1,3 +1,4 @@
+// V2 — pas encore branché
 // src/components/SosBroadcastPanel.tsx — S50: SOS Community Broadcast
 
 'use client';

@@ -87,22 +87,3 @@ export function buildScoreGeoJSON(pins: Pin[], bounds: { north: number; south: n
   };
 }
 
-// Simple visual component for use outside of MapView (e.g., in a legend)
-export function ScoreLegend() {
-  return (
-    <div className="flex items-center gap-2 px-2">
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(16,185,129,0.4)' }} />
-        <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>Safe</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(245,158,11,0.5)' }} />
-        <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>Moderate</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.5)' }} />
-        <span className="text-[0.55rem]" style={{ color: 'var(--text-muted)' }}>High risk</span>
-      </div>
-    </div>
-  );
-}

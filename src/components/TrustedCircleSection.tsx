@@ -1,3 +1,4 @@
+// DEPRECATED — doublon de TrustedCircleCard. Utiliser TrustedCircleCard à la place.
 // src/components/TrustedCircleSection.tsx
 
 'use client';

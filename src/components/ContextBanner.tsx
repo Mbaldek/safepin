@@ -5,7 +5,22 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { haversineMeters } from '@/lib/utils';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    card: '#1E293B',
+    t1: '#FFFFFF', t2: '#94A3B8',
+    border: 'rgba(255,255,255,0.08)',
+  } : {
+    card: '#FFFFFF',
+    t1: '#0F172A', t2: '#475569',
+    border: 'rgba(15,23,42,0.07)',
+  };
+}
+
+const F = { cyan: '#3BB4C1', success: '#34D399' };
 
 type BannerMsg = {
   key: string;
@@ -15,7 +30,13 @@ type BannerMsg = {
   dismiss?: () => void;
 };
 
-export default function ContextBanner() {
+type Props = {
+  onIncidentTap?: () => void;
+};
+
+export default function ContextBanner({ onIncidentTap }: Props) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const C = getColors(isDark);
   const { userLocation, pins, isSharingLocation, setIsSharingLocation, setShowWalkWithMe } = useStore();
   const [msgIndex, setMsgIndex] = useState(0);
 
@@ -30,7 +51,12 @@ export default function ContextBanner() {
         if ((now - new Date(p.created_at).getTime()) / 3_600_000 > 24) return false;
         return haversineMeters(userLocation, { lat: p.lat, lng: p.lng }) < 1000;
       }).length;
-      if (count > 0) arr.push({ key: 'inc', icon: '⚠️', text: `${count} incident${count > 1 ? 's' : ''} nearby` });
+      if (count > 0) arr.push({
+        key: 'inc',
+        icon: '⚠️',
+        text: `${count} incident${count > 1 ? 's' : ''} à proximité`,
+        action: onIncidentTap,
+      });
     }
 
     if (isSharingLocation) {
@@ -47,7 +73,7 @@ export default function ContextBanner() {
     arr.push({ key: 'time', icon: h < 18 ? '☀️' : '🌙', text: h < 18 ? 'Bonne journée' : 'Restez prudent' });
 
     return arr;
-  }, [userLocation, pins, isSharingLocation, setShowWalkWithMe, setIsSharingLocation]);
+  }, [userLocation, pins, isSharingLocation, setShowWalkWithMe, setIsSharingLocation, onIncidentTap]);
 
   // Cycle through messages every 6 s; reset index when list changes length
   useEffect(() => { setMsgIndex(0); }, [messages.length]);
@@ -72,8 +98,8 @@ export default function ContextBanner() {
         padding: '8px 16px',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
-        backgroundColor: 'var(--surface-card)',
-        border: '1px solid var(--border)',
+        backgroundColor: C.card,
+        border: `1px solid ${C.border}`,
         boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
         cursor: msg.action ? 'pointer' : 'default',
       }}
@@ -81,15 +107,18 @@ export default function ContextBanner() {
     >
       <span className="text-xs">{msg.icon}</span>
       <span
-        className="text-xs font-bold truncate max-w-[180px]"
-        style={{ color: msg.key === 'share' ? 'var(--safe)' : 'var(--text-primary)' }}
+        className="text-xs font-bold truncate"
+        style={{
+          maxWidth: 180,
+          color: msg.key === 'share' ? F.success : C.t1,
+        }}
       >
         {msg.text}
       </span>
       {msg.dismiss && (
         <button
           className="text-xs opacity-50 ml-1 leading-none"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: C.t2 }}
           onClick={(e) => { e.stopPropagation(); msg.dismiss!(); }}
         >
           ×
