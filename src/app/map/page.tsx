@@ -20,7 +20,6 @@ import { Bell, Search, Menu, X, List } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
-import IncidentReportModal from '@/components/IncidentReportModal';
 import DetailSheet from '@/components/DetailSheet';
 import { ReportSheet } from '@/components/ReportSheet';
 import { ConfirmFlowModal } from '@/components/ConfirmFlowModal';
@@ -646,26 +645,26 @@ export default function MapPage() {
 
       {/* ── Top bar (always visible) ───────────────────────────────── */}
       <div className="shrink-0 z-50"
-        style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+        style={{ backgroundColor: '#1E293B', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="flex items-center justify-between px-4 pt-2.5 pb-2">
           <div className="flex items-center gap-1.5">
             <BreveilMonogram size={22} variant="dark" />
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1rem', letterSpacing: '3px', color: 'var(--text-primary)' }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: '1rem', letterSpacing: '3px', color: '#FFFFFF' }}>
               BREVEIL
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Search icon — map tab only */}
             {activeTab === 'map' && (
               <button
                 onClick={() => setShowSearch((v) => !v)}
                 aria-label={showSearch ? 'Close search' : 'Search location'}
-                className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
-                style={{ backgroundColor: showSearch ? 'var(--accent)' : 'var(--bg-card)' }}
+                className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
+                style={{ backgroundColor: showSearch ? '#3BB4C1' : 'transparent' }}
               >
                 {showSearch
-                  ? <X size={15} strokeWidth={2.2} style={{ color: '#fff' }} />
-                  : <Search size={15} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                  ? <X size={16} strokeWidth={2.2} style={{ color: '#FFFFFF' }} />
+                  : <Search size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
                 }
               </button>
             )}
@@ -673,15 +672,15 @@ export default function MapPage() {
             <button
               onClick={() => setShowNotifications(true)}
               aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-              className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
-              style={{ backgroundColor: 'var(--bg-card)' }}
+              className="relative w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
+              style={{ backgroundColor: 'transparent' }}
             >
-              <Bell size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+              <Bell size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
               {unreadCount > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute -top-1 -right-1 min-w-3.75 h-3.75 rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-                  style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                  className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: '#EF4444', color: '#fff' }}
                 >
                   {unreadCount}
                 </span>
@@ -691,11 +690,11 @@ export default function MapPage() {
             {/* Settings / burger menu */}
             <button
               aria-label="Settings"
-              className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
-              style={{ backgroundColor: showSettings ? 'var(--accent)' : 'var(--bg-card)' }}
+              className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
+              style={{ backgroundColor: showSettings ? '#3BB4C1' : 'transparent' }}
               onClick={() => setShowSettings((v) => !v)}
             >
-              <Menu size={15} strokeWidth={2} style={{ color: showSettings ? '#fff' : 'var(--text-muted)' }} />
+              <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'rgba(255,255,255,0.6)' }} />
             </button>
           </div>
         </div>
@@ -878,10 +877,7 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Report sheet — inside map container like other tab overlays */}
-        <AnimatePresence>
-          {activeSheet === 'report' && <IncidentReportModal key="report" userId={userId} />}
-        </AnimatePresence>
+        {/* Report sheet — replaced by ReportSheet (v2) rendered below */}
       </div>
 
       {/* SOS nearby banner */}

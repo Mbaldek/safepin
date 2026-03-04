@@ -11,13 +11,13 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-70"
-      style={{ backgroundColor: 'var(--bg-card)' }}
+      className="w-8 h-8 flex items-center justify-center rounded-xl transition hover:opacity-80"
+      style={{ backgroundColor: 'transparent' }}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {theme === 'dark'
-        ? <Sun size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
-        : <Moon size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+        ? <Sun size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
+        : <Moon size={16} strokeWidth={2} style={{ color: 'rgba(255,255,255,0.6)' }} />
       }
     </button>
   );
