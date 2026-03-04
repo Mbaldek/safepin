@@ -1,3 +1,4 @@
+// DEPRECATED — remplacé par CommunityView.tsx. À supprimer lors du nettoyage.
 "use client"
 
 import { useState, useEffect } from "react"

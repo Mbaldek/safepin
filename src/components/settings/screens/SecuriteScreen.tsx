@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/stores/useTheme';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -11,6 +12,7 @@ export interface SecuriteScreenProps {
 }
 
 export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
   const [circleCount, setCircleCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -26,6 +28,7 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
   }, []);
 
   const comingSoon = () => toast('Bientôt disponible');
+  const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -44,19 +47,19 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
             width: 36,
             height: 36,
             borderRadius: '50%',
-            background: '#334155',
+            background: isDark ? '#334155' : '#F1F5F9',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#94A3B8',
+            color: isDark ? '#94A3B8' : '#64748B',
             fontSize: 18,
           }}
         >
           ‹
         </button>
-        <span style={{ fontSize: 19, fontWeight: 600, color: '#fff' }}>
+        <span style={{ fontSize: 19, fontWeight: 600, color: isDark ? '#fff' : '#0F172A' }}>
           Sécurité & confidentialité
         </span>
       </div>
@@ -76,7 +79,7 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
             }
             onPress={comingSoon}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="ShieldCheck"
             iconColor="#34D399"
@@ -95,7 +98,7 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
             subtitle="Rayon, heures calmes"
             onPress={comingSoon}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="Eye"
             iconColor="#22D3EE"
@@ -113,7 +116,7 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
             subtitle="Analytics, export, suppression"
             onPress={comingSoon}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="Settings"
             label="Sessions & sécurité"

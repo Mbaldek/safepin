@@ -60,17 +60,20 @@ export default function BottomNav() {
           id === 'map' && emergencyCount > 0 ? emergencyCount :
           id === 'community' && unreadDmCount > 0 ? unreadDmCount : 0;
 
+        const isDisabled = id === 'me';
+
         return (
           <button
             key={id}
-            onClick={() => setActiveTab(id)}
+            onClick={() => { if (!isDisabled) setActiveTab(id); }}
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
+            aria-disabled={isDisabled || undefined}
             className="flex-1 flex flex-col items-center justify-center gap-1 relative"
             {...(id === 'trip' ? { 'data-tour': 'nav-trip' } : id === 'me' ? { 'data-tour': 'nav-me' } : {})}
           >
             {/* Active dot indicator */}
-            {isActive && (
+            {isActive && !isDisabled && (
               <motion.div
                 layoutId="nav-dot"
                 className="absolute bottom-1.5 w-1 h-1 rounded-full"
@@ -89,25 +92,17 @@ export default function BottomNav() {
               </span>
             )}
 
-            {/* Online dot — Julia AI */}
-            {id === 'me' && (
-              <span
-                className="absolute top-2 right-[calc(50%-14px)] w-[7px] h-[7px] rounded-full z-10"
-                style={{ backgroundColor: '#34D399', boxShadow: '0 0 4px #34D399' }}
-              />
-            )}
-
-            {/* Icon */}
+{/* Icon */}
             <Icon
               size={20}
               strokeWidth={isActive ? 2.2 : 1.8}
-              style={{ color: isActive ? FIXED.accentCyan : C.textTertiary, transition: 'color 150ms' }}
+              style={{ color: isDisabled ? C.textTertiary : isActive ? FIXED.accentCyan : C.textTertiary, opacity: isDisabled ? 0.4 : 1, transition: 'color 150ms, opacity 150ms' }}
             />
 
             {/* Label */}
             <span
               className="text-[0.58rem] font-semibold tracking-wide leading-none"
-              style={{ color: isActive ? FIXED.accentCyan : C.textTertiary, transition: 'color 150ms' }}
+              style={{ color: isDisabled ? C.textTertiary : isActive ? FIXED.accentCyan : C.textTertiary, opacity: isDisabled ? 0.4 : 1, transition: 'color 150ms, opacity 150ms' }}
             >
               {label}
             </span>

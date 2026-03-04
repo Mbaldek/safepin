@@ -6,6 +6,7 @@ import {
   Check, ChevronRight, Camera, X, Bell
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import PaywallScreen from '@/components/subscription/PaywallScreen';
 
 const STORAGE_KEY = 'brume_onboarding_done';
 
@@ -238,32 +239,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
 
   // Step 5: Paywall
   const Paywall = () => (
-    <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 60 }}>
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#F5C341', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>Breveil Pro</span>
-        <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginTop: 8 }}>Sécurité sans limites</h1>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-        {['Trajets illimités', 'Alertes en temps réel', 'Cercle élargi (10 contacts)', 'Julia, ton accompagnatrice IA'].map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.08)' }}>
-            <Check size={18} color="#22D3EE" /><span style={{ fontSize: 14, color: '#FFFFFF' }}>{f}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: 20, marginBottom: 20, border: '1px solid #F5C341' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: '#FFFFFF' }}>Annuel</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#34D399' }}>Économise 33%</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 32, fontWeight: 300, color: '#FFFFFF' }}>€39,99</span>
-          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>/an</span>
-        </div>
-      </div>
-      <button onClick={nextStep} style={btnPrimary}>Essayer gratuitement 7 jours</button>
-      <button onClick={nextStep} style={{ ...btnSecondary, marginTop: 12 }}>Continuer gratuitement</button>
-      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 16 }}>Annule quand tu veux.</p>
-    </div>
+    <PaywallScreen context="onboarding" onClose={nextStep} />
   );
 
   // Step 6: Ready

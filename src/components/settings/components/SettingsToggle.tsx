@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useTheme } from '@/stores/useTheme';
 
 export interface SettingsToggleProps {
   value: boolean;
@@ -8,6 +9,8 @@ export interface SettingsToggleProps {
 }
 
 export default function SettingsToggle({ value, onChange }: SettingsToggleProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+
   return (
     <button
       role="switch"
@@ -17,7 +20,7 @@ export default function SettingsToggle({ value, onChange }: SettingsToggleProps)
         width: 44,
         height: 26,
         borderRadius: 13,
-        background: value ? '#22D3EE' : '#334155',
+        background: value ? '#22D3EE' : isDark ? '#334155' : '#CBD5E1',
         position: 'relative',
         border: 'none',
         padding: 0,

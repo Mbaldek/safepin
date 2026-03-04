@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Check, ChevronRight } from 'lucide-react';
+import { useTheme } from '@/stores/useTheme';
 
 export interface ProfileBlockProps {
   name: string;
@@ -11,6 +12,7 @@ export interface ProfileBlockProps {
 }
 
 export default function ProfileBlock({ name, email, isVerified, onPress }: ProfileBlockProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
   const initial = name.charAt(0).toUpperCase();
 
   return (
@@ -27,7 +29,7 @@ export default function ProfileBlock({ name, email, isVerified, onPress }: Profi
         width: '100%',
         background: 'none',
         border: 'none',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)'}`,
         textAlign: 'left',
       }}
     >
@@ -53,7 +55,7 @@ export default function ProfileBlock({ name, email, isVerified, onPress }: Profi
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{name}</span>
+          <span style={{ color: isDark ? '#fff' : '#0F172A', fontSize: 16, fontWeight: 600 }}>{name}</span>
           {isVerified && (
             <span
               style={{
@@ -73,11 +75,11 @@ export default function ProfileBlock({ name, email, isVerified, onPress }: Profi
             </span>
           )}
         </div>
-        <span style={{ color: '#64748B', fontSize: 13 }}>{email}</span>
+        <span style={{ color: isDark ? '#64748B' : '#94A3B8', fontSize: 13 }}>{email}</span>
       </div>
 
       {/* Chevron */}
-      <ChevronRight size={20} color="#64748B" style={{ flexShrink: 0 }} />
+      <ChevronRight size={20} color={isDark ? '#64748B' : '#94A3B8'} style={{ flexShrink: 0 }} />
     </motion.button>
   );
 }

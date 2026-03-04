@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTheme } from '@/stores/useTheme';
 import MainSettings from './screens/MainSettings';
 import MonCompteScreen from './screens/compte/MonCompteScreen';
 import SecuriteScreen from './screens/SecuriteScreen';
 import PreferencesScreen from './screens/PreferencesScreen';
 import AideScreen from './screens/AideScreen';
+import PaywallScreen from '../subscription/PaywallScreen';
 
 export interface SettingsSheetProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ const screenAnimate = { x: 0, opacity: 1 };
 const screenExit = { x: -30, opacity: 0 };
 
 export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
   const [currentScreen, setCurrentScreen] = useState('main');
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +81,8 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
         return <PreferencesScreen onBack={goBack} />;
       case 'aide':
         return <AideScreen onBack={goBack} />;
+      case 'abonnement':
+        return <PaywallScreen onClose={goBack} context="settings" />;
       default:
         return <MainSettings onNavigate={setCurrentScreen} onClose={onClose} />;
     }
@@ -119,7 +124,7 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
               left: 0,
               right: 0,
               height: '85%',
-              background: '#1A2540',
+              background: isDark ? '#1A2540' : '#FFFFFF',
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               zIndex: 901,
@@ -134,7 +139,7 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: 'rgba(255,255,255,0.2)',
+                background: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
                 margin: '12px auto 0',
                 flexShrink: 0,
               }}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/stores/useTheme';
 import ProfileBlock from '../components/ProfileBlock';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
@@ -14,6 +15,7 @@ export interface MainSettingsProps {
 }
 
 export default function MainSettings({ onNavigate, onClose }: MainSettingsProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
   const router = useRouter();
   const [logoutHover, setLogoutHover] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -40,14 +42,14 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
           padding: '20px 20px 12px',
         }}
       >
-        <span style={{ fontSize: 19, fontWeight: 600, color: '#fff' }}>Paramètres</span>
+        <span style={{ fontSize: 19, fontWeight: 600, color: isDark ? '#fff' : '#0F172A' }}>Paramètres</span>
         <button
           onClick={onClose}
           style={{
             width: 36,
             height: 36,
             borderRadius: '50%',
-            background: '#334155',
+            background: isDark ? '#334155' : '#F1F5F9',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
@@ -55,7 +57,7 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
             cursor: 'pointer',
           }}
         >
-          <X size={18} color="#94A3B8" />
+          <X size={18} color={isDark ? '#94A3B8' : '#64748B'} />
         </button>
       </div>
 
@@ -88,6 +90,29 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
             label="Préférences"
             subtitle="Langue, carte, thème, haptique"
             onPress={() => onNavigate('preferences')}
+          />
+        </SettingsSection>
+
+        {/* Abonnement */}
+        <SettingsSection label="Abonnement">
+          <SettingsRow
+            icon="Shield"
+            iconColor="#F5C341"
+            label="Mon abonnement"
+            subtitle="Gérer votre plan, parrainage"
+            onPress={() => onNavigate('abonnement')}
+            rightEl={
+              <span style={{
+                fontSize: 11,
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: 999,
+                background: isDark ? 'rgba(100,116,139,0.2)' : 'rgba(148,163,184,0.2)',
+                color: isDark ? '#94A3B8' : '#64748B',
+              }}>
+                Gratuit
+              </span>
+            }
           />
         </SettingsSection>
 
@@ -146,7 +171,7 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
             textAlign: 'center',
             padding: '16px 20px 28px',
             fontSize: 12,
-            color: '#475569',
+            color: isDark ? '#475569' : '#94A3B8',
             lineHeight: 1.6,
           }}
         >

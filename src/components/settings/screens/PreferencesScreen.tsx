@@ -39,6 +39,8 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
     window.location.reload();
   };
 
+  const divider = { height: 1, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
@@ -56,19 +58,19 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
             width: 36,
             height: 36,
             borderRadius: '50%',
-            background: '#334155',
+            background: darkMode ? '#334155' : '#F1F5F9',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#94A3B8',
+            color: darkMode ? '#94A3B8' : '#64748B',
             fontSize: 18,
           }}
         >
           ‹
         </button>
-        <span style={{ fontSize: 19, fontWeight: 600, color: '#fff' }}>
+        <span style={{ fontSize: 19, fontWeight: 600, color: darkMode ? '#fff' : '#0F172A' }}>
           Préférences
         </span>
       </div>
@@ -83,7 +85,7 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
             label="Mode sombre"
             rightEl={<SettingsToggle value={darkMode} onChange={toggleTheme} />}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="Map"
             iconColor="#22D3EE"
@@ -108,7 +110,7 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  color: '#fff',
+                  color: darkMode ? '#fff' : '#0F172A',
                   fontSize: 15,
                   fontWeight: 500,
                 }}
@@ -116,7 +118,7 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
                 <span>Français</span>
                 {currentLocale === 'fr' && <span style={{ color: '#3BB4C1' }}>✓</span>}
               </button>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+              <div style={divider} />
               <button
                 onClick={() => handleLocaleChange('en')}
                 style={{
@@ -129,7 +131,7 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  color: '#fff',
+                  color: darkMode ? '#fff' : '#0F172A',
                   fontSize: 15,
                   fontWeight: 500,
                 }}

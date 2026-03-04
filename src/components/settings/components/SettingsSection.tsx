@@ -1,11 +1,15 @@
 'use client';
 
+import { useTheme } from '@/stores/useTheme';
+
 export interface SettingsSectionProps {
   label: string;
   children: React.ReactNode;
 }
 
 export default function SettingsSection({ label, children }: SettingsSectionProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+
   return (
     <div>
       {/* Section header */}
@@ -15,7 +19,7 @@ export default function SettingsSection({ label, children }: SettingsSectionProp
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.1em',
-          color: '#64748B',
+          color: isDark ? '#64748B' : '#94A3B8',
           padding: '20px 20px 8px',
         }}
       >
@@ -26,10 +30,10 @@ export default function SettingsSection({ label, children }: SettingsSectionProp
       <div
         style={{
           borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)'}`,
           overflow: 'hidden',
           margin: '0 16px',
-          background: '#1E293B',
+          background: isDark ? '#1E293B' : '#FFFFFF',
         }}
       >
         {children}

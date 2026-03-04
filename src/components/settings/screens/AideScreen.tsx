@@ -1,14 +1,13 @@
 'use client';
 
 import { ExternalLink } from 'lucide-react';
+import { useTheme } from '@/stores/useTheme';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
 export interface AideScreenProps {
   onBack: () => void;
 }
-
-const extIcon = <ExternalLink size={16} color="#64748B" />;
 
 const LINKS = {
   guide: 'https://breveil.app/guide',
@@ -24,6 +23,10 @@ function openLink(url: string) {
 }
 
 export default function AideScreen({ onBack }: AideScreenProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const extIcon = <ExternalLink size={16} color={isDark ? '#64748B' : '#94A3B8'} />;
+  const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
@@ -41,19 +44,19 @@ export default function AideScreen({ onBack }: AideScreenProps) {
             width: 36,
             height: 36,
             borderRadius: '50%',
-            background: '#334155',
+            background: isDark ? '#334155' : '#F1F5F9',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#94A3B8',
+            color: isDark ? '#94A3B8' : '#64748B',
             fontSize: 18,
           }}
         >
           ‹
         </button>
-        <span style={{ fontSize: 19, fontWeight: 600, color: '#fff' }}>Aide & support</span>
+        <span style={{ fontSize: 19, fontWeight: 600, color: isDark ? '#fff' : '#0F172A' }}>Aide & support</span>
       </div>
 
       {/* Scrollable content */}
@@ -68,7 +71,7 @@ export default function AideScreen({ onBack }: AideScreenProps) {
             rightEl={extIcon}
             onPress={() => openLink(LINKS.guide)}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="HelpCircle"
             iconColor="#F5C341"
@@ -76,7 +79,7 @@ export default function AideScreen({ onBack }: AideScreenProps) {
             rightEl={extIcon}
             onPress={() => openLink(LINKS.faq)}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="MessageCircle"
             iconColor="#A78BFA"
@@ -105,7 +108,7 @@ export default function AideScreen({ onBack }: AideScreenProps) {
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
-              color: '#64748B',
+              color: isDark ? '#64748B' : '#94A3B8',
               padding: '0 20px 8px',
             }}
           >
@@ -117,7 +120,7 @@ export default function AideScreen({ onBack }: AideScreenProps) {
             rightEl={extIcon}
             onPress={() => openLink(LINKS.cgu)}
           />
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '0 20px' }} />
+          <div style={divider} />
           <SettingsRow
             icon="Eye"
             label="Politique de confidentialité"
@@ -132,7 +135,7 @@ export default function AideScreen({ onBack }: AideScreenProps) {
             textAlign: 'center',
             padding: 24,
             fontSize: 13,
-            color: '#64748B',
+            color: isDark ? '#64748B' : '#94A3B8',
           }}
         >
           Fait avec ♥ à Paris

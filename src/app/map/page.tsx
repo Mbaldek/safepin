@@ -16,7 +16,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { computeScore } from '@/lib/levels';
 import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft, Tag, User } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import ContextBanner from '@/components/ContextBanner';
@@ -27,7 +27,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
-import IncidentsView from '@/components/IncidentsView';
+import NearbySheet from '@/components/nearby/NearbySheet';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
@@ -43,11 +43,12 @@ import { useTour } from '@/hooks/useTour';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
+const TripViewV2 = dynamic(() => import('@/components/trip/TripViewV2'), { ssr: false });
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
-const CommunityHub = dynamic(() => import('@/components/community/CommunityHub'), { ssr: false });
+const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -702,25 +703,6 @@ export default function MapPage() {
                     </span>
                   )}
                 </button>
-                {/* Pin labels toggle — map tab only */}
-                {activeTab === 'map' && (
-                  <button
-                    onClick={() => setShowPinLabels(!showPinLabels)}
-                    aria-label={showPinLabels ? 'Hide pin labels' : 'Show pin labels'}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
-                    style={{ backgroundColor: showPinLabels ? 'var(--accent)' : 'transparent' }}
-                  >
-                    <Tag size={16} strokeWidth={2} style={{ color: showPinLabels ? '#FFFFFF' : 'var(--text-muted)' }} />
-                  </button>
-                )}
-                {/* Profile — opens MyKovaView */}
-                <button
-                  onClick={() => setActiveTab('me')}
-                  aria-label="Mon profil"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
-                >
-                  <User size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
-                </button>
                 <ThemeToggle />
                 {/* Settings / burger menu */}
                 <button
@@ -894,21 +876,21 @@ export default function MapPage() {
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence>
           {activeTab === 'community' && userId && (
-            <CommunityHub key="community-tab" onClose={() => setActiveTab('map')} onViewAllGroups={() => {}} />
+            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
 
         {/* Trip sheet — overlays the map when on trip tab */}
         <AnimatePresence>
           {activeTab === 'trip' && (
-            <TripView key="trip-sheet" onClose={() => setActiveTab('map')} />
+            <TripViewV2 key="trip-sheet" onClose={() => setActiveTab('map')} />
           )}
         </AnimatePresence>
 
         {/* Incidents list overlay — triggered by list button on map */}
         <AnimatePresence>
           {showIncidentsList && activeTab === 'map' && (
-            <IncidentsView key="incidents-sheet" onClose={() => setShowIncidentsList(false)} />
+            <NearbySheet key="nearby-sheet" onClose={() => setShowIncidentsList(false)} />
           )}
         </AnimatePresence>
 

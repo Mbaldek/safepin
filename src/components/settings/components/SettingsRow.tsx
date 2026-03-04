@@ -1,6 +1,7 @@
 'use client';
 
 import { icons, ChevronRight } from 'lucide-react';
+import { useTheme } from '@/stores/useTheme';
 
 export interface SettingsRowProps {
   icon: string;
@@ -23,6 +24,7 @@ export default function SettingsRow({
   danger,
   badge,
 }: SettingsRowProps) {
+  const isDark = useTheme((s) => s.theme) === 'dark';
   const Icon = icons[icon as keyof typeof icons];
 
   return (
@@ -41,7 +43,7 @@ export default function SettingsRow({
         textAlign: 'left',
         transition: 'background 150ms ease-out',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
       {/* Icon */}
@@ -69,7 +71,7 @@ export default function SettingsRow({
             style={{
               fontSize: 15,
               fontWeight: 500,
-              color: danger ? '#EF4444' : '#FFFFFF',
+              color: danger ? '#EF4444' : isDark ? '#FFFFFF' : '#0F172A',
             }}
           >
             {label}
@@ -90,7 +92,7 @@ export default function SettingsRow({
           )}
         </div>
         {subtitle && (
-          <span style={{ fontSize: 12, color: '#64748B', display: 'block', marginTop: 2 }}>
+          <span style={{ fontSize: 12, color: isDark ? '#64748B' : '#94A3B8', display: 'block', marginTop: 2 }}>
             {subtitle}
           </span>
         )}
@@ -98,7 +100,7 @@ export default function SettingsRow({
 
       {/* Right element or chevron */}
       {rightEl ?? (
-        onPress && <ChevronRight size={18} color="#64748B" style={{ flexShrink: 0 }} />
+        onPress && <ChevronRight size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ flexShrink: 0 }} />
       )}
     </button>
   );

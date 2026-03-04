@@ -638,3 +638,9 @@ body {
   pointer-events: none;
   animation: pin-ripple 1.8s ease-out infinite;
 }
+
+/* ============================================
+   SCROLLBAR HIDDEN
+   ============================================ */
+.scrollbar-hidden::-webkit-scrollbar { display: none; }
+.scrollbar-hidden { -ms-overflow-style: none; scrollbar-width: none; }
