@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  MapPin, Moon, Users, Heart, Shield, AlertTriangle, Eye,
-  Check, ChevronRight, Camera, X, Bell
+  Moon, MapPin, Users, Heart, Shield, AlertTriangle, Eye,
+  Check, Camera, X, Bell,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import PaywallScreen from '@/components/subscription/PaywallScreen';
+
+// ─── Exports ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'brume_onboarding_done';
 
@@ -27,12 +30,29 @@ export function useOnboardingDone(
   return [done, markDone];
 }
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 interface OnboardingFunnelV2Props {
   userId: string;
   onComplete?: () => void;
 }
 
+type CircleContact = { name: string; relation: string; phone: string };
+type Community = { id: string; name: string; description: string | null; member_count: number | null };
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const TOTAL_STEPS = 10;
+
 const gradient = 'linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%)';
+
+const CITIES = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Bordeaux', 'Lille', 'Nantes', 'Strasbourg'];
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#A78BFA,#7C3AED)',
+  'linear-gradient(135deg,#3BB4C1,#0E7490)',
+  'linear-gradient(135deg,#F5C341,#E8A800)',
+];
 
 const goals = [
   { id: 'walk', label: 'Rentrer chez moi en sécurité', icon: Moon },
@@ -44,53 +64,110 @@ const goals = [
   { id: 'safe', label: 'Trouver des lieux sûrs', icon: Shield },
 ];
 
+const slideVariants = {
+  enter: { x: 80, opacity: 0 },
+  center: { x: 0, opacity: 1 },
+  exit: { x: -80, opacity: 0 },
+};
+
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '14px 16px',
+  background: 'rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: 14, color: '#fff', fontSize: 15,
+  fontFamily: 'inherit', outline: 'none',
+};
+
+const btnMainStyle: React.CSSProperties = {
+  width: '100%', padding: 15, borderRadius: 100,
+  fontSize: 15, fontWeight: 600, border: 'none',
+  background: '#fff', color: '#0A0F1E',
+  cursor: 'pointer', fontFamily: 'inherit',
+  transition: 'all .2s',
+};
+
+const btnGhostStyle: React.CSSProperties = {
+  background: 'transparent', border: 'none',
+  color: 'rgba(255,255,255,0.35)', fontSize: 13,
+  cursor: 'pointer', padding: '10px',
+  textAlign: 'center' as const, fontFamily: 'inherit',
+  width: '100%',
+};
+
+const closeBtn: React.CSSProperties = {
+  position: 'absolute', top: 16, left: 16, width: 44, height: 44,
+  borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
+  border: 'none', color: '#FFFFFF', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const stepContainer: React.CSSProperties = {
+  background: gradient, minHeight: '100%',
+  display: 'flex', flexDirection: 'column',
+  padding: 24, paddingTop: 80,
+};
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
 export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Props) {
   const [step, setStep] = useState(0);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [pseudo, setPseudo] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [customCity, setCustomCity] = useState('');
+  const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
+  const [contactName, setContactName] = useState('');
+  const [contactRelation, setContactRelation] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalSteps = 7;
-
-  const nextStep = () => setStep(s => Math.min(s + 1, totalSteps));
+  const nextStep = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
   const prevStep = () => setStep(s => Math.max(s - 1, 0));
 
   const toggleGoal = (id: string) => {
     setSelectedGoals(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
   };
 
-  const requestLocation = () => {
-    navigator.geolocation.getCurrentPosition(() => nextStep(), () => nextStep());
-  };
+  // ─── Communities fetch ──────────────────────────────────────────────────
 
-  const requestNotifications = async () => {
-    try {
-      await Notification.requestPermission();
-    } catch {}
-    nextStep();
-  };
+  useEffect(() => {
+    if (step !== 7) return;
+    const city = selectedCity || customCity || 'Paris';
+    supabase
+      .from('communities')
+      .select('id, name, description, member_count')
+      .ilike('name', `%${city}%`)
+      .limit(5)
+      .then(({ data }) => setCommunities((data as Community[]) ?? []));
+  }, [step, selectedCity, customCity]);
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/avatar.${fileExt}`;
-      await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setAvatarUrl(publicUrl);
-    } catch (e) {
-      console.error('Upload error:', e);
-    }
-  };
+  // ─── Complete ─────────────────────────────────────────────────────────
 
   const handleComplete = async () => {
     setIsSubmitting(true);
     try {
+      const city = selectedCity || customCity || null;
       await supabase.from('profiles').update({
-        display_name: firstName || null,
-        avatar_url: avatarUrl,
+        ...(firstName.trim() && {
+          name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '),
+          first_name: firstName.trim(),
+          last_name: lastName.trim() || null,
+        }),
+        ...(pseudo.trim() && { display_name: pseudo.trim() }),
+        ...(avatarUrl && { avatar_url: avatarUrl }),
+        ...(city && { city }),
+        ...(birthDate && { date_of_birth: birthDate }),
         onboarding_goals: selectedGoals,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
@@ -106,66 +183,74 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
     }
   };
 
-  const btnPrimary: React.CSSProperties = {
-    width: '100%', padding: '18px 24px', borderRadius: 32,
-    background: '#FFFFFF', border: 'none',
-    fontSize: 16, fontWeight: 600, color: '#0F172A', cursor: 'pointer',
-  };
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 0 — WELCOME
+  // ════════════════════════════════════════════════════════════════════════
 
-  const btnSecondary: React.CSSProperties = {
-    width: '100%', padding: '18px 24px', borderRadius: 32,
-    background: 'transparent', border: 'none',
-    fontSize: 16, fontWeight: 500, color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
-  };
-
-  const closeBtn: React.CSSProperties = {
-    position: 'absolute', top: 16, left: 16, width: 44, height: 44,
-    borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
-    border: 'none', color: '#FFFFFF', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  };
-
-  // Step 0: Welcome
   const Welcome = () => (
-    <div onClick={nextStep} style={{ background: gradient, minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'pointer' }}>
-      <div style={{ textAlign: 'center' }}>
-        <svg width={80} height={80} viewBox="0 0 80 80" fill="none" style={{ marginBottom: 32 }}>
-          <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
-          <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
-          <circle cx="40" cy="22" r="4" fill="#FFFFFF" />
-        </svg>
-        <h1 style={{ fontSize: 36, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Breveil</h1>
-        <p style={{ fontSize: 24, fontWeight: 300, color: 'rgba(255,255,255,0.8)', marginBottom: 48 }}>Marche avec nous.</p>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>Tap to continue</p>
+    <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 28px', textAlign: 'center',
+      }}>
+        <div style={{
+          width: 76, height: 76,
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          borderRadius: 22,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 28,
+        }}>
+          <svg width={36} height={36} viewBox="0 0 80 80" fill="none">
+            <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
+            <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
+            <circle cx="40" cy="22" r="4" fill="#FFFFFF" />
+          </svg>
+        </div>
+
+        <h1 style={{
+          fontFamily: 'serif', fontSize: 44, fontWeight: 700,
+          lineHeight: 1.08, letterSpacing: '-0.02em', marginBottom: 14,
+          color: '#FFFFFF',
+        }}>
+          Vous n&apos;êtes<br />
+          <em style={{ fontStyle: 'italic', fontWeight: 400, opacity: 0.72 }}>
+            jamais seule.
+          </em>
+        </h1>
+
+        <p style={{
+          fontSize: 15, color: 'rgba(255,255,255,0.5)',
+          lineHeight: 1.65, maxWidth: 270,
+        }}>
+          Breveil cartographie votre ville, protège vos trajets
+          et connecte votre cercle de confiance.
+        </p>
+      </div>
+
+      <div style={{ padding: '12px 24px 40px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button onClick={() => setStep(1)} style={btnMainStyle}>
+          Commencer &rarr;
+        </button>
+        <button onClick={handleComplete} style={btnGhostStyle}>
+          J&apos;ai déjà un compte
+        </button>
       </div>
     </div>
   );
 
-  // Step 1: Location
-  const Location = () => (
-    <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 80 }}>
-      <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 32 }}>
-        <div style={{ width: 140, height: 140, margin: '0 auto', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <MapPin size={56} color="#FFFFFF" strokeWidth={1} />
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 12 }}>Laisse-nous veiller sur toi</h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>On te montrera les infos de sécurité autour de toi.</p>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={requestLocation} style={btnPrimary}>Activer la localisation</button>
-        <button onClick={nextStep} style={btnSecondary}>Pas maintenant</button>
-      </div>
-    </div>
-  );
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 1 — OBJECTIFS (existing Goals)
+  // ════════════════════════════════════════════════════════════════════════
 
-  // Step 2: Goals
-  const Goals = () => (
-    <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 80 }}>
+  const Objectifs = () => (
+    <div style={stepContainer}>
       <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
       <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+          Étape 1 / {TOTAL_STEPS - 1}
+        </div>
         <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Qu&apos;est-ce qui compte pour toi ?</h1>
         <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Choisis ce qui te parle</p>
       </div>
@@ -178,7 +263,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
               display: 'flex', alignItems: 'center', gap: 16, width: '100%', padding: '16px 20px',
               borderRadius: 16, background: sel ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)',
               border: sel ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
-              cursor: 'pointer', textAlign: 'left',
+              cursor: 'pointer', textAlign: 'left' as const, fontFamily: 'inherit',
             }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={22} color="#FFFFFF" strokeWidth={1.5} />
@@ -189,60 +274,487 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
           );
         })}
       </div>
-      <button onClick={nextStep} style={{ ...btnPrimary, marginTop: 20, opacity: selectedGoals.length > 0 ? 1 : 0.5 }}>Continuer</button>
+      <button onClick={nextStep} style={{ ...btnMainStyle, marginTop: 20, opacity: selectedGoals.length > 0 ? 1 : 0.5 }}>Continuer &rarr;</button>
     </div>
   );
 
-  // Step 3: Profile
-  const Profile = () => (
-    <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 80 }}>
-      <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Parle-nous de toi</h1>
-        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Ces infos restent privées</p>
-      </div>
-      <label style={{ width: 100, height: 100, margin: '0 auto 32px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '2px dashed rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
-        {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Camera size={28} color="rgba(255,255,255,0.5)" />}
-        <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-      </label>
-      <input
-        type="text" placeholder="Prénom ou pseudo" value={firstName}
-        onChange={e => setFirstName(e.target.value)}
-        style={{ width: '100%', padding: '16px 20px', borderRadius: 12, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', fontSize: 16, color: '#FFFFFF', outline: 'none', marginBottom: 16 }}
-      />
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={nextStep} style={btnPrimary}>Continuer</button>
-        <button onClick={nextStep} style={btnSecondary}>Passer</button>
-      </div>
-    </div>
-  );
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 2 — AUTH (location permission)
+  // ════════════════════════════════════════════════════════════════════════
 
-  // Step 4: Notifications
-  const Notifications = () => (
-    <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24, paddingTop: 80 }}>
-      <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 32 }}>
-        <div style={{ width: 140, height: 140, margin: '0 auto', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Bell size={56} color="#FFFFFF" strokeWidth={1} />
+  const Auth = () => {
+    const requestLocation = () => {
+      navigator.geolocation.getCurrentPosition(() => nextStep(), () => nextStep());
+    };
+
+    return (
+      <div style={stepContainer}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 32 }}>
+          <div style={{ width: 140, height: 140, margin: '0 auto', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MapPin size={56} color="#FFFFFF" strokeWidth={1} />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 12 }}>Laisse-nous veiller sur toi</h1>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>On te montrera les infos de sécurité autour de toi.</p>
+          </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 12 }}>Reste informée</h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>Reçois des alertes quand quelque chose se passe près de toi.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button onClick={requestLocation} style={btnMainStyle}>Activer la localisation</button>
+          <button onClick={nextStep} style={btnGhostStyle}>Pas maintenant</button>
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={requestNotifications} style={btnPrimary}>Activer les notifications</button>
-        <button onClick={nextStep} style={btnSecondary}>Pas maintenant</button>
-      </div>
-    </div>
-  );
+    );
+  };
 
-  // Step 5: Paywall
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 3 — PRÉNOM + NOM + PSEUDO
+  // ════════════════════════════════════════════════════════════════════════
+
+  const PrenomStep = () => {
+    const canContinue = firstName.trim().length > 0;
+
+    return (
+      <div style={stepContainer}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+            Étape 3 / {TOTAL_STEPS - 1}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Comment vous appelle-t-on ?</h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Votre profil visible par votre cercle</p>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <input
+            placeholder="Prénom *"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Nom (optionnel)"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            style={inputStyle}
+          />
+          <div>
+            <input
+              placeholder="Pseudonyme  ex: 🌙 Sofia"
+              value={pseudo}
+              onChange={e => setPseudo(e.target.value)}
+              style={inputStyle}
+            />
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 4, paddingLeft: 4 }}>
+              Utilisé dans la communauté · Emojis autorisés
+            </div>
+          </div>
+        </div>
+
+        <button
+          disabled={!canContinue}
+          onClick={() => setStep(4)}
+          style={{
+            ...btnMainStyle,
+            marginTop: 20,
+            background: canContinue ? '#fff' : 'rgba(255,255,255,0.18)',
+            color: canContinue ? '#0A0F1E' : 'rgba(255,255,255,0.3)',
+            cursor: canContinue ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Continuer &rarr;
+        </button>
+      </div>
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 4 — PHOTO DE PROFIL
+  // ════════════════════════════════════════════════════════════════════════
+
+  const PhotoStep = () => {
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !userId) return;
+
+      // Preview
+      const reader = new FileReader();
+      reader.onload = ev => setAvatarPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+
+      // Upload
+      const ext = file.name.split('.').pop();
+      const path = `${userId}/avatar.${ext}`;
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (!error) {
+        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+        setAvatarUrl(data.publicUrl);
+      }
+    };
+
+    return (
+      <div style={stepContainer}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+            Étape 4 / {TOTAL_STEPS - 1}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Ajoutez une photo de profil</h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Visible par votre cercle uniquement</p>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: 110, height: 110, borderRadius: '50%',
+              border: '2px dashed rgba(255,255,255,0.22)',
+              background: avatarPreview ? 'transparent' : 'rgba(255,255,255,0.07)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', margin: '8px auto 10px', overflow: 'hidden',
+              transition: 'border-color .2s',
+            }}
+          >
+            {avatarPreview
+              ? <img src={avatarPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <Camera size={28} color="rgba(255,255,255,0.38)" />
+            }
+          </div>
+
+          <input
+            ref={fileInputRef} type="file" accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleUpload}
+          />
+
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.33)', textAlign: 'center', marginBottom: 14 }}>
+            Appuyez pour choisir une photo
+          </p>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 12, padding: '12px 14px',
+            fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.65,
+            width: '100%',
+          }}>
+            {'\u{1F512}'} JPG, PNG, HEIC · Max 5MB · Jamais partagée sans votre accord
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
+          <button onClick={() => setStep(5)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(5)} style={btnGhostStyle}>Passer cette étape</button>
+        </div>
+      </div>
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 5 — DATE DE NAISSANCE + VILLE (merged)
+  // ════════════════════════════════════════════════════════════════════════
+
+  const DateVilleStep = () => {
+    const minAge13 = new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    return (
+      <div style={{ ...stepContainer, overflowY: 'auto' }}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+            Étape 5 / {TOTAL_STEPS - 1}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Votre profil de sécurité</h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Pour personnaliser vos alertes et filtrer les contenus adaptés à votre situation</p>
+        </div>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 12, padding: '12px 14px',
+          fontSize: 11, color: 'rgba(255,255,255,0.3)',
+          lineHeight: 1.65, marginBottom: 20,
+        }}>
+          {'\u{1F512}'} Ces informations ne sont jamais vendues. Elles servent à adapter les contenus, protéger votre cercle (parents, enfants) et affiner les alertes autour de vous.
+        </div>
+
+        {/* Date de naissance */}
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+          Date de naissance
+        </div>
+        <input
+          type="date"
+          value={birthDate}
+          onChange={e => setBirthDate(e.target.value)}
+          max={minAge13}
+          style={{ ...inputStyle, colorScheme: 'dark', marginBottom: 20 }}
+        />
+
+        {/* Ville */}
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+          Votre ville
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 8 }}>
+          {CITIES.map(city => (
+            <button
+              key={city}
+              onClick={() => { setSelectedCity(city); setCustomCity(''); }}
+              style={{
+                padding: '7px 14px', borderRadius: 100,
+                border: '1px solid',
+                borderColor: selectedCity === city ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.14)',
+                background: selectedCity === city ? '#fff' : 'rgba(255,255,255,0.07)',
+                color: selectedCity === city ? '#0F172A' : '#fff',
+                fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                transition: 'all .15s', fontFamily: 'inherit',
+              }}
+            >
+              {city}
+            </button>
+          ))}
+        </div>
+        <input
+          placeholder="Autre ville..."
+          value={customCity}
+          onChange={e => { setCustomCity(e.target.value); setSelectedCity(''); }}
+          style={{ ...inputStyle, fontSize: 13, marginTop: 8 }}
+        />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto', paddingTop: 20 }}>
+          <button onClick={() => setStep(6)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(6)} style={btnGhostStyle}>Passer cette étape</button>
+        </div>
+      </div>
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 6 — CERCLE DE CONFIANCE
+  // ════════════════════════════════════════════════════════════════════════
+
+  const CercleStep = () => {
+    const addContact = async () => {
+      if (!contactName.trim() || !userId) return;
+      const newC: CircleContact = {
+        name: contactName.trim(),
+        relation: contactRelation.trim(),
+        phone: contactPhone.trim(),
+      };
+      setCircleContacts(p => [...p, newC]);
+      setContactName(''); setContactRelation(''); setContactPhone('');
+      setShowAddForm(false);
+
+      await supabase.from('trusted_contacts').insert({
+        user_id: userId,
+        contact_name: contactName.trim(),
+        contact_relation: contactRelation.trim() || null,
+      });
+    };
+
+    return (
+      <div style={{ ...stepContainer, overflowY: 'auto' }}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+            Étape 6 / {TOTAL_STEPS - 1}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>
+            Ajoutez votre <em style={{ fontStyle: 'italic', fontWeight: 300 }}>cercle de confiance.</em>
+          </h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Les personnes qui seront alertées si vous avez besoin d&apos;aide</p>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          {/* Contact cards */}
+          {circleContacts.map((c, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 16px', marginBottom: 10,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16,
+            }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: '50%',
+                background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length],
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 15, fontWeight: 700, color: '#fff', flexShrink: 0,
+              }}>
+                {c.name[0].toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>
+                  {c.relation}{c.phone ? ' · ' + c.phone : ''}
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(52,211,153,0.15)',
+                border: '1px solid rgba(52,211,153,0.25)',
+                color: '#34D399', fontSize: 11, fontWeight: 600,
+                padding: '4px 10px', borderRadius: 100,
+              }}>Ajouté</div>
+            </div>
+          ))}
+
+          {/* Add contact row */}
+          {circleContacts.length < 3 && (
+            <div
+              onClick={() => setShowAddForm(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px',
+                border: '1px dashed rgba(255,255,255,0.15)',
+                borderRadius: 16, cursor: 'pointer',
+                transition: 'background .2s',
+              }}
+            >
+              <div style={{
+                width: 38, height: 38, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, color: 'rgba(255,255,255,0.5)', flexShrink: 0,
+              }}>+</div>
+              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Ajouter un contact</div>
+            </div>
+          )}
+
+          {/* Add form */}
+          {showAddForm && (
+            <div style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 16, padding: 14, marginTop: 10,
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              <input placeholder="Prénom *" value={contactName} onChange={e => setContactName(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />
+              <input placeholder="Relation (Sœur, Ami…)" value={contactRelation} onChange={e => setContactRelation(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />
+              <input placeholder="Téléphone" type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} style={{ ...inputStyle, fontSize: 13 }} />
+              <button
+                disabled={contactName.trim() === ''}
+                onClick={addContact}
+                style={{
+                  padding: 11, borderRadius: 100,
+                  background: contactName.trim() ? '#fff' : 'rgba(255,255,255,0.18)',
+                  color: contactName.trim() ? '#0A0F1E' : 'rgba(255,255,255,0.3)',
+                  border: 'none', fontSize: 13, fontWeight: 600,
+                  cursor: contactName.trim() ? 'pointer' : 'not-allowed',
+                  fontFamily: 'inherit',
+                }}
+              >Ajouter</button>
+            </div>
+          )}
+
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', textAlign: 'center', marginTop: 14 }}>
+            3 contacts maximum en plan Gratuit · Illimité en Pro
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
+          <button onClick={() => setStep(7)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(7)} style={btnGhostStyle}>Je ferai ça plus tard</button>
+        </div>
+      </div>
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 7 — GROUPES
+  // ════════════════════════════════════════════════════════════════════════
+
+  const GroupesStep = () => {
+    const joinGroup = async (communityId: string) => {
+      if (joinedCommunities.includes(communityId)) return;
+      await supabase.from('community_members').insert({
+        community_id: communityId,
+        user_id: userId,
+      });
+      setJoinedCommunities(p => [...p, communityId]);
+    };
+
+    return (
+      <div style={{ ...stepContainer, overflowY: 'auto' }}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+            Étape 7 / {TOTAL_STEPS - 1}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Rejoignez votre communauté</h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{selectedCity || customCity || 'Paris'}</p>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          {communities.length > 0
+            ? communities.map(c => (
+              <div key={c.id} style={{
+                padding: '12px 14px', marginBottom: 8,
+                border: '1px solid',
+                borderColor: joinedCommunities.includes(c.id) ? 'rgba(59,180,193,0.38)' : 'rgba(255,255,255,0.07)',
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.05)',
+                display: 'flex', alignItems: 'center', gap: 12,
+                transition: 'border-color .2s',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.33)', marginTop: 2 }}>{c.member_count ?? 0} membres</div>
+                </div>
+                <button
+                  onClick={() => joinGroup(c.id)}
+                  style={{
+                    padding: '6px 13px', borderRadius: 100, border: 'none',
+                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'inherit', whiteSpace: 'nowrap',
+                    background: joinedCommunities.includes(c.id) ? '#34D399' : '#fff',
+                    color: '#0F172A', transition: 'all .2s',
+                  }}
+                >
+                  {joinedCommunities.includes(c.id) ? '\u2713 Rejoint' : 'Rejoindre'}
+                </button>
+              </div>
+            ))
+            : (
+              <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+                Pas encore de groupe pour {selectedCity || customCity || 'votre ville'}.
+              </div>
+            )
+          }
+
+          <button
+            onClick={() => setStep(8)}
+            style={{
+              width: '100%', padding: 13, borderRadius: 100,
+              background: 'transparent',
+              border: '1px solid rgba(59,180,193,0.4)',
+              color: '#3BB4C1', fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', marginTop: 12, fontFamily: 'inherit',
+            }}
+          >
+            + Créer mon propre groupe
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
+          <button onClick={() => setStep(8)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(8)} style={btnGhostStyle}>Passer cette étape</button>
+        </div>
+      </div>
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 8 — PAYWALL (existing)
+  // ════════════════════════════════════════════════════════════════════════
+
   const Paywall = () => (
     <PaywallScreen context="onboarding" onClose={nextStep} />
   );
 
-  // Step 6: Ready
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 9 — SUCCÈS / READY (existing)
+  // ════════════════════════════════════════════════════════════════════════
+
   const Ready = () => (
     <div style={{ background: gradient, minHeight: '100%', display: 'flex', flexDirection: 'column', padding: 24 }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
@@ -263,14 +775,18 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
           <span style={{ fontSize: 14, color: '#34D399' }}>Compte créé avec succès !</span>
         </div>
       </div>
-      <button onClick={handleComplete} disabled={isSubmitting} style={{ ...btnPrimary, background: '#22D3EE', opacity: isSubmitting ? 0.7 : 1 }}>
+      <button onClick={handleComplete} disabled={isSubmitting} style={{ ...btnMainStyle, background: '#22D3EE', opacity: isSubmitting ? 0.7 : 1 }}>
         {isSubmitting ? 'Chargement...' : 'Commencer'}
       </button>
     </div>
   );
 
-  const steps = [Welcome, Location, Goals, Profile, Notifications, Paywall, Ready];
-  const CurrentStep = steps[step];
+  // ════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ════════════════════════════════════════════════════════════════════════
+
+  const steps = [Welcome, Objectifs, Auth, PrenomStep, PhotoStep, DateVilleStep, CercleStep, GroupesStep, Paywall, Ready];
+  const CurrentStep = steps[step] ?? Ready;
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, overflow: 'hidden' }}>
@@ -284,7 +800,19 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
           }} />
         ))}
       </div>
-      <div style={{ height: '100%' }}><CurrentStep /></div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          style={{ height: '100%' }}
+        >
+          <CurrentStep />
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
