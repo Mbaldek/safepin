@@ -310,6 +310,20 @@ export type SafeSpaceVote = {
   created_at: string;
 };
 
+export type SavedPlace = {
+  id: string;
+  user_id: string;
+  label: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  icon: string;
+  category: 'home' | 'work' | 'cafe' | 'safe_space' | 'health' | 'sport' | 'other';
+  is_pinned: boolean;
+  created_at: string;
+  distance_km?: number; // computed client-side
+};
+
 export type PlaceNote = {
   id: string;
   user_id: string;

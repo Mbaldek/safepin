@@ -23,6 +23,7 @@ import { useTheme } from "@/stores/useTheme";
 import { useStore } from "@/stores/useStore";
 import { supabase } from "@/lib/supabase";
 import AutocompleteInput from "@/components/AutocompleteInput";
+import FavorisSheet from "@/components/trip/FavorisSheet";
 
 type Trip = {
   id: string;
@@ -1666,129 +1667,25 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
     </motion.div>
   );
 
-  // Render Favoris screen
-  const renderFavoris = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={spring}
-      style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px" }}
-    >
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => { setState("idle"); setFavAddMode(false); }}
-          style={{
-            width: 34, height: 34, borderRadius: "50%",
-            backgroundColor: colors.card[theme], border: "none",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", flexShrink: 0,
-          }}
-        >
-          <ChevronLeft size={20} color={colors.textPrimary[theme]} />
-        </motion.button>
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0, flex: 1 }}>Mes favoris</h1>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setFavAddMode(!favAddMode)}
-          style={{
-            width: 34, height: 34, borderRadius: "50%",
-            backgroundColor: favAddMode ? `${colors.cyan}20` : colors.card[theme],
-            border: "none",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", flexShrink: 0,
-          }}
-        >
-          {favAddMode ? <X size={18} color={colors.cyan} /> : <Plus size={18} color={colors.textPrimary[theme]} />}
-        </motion.button>
-      </div>
-
-      {/* Add place search */}
-      {favAddMode && (
-        <div style={{ marginBottom: 12 }}>
-          <AutocompleteInput
-            value=""
-            onChange={async (text, coords) => {
-              if (coords && text) {
-                await savePlace(text, coords[1], coords[0]);
-                setFavAddMode(false);
-              }
-            }}
-            placeholder="Rechercher un lieu à sauvegarder"
-            autoFocus
-          />
-        </div>
-      )}
-
-      {savedPlaces.length === 0 && !favAddMode ? (
-        <div style={{ ...cardStyle, padding: "24px 14px", textAlign: "center" }}>
-          <Star size={28} color={colors.textTertiary[theme]} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: colors.textTertiary[theme] }}>Aucun lieu enregistré</div>
-          <div style={{ fontSize: 12, color: colors.textTertiary[theme], marginTop: 4 }}>
-            Appuyez sur + pour ajouter un lieu favori
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {savedPlaces.map((place) => (
-            <div
-              key={place.id}
-              style={{
-                ...cardStyle,
-                padding: "12px 14px",
-                display: "flex", alignItems: "center", gap: 12,
-              }}
-            >
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  setDestination(place.label);
-                  setDestCoords([place.lng, place.lat]);
-                  setState("planifier");
-                  setFavAddMode(false);
-                }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  flex: 1, minWidth: 0, background: "none", border: "none",
-                  cursor: "pointer", textAlign: "left", padding: 0,
-                }}
-              >
-                <div style={{
-                  width: 40, height: 40, borderRadius: 10,
-                  backgroundColor: colors.elevated[theme],
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 20, flexShrink: 0,
-                }}>
-                  {place.icon || "⭐"}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.label}</div>
-                  <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>
-                    {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
-                  </div>
-                </div>
-                <ChevronRight size={16} color={colors.textTertiary[theme]} />
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={() => removePlace(place.id)}
-                style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  backgroundColor: `${colors.danger}10`,
-                  border: "none", display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", flexShrink: 0,
-                }}
-              >
-                <Trash2 size={14} color={colors.danger} />
-              </motion.button>
-            </div>
-          ))}
-        </div>
-      )}
-    </motion.div>
-  );
+  // Render Favoris screen — now uses dedicated FavorisSheet
+  const renderFavoris = () => {
+    const userLoc = useStore.getState().userLocation;
+    return (
+      <FavorisSheet
+        isOpen={state === "favoris"}
+        onClose={() => { setState("idle"); setFavAddMode(false); }}
+        onSelect={(place) => {
+          setDestination(place.label);
+          setDestCoords([place.lng, place.lat]);
+          setState("planifier");
+          setFavAddMode(false);
+        }}
+        userId={userId ?? ""}
+        userLat={userLoc?.lat ?? 48.8566}
+        userLng={userLoc?.lng ?? 2.3522}
+      />
+    );
+  };
 
   // Render History screen
   const renderHistory = () => (
@@ -1909,10 +1806,12 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
           {state === "planifier" && renderPlanifier()}
           {state === "active" && renderActive()}
           {state === "arrived" && renderArrived()}
-          {state === "favoris" && renderFavoris()}
           {state === "history" && renderHistory()}
         </AnimatePresence>
       </div>
+
+      {/* FavorisSheet rendered as overlay outside AnimatePresence */}
+      {renderFavoris()}
     </motion.div>
   );
 }
