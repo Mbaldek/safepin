@@ -20,6 +20,7 @@ import {
 import { useTheme } from "@/stores/useTheme";
 import { useStore } from "@/stores/useStore";
 import { supabase } from "@/lib/supabase";
+import AutocompleteInput from "@/components/AutocompleteInput";
 
 type Trip = {
   id: string;
@@ -35,6 +36,12 @@ type SavedPlace = {
   lat: number;
   lng: number;
   icon: string | null;
+};
+
+type CircleContact = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
 };
 
 // Brand colors
@@ -63,7 +70,7 @@ const noScrollbar: React.CSSProperties = {
   msOverflowStyle: "none",
 };
 
-type AppState = "idle" | "walk" | "planifier" | "active" | "arrived";
+type AppState = "idle" | "walk" | "planifier" | "active" | "arrived" | "favoris" | "history";
 type WalkSubState = "intro" | "notifying" | "responding" | "active";
 
 interface TripViewV2Props {
@@ -73,12 +80,24 @@ interface TripViewV2Props {
 export default function TripViewV2({ onClose }: TripViewV2Props) {
   const isDark = useTheme((s) => s.theme) === "dark";
   const userId = useStore((s) => s.userId);
+  const isSharingLocation = useStore((s) => s.isSharingLocation);
+  const setIsSharingLocation = useStore((s) => s.setIsSharingLocation);
   const [state, setState] = useState<AppState>("idle");
   const [walkSubState, setWalkSubState] = useState<WalkSubState>("intro");
   const [circleEnabled, setCircleEnabled] = useState(false);
   const [destination, setDestination] = useState("");
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+  const [tripId, setTripId] = useState<string | null>(null);
+  const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
+  const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
+  const [tripSummary, setTripSummary] = useState<{ duration_s: number; distance_m: number; score: number } | null>(null);
+  const [plannedDurationS, setPlannedDurationS] = useState(0);
+  const [distanceM, setDistanceM] = useState(0);
+  const [allTrips, setAllTrips] = useState<Trip[]>([]);
+  const [currentTime, setCurrentTime] = useState(() =>
+    new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+  );
 
   // Fetch recent trips + saved places
   useEffect(() => {
@@ -98,16 +117,12 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       .then(({ data }) => { if (data) setSavedPlaces(data); });
   }, [userId]);
   const [routeMode, setRouteMode] = useState<"safe" | "balanced" | "fast">("balanced");
-  const [elapsedSeconds, setElapsedSeconds] = useState(53);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [countdownSeconds, setCountdownSeconds] = useState(107);
-  const [contactStatuses, setContactStatuses] = useState({
-    marie: "waiting",
-    tom: "waiting",
-    alex: "waiting",
-    sara: "waiting",
-  });
+  const [contactStatuses, setContactStatuses] = useState<Record<string, string>>({});
 
   const theme = isDark ? "dark" : "light";
+  const CONTACT_COLORS = [colors.purple, colors.cyan, colors.gold, colors.success, "#60A5FA", "#F97316"];
 
   // Timer for active state
   useEffect(() => {
@@ -129,22 +144,69 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
     }
   }, [walkSubState]);
 
-  // Simulate contact responses
+  // Fetch circle contacts
   useEffect(() => {
-    if (walkSubState === "notifying") {
-      const timer1 = setTimeout(() => {
-        setContactStatuses((prev) => ({ ...prev, marie: "following" }));
-      }, 1500);
-      const timer2 = setTimeout(() => {
-        setContactStatuses((prev) => ({ ...prev, tom: "vocal" }));
-        setWalkSubState("responding");
-      }, 3000);
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
+    if (!userId) return;
+    (async () => {
+      const { data: contacts } = await supabase
+        .from("trusted_contacts")
+        .select("user_id, contact_id")
+        .or(`user_id.eq.${userId},contact_id.eq.${userId}`)
+        .eq("status", "accepted");
+      if (!contacts?.length) { setCircleContacts([]); return; }
+      const contactIds = contacts.map((c) =>
+        c.user_id === userId ? c.contact_id : c.user_id
+      );
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, first_name, last_name, avatar_url")
+        .in("id", contactIds);
+      if (profiles) {
+        setCircleContacts(
+          profiles.map((p) => ({
+            id: p.id,
+            name:
+              [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+              (p.display_name as string) ||
+              "Contact",
+            avatar_url: (p.avatar_url as string) || null,
+          }))
+        );
+      }
+    })();
+  }, [userId]);
+
+  // Update clock every minute
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCurrentTime(
+        new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+      );
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Simulate contact responses (using real circle contact IDs)
+  useEffect(() => {
+    if (walkSubState !== "notifying" || circleContacts.length === 0) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    if (circleContacts[0]) {
+      timers.push(
+        setTimeout(() => {
+          setContactStatuses((prev) => ({ ...prev, [circleContacts[0].id]: "following" }));
+        }, 1500)
+      );
     }
-  }, [walkSubState]);
+    if (circleContacts[1]) {
+      timers.push(
+        setTimeout(() => {
+          setContactStatuses((prev) => ({ ...prev, [circleContacts[1].id]: "vocal" }));
+          setWalkSubState("responding");
+        }, 3000)
+      );
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [walkSubState, circleContacts]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -158,29 +220,107 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleWalkCTA = () => {
+  // Geolocation helper
+  const getCurrentPosition = (): Promise<{ lat: number; lng: number }> =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("No geolocation"));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        reject,
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+
+  // Haversine distance (meters)
+  const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371000;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // End trip API call
+  const endTrip = async () => {
+    if (!tripId || !userId) return;
+    try {
+      const res = await fetch("/api/trips/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trip_id: tripId,
+          user_id: userId,
+          actual_duration_s: elapsedSeconds,
+          status: "completed" as const,
+        }),
+      });
+      const data = await res.json();
+      if (data.trip) {
+        setTripSummary({
+          duration_s: data.trip.actual_duration_s ?? elapsedSeconds,
+          distance_m: data.trip.distance_m ?? distanceM,
+          score: data.trip.danger_score ?? 0,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to end trip:", e);
+    }
+    setTripId(null);
+  };
+
+  const handleWalkCTA = async () => {
     if (walkSubState === "intro") {
       setWalkSubState("notifying");
       setCountdownSeconds(107);
-      setContactStatuses({
-        marie: "waiting",
-        tom: "waiting",
-        alex: "waiting",
-        sara: "waiting",
-      });
+      const initial: Record<string, string> = {};
+      circleContacts.forEach((c) => { initial[c.id] = "waiting"; });
+      setContactStatuses(initial);
     } else if (walkSubState === "notifying" || walkSubState === "responding") {
       setWalkSubState("active");
+      setElapsedSeconds(0);
+      if (userId) {
+        try {
+          const origin = await getCurrentPosition();
+          const toLabel = destination || "Marche accompagnée";
+          const dLat = destCoords ? destCoords[1] : origin.lat;
+          const dLng = destCoords ? destCoords[0] : origin.lng;
+          const dist = destCoords ? haversineDistance(origin.lat, origin.lng, dLat, dLng) : 0;
+          const estDuration = dist > 0 ? Math.round(dist / 1.39) : 1800;
+          setDistanceM(Math.round(dist));
+          setPlannedDurationS(estDuration);
+          const res = await fetch("/api/trips/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: userId,
+              from_label: "Ma position",
+              to_label: toLabel,
+              mode: "walk",
+              origin_lat: origin.lat,
+              origin_lng: origin.lng,
+              dest_lat: dLat,
+              dest_lng: dLng,
+              planned_duration_s: estDuration,
+              danger_score: 0,
+              distance_m: Math.round(dist),
+            }),
+          });
+          const data = await res.json();
+          if (data.trip_id) setTripId(data.trip_id);
+        } catch (e) {
+          console.error("Failed to start walk trip:", e);
+        }
+      }
     }
   };
 
   const resetWalk = () => {
     setWalkSubState("intro");
-    setContactStatuses({
-      marie: "waiting",
-      tom: "waiting",
-      alex: "waiting",
-      sara: "waiting",
-    });
+    const initial: Record<string, string> = {};
+    circleContacts.forEach((c) => { initial[c.id] = "waiting"; });
+    setContactStatuses(initial);
     setCountdownSeconds(107);
   };
 
@@ -232,7 +372,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>Mon trajet</h1>
-          <p style={{ fontSize: 13, color: colors.textTertiary[theme], margin: 0 }}>17:32 ☁️ 12°</p>
+          <p style={{ fontSize: 13, color: colors.textTertiary[theme], margin: 0 }}>{currentTime} ☁️</p>
         </div>
         <button
           onClick={onClose}
@@ -312,6 +452,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.97 }}
+          onClick={() => setState("favoris")}
           style={{
             ...cardStyle,
             padding: "14px",
@@ -390,7 +531,10 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         <span style={{ fontSize: 12, fontWeight: 600, color: colors.textTertiary[theme], letterSpacing: 0.5 }}>
           TRAJETS RÉCENTS
         </span>
-        <button style={{ fontSize: 13, color: colors.cyan, background: "none", border: "none", cursor: "pointer" }}>
+        <button
+          onClick={() => { setState("history"); if (!allTrips.length && userId) { supabase.from("trips").select("id, destination, duration_min, safety_score, created_at").eq("user_id", userId).order("created_at", { ascending: false }).then(({ data }) => { if (data) setAllTrips(data); }); } }}
+          style={{ fontSize: 13, color: colors.cyan, background: "none", border: "none", cursor: "pointer" }}
+        >
           Voir tout ›
         </button>
       </div>
@@ -614,23 +758,27 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
             </div>
 
             {/* Circle preview */}
-            <div
-              style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, justifyContent: "center", flexWrap: "wrap" }}
-            >
-              <span style={{ fontSize: 12, color: colors.textSecondary[theme] }}>Votre cercle (4) :</span>
-              <div style={{ display: "flex", marginLeft: -6 }}>
-                {[
-                  { name: "Marie", color: colors.purple },
-                  { name: "Tom", color: colors.cyan },
-                  { name: "Alex", color: colors.gold },
-                  { name: "Sara", color: colors.success },
-                ].map((c, i) => (
-                  <div key={i} style={{ marginLeft: i > 0 ? -8 : 0 }}>
-                    <Avatar name={c.name} color={c.color} size={30} />
-                  </div>
-                ))}
+            {circleContacts.length > 0 && (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, justifyContent: "center", flexWrap: "wrap" }}
+              >
+                <span style={{ fontSize: 12, color: colors.textSecondary[theme] }}>
+                  Votre cercle ({circleContacts.length}) :
+                </span>
+                <div style={{ display: "flex", marginLeft: -6 }}>
+                  {circleContacts.map((c, i) => (
+                    <div key={c.id} style={{ marginLeft: i > 0 ? -8 : 0 }}>
+                      <Avatar name={c.name} color={CONTACT_COLORS[i % CONTACT_COLORS.length]} size={30} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            {circleContacts.length === 0 && (
+              <p style={{ fontSize: 12, color: colors.textTertiary[theme], textAlign: "center", marginBottom: 14 }}>
+                Ajoutez des contacts à votre cercle pour utiliser cette fonctionnalité
+              </p>
+            )}
 
             {/* CTA */}
             <motion.button
@@ -758,23 +906,21 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
                 />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: colors.cyan }}>Room vocale active</div>
-                  <div style={{ fontSize: 11, color: colors.textSecondary[theme] }}>Tom vous écoute · Parlez librement</div>
+                  <div style={{ fontSize: 11, color: colors.textSecondary[theme] }}>
+                    {circleContacts.find((c) => contactStatuses[c.id] === "vocal")?.name || "Quelqu'un"} vous écoute · Parlez librement
+                  </div>
                 </div>
               </motion.div>
             )}
 
             {/* Contacts list */}
             <div style={{ ...cardStyle, borderRadius: 14, overflow: "hidden", marginBottom: 12 }}>
-              {[
-                { name: "Marie", color: colors.purple, key: "marie" },
-                { name: "Tom", color: colors.cyan, key: "tom" },
-                { name: "Alex", color: colors.gold, key: "alex" },
-                { name: "Sara", color: colors.success, key: "sara" },
-              ].map((contact, i, arr) => {
-                const status = contactStatuses[contact.key as keyof typeof contactStatuses];
+              {circleContacts.map((contact, i, arr) => {
+                const status = contactStatuses[contact.id] || "waiting";
+                const contactColor = CONTACT_COLORS[i % CONTACT_COLORS.length];
                 return (
                   <div
-                    key={i}
+                    key={contact.id}
                     style={{
                       padding: "12px 14px",
                       display: "flex",
@@ -784,7 +930,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
                     }}
                   >
                     <div style={{ position: "relative", flexShrink: 0 }}>
-                      <Avatar name={contact.name} color={contact.color} size={34} />
+                      <Avatar name={contact.name} color={contactColor} size={34} />
                       {status !== "waiting" && (
                         <motion.div
                           initial={{ scale: 0 }}
@@ -915,17 +1061,17 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
               Votre cercle vous accompagne
             </h2>
             <p style={{ fontSize: 13, color: colors.textSecondary[theme], margin: "0 0 20px" }}>
-              2 contacts actifs sur 4
+              {Object.values(contactStatuses).filter((s) => s !== "waiting").length} contacts actifs sur {circleContacts.length}
             </p>
 
             {/* Active contacts */}
             <div style={{ ...cardStyle, borderRadius: 14, overflow: "hidden", marginBottom: 20, textAlign: "left" }}>
-              {[
-                { name: "Marie", color: colors.purple, status: "following" },
-                { name: "Tom", color: colors.cyan, status: "vocal" },
-              ].map((contact, i, arr) => (
+              {circleContacts.filter((c) => contactStatuses[c.id] && contactStatuses[c.id] !== "waiting").map((contact, i, arr) => {
+                const status = contactStatuses[contact.id];
+                const contactColor = CONTACT_COLORS[circleContacts.indexOf(contact) % CONTACT_COLORS.length];
+                return (
                 <div
-                  key={i}
+                  key={contact.id}
                   style={{
                     padding: "12px 14px",
                     display: "flex",
@@ -935,7 +1081,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
                   }}
                 >
                   <div style={{ position: "relative", flexShrink: 0 }}>
-                    <Avatar name={contact.name} color={contact.color} size={34} />
+                    <Avatar name={contact.name} color={contactColor} size={34} />
                     <div
                       style={{
                         position: "absolute",
@@ -944,7 +1090,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
                         width: 10,
                         height: 10,
                         borderRadius: "50%",
-                        backgroundColor: contact.status === "following" ? colors.success : colors.cyan,
+                        backgroundColor: status === "following" ? colors.success : colors.cyan,
                         border: `2px solid ${colors.card[theme]}`,
                       }}
                     />
@@ -958,19 +1104,21 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
                       fontWeight: 500,
                       padding: "3px 8px",
                       borderRadius: 8,
-                      backgroundColor: contact.status === "following" ? `${colors.success}20` : `${colors.cyan}20`,
-                      color: contact.status === "following" ? colors.success : colors.cyan,
+                      backgroundColor: status === "following" ? `${colors.success}20` : `${colors.cyan}20`,
+                      color: status === "following" ? colors.success : colors.cyan,
                     }}
                   >
-                    {contact.status === "following" ? "● Suit" : "🎙 Vocal"}
+                    {status === "following" ? "● Suit" : "🎙 Vocal"}
                   </span>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Stop button */}
             <button
-              onClick={() => {
+              onClick={async () => {
+                await endTrip();
                 setState("idle");
                 resetWalk();
               }}
@@ -1035,63 +1183,54 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       </div>
 
       {/* Destination */}
-      <div
-        style={{
-          ...cardStyle,
-          padding: "12px 14px",
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          border: destination ? `1px solid ${colors.cyan}40` : undefined,
-          boxShadow: destination ? `0 0 0 3px ${colors.cyan}15` : undefined,
-        }}
-      >
-        <Search size={18} color={colors.textTertiary[theme]} style={{ flexShrink: 0 }} />
-        <input
-          type="text"
-          placeholder="Rechercher une destination"
+      <div style={{ marginBottom: 16 }}>
+        <AutocompleteInput
           value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-          style={{
-            flex: 1,
-            background: "none",
-            border: "none",
-            outline: "none",
-            fontSize: 14,
-            color: colors.textPrimary[theme],
-            minWidth: 0,
+          onChange={(text, coords) => {
+            setDestination(text);
+            setDestCoords(coords || null);
           }}
+          placeholder="Rechercher une destination"
+          localSections={savedPlaces.length > 0 ? [{
+            title: "Lieux favoris",
+            items: savedPlaces.map((p) => ({
+              label: p.label,
+              coords: [p.lng, p.lat] as [number, number],
+              icon: p.icon || "⭐",
+            })),
+          }] : undefined}
+          autoFocus
         />
       </div>
 
-      {/* Quick access */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-        {[
-          { emoji: "🏠", name: "Domicile", time: "12min" },
-          { emoji: "💼", name: "Bureau", time: "24min" },
-        ].map((place, i) => (
-          <motion.button
-            key={i}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setDestination(place.name)}
-            style={{
-              ...cardStyle,
-              padding: "12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontSize: 18 }}>{place.emoji}</span>
-            <div style={{ textAlign: "left", minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.name}</div>
-              <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>{place.time}</div>
-            </div>
-          </motion.button>
-        ))}
-      </div>
+      {/* Quick access — saved places */}
+      {savedPlaces.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+          {savedPlaces.slice(0, 4).map((place) => (
+            <motion.button
+              key={place.id}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                setDestination(place.label);
+                setDestCoords([place.lng, place.lat]);
+              }}
+              style={{
+                ...cardStyle,
+                padding: "12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{place.icon || "📍"}</span>
+              <div style={{ textAlign: "left", minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.label}</div>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      )}
 
       {/* Route mode */}
       <div style={{ marginBottom: 20 }}>
@@ -1134,10 +1273,43 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
 
       {/* CTA */}
       <motion.button
-        onClick={() => {
+        onClick={async () => {
           if (destination) {
             setState("active");
             setElapsedSeconds(0);
+            if (userId) {
+              try {
+                const origin = await getCurrentPosition();
+                const dLat = destCoords ? destCoords[1] : origin.lat;
+                const dLng = destCoords ? destCoords[0] : origin.lng;
+                const dist = destCoords ? haversineDistance(origin.lat, origin.lng, dLat, dLng) : 0;
+                const walkSpeed = routeMode === "fast" ? 1.6 : routeMode === "safe" ? 1.2 : 1.39;
+                const estDuration = dist > 0 ? Math.round(dist / walkSpeed) : 1800;
+                setDistanceM(Math.round(dist));
+                setPlannedDurationS(estDuration);
+                const res = await fetch("/api/trips/start", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    user_id: userId,
+                    from_label: "Ma position",
+                    to_label: destination,
+                    mode: "walk",
+                    origin_lat: origin.lat,
+                    origin_lng: origin.lng,
+                    dest_lat: dLat,
+                    dest_lng: dLng,
+                    planned_duration_s: estDuration,
+                    danger_score: 0,
+                    distance_m: Math.round(dist),
+                  }),
+                });
+                const data = await res.json();
+                if (data.trip_id) setTripId(data.trip_id);
+              } catch (e) {
+                console.error("Failed to start trip:", e);
+              }
+            }
           }
         }}
         whileHover={destination ? { scale: 1.01 } : {}}
@@ -1176,7 +1348,9 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
             <h2 style={{ fontSize: 17, fontWeight: 600, color: colors.textPrimary[theme], margin: "0 0 3px" }}>
               {destination || "Gare du Nord"}
             </h2>
-            <p style={{ fontSize: 12, color: colors.warning, margin: 0 }}>~18 min · 1.2 km restants</p>
+            <p style={{ fontSize: 12, color: colors.warning, margin: 0 }}>
+              ~{Math.max(0, Math.round((plannedDurationS - elapsedSeconds) / 60))} min · {(Math.max(0, distanceM * (1 - (plannedDurationS > 0 ? elapsedSeconds / plannedDurationS : 0))) / 1000).toFixed(1)} km restants
+            </p>
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary[theme], fontVariantNumeric: "tabular-nums" }}>
@@ -1190,7 +1364,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         <div style={{ height: 6, backgroundColor: colors.elevated[theme], borderRadius: 3, marginTop: 12, overflow: "hidden" }}>
           <motion.div
             initial={{ width: "0%" }}
-            animate={{ width: "35%" }}
+            animate={{ width: `${Math.min(100, plannedDurationS > 0 ? (elapsedSeconds / plannedDurationS) * 100 : 0)}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
             style={{
               height: "100%",
@@ -1203,31 +1377,23 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
 
       {/* Status chips */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-        {[
-          { label: "2 incidents", color: colors.warning },
-          { label: "3 proches", color: colors.purple },
-          { label: "Zone calme", color: colors.success },
-        ].map((chip, i) => (
-          <span
-            key={i}
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              padding: "5px 10px",
-              borderRadius: 16,
-              backgroundColor: `${chip.color}15`,
-              color: chip.color,
-            }}
-          >
-            {chip.label}
+        {circleContacts.length > 0 && (
+          <span style={{ fontSize: 11, fontWeight: 500, padding: "5px 10px", borderRadius: 16, backgroundColor: `${colors.purple}15`, color: colors.purple }}>
+            {circleContacts.length} proches
           </span>
-        ))}
+        )}
+        {isSharingLocation && (
+          <span style={{ fontSize: 11, fontWeight: 500, padding: "5px 10px", borderRadius: 16, backgroundColor: `${colors.success}15`, color: colors.success }}>
+            Position partagée
+          </span>
+        )}
       </div>
 
       {/* Action row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         <motion.button
           whileTap={{ scale: 0.97 }}
+          onClick={() => setIsSharingLocation(!isSharingLocation)}
           style={{
             ...elevatedStyle,
             padding: "12px",
@@ -1236,13 +1402,21 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
             justifyContent: "center",
             gap: 6,
             cursor: "pointer",
+            border: isSharingLocation ? `1px solid ${colors.success}40` : undefined,
+            backgroundColor: isSharingLocation ? `${colors.success}15` : colors.elevated[theme],
           }}
         >
-          <Share2 size={16} color={colors.textPrimary[theme]} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: colors.textPrimary[theme] }}>Partager</span>
+          <Share2 size={16} color={isSharingLocation ? colors.success : colors.textPrimary[theme]} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: isSharingLocation ? colors.success : colors.textPrimary[theme] }}>
+            {isSharingLocation ? "Partagé ✓" : "Partager"}
+          </span>
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.97 }}
+          onClick={() => {
+            // Trigger SOS — dispatch custom event for EmergencyButton
+            window.dispatchEvent(new CustomEvent("sos-trigger"));
+          }}
           style={{
             padding: "12px",
             borderRadius: 14,
@@ -1262,7 +1436,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
 
       {/* Hero CTA */}
       <motion.button
-        onClick={() => setState("arrived")}
+        onClick={async () => { await endTrip(); setState("arrived"); }}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
         style={{
@@ -1283,16 +1457,22 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       </motion.button>
 
       {/* Watchers */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-        <div style={{ display: "flex" }}>
-          {[colors.purple, colors.cyan, colors.gold].map((color, i) => (
-            <div key={i} style={{ marginLeft: i > 0 ? -8 : 0 }}>
-              <Avatar name={["M", "T", "A"][i]} color={color} size={26} />
-            </div>
-          ))}
+      {circleContacts.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex" }}>
+            {circleContacts.slice(0, 3).map((c, i) => (
+              <div key={c.id} style={{ marginLeft: i > 0 ? -8 : 0 }}>
+                <Avatar name={c.name} color={CONTACT_COLORS[i % CONTACT_COLORS.length]} size={26} />
+              </div>
+            ))}
+          </div>
+          <span style={{ fontSize: 11, color: colors.textTertiary[theme] }}>
+            {circleContacts.length <= 2
+              ? circleContacts.map((c) => c.name).join(" et ") + " vous suivent"
+              : `${circleContacts[0].name}, ${circleContacts[1].name} et ${circleContacts.length - 2} autre${circleContacts.length - 2 > 1 ? "s" : ""} vous suivent`}
+          </span>
         </div>
-        <span style={{ fontSize: 11, color: colors.textTertiary[theme] }}>Marie, Tom et 1 autre vous suivent</span>
-      </div>
+      )}
     </motion.div>
   );
 
@@ -1331,15 +1511,15 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         {destination || "Gare du Nord"}
       </p>
       <p style={{ fontSize: 12, color: colors.textTertiary[theme], margin: "0 0 24px" }}>
-        Trajet enregistré · 18 min · 1.2 km
+        Trajet enregistré · {Math.round((tripSummary?.duration_s ?? elapsedSeconds) / 60)} min · {((tripSummary?.distance_m ?? distanceM) / 1000).toFixed(1)} km
       </p>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, width: "100%", marginBottom: 24 }}>
         {[
-          { value: "18", unit: "min", delay: 0 },
-          { value: "1.2", unit: "km", delay: 0.05 },
-          { value: "6.8", unit: "score", delay: 0.1 },
+          { value: String(Math.round((tripSummary?.duration_s ?? elapsedSeconds) / 60)), unit: "min", delay: 0 },
+          { value: ((tripSummary?.distance_m ?? distanceM) / 1000).toFixed(1), unit: "km", delay: 0.05 },
+          { value: (tripSummary?.score ?? 0).toFixed(1), unit: "score", delay: 0.1 },
         ].map((stat, i) => (
           <motion.div
             key={i}
@@ -1363,6 +1543,10 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         onClick={() => {
           setState("idle");
           setDestination("");
+          setDestCoords(null);
+          setTripSummary(null);
+          setDistanceM(0);
+          setPlannedDurationS(0);
         }}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
@@ -1380,6 +1564,157 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       >
         Retour
       </motion.button>
+    </motion.div>
+  );
+
+  // Render Favoris screen
+  const renderFavoris = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={spring}
+      style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px" }}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setState("idle")}
+          style={{
+            width: 34, height: 34, borderRadius: "50%",
+            backgroundColor: colors.card[theme], border: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", flexShrink: 0,
+          }}
+        >
+          <ChevronLeft size={20} color={colors.textPrimary[theme]} />
+        </motion.button>
+        <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>Mes favoris</h1>
+      </div>
+
+      {savedPlaces.length === 0 ? (
+        <div style={{ ...cardStyle, padding: "24px 14px", textAlign: "center" }}>
+          <Star size={28} color={colors.textTertiary[theme]} style={{ marginBottom: 8 }} />
+          <div style={{ fontSize: 14, color: colors.textTertiary[theme] }}>Aucun lieu enregistré</div>
+          <div style={{ fontSize: 12, color: colors.textTertiary[theme], marginTop: 4 }}>
+            Sauvegardez des lieux depuis la carte pour y accéder rapidement
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {savedPlaces.map((place) => (
+            <motion.button
+              key={place.id}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setDestination(place.label);
+                setDestCoords([place.lng, place.lat]);
+                setState("planifier");
+              }}
+              style={{
+                ...cardStyle,
+                padding: "12px 14px",
+                display: "flex", alignItems: "center", gap: 12,
+                cursor: "pointer", textAlign: "left",
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                backgroundColor: colors.elevated[theme],
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 20,
+              }}>
+                {place.icon || "⭐"}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.label}</div>
+                <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>
+                  {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+                </div>
+              </div>
+              <ChevronRight size={16} color={colors.textTertiary[theme]} />
+            </motion.button>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+
+  // Render History screen
+  const renderHistory = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={spring}
+      style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px" }}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setState("idle")}
+          style={{
+            width: 34, height: 34, borderRadius: "50%",
+            backgroundColor: colors.card[theme], border: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", flexShrink: 0,
+          }}
+        >
+          <ChevronLeft size={20} color={colors.textPrimary[theme]} />
+        </motion.button>
+        <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>Tous les trajets</h1>
+      </div>
+
+      {(allTrips.length > 0 ? allTrips : recentTrips).length === 0 ? (
+        <div style={{ ...cardStyle, padding: "24px 14px", textAlign: "center" }}>
+          <div style={{ fontSize: 14, color: colors.textTertiary[theme] }}>Aucun trajet enregistré</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {(allTrips.length > 0 ? allTrips : recentTrips).map((trip) => {
+            const date = new Date(trip.created_at);
+            const dateLabel = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+            const durLabel = trip.duration_min ? `${trip.duration_min} min` : "";
+            return (
+              <div
+                key={trip.id}
+                style={{
+                  ...cardStyle,
+                  padding: "12px 14px",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  backgroundColor: colors.elevated[theme],
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20,
+                }}>
+                  {"\u{1F6B6}"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>
+                    {trip.destination || "Trajet"}
+                  </div>
+                  <div style={{ fontSize: 12, color: colors.textTertiary[theme] }}>
+                    {dateLabel}{durLabel ? ` · ${durLabel}` : ""}
+                  </div>
+                </div>
+                {trip.safety_score != null && (
+                  <span style={{
+                    backgroundColor: `${colors.cyan}20`, color: colors.cyan,
+                    fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: 8,
+                  }}>
+                    {Math.round(trip.safety_score)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 
@@ -1425,6 +1760,8 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
           {state === "planifier" && renderPlanifier()}
           {state === "active" && renderActive()}
           {state === "arrived" && renderArrived()}
+          {state === "favoris" && renderFavoris()}
+          {state === "history" && renderHistory()}
         </AnimatePresence>
       </div>
     </motion.div>
