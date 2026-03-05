@@ -1511,7 +1511,14 @@ function MapView({
         />
       ))}
 
-      <SafeSpaceDetailSheet space={selectedSafeSpace} onClose={handleSafeSheetClose} />
+      {selectedSafeSpace && (
+        <SafeSpaceDetailSheet
+          safeSpace={selectedSafeSpace}
+          userId={userId ?? ''}
+          isOpen={!!selectedSafeSpace}
+          onClose={handleSafeSheetClose}
+        />
+      )}
     </div>
   );
 }

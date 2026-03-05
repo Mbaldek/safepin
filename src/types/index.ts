@@ -291,6 +291,18 @@ export type SafeSpace = {
   partner_tier: 'basic' | 'premium' | null;
 };
 
+export type SafeSpaceMedia = {
+  id: string;
+  safe_space_id: string;
+  user_id: string;
+  type: 'photo' | 'video' | 'review';
+  media_url?: string;
+  caption?: string;
+  likes_count: number;
+  created_at: string;
+  profiles?: { name: string; avatar_url?: string };
+};
+
 export type SafeSpaceVote = {
   id: string;
   safe_space_id: string;

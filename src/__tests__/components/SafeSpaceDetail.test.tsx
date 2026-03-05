@@ -3,7 +3,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SafeSpaceDetailSheet from '@/components/SafeSpaceDetailSheet';
-import { useStore } from '@/stores/useStore';
 import type { SafeSpace } from '@/types';
 
 // The global setup (setup.ts) already mocks:
@@ -11,7 +10,7 @@ import type { SafeSpace } from '@/types';
 // - next-intl (useTranslations returns key as value)
 // - framer-motion (AnimatePresence passthrough, motion.div → real div)
 
-// Override the supabase mock to handle maybeSingle() used by this component
+// Override the supabase mock to handle the queries used by this component
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: () => ({
@@ -20,6 +19,9 @@ vi.mock('@/lib/supabase', () => ({
           eq: () => ({
             maybeSingle: () => Promise.resolve({ data: null, error: null }),
             single: () => Promise.resolve({ data: null, error: null }),
+          }),
+          order: () => ({
+            limit: () => Promise.resolve({ data: [], error: null }),
           }),
           maybeSingle: () => Promise.resolve({ data: null, error: null }),
           single: () => Promise.resolve({ data: null, error: null }),
@@ -34,6 +36,12 @@ vi.mock('@/lib/supabase', () => ({
       delete: () => ({ eq: () => ({ data: null, error: null }) }),
       upsert: () => ({ data: null, error: null }),
     }),
+    storage: {
+      from: () => ({
+        upload: () => Promise.resolve({ data: null, error: null }),
+        getPublicUrl: () => ({ data: { publicUrl: 'https://example.com/test.jpg' } }),
+      }),
+    },
     channel: () => ({
       on: () => ({ subscribe: () => {} }),
       subscribe: () => {},
@@ -84,6 +92,17 @@ function createMockSpace(overrides: Partial<SafeSpace> = {}): SafeSpace {
   };
 }
 
+function renderSheet(space: SafeSpace) {
+  return render(
+    <SafeSpaceDetailSheet
+      safeSpace={space}
+      userId="test-user-id"
+      isOpen={true}
+      onClose={vi.fn()}
+    />,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -91,145 +110,75 @@ function createMockSpace(overrides: Partial<SafeSpace> = {}): SafeSpace {
 describe('SafeSpaceDetailSheet', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useStore.setState({ userId: 'test-user-id' });
   });
 
-  it('renders nothing when space is null', () => {
-    const { container } = render(
-      <SafeSpaceDetailSheet space={null} onClose={vi.fn()} />,
-    );
-    // AnimatePresence renders children only when space is truthy
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('renders the space name when space is provided', () => {
-    const space = createMockSpace({ name: 'Safe Haven Cafe' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
+  it('renders the space name', () => {
+    renderSheet(createMockSpace({ name: 'Safe Haven Cafe' }));
     expect(screen.getByText('Safe Haven Cafe')).toBeInTheDocument();
   });
 
-  it('renders the space type as a translated key', () => {
-    const space = createMockSpace({ type: 'hospital' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    // useTranslations mock returns the key itself, so t('hospital') → 'hospital'
-    expect(screen.getByText(/hospital/)).toBeInTheDocument();
-  });
-
   it('renders the address when provided', () => {
-    const space = createMockSpace({ address: '42 Avenue des Champs-Elysees' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
+    renderSheet(createMockSpace({ address: '42 Avenue des Champs-Elysees' }));
     expect(screen.getByText('42 Avenue des Champs-Elysees')).toBeInTheDocument();
   });
 
-  it('does not render address section when address is null', () => {
-    const space = createMockSpace({ address: null });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
+  it('does not render address when address is null', () => {
+    renderSheet(createMockSpace({ address: null }));
     expect(screen.queryByText('42 Avenue des Champs-Elysees')).not.toBeInTheDocument();
   });
 
-  it('shows partner badge for partner spaces with basic tier', () => {
-    const space = createMockSpace({
-      is_partner: true,
-      partner_tier: 'basic',
-    });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Partner')).toBeInTheDocument();
-  });
-
   it('shows Premium Partner badge for premium tier', () => {
-    const space = createMockSpace({
-      is_partner: true,
-      partner_tier: 'premium',
-    });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Premium Partner')).toBeInTheDocument();
+    renderSheet(createMockSpace({ is_partner: true, partner_tier: 'premium' }));
+    expect(screen.getByText(/Premium Partner/)).toBeInTheDocument();
   });
 
-  it('does not show partner badge when is_partner is false', () => {
-    const space = createMockSpace({ is_partner: false, partner_tier: null });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.queryByText('Partner')).not.toBeInTheDocument();
-    expect(screen.queryByText('Premium Partner')).not.toBeInTheDocument();
+  it('shows Vérifié badge when verified', () => {
+    renderSheet(createMockSpace({ verified: true }));
+    expect(screen.getByText(/Vérifié/)).toBeInTheDocument();
   });
 
-  it('shows the upvote button', () => {
-    const space = createMockSpace({ upvotes: 5 });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText(/Upvote/)).toBeInTheDocument();
+  it('shows the upvote button with count', () => {
+    renderSheet(createMockSpace({ upvotes: 87 }));
+    expect(screen.getByText(/87 Upvote/)).toBeInTheDocument();
   });
 
-  it('displays upvote count when greater than 0', () => {
-    const space = createMockSpace({ upvotes: 87, phone: null });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText(/87/)).toBeInTheDocument();
+  it('shows the navigate button', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText(/S.y rendre maintenant/)).toBeInTheDocument();
   });
 
-  it('shows the "Get Directions" button', () => {
-    const space = createMockSpace();
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Plan Route')).toBeInTheDocument();
+  it('shows the share button', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText('Partager ce lieu')).toBeInTheDocument();
   });
 
-  it('has a dialog with proper aria attributes', () => {
-    const space = createMockSpace();
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-label', 'Safe space details');
+  it('shows the UGC section header', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText('Contenus de la communauté')).toBeInTheDocument();
   });
 
-  it('shows the Close button', () => {
-    const space = createMockSpace();
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Close')).toBeInTheDocument();
+  it('shows the add content button', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText('+ Ajouter')).toBeInTheDocument();
   });
 
-  it('shows close icon button with aria-label', () => {
-    const space = createMockSpace();
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByLabelText('Close')).toBeInTheDocument();
+  it('shows safety score section', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText('Score de sécurité')).toBeInTheDocument();
   });
 
-  it('renders phone number as a link when provided', () => {
-    const space = createMockSpace({ phone: '+33 1 00 00 00 00' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    const phoneLink = screen.getByText('+33 1 00 00 00 00');
-    expect(phoneLink).toBeInTheDocument();
-    expect(phoneLink.closest('a')).toHaveAttribute('href', 'tel:+33 1 00 00 00 00');
+  it('shows the close button', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText('✕')).toBeInTheDocument();
   });
 
-  it('renders description when provided', () => {
-    const space = createMockSpace({ description: 'A safe and welcoming place for everyone.' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('A safe and welcoming place for everyone.')).toBeInTheDocument();
+  it('renders Safe Space badge', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText(/Safe Space/)).toBeInTheDocument();
   });
 
-  it('renders website link when provided', () => {
-    const space = createMockSpace({ website: 'https://example.com' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Website')).toBeInTheDocument();
-  });
-
-  it('shows Verified badge for verified spaces', () => {
-    const space = createMockSpace({ verified: true });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Verified')).toBeInTheDocument();
-  });
-
-  it('shows Community badge for user-sourced spaces', () => {
-    const space = createMockSpace({ source: 'user' });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Community')).toBeInTheDocument();
-  });
-
-  it('shows contact name for partner spaces', () => {
-    const space = createMockSpace({
-      is_partner: true,
-      partner_tier: 'basic',
-      contact_name: 'Jean Dupont',
-    });
-    render(<SafeSpaceDetailSheet space={space} onClose={vi.fn()} />);
-    expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
+  it('shows Communauté tag', () => {
+    renderSheet(createMockSpace());
+    expect(screen.getByText(/Communauté/)).toBeInTheDocument();
   });
 });
