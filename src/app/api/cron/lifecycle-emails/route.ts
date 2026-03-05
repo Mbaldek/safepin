@@ -12,7 +12,11 @@ import {
   streakMilestoneEmail,
 } from '@/lib/email-templates';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error('RESEND_API_KEY is not set');
+  return new Resend(key);
+}
 const FROM = 'Breveil <onboarding@resend.dev>';
 
 type Results = { welcome: number; first_report: number; inactive: number; streak: number; errors: number };
@@ -25,7 +29,7 @@ async function sendAndLog(
   template: { subject: string; html: string },
 ): Promise<boolean> {
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: FROM,
       to: email,
       subject: template.subject,
