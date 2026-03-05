@@ -23,6 +23,14 @@ export function useOnboardingDone(
     return profile?.onboarding_completed === true;
   });
 
+  // Sync when profile loads asynchronously (e.g. returning user without localStorage)
+  useEffect(() => {
+    if (profile?.onboarding_completed && !done) {
+      localStorage.setItem(STORAGE_KEY, '1');
+      setDone(true);
+    }
+  }, [profile?.onboarding_completed, done]);
+
   const markDone = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, '1');
     setDone(true);

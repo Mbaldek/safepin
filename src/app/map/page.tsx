@@ -621,6 +621,13 @@ export default function MapPage() {
     return () => { supabase.removeChannel(liveChannel); };
   }, [setLiveSessions, addLiveSession, updateLiveSession]);
 
+  // ── Onboarding gate — redirect to /onboarding if not completed ────────────
+  useEffect(() => {
+    if (!loading && !onboardingDone && userId) {
+      router.replace('/onboarding');
+    }
+  }, [loading, onboardingDone, userId, router]);
+
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -637,13 +644,6 @@ export default function MapPage() {
       </div>
     );
   }
-
-  // ── Onboarding gate — redirect to /onboarding if not completed ────────────
-  useEffect(() => {
-    if (!onboardingDone && userId) {
-      router.replace('/onboarding');
-    }
-  }, [onboardingDone, userId, router]);
 
   if (!onboardingDone && userId) return null;
 
