@@ -99,6 +99,7 @@ export type Community = {
   is_private: boolean;
   owner_id: string;
   avatar_emoji: string;
+  avatar_url?: string | null;
   community_type: 'community' | 'group';
   parent_community_id: string | null;
   created_at: string;
@@ -762,3 +763,37 @@ export type MapboxSuggestion = {
   center: [number, number];
   place_type: string[];
 };
+
+// ── HASHTAGS ──────────────────────────────────────────────────────────────
+
+export type HashtagCategory = 'lieu' | 'safety' | 'libre'
+export type ContentType     = 'story' | 'post' | 'incident'
+
+export interface Hashtag {
+  id:          string
+  tag:         string
+  category:    HashtagCategory
+  display:     string
+  color?:      string
+  icon?:       string
+  uses_count:  number
+  created_at:  string
+}
+
+export interface ContentHashtag {
+  id:           string
+  hashtag_id:   string
+  content_type: ContentType
+  content_id:   string
+  user_id:      string
+  lat?:         number
+  lng?:         number
+  created_at:   string
+  hashtags?:    Hashtag
+}
+
+export interface HashtagFeedItem {
+  type:    ContentType
+  content: Record<string, unknown>
+  tags:    Hashtag[]
+}

@@ -222,9 +222,22 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: 18,
+                      overflow: "hidden",
                     }}
                   >
-                    {group.avatar_emoji || "👥"}
+                    {group.avatar_url ? (
+                      <img
+                        src={group.avatar_url}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      group.avatar_emoji || "👥"
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <h4
@@ -318,7 +331,21 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                     }}
                   >
                     <span style={{ fontSize: 18 }}>
-                      {group.avatar_emoji || "👥"}
+                      {group.avatar_url ? (
+                        <img
+                          src={group.avatar_url}
+                          alt=""
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            verticalAlign: "middle",
+                          }}
+                        />
+                      ) : (
+                        group.avatar_emoji || "👥"
+                      )}
                     </span>
                     <h4
                       style={{
