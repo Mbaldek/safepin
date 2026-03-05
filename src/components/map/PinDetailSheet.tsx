@@ -3,484 +3,875 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ChevronUp,
-  ChevronDown,
-  CheckCircle,
-  Flag,
-  ExternalLink,
-  ThumbsDown,
-  MessageCircle,
-  MapPin,
-  Users,
+  X, Check, CheckCircle2, MapPin, Users,
+  AlertTriangle, Wrench, Share2, ThumbsDown,
+  MessageCircle, MoreHorizontal, ClipboardCheck,
+  RefreshCw,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
+import { useStore } from '@/stores/useStore'
+import { supabase } from '@/lib/supabase'
+import { CATEGORY_DETAILS } from '@/types'
+import type { Pin } from '@/types'
+import { toast } from 'sonner'
+import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
 
-// ─── Theme palette ────────────────────────────────
-
-function getColors(isDark: boolean) {
-  return isDark
-    ? {
-        sheetBg: '#1A2540',
-        surfaceElevated: '#334155',
-        surfaceHighlight: '#243050',
-        textPrimary: '#FFFFFF',
-        textSecondary: '#94A3B8',
-        textTertiary: '#64748B',
-        borderSubtle: 'rgba(255,255,255,0.08)',
-        borderDefault: 'rgba(255,255,255,0.12)',
-        btnSecBg: '#334155',
-        btnSecColor: '#94A3B8',
-        btnSecBorder: 'rgba(255,255,255,0.08)',
-        descriptionBg: '#243050',
-        shadow: '0 -8px 32px rgba(0,0,0,0.4)',
-      }
-    : {
-        sheetBg: '#FFFFFF',
-        surfaceElevated: '#F1F5F9',
-        surfaceHighlight: '#F8FAFC',
-        textPrimary: '#0F172A',
-        textSecondary: '#475569',
-        textTertiary: '#94A3B8',
-        borderSubtle: 'rgba(15,23,42,0.06)',
-        borderDefault: 'rgba(15,23,42,0.10)',
-        btnSecBg: '#F1F5F9',
-        btnSecColor: '#475569',
-        btnSecBorder: 'rgba(15,23,42,0.08)',
-        descriptionBg: '#F8FAFC',
-        shadow: '0 -8px 32px rgba(0,0,0,0.08)',
-      }
+// ─── Brand tokens ────────────────────────────────
+const T = {
+  surfaceBase:     '#0F172A',
+  surfaceCard:     '#1E293B',
+  surfaceElevated: '#334155',
+  surfaceGlass:    'rgba(30,41,59,0.85)',
+  surfaceBaseL:     '#F8FAFC',
+  surfaceCardL:     '#FFFFFF',
+  surfaceElevatedL: '#FFFFFF',
+  textPrimary:   '#FFFFFF',   textPrimaryL:   '#0F172A',
+  textSecondary: '#94A3B8',   textSecondaryL: '#475569',
+  textTertiary:  '#64748B',   textTertiaryL:  '#94A3B8',
+  textInverse:   '#0F172A',   textInverseL:   '#FFFFFF',
+  gradientStart: '#3BB4C1',
+  accentGold:    '#F5C341',
+  accentCyan:    '#22D3EE',
+  semanticSuccess:      '#34D399',
+  semanticSuccessSoft:  'rgba(52,211,153,0.15)',
+  semanticWarning:      '#FBBF24',
+  semanticWarningSoft:  'rgba(251,191,36,0.12)',
+  semanticDanger:       '#EF4444',
+  semanticDangerSoft:   'rgba(239,68,68,0.12)',
+  semanticInfo:         '#60A5FA',
+  semanticInfoSoft:     'rgba(96,165,250,0.12)',
+  borderSubtle:  'rgba(255,255,255,0.08)',
+  borderDefault: 'rgba(255,255,255,0.12)',
+  borderStrong:  'rgba(255,255,255,0.20)',
+  borderSubtleL:  'rgba(15,23,42,0.06)',
+  borderDefaultL: 'rgba(15,23,42,0.10)',
+  borderStrongL:  'rgba(15,23,42,0.20)',
+  interactiveHover:  'rgba(255,255,255,0.05)',
+  interactiveActive: 'rgba(255,255,255,0.10)',
+  interactiveHoverL:  'rgba(15,23,42,0.04)',
+  interactiveActiveL: 'rgba(15,23,42,0.07)',
+  radiusMd: '12px', radiusLg: '16px', radiusXl: '24px',
+  radius2xl: '32px', radiusFull: '9999px',
+  shadowMd:   '0 4px 12px rgba(0,0,0,0.25)',
+  shadowLg:   '0 8px 32px rgba(0,0,0,0.40)',
+  easeOut:    'cubic-bezier(0.16,1,0.3,1)',
 }
 
-const FIXED = {
-  accentCyan: '#3BB4C1',
-  accentCyanSoft: 'rgba(59,180,193,0.12)',
-  accentCyanBorder: 'rgba(59,180,193,0.25)',
-  semanticSuccess: '#34D399',
-  semanticSuccessSoft: 'rgba(52,211,153,0.12)',
-  semanticDanger: '#EF4444',
+// ─── Category config ─────────────────────────────
+const CAT: Record<string, {
+  color: string
+  colorSoft: string
+  colorBorder: string
+  label: string
+  Icon: LucideIcon
+  gradientEnd: string
+}> = {
+  urgent: {
+    color: T.semanticDanger, colorSoft: T.semanticDangerSoft,
+    colorBorder: 'rgba(239,68,68,0.25)', label: 'Urgent',
+    Icon: Users, gradientEnd: 'rgba(239,68,68,0)',
+  },
+  warning: {
+    color: T.semanticWarning, colorSoft: T.semanticWarningSoft,
+    colorBorder: 'rgba(251,191,36,0.25)', label: 'Vigilance',
+    Icon: AlertTriangle, gradientEnd: 'rgba(251,191,36,0)',
+  },
+  infra: {
+    color: T.semanticInfo, colorSoft: T.semanticInfoSoft,
+    colorBorder: 'rgba(96,165,250,0.25)', label: 'Infrastructure',
+    Icon: Wrench, gradientEnd: 'rgba(96,165,250,0)',
+  },
+  positive: {
+    color: T.semanticSuccess, colorSoft: T.semanticSuccessSoft,
+    colorBorder: 'rgba(52,211,153,0.25)', label: 'Positif',
+    Icon: CheckCircle2, gradientEnd: 'rgba(52,211,153,0)',
+  },
 }
 
-// ─── Constants ────────────────────────────────────
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  assault: '🚨', harassment: '🚫', theft: '👜',
-  following: '👤', suspect: '👁️', group: '👥',
-  unsafe: '⚠️', lighting: '💡', blocked: '🚧',
-  closed: '🚷', safe: '💚', help: '🙋', presence: '👮',
+// ─── Helpers ─────────────────────────────────────
+function getCategoryGroup(category: string): string {
+  return CATEGORY_DETAILS[category]?.group ?? 'warning'
 }
-
-const CATEGORY_LABEL: Record<string, string> = {
-  assault: 'Agression', harassment: 'Harcèlement', theft: 'Vol',
-  following: 'Filature', suspect: 'Suspect', group: 'Groupe',
-  unsafe: 'Zone dangereuse', lighting: 'Éclairage', blocked: 'Bloqué',
-  closed: 'Fermé', safe: 'Zone sûre', help: "Besoin d'aide", presence: 'Présence',
-}
-
-// ─── Helper ───────────────────────────────────────
 
 function getTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMins / 60)
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffMins < 1) return "à l'instant"
-  if (diffMins < 60) return `il y a ${diffMins}min`
-  if (diffHours < 24) return `il y a ${diffHours}h`
-  return `il y a ${diffDays}j`
+  const diffMs = Date.now() - new Date(dateString).getTime()
+  const mins = Math.floor(diffMs / 60000)
+  const hrs = Math.floor(mins / 60)
+  const days = Math.floor(hrs / 24)
+  if (mins < 1) return "À l'instant"
+  if (mins < 60) return `Il y a ${mins}min`
+  if (hrs < 24) return `Il y a ${hrs}h`
+  if (days === 1) return 'Hier'
+  return `Il y a ${days}j`
 }
 
-// ─── Types ────────────────────────────────────────
+const AVATAR_COLORS = ['#3BB4C1', '#7C3AED', '#DC2626', '#16A34A', '#D97706', '#0891B2']
+const avatarColor = (name: string) =>
+  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 
+function calcDist(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+const THRESHOLD = 5
+
+function getReliability(count: number) {
+  if (count >= 20) return { label: 'Très fiable', color: T.semanticSuccess }
+  if (count >= 10) return { label: 'Fiable', color: T.semanticSuccess }
+  if (count >= 5)  return { label: 'En cours', color: T.semanticWarning }
+  return { label: 'Non vérifié', color: T.textTertiary }
+}
+
+// ─── Props ───────────────────────────────────────
 interface PinDetailSheetProps {
-  pin: {
-    id: string
-    category: string
-    confirmations?: number
-    created_at: string
-    is_transport?: boolean
-    transport_type?: 'metro' | 'bus' | 'tram' | 'rer'
-    transport_line?: string
-    address?: string
-    description?: string
-    media_urls?: string[] | null
-    [key: string]: unknown
-  } | null
+  pin: Pin | null
   isOpen: boolean
   onClose: () => void
-  onConfirm: (pinId: string) => void
-  onResolved: (pinId: string) => void
-  onFalse: (pinId: string) => void
   onContact: (pinId: string) => void
+  userId: string
+  userLat: number
+  userLng: number
+  onNavigateTo?: (lat: number, lng: number, name: string) => void
 }
 
-// ─── Component ────────────────────────────────────
-
+// ─── Component ───────────────────────────────────
 function PinDetailSheet({
   pin,
   isOpen,
   onClose,
-  onConfirm,
-  onResolved,
-  onFalse,
   onContact,
+  userId,
+  userLat,
+  userLng,
+  onNavigateTo,
 }: PinDetailSheetProps) {
   const isDark = useTheme((s) => s.theme) === 'dark'
-  const C = getColors(isDark)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const d = isDark
+  const { updatePin, pins, setSelectedPin, setActiveSheet } = useStore()
+
+  const [confirmCount, setConfirmCount] = useState(0)
+  const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
+  const [isResolved, setIsResolved] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [recentConfirmers, setRecentConfirmers] = useState<{ name: string }[]>([])
+  const [nearbyPins, setNearbyPins] = useState<Pin[]>([])
+  const [loadingNearby, setLoadingNearby] = useState(true)
+  const [resolving, setResolving] = useState(false)
+  const [showFalseReportConfirm, setShowFalseReportConfirm] = useState(false)
 
   useEffect(() => {
-    setIsExpanded(false)
-  }, [pin?.id])
+    if (!pin) return
+    setConfirmCount(pin.confirmations ?? 0)
+    setIsResolved(!!pin.resolved_at)
+    setAlreadyConfirmed(false)
+    setShowFalseReportConfirm(false)
 
-  const transportLabel = pin?.is_transport && pin?.transport_type
-    ? `${pin.transport_type.charAt(0).toUpperCase() + pin.transport_type.slice(1)} L${pin.transport_line}`
-    : null
+    const load = async () => {
+      // Check if user already confirmed
+      if (userId) {
+        const { data: ev } = await supabase
+          .from('pin_evidence')
+          .select('id')
+          .eq('pin_id', pin.id)
+          .eq('user_id', userId)
+          .eq('activity', 'confirmation')
+          .maybeSingle()
+        if (ev) setAlreadyConfirmed(true)
+      }
 
-  const subtitle = pin
-    ? transportLabel
-      ? `${transportLabel} · ${getTimeAgo(pin.created_at)}`
-      : getTimeAgo(pin.created_at)
-    : ''
+      // Fetch recent confirmers
+      const { data: confs } = await supabase
+        .from('pin_evidence')
+        .select('user_id, profiles:user_id(name)')
+        .eq('pin_id', pin.id)
+        .eq('activity', 'confirmation')
+        .order('created_at', { ascending: false })
+        .limit(4)
+      if (confs) {
+        setRecentConfirmers(
+          confs.map((c: Record<string, unknown>) => ({
+            name: (c.profiles as { name?: string } | null)?.name ?? '?',
+          }))
+        )
+      }
 
-  const confirmCount = pin?.confirmations ?? 0
+      // Fetch nearby pins (client-side distance filter)
+      setLoadingNearby(true)
+      const { data: nearby } = await supabase
+        .from('pins')
+        .select('*')
+        .neq('id', pin.id)
+        .is('resolved_at', null)
+        .is('hidden_at', null)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (nearby) {
+        const filtered = (nearby as Pin[])
+          .filter((p) => calcDist(pin.lat, pin.lng, p.lat, p.lng) < 0.5)
+          .slice(0, 3)
+        setNearbyPins(filtered)
+      }
+      setLoadingNearby(false)
+    }
+    load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin?.id, userId])
+
+  // ─── Handlers ──────────────────────────────────
+  const handleResolve = async () => {
+    if (!pin || !userId) return
+    setResolving(true)
+    if (!isResolved) {
+      const { data, error } = await supabase.rpc('resolve_pin', { p_pin_id: pin.id })
+      if (error) { toast.error('Erreur'); setResolving(false); return }
+      if (data) updatePin(data)
+      setIsResolved(true)
+      toast.success('Marqué comme résolu')
+    } else {
+      const { error } = await supabase
+        .from('pins')
+        .update({ resolved_at: null })
+        .eq('id', pin.id)
+      if (error) { toast.error('Erreur'); setResolving(false); return }
+      updatePin({ ...pin, resolved_at: null })
+      setIsResolved(false)
+      toast.success('Rouvert')
+    }
+    setResolving(false)
+  }
+
+  const handleFalseReport = async () => {
+    if (!pin || !userId) return
+    const { data, error } = await supabase.rpc('flag_pin', { p_pin_id: pin.id, p_reason: 'false_report' })
+    if (error) { toast.error('Erreur'); return }
+    if (data) updatePin(data)
+    toast('Signalement envoyé')
+    setShowFalseReportConfirm(false)
+  }
+
+  const handleShare = async () => {
+    if (!pin) return
+    const catDetails = CATEGORY_DETAILS[pin.category]
+    const text = `Incident signalé sur Breveil : ${catDetails?.label ?? pin.category} — ${pin.address ?? ''}`
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Breveil', text, url: window.location.href }) } catch { /* */ }
+    } else {
+      await navigator.clipboard.writeText(text)
+      toast.success('Lien copié')
+    }
+  }
+
+  const handleNearbyTap = (p: Pin) => {
+    setSelectedPin(p)
+    setActiveSheet('detail')
+  }
+
+  // ─── Derived ───────────────────────────────────
+  if (!pin) return null
+
+  const group = getCategoryGroup(pin.category)
+  const cat = CAT[group] ?? CAT.warning
+  const catDetails = CATEGORY_DETAILS[pin.category]
+  const CatIcon = cat.Icon
+  const reliability = getReliability(confirmCount)
+  const progressPct = Math.min(100, Math.round((confirmCount / THRESHOLD) * 100))
+  const progressColor = confirmCount >= THRESHOLD
+    ? `linear-gradient(90deg,${T.semanticSuccess},${T.accentCyan})`
+    : `linear-gradient(90deg,${T.semanticWarning},#F59E0B)`
 
   return (
-    <AnimatePresence>
-      {isOpen && pin && (
-        <motion.div
-          key="pin-detail-sheet"
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 200,
-            background: C.sheetBg,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            borderTop: `1px solid ${C.borderSubtle}`,
-            boxShadow: C.shadow,
-          }}
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={0.15}
-          onDragEnd={(_, info) => {
-            if (info.offset.y > 80) onClose()
-          }}
-        >
-          {/* Handle */}
-          <div
+    <>
+      <AnimatePresence>
+        {isOpen && pin && (
+          <motion.div
+            key="pin-detail-sheet"
             style={{
-              width: 36,
-              height: 4,
-              borderRadius: 2,
-              background: C.borderDefault,
-              margin: '12px auto 8px',
-              cursor: 'pointer',
+              position: 'fixed',
+              bottom: 70,
+              left: 0,
+              right: 0,
+              zIndex: 200,
+              background: d ? T.surfaceElevated : '#FFFFFF',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+              borderBottom: 'none',
+              boxShadow: T.shadowLg,
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: 'calc(100vh - 70px - 100px)',
             }}
-            onClick={() => setIsExpanded((v) => !v)}
-          />
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            {/* ① HANDLE */}
+            <div style={{
+              width: 36, height: 4,
+              background: d ? T.borderStrong : 'rgba(15,23,42,0.18)',
+              borderRadius: T.radiusFull,
+              margin: '12px auto 0',
+              flexShrink: 0,
+            }} />
 
-          {/* Collapsed content — always visible */}
-          <div style={{ padding: '0 20px 16px' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              {/* Left: emoji + label */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 26 }}>{CATEGORY_EMOJI[pin.category]}</span>
-                <div>
-                  <div style={{ fontSize: 17, fontWeight: 600, color: C.textPrimary }}>
-                    {CATEGORY_LABEL[pin.category]}
+            {/* ② ACCENT BAR */}
+            <div style={{
+              height: 3, flexShrink: 0, width: '100%',
+              background: `linear-gradient(90deg,${cat.color},${cat.gradientEnd})`,
+            }} />
+
+            {/* ③ SCROLL AREA */}
+            <div style={{
+              flex: 1, overflowY: 'auto',
+              scrollbarWidth: 'none',
+            }}>
+
+              {/* ── HEADER ────────────────────────── */}
+              <div style={{
+                padding: '14px 18px 12px',
+                borderBottom: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  {/* Icon wrap */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 13,
+                    background: cat.colorSoft,
+                    border: `1px solid ${cat.colorBorder}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <CatIcon size={22} color={cat.color} strokeWidth={1.5} />
                   </div>
-                  <div style={{ fontSize: 13, color: C.textSecondary }}>
-                    {subtitle}
+
+                  {/* Body */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 19, fontWeight: 600,
+                      color: d ? T.textPrimary : T.textPrimaryL,
+                      lineHeight: 1.2, marginBottom: 4,
+                    }}>
+                      {catDetails?.label ?? pin.category}
+                    </div>
+                    <div style={{
+                      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
+                    }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        fontSize: 11, color: d ? T.textSecondary : T.textSecondaryL,
+                      }}>
+                        <MapPin size={10} color={d ? T.textTertiary : T.textTertiaryL} strokeWidth={1.5} />
+                        {pin.address ?? 'Position signalée'}
+                      </span>
+                      <span style={{ width: 3, height: 3, borderRadius: '50%', background: d ? T.textTertiary : T.textTertiaryL }} />
+                      <span style={{ fontSize: 11, color: d ? T.textSecondary : T.textSecondaryL }}>
+                        {getTimeAgo(pin.created_at)}
+                      </span>
+                      <span style={{ width: 3, height: 3, borderRadius: '50%', background: d ? T.textTertiary : T.textTertiaryL }} />
+                      <span style={{
+                        background: cat.colorSoft,
+                        border: `1px solid ${cat.colorBorder}`,
+                        color: cat.color,
+                        fontSize: 9, fontWeight: 700,
+                        padding: '2px 9px', borderRadius: T.radiusFull,
+                      }}>
+                        {cat.label}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Close btn */}
+                  <button onClick={onClose} style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: d ? T.interactiveHover : T.interactiveHoverL,
+                    border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}>
+                    <X size={12} color={d ? T.textTertiary : T.textTertiaryL} strokeWidth={2.5} />
+                  </button>
                 </div>
               </div>
 
-              {/* Right: chevron */}
-              <button
-                onClick={() => setIsExpanded((v) => !v)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                {isExpanded
-                  ? <ChevronDown size={20} color={C.textTertiary} />
-                  : <ChevronUp size={20} color={C.textTertiary} />}
-              </button>
-            </div>
-          </div>
+              {/* ── CONFIRMATION STATUS ────────────── */}
+              <div style={{
+                padding: '10px 18px',
+                borderBottom: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+              }}>
+                {/* Progress bar row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <div style={{
+                    flex: 1, height: 5,
+                    background: d ? T.borderSubtle : T.borderSubtleL,
+                    borderRadius: 3, overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      width: `${progressPct}%`, height: '100%',
+                      background: progressColor,
+                      borderRadius: 3,
+                      transition: 'width 800ms cubic-bezier(0.16,1,0.3,1)',
+                    }} />
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    color: confirmCount >= THRESHOLD ? T.semanticSuccess : T.semanticWarning,
+                  }}>
+                    {confirmCount} confirmation{confirmCount > 1 ? 's' : ''}
+                  </span>
+                </div>
 
-          {/* Confirmation bar — always visible */}
-          <div
-            style={{
-              margin: '0 16px 16px',
-              background: FIXED.accentCyanSoft,
-              border: `1px solid ${FIXED.accentCyanBorder}`,
-              borderRadius: 14,
-              padding: '12px 16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Users size={16} color={FIXED.accentCyan} />
-              <span style={{ fontSize: 14, fontWeight: 500, color: FIXED.accentCyan }}>
-                {confirmCount} confirmation{confirmCount > 1 ? 's' : ''}
-              </span>
+                {/* Sub text */}
+                <div style={{ fontSize: 11, color: d ? T.textTertiary : T.textTertiaryL, marginBottom: 6 }}>
+                  {confirmCount < THRESHOLD ? (
+                    `Seuil de fiabilité : ${THRESHOLD} confirmations`
+                  ) : (
+                    <>
+                      <span style={{ color: T.semanticSuccess, fontWeight: 600 }}>Incident fiable</span>
+                      {' · Validé par la communauté'}
+                    </>
+                  )}
+                </div>
+
+                {/* Avatars row */}
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {recentConfirmers.slice(0, 4).map((c, i) => (
+                      <div key={i} style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: avatarColor(c.name),
+                        border: `1.5px solid ${d ? T.surfaceElevated : '#FFFFFF'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 7, fontWeight: 700, color: '#fff',
+                        marginLeft: i > 0 ? -7 : 0,
+                        position: 'relative', zIndex: 4 - i,
+                      }}>
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                    ))}
+                    {confirmCount > 4 && (
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: d ? T.interactiveHover : T.interactiveHoverL,
+                        border: `1.5px solid ${d ? T.surfaceElevated : '#FFFFFF'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 7, color: d ? T.textTertiary : T.textTertiaryL,
+                        marginLeft: -7,
+                      }}>
+                        +{confirmCount - 4}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: 11, color: d ? T.textSecondary : T.textSecondaryL,
+                    marginLeft: 8,
+                  }}>
+                    {recentConfirmers[0] ? (
+                      <>
+                        <strong style={{ color: d ? T.textPrimary : T.textPrimaryL }}>
+                          {recentConfirmers[0].name}
+                        </strong>
+                        {confirmCount > 1 ? ` et ${confirmCount - 1} autre${confirmCount > 2 ? 's' : ''} ont confirmé` : ' a confirmé'}
+                      </>
+                    ) : (
+                      'Sois le premier à confirmer'
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* ── CTA ZONE ──────────────────────── */}
+              <div style={{
+                padding: '12px 18px 10px',
+                borderBottom: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+              }}>
+                {!alreadyConfirmed && !isResolved && (
+                  <button
+                    onClick={() => setShowConfirmModal(true)}
+                    style={{
+                      background: d ? '#FFFFFF' : '#0F172A',
+                      color: d ? '#0F172A' : '#FFFFFF',
+                      borderRadius: 32, padding: '15px 20px',
+                      fontSize: 15, fontWeight: 600,
+                      border: 'none', width: '100%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = T.shadowMd
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  >
+                    <Check size={15} strokeWidth={2.5} />
+                    {"J'ai vu cet incident · Confirmer"}
+                  </button>
+                )}
+                {alreadyConfirmed && !isResolved && (
+                  <div style={{
+                    background: T.semanticSuccessSoft,
+                    border: '1px solid rgba(52,211,153,0.25)',
+                    color: T.semanticSuccess,
+                    borderRadius: 32, padding: '15px 20px',
+                    fontSize: 15, fontWeight: 600, width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}>
+                    <Check size={15} strokeWidth={2.5} />
+                    Tu as confirmé cet incident
+                  </div>
+                )}
+                {isResolved && (
+                  <div style={{
+                    background: T.semanticSuccessSoft,
+                    border: '1px solid rgba(52,211,153,0.22)',
+                    color: T.semanticSuccess,
+                    borderRadius: 32, padding: '15px 20px',
+                    fontSize: 15, fontWeight: 600, width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}>
+                    <CheckCircle2 size={15} strokeWidth={1.5} />
+                    Incident résolu
+                  </div>
+                )}
+              </div>
+
+              {/* ── SECONDARY ACTIONS GRID ─────────── */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                padding: '10px 18px',
+                borderBottom: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+              }}>
+                {/* Resolve / Reopen */}
+                <button
+                  onClick={handleResolve}
+                  disabled={resolving}
+                  style={{
+                    background: !isResolved
+                      ? (d ? T.semanticSuccessSoft : 'rgba(52,211,153,0.07)')
+                      : (d ? T.interactiveHover : T.interactiveHoverL),
+                    border: `1px solid ${!isResolved ? 'rgba(52,211,153,0.22)' : d ? T.borderSubtle : T.borderSubtleL}`,
+                    color: !isResolved ? T.semanticSuccess : d ? T.textTertiary : T.textTertiaryL,
+                    padding: '11px 14px', borderRadius: 12,
+                    fontSize: 12, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: resolving ? 'not-allowed' : 'pointer',
+                    opacity: resolving ? 0.5 : 1,
+                    transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {!isResolved ? (
+                    <><ClipboardCheck size={14} strokeWidth={1.5} /> Marquer résolu</>
+                  ) : (
+                    <><RefreshCw size={14} strokeWidth={1.5} /> Rouvrir</>
+                  )}
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={handleShare}
+                  style={{
+                    background: d ? 'rgba(59,180,193,0.07)' : 'rgba(42,157,170,0.07)',
+                    border: `1px solid ${d ? 'rgba(59,180,193,0.20)' : 'rgba(42,157,170,0.18)'}`,
+                    color: T.gradientStart,
+                    padding: '11px 14px', borderRadius: 12,
+                    fontSize: 12, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: 'pointer',
+                    transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <Share2 size={14} strokeWidth={1.5} /> Partager
+                </button>
+              </div>
+
+              {/* ── TERTIARY ROW ──────────────────── */}
+              <div style={{ display: 'flex', gap: 8, padding: '0 18px 10px', marginTop: 10 }}>
+                {/* False report */}
+                <button
+                  onClick={() => setShowFalseReportConfirm(true)}
+                  style={{
+                    flex: 1,
+                    background: d ? T.interactiveHover : 'rgba(15,23,42,0.03)',
+                    border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                    color: d ? T.textTertiary : T.textTertiaryL,
+                    borderRadius: 12, padding: 9,
+                    fontSize: 11, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: 'pointer',
+                    transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <ThumbsDown size={13} strokeWidth={1.5} /> Signaler faux
+                </button>
+
+                {/* Contact author */}
+                <button
+                  onClick={() => onContact(pin.id)}
+                  style={{
+                    flex: 1,
+                    background: d ? T.interactiveHover : 'rgba(15,23,42,0.03)',
+                    border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                    color: d ? T.textTertiary : T.textTertiaryL,
+                    borderRadius: 12, padding: 9,
+                    fontSize: 11, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: 'pointer',
+                    transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <MessageCircle size={13} strokeWidth={1.5} /> Contacter
+                </button>
+
+                {/* More */}
+                <button
+                  onClick={() => {
+                    if (onNavigateTo) {
+                      onNavigateTo(pin.lat, pin.lng, catDetails?.label ?? pin.category)
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    background: d ? T.interactiveHover : 'rgba(15,23,42,0.03)',
+                    border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                    color: d ? T.textTertiary : T.textTertiaryL,
+                    borderRadius: 12, padding: 9,
+                    fontSize: 11, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: 'pointer',
+                    transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <MoreHorizontal size={13} strokeWidth={1.5} /> Plus
+                </button>
+              </div>
+
+              {/* ── NEARBY SECTION ─────────────────── */}
+              <div style={{ padding: '12px 18px 8px' }}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'center', marginBottom: 8,
+                }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: d ? T.textTertiary : 'rgba(15,23,42,0.4)',
+                  }}>
+                    Signalements proches
+                  </span>
+                </div>
+
+                {loadingNearby && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[0, 1].map((i) => (
+                      <div key={i} style={{
+                        height: 44,
+                        background: d ? T.interactiveHover : T.interactiveHoverL,
+                        borderRadius: 12,
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                      }} />
+                    ))}
+                  </div>
+                )}
+
+                {!loadingNearby && nearbyPins.length === 0 && (
+                  <div style={{
+                    textAlign: 'center', fontSize: 12,
+                    color: d ? T.textTertiary : T.textTertiaryL,
+                    padding: '8px 0',
+                  }}>
+                    Aucun incident proche
+                  </div>
+                )}
+
+                {!loadingNearby && nearbyPins.map((p) => {
+                  const pGroup = getCategoryGroup(p.category)
+                  const pCat = CAT[pGroup] ?? CAT.warning
+                  const PCatIcon = pCat.Icon
+                  const pDetails = CATEGORY_DETAILS[p.category]
+                  const distKm = calcDist(pin.lat, pin.lng, p.lat, p.lng)
+                  const distM = Math.round(distKm * 1000)
+
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleNearbyTap(p)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '8px 10px', borderRadius: 12,
+                        cursor: 'pointer', marginBottom: 2,
+                        transition: 'background 150ms cubic-bezier(0.16,1,0.3,1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = d ? T.interactiveHover : T.interactiveHoverL
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                      }}
+                    >
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 9,
+                        background: pCat.colorSoft,
+                        border: `1px solid ${pCat.colorBorder}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <PCatIcon size={14} color={pCat.color} strokeWidth={1.5} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 13, fontWeight: 500,
+                          color: d ? T.textPrimary : T.textPrimaryL,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {pDetails?.label ?? p.category}
+                        </div>
+                        <div style={{
+                          fontSize: 10, color: d ? T.textSecondary : T.textSecondaryL,
+                        }}>
+                          {p.address ? `${p.address.substring(0, 30)}` : 'Proche'} · {p.confirmations ?? 0} confirmation{(p.confirmations ?? 0) > 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 11, fontWeight: 600,
+                        color: d ? T.textTertiary : T.textTertiaryL,
+                        whiteSpace: 'nowrap', marginLeft: 'auto',
+                      }}>
+                        {distM}m
+                      </span>
+                    </div>
+                  )
+                })}
+
+                {/* Spacer */}
+                <div style={{ height: 8 }} />
+              </div>
             </div>
-            <button
-              onClick={() => onConfirm(pin.id)}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── FALSE REPORT MICRO-MODAL ──────── */}
+      <AnimatePresence>
+        {showFalseReportConfirm && (
+          <>
+            <motion.div
+              key="false-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setShowFalseReportConfirm(false)}
               style={{
-                background: FIXED.accentCyan,
-                color: '#fff',
-                borderRadius: 10,
-                padding: '7px 16px',
-                fontSize: 14,
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
+                position: 'fixed', inset: 0, zIndex: 310,
+                background: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 20,
               }}
             >
-              Confirmer
-            </button>
-          </div>
-
-          {/* Expanded content */}
-          <AnimatePresence>
-            {isExpanded && (
               <motion.div
-                key="expanded"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                style={{ overflow: 'hidden' }}
+                key="false-modal"
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  maxWidth: 300, width: '100%',
+                  background: d ? T.surfaceElevated : '#FFFFFF',
+                  borderRadius: 20,
+                  border: `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
+                  padding: 20, boxShadow: T.shadowLg,
+                  textAlign: 'center',
+                }}
               >
-                <div style={{ padding: '0 20px', overflowY: 'auto', maxHeight: '50vh' }}>
-                  {/* Address */}
-                  {pin.address && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 10,
-                        alignItems: 'flex-start',
-                        marginBottom: 16,
-                      }}
-                    >
-                      <MapPin
-                        size={16}
-                        color={FIXED.accentCyan}
-                        style={{ flexShrink: 0, marginTop: 2 }}
-                      />
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: C.textPrimary }}>
-                          {pin.address}
-                        </div>
-                        {pin.is_transport && pin.transport_line && (
-                          <div style={{ fontSize: 12, color: C.textTertiary, marginTop: 2 }}>
-                            Ligne {pin.transport_line}, direction Porte d&apos;Orléans
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Description */}
-                  {pin.description && (
-                    <div
-                      style={{
-                        background: C.descriptionBg,
-                        border: `1px solid ${C.borderSubtle}`,
-                        borderRadius: 12,
-                        padding: '12px 14px',
-                        marginBottom: 16,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontStyle: 'italic',
-                          fontSize: 14,
-                          color: C.textSecondary,
-                          lineHeight: 1.6,
-                          margin: 0,
-                        }}
-                      >
-                        &quot;{pin.description}&quot;
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Media */}
-                  {pin.media_urls && Array.isArray(pin.media_urls) && pin.media_urls.length > 0 && (
-                    <img
-                      src={pin.media_urls[0]}
-                      alt="Photo du signalement"
-                      style={{
-                        width: '100%',
-                        height: 160,
-                        objectFit: 'cover',
-                        borderRadius: 12,
-                        marginBottom: 16,
-                        display: 'block',
-                      }}
-                    />
-                  )}
-
-                  {/* Action buttons row 1 — 3 cols */}
-                  <div
+                <div style={{
+                  width: 48, height: 48, borderRadius: '50%',
+                  background: T.semanticDangerSoft,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 10px',
+                }}>
+                  <ThumbsDown size={22} color={T.semanticDanger} strokeWidth={1.5} />
+                </div>
+                <div style={{
+                  fontSize: 15, fontWeight: 600,
+                  color: d ? T.textPrimary : T.textPrimaryL,
+                  marginBottom: 6,
+                }}>
+                  Signaler comme faux ?
+                </div>
+                <div style={{
+                  fontSize: 12, color: d ? T.textSecondary : T.textSecondaryL,
+                  marginBottom: 16, lineHeight: 1.5,
+                }}>
+                  Merci de ne signaler que les incidents incorrects ou inventés.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => setShowFalseReportConfirm(false)}
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr 1fr',
-                      gap: 8,
-                      marginBottom: 8,
+                      flex: 1, padding: 11, borderRadius: 32,
+                      background: d ? T.interactiveHover : T.interactiveHoverL,
+                      border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                      color: d ? T.textSecondary : T.textSecondaryL,
+                      fontSize: 13, fontWeight: 500,
+                      cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
-                    {/* Confirmer */}
-                    <button
-                      onClick={() => onConfirm(pin.id)}
-                      style={{
-                        background: FIXED.accentCyan,
-                        color: '#fff',
-                        borderRadius: 12,
-                        padding: '12px 8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 5,
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <CheckCircle size={16} />
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>Confirmer</span>
-                    </button>
-
-                    {/* Résolu */}
-                    <button
-                      onClick={() => onResolved(pin.id)}
-                      style={{
-                        background: FIXED.semanticSuccessSoft,
-                        color: FIXED.semanticSuccess,
-                        borderRadius: 12,
-                        padding: '12px 8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 5,
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Flag size={16} />
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>Résolu</span>
-                    </button>
-
-                    {/* Partager */}
-                    <button
-                      onClick={async () => {
-                        const shareData = {
-                          title: CATEGORY_LABEL[pin.category],
-                          text: pin.description || '',
-                          url: window.location.href,
-                        }
-                        if (navigator.share) {
-                          try { await navigator.share(shareData) } catch {}
-                        } else {
-                          await navigator.clipboard.writeText(shareData.url)
-                          // TODO: toast via prop if needed
-                        }
-                      }}
-                      style={{
-                        background: C.btnSecBg,
-                        color: C.btnSecColor,
-                        border: `1px solid ${C.btnSecBorder}`,
-                        borderRadius: 12,
-                        padding: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <ExternalLink size={16} />
-                    </button>
-                  </div>
-
-                  {/* Action buttons row 2 — 2 cols */}
-                  <div
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleFalseReport}
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: 8,
-                      marginBottom: 28,
+                      flex: 1, padding: 11, borderRadius: 32,
+                      background: T.semanticDangerSoft,
+                      border: '1px solid rgba(239,68,68,0.25)',
+                      color: T.semanticDanger,
+                      fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
-                    {/* Faux */}
-                    <button
-                      onClick={() => onFalse(pin.id)}
-                      style={{
-                        background: C.btnSecBg,
-                        color: C.btnSecColor,
-                        border: `1px solid ${C.btnSecBorder}`,
-                        borderRadius: 12,
-                        padding: 14,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <ThumbsDown size={14} />
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>Faux</span>
-                    </button>
-
-                    {/* Contact */}
-                    <button
-                      onClick={() => onContact(pin.id)}
-                      style={{
-                        background: C.btnSecBg,
-                        color: C.btnSecColor,
-                        border: `1px solid ${C.btnSecBorder}`,
-                        borderRadius: 12,
-                        padding: 14,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <MessageCircle size={14} />
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>Contact</span>
-                    </button>
-                  </div>
+                    Signaler
+                  </button>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── CONFIRM INCIDENT MODAL ────────── */}
+      <ConfirmIncidentModal
+        pin={showConfirmModal ? pin : null}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirmed={() => {
+          setAlreadyConfirmed(true)
+          setConfirmCount((c) => c + 1)
+          setShowConfirmModal(false)
+        }}
+        userId={userId}
+        alreadyConfirmed={alreadyConfirmed}
+      />
+
+      {/* Pulse keyframes for skeleton */}
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }`}</style>
+    </>
   )
 }
 

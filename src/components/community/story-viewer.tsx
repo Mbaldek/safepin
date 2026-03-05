@@ -2,94 +2,78 @@
 
 import { motion } from "framer-motion";
 import { X, Heart, Send, Share2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+export interface DBStory {
+  id: string;
+  user_id: string;
+  display_name: string;
+  avatar: string;
+  avatarUrl: string | null;
+  media_url: string;
+  media_type: "image" | "video";
+  caption: string | null;
+  created_at: string;
+  gradientColors: string[];
+}
 
 interface StoryViewerProps {
   isDark: boolean;
   storyIndex: number;
+  stories: DBStory[];
   onClose: () => void;
   onNavigate: (index: number) => void;
 }
 
-const stories = [
-  {
-    id: 1,
-    user: "anna_r",
-    avatar: "A",
-    time: "il y a 2h",
-    type: "alerte",
-    title: "⚠️ Zone à éviter ce soir",
-    content: "Plusieurs témoignages de comportements suspects près de la station Boucicaut. Soyez vigilantes.",
-    segments: 3,
-    gradientColors: ["#EF4444", "#DC2626"],
-  },
-  {
-    id: 2,
-    user: "julien_m",
-    avatar: "J",
-    time: "il y a 3h",
-    type: "bonplan",
-    title: "☕ Nouveau café safe !",
-    content: "Je viens de découvrir un super spot rue du Commerce. Personnel très attentif, bonne ambiance.",
-    segments: 2,
-    gradientColors: ["#F5C341", "#F59E0B"],
-  },
-  {
-    id: 3,
-    user: "emma_p",
-    avatar: "E",
-    time: "il y a 5h",
-    type: "evenement",
-    title: "🎉 Marche solidaire demain",
-    content: "N'oubliez pas la marche collective demain soir ! RDV place Balard à 20h.",
-    segments: 1,
-    gradientColors: ["#A78BFA", "#8B5CF6"],
-  },
-  {
-    id: 4,
-    user: "lucas_d",
-    avatar: "L",
-    time: "il y a 6h",
-    type: "alerte",
-    title: "🚨 Attention métro ligne 12",
-    content: "Pickpockets repérés ce matin à la station Convention. Faites attention à vos affaires.",
-    segments: 2,
-    gradientColors: ["#EF4444", "#DC2626"],
-  },
-];
+function timeAgo(d: string) {
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  if (s < 60) return "maintenant";
+  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
+  return `il y a ${Math.floor(s / 86400)}j`;
+}
 
-export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryViewerProps) {
-  const [currentSegment, setCurrentSegment] = useState(0);
+export default function StoryViewer({
+  storyIndex,
+  stories,
+  onClose,
+  onNavigate,
+}: StoryViewerProps) {
   const [progress, setProgress] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Guard: no stories
+  useEffect(() => {
+    if (!stories.length) onClose();
+  }, [stories.length, onClose]);
 
   const story = stories[storyIndex] || stories[0];
 
+  // Reset progress on navigate
   useEffect(() => {
-    setCurrentSegment(0);
     setProgress(0);
   }, [storyIndex]);
 
+  // Auto-advance for images (5s = 50 ticks * 100ms)
   useEffect(() => {
+    if (!story || story.media_type === "video") return;
     const timer = setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
-          if (currentSegment < story.segments - 1) {
-            setCurrentSegment((s) => s + 1);
-            return 0;
-          } else if (storyIndex < stories.length - 1) {
+          if (storyIndex < stories.length - 1) {
             onNavigate(storyIndex + 1);
-            return 0;
           } else {
             onClose();
-            return 100;
           }
+          return 0;
         }
         return p + 2;
       });
     }, 100);
-
     return () => clearInterval(timer);
-  }, [currentSegment, storyIndex, story.segments, onNavigate, onClose]);
+  }, [storyIndex, story?.media_type, stories.length, onNavigate, onClose]);
+
+  if (!story) return null;
 
   const handleTap = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -97,19 +81,13 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
     const isRight = x > rect.width / 2;
 
     if (isRight) {
-      if (currentSegment < story.segments - 1) {
-        setCurrentSegment((s) => s + 1);
-        setProgress(0);
-      } else if (storyIndex < stories.length - 1) {
+      if (storyIndex < stories.length - 1) {
         onNavigate(storyIndex + 1);
       } else {
         onClose();
       }
     } else {
-      if (currentSegment > 0) {
-        setCurrentSegment((s) => s - 1);
-        setProgress(0);
-      } else if (storyIndex > 0) {
+      if (storyIndex > 0) {
         onNavigate(storyIndex - 1);
       }
     }
@@ -131,31 +109,30 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
       }}
       onClick={handleTap}
     >
-      {/* Progress bars */}
-      <div
-        style={{
-          display: "flex",
-          gap: 4,
-          padding: "12px 16px 8px",
-        }}
-      >
-        {Array.from({ length: story.segments }).map((_, i) => (
+      {/* Progress bar */}
+      <div style={{ display: "flex", gap: 4, padding: "12px 16px 8px" }}>
+        {stories.map((_, i) => (
           <div
             key={i}
             style={{
               flex: 1,
               height: 3,
               borderRadius: 2,
-              backgroundColor: "rgba(255, 255, 255, 0.3)",
+              backgroundColor: "rgba(255,255,255,0.3)",
               overflow: "hidden",
             }}
           >
-            <motion.div
+            <div
               style={{
                 height: "100%",
                 backgroundColor: "#FFFFFF",
                 width:
-                  i < currentSegment ? "100%" : i === currentSegment ? `${progress}%` : "0%",
+                  i < storyIndex
+                    ? "100%"
+                    : i === storyIndex
+                    ? `${progress}%`
+                    : "0%",
+                transition: i === storyIndex ? "none" : "width 0.2s",
               }}
             />
           </div>
@@ -181,19 +158,35 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#FFFFFF",
+              overflow: "hidden",
             }}
           >
-            {story.avatar}
+            {story.avatarUrl ? (
+              <img
+                src={story.avatarUrl}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <span
+                style={{ fontSize: 14, fontWeight: 600, color: "#FFFFFF" }}
+              >
+                {story.avatar}
+              </span>
+            )}
           </div>
           <div>
             <span style={{ fontSize: 14, fontWeight: 600, color: "#FFFFFF" }}>
-              {story.user}
+              {story.display_name}
             </span>
-            <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.6)", marginLeft: 8 }}>
-              {story.time}
+            <span
+              style={{
+                fontSize: 12,
+                color: "rgba(255,255,255,0.6)",
+                marginLeft: 8,
+              }}
+            >
+              {timeAgo(story.created_at)}
             </span>
           </div>
         </div>
@@ -207,7 +200,7 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
             width: 32,
             height: 32,
             borderRadius: "50%",
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
+            backgroundColor: "rgba(255,255,255,0.1)",
             border: "none",
             display: "flex",
             alignItems: "center",
@@ -215,120 +208,90 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
             cursor: "pointer",
           }}
         >
-          <X size={20} style={{ color: "#FFFFFF" }} />
+          <X size={20} strokeWidth={1.5} color="#FFFFFF" />
         </motion.button>
       </div>
 
-      {/* Content */}
+      {/* Media */}
       <div
         style={{
           flex: 1,
+          position: "relative",
+          overflow: "hidden",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
           alignItems: "center",
-          padding: "0 24px",
-          background:
-            story.type === "alerte"
-              ? "linear-gradient(180deg, rgba(239, 68, 68, 0.2) 0%, rgba(15, 23, 42, 0) 50%)"
-              : story.type === "bonplan"
-              ? "linear-gradient(180deg, rgba(245, 195, 65, 0.2) 0%, rgba(15, 23, 42, 0) 50%)"
-              : "linear-gradient(180deg, rgba(167, 139, 250, 0.2) 0%, rgba(15, 23, 42, 0) 50%)",
+          justifyContent: "center",
         }}
       >
-        <h2
-          style={{
-            fontSize: 24,
-            fontWeight: 700,
-            color: "#FFFFFF",
-            textAlign: "center",
-            marginBottom: 16,
-          }}
-        >
-          {story.title}
-        </h2>
-        <p
-          style={{
-            fontSize: 16,
-            color: "rgba(255, 255, 255, 0.8)",
-            textAlign: "center",
-            lineHeight: 1.6,
-            maxWidth: 320,
-          }}
-        >
-          {story.content}
-        </p>
-
-        {/* Map for alerte type */}
-        {story.type === "alerte" && (
-          <div
+        {story.media_type === "video" ? (
+          <video
+            ref={videoRef}
+            src={story.media_url}
+            autoPlay
+            muted
+            playsInline
+            onEnded={() => {
+              if (storyIndex < stories.length - 1) {
+                onNavigate(storyIndex + 1);
+              } else {
+                onClose();
+              }
+            }}
             style={{
               width: "100%",
-              height: 120,
-              borderRadius: 16,
-              marginTop: 24,
-              background: "linear-gradient(135deg, #1E293B, #0F172A)",
-              position: "relative",
-              overflow: "hidden",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        ) : (
+          <img
+            src={story.media_url}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
+
+        {/* Caption overlay */}
+        {story.caption && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: "40px 24px 24px",
+              background:
+                "linear-gradient(transparent, rgba(0,0,0,0.7))",
             }}
           >
-            <div
+            <p
               style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: 16,
-                height: 16,
-                borderRadius: "50%",
-                backgroundColor: "#EF4444",
-                boxShadow: "0 0 0 6px rgba(239, 68, 68, 0.3)",
+                fontSize: 16,
+                color: "#FFFFFF",
+                textAlign: "center",
+                lineHeight: 1.5,
+                margin: 0,
+                textShadow: "0 1px 4px rgba(0,0,0,0.5)",
               }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: `linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)`,
-                backgroundSize: "30px 30px",
-                opacity: 0.3,
-              }}
-            />
+            >
+              {story.caption}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Confirm button for alerte */}
-      {story.type === "alerte" && (
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            margin: "0 16px 16px",
-            padding: 16,
-            borderRadius: 12,
-            backgroundColor: "#EF4444",
-            border: "none",
-            color: "#FFFFFF",
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: "pointer",
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          Confirmer ce signalement
-        </motion.button>
-      )}
-
-      {/* Bottom input */}
+      {/* Bottom actions */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 12,
           padding: "12px 16px",
-          backgroundColor: "rgba(30, 41, 59, 0.8)",
+          backgroundColor: "rgba(30,41,59,0.8)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -339,7 +302,7 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
             flex: 1,
             padding: "12px 16px",
             borderRadius: 24,
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
+            backgroundColor: "rgba(255,255,255,0.1)",
             border: "none",
             color: "#FFFFFF",
             fontSize: 14,
@@ -360,7 +323,7 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
             cursor: "pointer",
           }}
         >
-          <Heart size={24} style={{ color: "#FFFFFF" }} />
+          <Heart size={24} strokeWidth={1.5} color="#FFFFFF" />
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.95 }}
@@ -376,7 +339,7 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
             cursor: "pointer",
           }}
         >
-          <Share2 size={22} style={{ color: "#FFFFFF" }} />
+          <Share2 size={22} strokeWidth={1.5} color="#FFFFFF" />
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.95 }}
@@ -392,7 +355,7 @@ export default function StoryViewer({ storyIndex, onClose, onNavigate }: StoryVi
             cursor: "pointer",
           }}
         >
-          <Send size={18} style={{ color: "#FFFFFF" }} />
+          <Send size={18} strokeWidth={1.5} color="#FFFFFF" />
         </motion.button>
       </div>
     </motion.div>

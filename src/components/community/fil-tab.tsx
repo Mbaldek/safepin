@@ -10,6 +10,7 @@ interface FilTabProps {
   isDark: boolean;
   userId: string | null;
   onStoryClick: (index: number) => void;
+  onPublish: () => void;
 }
 
 const GRADIENTS = [
@@ -34,7 +35,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,7 +144,7 @@ export default function FilTab({ isDark, userId, onStoryClick }: FilTabProps) {
 
   return (
     <div style={{ paddingBottom: 20 }}>
-      <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} />
+      <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} />
 
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
         {posts.length === 0 ? (

@@ -21,7 +21,6 @@ import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
 import { ReportSheet } from '@/components/ReportSheet';
-import { ConfirmFlowModal } from '@/components/ConfirmFlowModal';
 import ThemeToggle from '@/components/ThemeToggle';
 import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
@@ -109,7 +108,6 @@ export default function MapPage() {
     mapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
-    setConfirmingPin, setShowConfirmFlow,
   } = useStore();
   const tMap = useTranslations('map');
   const tTour = useTranslations('tour');
@@ -966,31 +964,10 @@ export default function MapPage() {
         pin={selectedPin}
         isOpen={activeSheet === 'detail' && !!selectedPin}
         onClose={() => { setActiveSheet('none'); setSelectedPin(null); }}
-        onConfirm={(pinId) => {
-          const pin = pins.find((p) => p.id === pinId);
-          if (!pin) return;
-          setConfirmingPin(pin);
-          setShowConfirmFlow(true);
-        }}
-        onResolved={async (pinId) => {
-          const { data, error } = await supabase.rpc('resolve_pin', { p_pin_id: pinId });
-          if (error) { toast.error('Impossible de marquer comme résolu'); return; }
-          if (data) updatePin(data);
-          toast.success('Signalement marqué comme résolu');
-          setActiveSheet('none'); setSelectedPin(null);
-        }}
-        onFalse={async (pinId) => {
-          const { data, error } = await supabase.rpc('flag_pin', { p_pin_id: pinId, p_reason: 'false_report' });
-          if (error) { toast.error('Impossible de signaler'); return; }
-          if (data) updatePin(data);
-          toast('Signalement enregistré');
-          setActiveSheet('none'); setSelectedPin(null);
-        }}
         onContact={async (pinId) => {
           const pin = pins.find((p) => p.id === pinId);
           if (!pin?.user_id || !userId) { toast.error('Contact impossible'); return; }
           if (pin.user_id === userId) { toast('C\u2019est votre signalement'); return; }
-          // Find or create DM conversation
           const { data: existing } = await supabase
             .from('dm_conversations')
             .select('*')
@@ -1009,15 +986,15 @@ export default function MapPage() {
           setActiveTab('community');
           toast.success('Conversation ouverte');
         }}
+        userId={userId ?? ''}
+        userLat={userLocation?.lat ?? 48.8566}
+        userLng={userLocation?.lng ?? 2.3522}
       />
 
       {/* ── New Report Sheet (v2) ── */}
       <AnimatePresence>
         <ReportSheet />
       </AnimatePresence>
-
-      {/* ── Confirm Flow Modal ── */}
-      <ConfirmFlowModal />
 
       {/* ── Place Note popup — tap a note marker on the map ────────── */}
       <AnimatePresence>

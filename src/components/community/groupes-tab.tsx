@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -10,9 +10,10 @@ import type { Community } from "@/types";
 interface GroupesTabProps {
   isDark: boolean;
   userId: string | null;
+  onCreateGroup: () => void;
 }
 
-export default function GroupesTab({ isDark, userId }: GroupesTabProps) {
+export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [myGroups, setMyGroups] = useState<Community[]>([]);
   const [discoverGroups, setDiscoverGroups] = useState<Community[]>([]);
@@ -120,6 +121,31 @@ export default function GroupesTab({ isDark, userId }: GroupesTabProps) {
           }}
         />
       </div>
+
+      {/* Create group button */}
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={onCreateGroup}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: "14px 16px",
+          borderRadius: 12,
+          backgroundColor: "#3BB4C1",
+          border: "none",
+          color: "#FFFFFF",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+          marginBottom: 24,
+        }}
+      >
+        <Plus size={18} strokeWidth={1.5} />
+        Creer un groupe
+      </motion.button>
 
       {/* Mes Groupes Section */}
       <div style={{ marginBottom: 24 }}>

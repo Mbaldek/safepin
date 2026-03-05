@@ -71,7 +71,9 @@
       "Bash(for comp in StoriesRow VerificationView FlagReportModal ChallengesSection ReferralSection DetailSheet CitySelector PlaceNoteSheet TrendSparkline)",
       "mcp__claude_ai_Supabase__search_docs",
       "Bash(test -f /c/Users/mathi/Desktop/safepin/breveil-landing.html)",
-      "Bash(test -f \"/c/Users/mathi/Desktop/safepin/docs/old/BREVEIL_LANDING.html\")"
+      "Bash(test -f \"/c/Users/mathi/Desktop/safepin/docs/old/BREVEIL_LANDING.html\")",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(psql \"postgresql://postgres.tzdemtgxogagjqqfmvbx:[your-password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres\" -c \"\\\\dt public.*communit* public.dm_* public.direct_*\")"
     ]
   }
 }

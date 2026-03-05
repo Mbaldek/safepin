@@ -10,6 +10,7 @@ interface StoriesRowProps {
   userId: string | null;
   communityIds: string[];
   onStoryClick: (index: number) => void;
+  onPublish: () => void;
 }
 
 interface StoryItem {
@@ -34,7 +35,7 @@ function pickGradient(id: string): string[] {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 }
 
-export default function StoriesRow({ isDark, userId, communityIds, onStoryClick }: StoriesRowProps) {
+export default function StoriesRow({ isDark, userId, communityIds, onStoryClick, onPublish }: StoriesRowProps) {
   const [stories, setStories] = useState<StoryItem[]>([]);
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick 
       {allItems.map((story, index) => (
         <motion.button
           key={story.id}
-          onClick={() => !story.isAdd && onStoryClick(index - 1)}
+          onClick={() => story.isAdd ? onPublish() : onStoryClick(index - 1)}
           whileTap={{ scale: 0.95 }}
           style={{
             display: "flex",
