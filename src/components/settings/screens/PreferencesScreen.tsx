@@ -22,16 +22,6 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
 
   const [currentLocale, setCurrentLocale] = useState(getCurrentLocale);
   const [showLangPicker, setShowLangPicker] = useState(false);
-  const [haptic, setHaptic] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('brume_haptic') !== 'false';
-  });
-
-  const handleHapticChange = (v: boolean) => {
-    setHaptic(v);
-    localStorage.setItem('brume_haptic', String(v));
-  };
-
   const handleLocaleChange = (locale: string) => {
     document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
     setCurrentLocale(locale);
@@ -83,14 +73,7 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
             icon={darkMode ? 'Moon' : 'Sun'}
             iconColor="#F5C341"
             label="Mode sombre"
-            rightEl={<SettingsToggle value={darkMode} onChange={toggleTheme} />}
-          />
-          <div style={divider} />
-          <SettingsRow
-            icon="Map"
-            iconColor="#22D3EE"
-            label="Style de carte"
-            subtitle="Breveil"
+            rightEl={<SettingsToggle value={darkMode} onChange={() => toggleTheme()} />}
           />
         </SettingsSection>
 
@@ -151,14 +134,6 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
           )}
         </SettingsSection>
 
-        {/* Système */}
-        <SettingsSection label="Système">
-          <SettingsRow
-            icon="Smartphone"
-            label="Retour haptique"
-            rightEl={<SettingsToggle value={haptic} onChange={handleHapticChange} />}
-          />
-        </SettingsSection>
       </div>
     </div>
   );

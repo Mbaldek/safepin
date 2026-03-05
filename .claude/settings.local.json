@@ -69,7 +69,9 @@
       "Bash(do echo \"=== $comp ===\")",
       "Bash(for comp in PinStoriesRow SosBroadcastPanel PinChat LocationHistoryViewer NeighborhoodFeed NeighborhoodScoreLayer SimulationTicker TripChat TripSummary TripQuickResponse)",
       "Bash(for comp in StoriesRow VerificationView FlagReportModal ChallengesSection ReferralSection DetailSheet CitySelector PlaceNoteSheet TrendSparkline)",
-      "mcp__claude_ai_Supabase__search_docs"
+      "mcp__claude_ai_Supabase__search_docs",
+      "Bash(test -f /c/Users/mathi/Desktop/safepin/breveil-landing.html)",
+      "Bash(test -f \"/c/Users/mathi/Desktop/safepin/docs/old/BREVEIL_LANDING.html\")"
     ]
   }
 }

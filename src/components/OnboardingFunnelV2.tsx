@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Moon, MapPin, Users, Heart, Shield, AlertTriangle, Eye,
-  Check, Camera, X, Bell,
+  Check, Camera, X, Bell, Mail, Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -12,6 +12,7 @@ import PaywallScreen from '@/components/subscription/PaywallScreen';
 // ─── Exports ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'brume_onboarding_done';
+const ONBOARDING_STATE_KEY = 'brume_onboarding_state';
 
 export function useOnboardingDone(
   profile: { onboarding_completed?: boolean } | null,
@@ -30,11 +31,29 @@ export function useOnboardingDone(
   return [done, markDone];
 }
 
+/** Read and clear saved onboarding state (persisted before OAuth redirect) */
+export function consumeOnboardingState(): { step: number; goals: string[] } | null {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem(ONBOARDING_STATE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    localStorage.removeItem(ONBOARDING_STATE_KEY);
+    return parsed;
+  } catch {
+    localStorage.removeItem(ONBOARDING_STATE_KEY);
+    return null;
+  }
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface OnboardingFunnelV2Props {
-  userId: string;
+  userId?: string | null;
   onComplete?: () => void;
+  onAuthComplete?: (userId: string) => void;
+  initialStep?: number;
+  initialGoals?: string[];
 }
 
 type CircleContact = { name: string; relation: string; phone: string };
@@ -42,7 +61,7 @@ type Community = { id: string; name: string; description: string | null; member_
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 11;
 
 const gradient = 'linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%)';
 
@@ -54,7 +73,7 @@ const AVATAR_GRADIENTS = [
   'linear-gradient(135deg,#F5C341,#E8A800)',
 ];
 
-const goals = [
+const goalsList = [
   { id: 'walk', label: 'Rentrer chez moi en sécurité', icon: Moon },
   { id: 'area', label: 'Connaître mon quartier', icon: MapPin },
   { id: 'connect', label: 'Me connecter avec d\'autres', icon: Users },
@@ -109,11 +128,25 @@ const stepContainer: React.CSSProperties = {
   padding: 24, paddingTop: 80,
 };
 
+const btnOAuthStyle: React.CSSProperties = {
+  width: '100%', padding: '14px 24px', borderRadius: 50,
+  background: '#FFFFFF', border: 'none', fontSize: 15,
+  fontWeight: 500, color: '#0F172A', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  gap: 10, fontFamily: 'inherit', transition: 'opacity .2s',
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Props) {
-  const [step, setStep] = useState(0);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+export function OnboardingFunnelV2({
+  userId,
+  onComplete,
+  onAuthComplete,
+  initialStep = 0,
+  initialGoals,
+}: OnboardingFunnelV2Props) {
+  const [step, setStep] = useState(initialStep);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals ?? []);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [pseudo, setPseudo] = useState('');
@@ -132,6 +165,14 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Auth step state
+  const [authMode, setAuthMode] = useState<'signup' | 'signin' | 'magic'>('signup');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [magicSent, setMagicSent] = useState(false);
+
   const nextStep = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
   const prevStep = () => setStep(s => Math.max(s - 1, 0));
 
@@ -142,7 +183,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   // ─── Communities fetch ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (step !== 7) return;
+    if (step !== 8) return; // Communities is now step 8
     const city = selectedCity || customCity || 'Paris';
     supabase
       .from('communities')
@@ -155,6 +196,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   // ─── Complete ─────────────────────────────────────────────────────────
 
   const handleComplete = async () => {
+    if (!userId) return;
     setIsSubmitting(true);
     try {
       const city = selectedCity || customCity || null;
@@ -164,7 +206,10 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
           first_name: firstName.trim(),
           last_name: lastName.trim() || null,
         }),
-        ...(pseudo.trim() && { display_name: pseudo.trim() }),
+        ...(pseudo.trim() && {
+          display_name: pseudo.trim(),
+          username: pseudo.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''),
+        }),
         ...(avatarUrl && { avatar_url: avatarUrl }),
         ...(city && { city }),
         ...(birthDate && { date_of_birth: birthDate }),
@@ -180,6 +225,99 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
       console.error('Complete error:', e);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // ─── OAuth helper (saves state before redirect) ───────────────────────
+
+  const saveStateAndOAuth = async (provider: 'google' | 'apple') => {
+    // Persist pre-auth selections so we can restore after redirect
+    localStorage.setItem(ONBOARDING_STATE_KEY, JSON.stringify({
+      step: 2,
+      goals: selectedGoals,
+    }));
+    setAuthLoading(true);
+    setAuthError(null);
+    const callbackUrl = `${window.location.origin}/auth/callback?next=/onboarding`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: callbackUrl },
+    });
+    if (error) {
+      setAuthError(error.message);
+      setAuthLoading(false);
+    }
+  };
+
+  // ─── Email auth handler ───────────────────────────────────────────────
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+    const callbackUrl = `${window.location.origin}/auth/callback?next=/onboarding`;
+
+    try {
+      if (authMode === 'magic') {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: authEmail,
+          options: { emailRedirectTo: callbackUrl },
+        });
+        if (error) throw error;
+        // Save state for when they click the magic link
+        localStorage.setItem(ONBOARDING_STATE_KEY, JSON.stringify({
+          step: 2,
+          goals: selectedGoals,
+        }));
+        setMagicSent(true);
+      } else if (authMode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: { emailRedirectTo: callbackUrl },
+        });
+        if (error) throw error;
+        // If auto-confirmed (no email verification required), proceed
+        if (data.user && data.session) {
+          onAuthComplete?.(data.user.id);
+          setStep(3); // Move to location step
+        } else {
+          // Email confirmation needed
+          localStorage.setItem(ONBOARDING_STATE_KEY, JSON.stringify({
+            step: 2,
+            goals: selectedGoals,
+          }));
+          setMagicSent(true);
+        }
+      } else {
+        // signin
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword,
+        });
+        if (error) throw error;
+        if (data.user) {
+          onAuthComplete?.(data.user.id);
+          // Check if onboarding already done
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('id', data.user.id)
+            .maybeSingle();
+          if (profile?.onboarding_completed) {
+            // Already onboarded — go to map
+            document.cookie = 'ob_done=1;path=/;max-age=31536000';
+            localStorage.setItem('brume_onboarding_done', '1');
+            onComplete?.();
+          } else {
+            setStep(3); // Continue onboarding
+          }
+        }
+      }
+    } catch (err: unknown) {
+      setAuthError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -233,7 +371,10 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <button onClick={() => setStep(1)} style={btnMainStyle}>
           Commencer &rarr;
         </button>
-        <button onClick={handleComplete} style={btnGhostStyle}>
+        <button
+          onClick={() => { setAuthMode('signin'); setStep(2); }}
+          style={btnGhostStyle}
+        >
           J&apos;ai déjà un compte
         </button>
       </div>
@@ -241,7 +382,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   );
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 1 — OBJECTIFS (existing Goals)
+  // STEP 1 — OBJECTIFS
   // ════════════════════════════════════════════════════════════════════════
 
   const Objectifs = () => (
@@ -255,7 +396,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Choisis ce qui te parle</p>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
-        {goals.map(g => {
+        {goalsList.map(g => {
           const Icon = g.icon;
           const sel = selectedGoals.includes(g.id);
           return (
@@ -279,17 +420,159 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   );
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 2 — AUTH (location permission)
+  // STEP 2 — AUTH (signup/signin — NEW)
   // ════════════════════════════════════════════════════════════════════════
 
-  const Auth = () => {
+  const AuthStep = () => {
+    if (magicSent) {
+      return (
+        <div style={{ ...stepContainer, alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', maxWidth: 340 }}>
+            <div style={{ width: 80, height: 80, margin: '0 auto 24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Mail size={32} color="#FFFFFF" />
+            </div>
+            <h1 style={{ fontSize: 24, fontWeight: 300, color: '#FFFFFF', marginBottom: 12 }}>Vérifie ton email</h1>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 24 }}>
+              On t&apos;a envoyé un lien à <strong style={{ color: '#fff' }}>{authEmail}</strong>
+            </p>
+            <button onClick={() => setMagicSent(false)} style={{ ...btnMainStyle, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>
+              Retour
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ ...stepContainer, overflowY: 'auto' }}>
+        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+            Étape 2 / {TOTAL_STEPS - 1}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>
+            {authMode === 'signin' ? 'Content de te revoir' : 'Crée ton compte'}
+          </h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>
+            {authMode === 'signin' ? 'Connecte-toi pour continuer' : 'En quelques secondes, c\'est parti'}
+          </p>
+        </div>
+
+        {/* OAuth buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+          <button
+            onClick={() => saveStateAndOAuth('google')}
+            disabled={authLoading}
+            style={{ ...btnOAuthStyle, opacity: authLoading ? 0.7 : 1 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continuer avec Google
+          </button>
+          <button
+            onClick={() => saveStateAndOAuth('apple')}
+            disabled={authLoading}
+            style={{ ...btnOAuthStyle, opacity: authLoading ? 0.7 : 1 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+            Continuer avec Apple
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.15)' }} />
+          <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>ou</span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.15)' }} />
+        </div>
+
+        {/* Mode tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'rgba(255,255,255,0.08)', borderRadius: 50, padding: 3 }}>
+          {(['signup', 'signin', 'magic'] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => { setAuthMode(m); setAuthError(null); }}
+              style={{
+                flex: 1, padding: '8px 12px', borderRadius: 50, border: 'none',
+                background: authMode === m ? 'rgba(255,255,255,0.15)' : 'transparent',
+                color: authMode === m ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all .2s',
+              }}
+            >
+              {m === 'signup' ? 'Inscription' : m === 'signin' ? 'Connexion' : 'Magic Link'}
+            </button>
+          ))}
+        </div>
+
+        {/* Email form */}
+        <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={authEmail}
+            onChange={e => setAuthEmail(e.target.value)}
+            required
+            style={inputStyle}
+          />
+          {authMode !== 'magic' && (
+            <input
+              type="password"
+              placeholder="Mot de passe"
+              value={authPassword}
+              onChange={e => setAuthPassword(e.target.value)}
+              required
+              minLength={6}
+              style={inputStyle}
+            />
+          )}
+          {authError && (
+            <p style={{ fontSize: 13, color: '#F87171', textAlign: 'center' }}>{authError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={authLoading}
+            style={{
+              ...btnMainStyle,
+              background: '#3BB4C1',
+              color: '#FFFFFF',
+              marginTop: 4,
+              opacity: authLoading ? 0.7 : 1,
+            }}
+          >
+            {authLoading
+              ? 'Chargement...'
+              : authMode === 'magic'
+                ? 'Envoyer le lien'
+                : authMode === 'signup'
+                  ? 'Créer mon compte'
+                  : 'Se connecter'}
+          </button>
+        </form>
+
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <button
+            onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthError(null); }}
+            style={{ ...btnGhostStyle, fontSize: 12 }}
+          >
+            {authMode === 'signin' ? 'Pas encore de compte ? Inscription' : 'Déjà un compte ? Connexion'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // STEP 3 — LOCATION PERMISSION
+  // ════════════════════════════════════════════════════════════════════════
+
+  const LocationStep = () => {
     const requestLocation = () => {
       navigator.geolocation.getCurrentPosition(() => nextStep(), () => nextStep());
     };
 
     return (
       <div style={stepContainer}>
-        <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
+        <button onClick={() => setStep(1)} style={closeBtn}><X size={20} /></button>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 32 }}>
           <div style={{ width: 140, height: 140, margin: '0 auto', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <MapPin size={56} color="#FFFFFF" strokeWidth={1} />
@@ -308,7 +591,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 3 — PRÉNOM + NOM + PSEUDO
+  // STEP 4 — PRÉNOM + NOM + PSEUDO
   // ════════════════════════════════════════════════════════════════════════
 
   const PrenomStep = () => {
@@ -319,7 +602,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
-            Étape 3 / {TOTAL_STEPS - 1}
+            Étape 4 / {TOTAL_STEPS - 1}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Comment vous appelle-t-on ?</h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Votre profil visible par votre cercle</p>
@@ -353,7 +636,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
 
         <button
           disabled={!canContinue}
-          onClick={() => setStep(4)}
+          onClick={() => setStep(5)}
           style={{
             ...btnMainStyle,
             marginTop: 20,
@@ -369,7 +652,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 4 — PHOTO DE PROFIL
+  // STEP 5 — PHOTO DE PROFIL
   // ════════════════════════════════════════════════════════════════════════
 
   const PhotoStep = () => {
@@ -397,7 +680,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
-            Étape 4 / {TOTAL_STEPS - 1}
+            Étape 5 / {TOTAL_STEPS - 1}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Ajoutez une photo de profil</h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Visible par votre cercle uniquement</p>
@@ -443,15 +726,15 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
-          <button onClick={() => setStep(5)} style={btnMainStyle}>Continuer &rarr;</button>
-          <button onClick={() => setStep(5)} style={btnGhostStyle}>Passer cette étape</button>
+          <button onClick={() => setStep(6)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(6)} style={btnGhostStyle}>Passer cette étape</button>
         </div>
       </div>
     );
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 5 — DATE DE NAISSANCE + VILLE (merged)
+  // STEP 6 — DATE DE NAISSANCE + VILLE
   // ════════════════════════════════════════════════════════════════════════
 
   const DateVilleStep = () => {
@@ -462,7 +745,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
-            Étape 5 / {TOTAL_STEPS - 1}
+            Étape 6 / {TOTAL_STEPS - 1}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Votre profil de sécurité</h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Pour personnaliser vos alertes et filtrer les contenus adaptés à votre situation</p>
@@ -521,15 +804,15 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto', paddingTop: 20 }}>
-          <button onClick={() => setStep(6)} style={btnMainStyle}>Continuer &rarr;</button>
-          <button onClick={() => setStep(6)} style={btnGhostStyle}>Passer cette étape</button>
+          <button onClick={() => setStep(7)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(7)} style={btnGhostStyle}>Passer cette étape</button>
         </div>
       </div>
     );
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 6 — CERCLE DE CONFIANCE
+  // STEP 7 — CERCLE DE CONFIANCE
   // ════════════════════════════════════════════════════════════════════════
 
   const CercleStep = () => {
@@ -556,7 +839,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
-            Étape 6 / {TOTAL_STEPS - 1}
+            Étape 7 / {TOTAL_STEPS - 1}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>
             Ajoutez votre <em style={{ fontStyle: 'italic', fontWeight: 300 }}>cercle de confiance.</em>
@@ -652,20 +935,20 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
-          <button onClick={() => setStep(7)} style={btnMainStyle}>Continuer &rarr;</button>
-          <button onClick={() => setStep(7)} style={btnGhostStyle}>Je ferai ça plus tard</button>
+          <button onClick={() => setStep(8)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(8)} style={btnGhostStyle}>Je ferai ça plus tard</button>
         </div>
       </div>
     );
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 7 — GROUPES
+  // STEP 8 — GROUPES
   // ════════════════════════════════════════════════════════════════════════
 
   const GroupesStep = () => {
     const joinGroup = async (communityId: string) => {
-      if (joinedCommunities.includes(communityId)) return;
+      if (joinedCommunities.includes(communityId) || !userId) return;
       await supabase.from('community_members').insert({
         community_id: communityId,
         user_id: userId,
@@ -678,7 +961,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
-            Étape 7 / {TOTAL_STEPS - 1}
+            Étape 8 / {TOTAL_STEPS - 1}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Rejoignez votre communauté</h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{selectedCity || customCity || 'Paris'}</p>
@@ -722,7 +1005,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
           }
 
           <button
-            onClick={() => setStep(8)}
+            onClick={() => setStep(9)}
             style={{
               width: '100%', padding: 13, borderRadius: 100,
               background: 'transparent',
@@ -736,15 +1019,15 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
-          <button onClick={() => setStep(8)} style={btnMainStyle}>Continuer &rarr;</button>
-          <button onClick={() => setStep(8)} style={btnGhostStyle}>Passer cette étape</button>
+          <button onClick={() => setStep(9)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={() => setStep(9)} style={btnGhostStyle}>Passer cette étape</button>
         </div>
       </div>
     );
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 8 — PAYWALL (existing)
+  // STEP 9 — PAYWALL
   // ════════════════════════════════════════════════════════════════════════
 
   const Paywall = () => (
@@ -752,7 +1035,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   );
 
   // ════════════════════════════════════════════════════════════════════════
-  // STEP 9 — SUCCÈS / READY (existing)
+  // STEP 10 — SUCCÈS / READY
   // ════════════════════════════════════════════════════════════════════════
 
   const Ready = () => (
@@ -785,7 +1068,7 @@ export function OnboardingFunnelV2({ userId, onComplete }: OnboardingFunnelV2Pro
   // RENDER
   // ════════════════════════════════════════════════════════════════════════
 
-  const steps = [Welcome, Objectifs, Auth, PrenomStep, PhotoStep, DateVilleStep, CercleStep, GroupesStep, Paywall, Ready];
+  const steps = [Welcome, Objectifs, AuthStep, LocationStep, PrenomStep, PhotoStep, DateVilleStep, CercleStep, GroupesStep, Paywall, Ready];
   const CurrentStep = steps[step] ?? Ready;
 
   return (

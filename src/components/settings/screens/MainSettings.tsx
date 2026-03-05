@@ -19,10 +19,34 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
   const router = useRouter();
   const [logoutHover, setLogoutHover] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState('');
+  const [profileVerified, setProfileVerified] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email?.includes('balleron')) setIsAdmin(true);
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      if (user.email?.includes('balleron')) setIsAdmin(true);
+      setProfileEmail(user.email ?? '');
+
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, display_name, name, username, avatar_url, verified')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (p) {
+        const name = [p.first_name, p.last_name].filter(Boolean).join(' ')
+          || (p.display_name as string)
+          || (p.name as string)
+          || (p.username as string)
+          || user.email?.split('@')[0]
+          || '';
+        setProfileName(name);
+        setProfileAvatar((p.avatar_url as string) ?? '');
+        setProfileVerified((p.verified as boolean) ?? false);
+      }
     });
   }, []);
 
@@ -65,9 +89,10 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {/* Profile */}
         <ProfileBlock
-          name="Nicolas"
-          email="nicolas@breveil.app"
-          isVerified={true}
+          name={profileName || '…'}
+          email={profileEmail}
+          isVerified={profileVerified}
+          avatarUrl={profileAvatar || undefined}
           onPress={() => onNavigate('compte')}
         />
 
@@ -88,7 +113,7 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
             icon="Settings"
             iconColor="#22D3EE"
             label="Préférences"
-            subtitle="Langue, carte, thème, haptique"
+            subtitle="Langue, thème"
             onPress={() => onNavigate('preferences')}
           />
         </SettingsSection>

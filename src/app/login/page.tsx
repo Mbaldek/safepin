@@ -60,7 +60,7 @@ export default function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push(nextPath || '/map');
+        router.push(nextPath || '/onboarding');
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'An error occurred');

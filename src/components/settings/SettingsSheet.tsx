@@ -8,6 +8,7 @@ import MonCompteScreen from './screens/compte/MonCompteScreen';
 import SecuriteScreen from './screens/SecuriteScreen';
 import PreferencesScreen from './screens/PreferencesScreen';
 import AideScreen from './screens/AideScreen';
+import SupportChatScreen from './screens/SupportChatScreen';
 import PaywallScreen from '../subscription/PaywallScreen';
 
 export interface SettingsSheetProps {
@@ -80,7 +81,9 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       case 'preferences':
         return <PreferencesScreen onBack={goBack} />;
       case 'aide':
-        return <AideScreen onBack={goBack} />;
+        return <AideScreen onBack={goBack} onNavigateToSupport={() => setCurrentScreen('support-chat')} />;
+      case 'support-chat':
+        return <SupportChatScreen onBack={() => setCurrentScreen('aide')} />;
       case 'abonnement':
         return <PaywallScreen onClose={goBack} context="settings" />;
       default:

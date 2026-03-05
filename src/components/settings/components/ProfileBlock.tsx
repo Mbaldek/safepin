@@ -8,10 +8,11 @@ export interface ProfileBlockProps {
   name: string;
   email: string;
   isVerified: boolean;
+  avatarUrl?: string;
   onPress: () => void;
 }
 
-export default function ProfileBlock({ name, email, isVerified, onPress }: ProfileBlockProps) {
+export default function ProfileBlock({ name, email, isVerified, avatarUrl, onPress }: ProfileBlockProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const initial = name.charAt(0).toUpperCase();
 
@@ -47,9 +48,14 @@ export default function ProfileBlock({ name, email, isVerified, onPress }: Profi
           color: '#fff',
           fontSize: 20,
           fontWeight: 300,
+          overflow: 'hidden',
         }}
       >
-        {initial}
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          initial
+        )}
       </div>
 
       {/* Info */}

@@ -7,6 +7,7 @@ import SettingsRow from '../components/SettingsRow';
 
 export interface AideScreenProps {
   onBack: () => void;
+  onNavigateToSupport: () => void;
 }
 
 const LINKS = {
@@ -22,7 +23,7 @@ function openLink(url: string) {
   window.open(url, '_blank', 'noopener');
 }
 
-export default function AideScreen({ onBack }: AideScreenProps) {
+export default function AideScreen({ onBack, onNavigateToSupport }: AideScreenProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const extIcon = <ExternalLink size={16} color={isDark ? '#64748B' : '#94A3B8'} />;
   const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
@@ -84,8 +85,8 @@ export default function AideScreen({ onBack }: AideScreenProps) {
             icon="MessageCircle"
             iconColor="#A78BFA"
             label="Nous contacter"
-            rightEl={extIcon}
-            onPress={() => openLink(LINKS.contact)}
+            subtitle="Discuter avec l'équipe Breveil"
+            onPress={onNavigateToSupport}
           />
         </SettingsSection>
 

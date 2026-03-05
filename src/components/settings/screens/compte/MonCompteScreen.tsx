@@ -344,7 +344,10 @@ interface MainCompteScreenProps {
 
 function MainCompteScreen({ account, C, onBack, navigateTo }: MainCompteScreenProps) {
   const userProfile = useStore((s) => s.userProfile);
-  const displayName = [account?.firstName, account?.lastName].filter(Boolean).join(' ') || 'Utilisateur';
+  const displayName = [account?.firstName, account?.lastName].filter(Boolean).join(' ')
+    || account?.username
+    || account?.email?.split('@')[0]
+    || '';
   const initial = displayName.charAt(0).toUpperCase();
 
   // Build subtitle for "Informations personnelles"

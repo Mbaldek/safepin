@@ -342,6 +342,8 @@ export type Profile = {
   verification_deadline?: string | null;
   blocked_reason?: string | null;
   is_shadow_banned?: boolean;
+  is_admin?: boolean;
+  is_support?: boolean;
   is_simulated?: boolean;
   sim_places?: Array<{ lat: number; lng: number; label: string; role: string }> | null;
   current_streak?: number;

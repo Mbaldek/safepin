@@ -31,7 +31,7 @@ import NearbySheet from '@/components/nearby/NearbySheet';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
-import OnboardingFunnelV2, { useOnboardingDone } from '@/components/OnboardingFunnelV2';
+import { useOnboardingDone } from '@/components/OnboardingFunnelV2';
 import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -283,7 +283,7 @@ export default function MapPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        router.replace('/login');
+        router.replace('/onboarding');
       } else {
         const uid = session.user.id;
         setUserId(uid);
@@ -638,10 +638,14 @@ export default function MapPage() {
     );
   }
 
-  // ── Onboarding takes full priority — nothing else mounts ─────────────────
-  if (!onboardingDone && userId) {
-    return <OnboardingFunnelV2 userId={userId} onComplete={handleOnboardingDone} />;
-  }
+  // ── Onboarding gate — redirect to /onboarding if not completed ────────────
+  useEffect(() => {
+    if (!onboardingDone && userId) {
+      router.replace('/onboarding');
+    }
+  }, [onboardingDone, userId, router]);
+
+  if (!onboardingDone && userId) return null;
 
   // ── App layout ────────────────────────────────────────────────────────────
   return (

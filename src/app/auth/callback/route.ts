@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/map';
+  const next = searchParams.get('next') ?? '/onboarding';
   const inviteCode = searchParams.get('invite_code');
 
   if (code) {

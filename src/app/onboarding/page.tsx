@@ -3,38 +3,72 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import OnboardingFunnelV2 from '@/components/OnboardingFunnelV2';
+import OnboardingFunnelV2, { consumeOnboardingState } from '@/components/OnboardingFunnelV2';
 
 export default function OnboardingGatePage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialStep, setInitialStep] = useState(0);
+  const [initialGoals, setInitialGoals] = useState<string[] | undefined>();
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.replace('/login?next=/onboarding');
-        return;
+      if (user) {
+        // Check if already onboarded
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.onboarding_completed) {
+          router.replace('/map');
+          return;
+        }
+
+        // Authenticated but not onboarded — check for saved state (OAuth return)
+        setUserId(user.id);
+        const saved = consumeOnboardingState();
+        if (saved) {
+          setInitialStep(3); // Skip to step after auth
+          setInitialGoals(saved.goals);
+        } else {
+          setInitialStep(3); // Authenticated, skip welcome/goals/auth
+        }
+      } else {
+        // Not authenticated — check for saved state (shouldn't normally happen)
+        const saved = consumeOnboardingState();
+        if (saved?.goals) {
+          setInitialGoals(saved.goals);
+        }
+        // Start from step 0 (welcome)
+        setInitialStep(0);
       }
 
-      // Check if already onboarded
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('onboarding_completed')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profile?.onboarding_completed) {
-        router.replace('/map');
-        return;
-      }
-
-      setUserId(user.id);
       setLoading(false);
     })();
   }, [router]);
+
+  const handleAuthComplete = async (uid: string) => {
+    setUserId(uid);
+
+    // Check if returning user already completed onboarding
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', uid)
+      .maybeSingle();
+
+    if (profile?.onboarding_completed) {
+      document.cookie = 'ob_done=1;path=/;max-age=31536000';
+      localStorage.setItem('brume_onboarding_done', '1');
+      router.replace('/map');
+    }
+    // If not onboarded, the funnel will advance to step 3 via its own logic
+  };
 
   if (loading) {
     return (
@@ -60,7 +94,10 @@ export default function OnboardingGatePage() {
 
   return (
     <OnboardingFunnelV2
-      userId={userId!}
+      userId={userId}
+      initialStep={initialStep}
+      initialGoals={initialGoals}
+      onAuthComplete={handleAuthComplete}
       onComplete={() => router.replace('/map')}
     />
   );

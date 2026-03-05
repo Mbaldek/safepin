@@ -193,13 +193,14 @@ export default function PersonalInfoScreen({ data, onSave, onBack }: PersonalInf
             <motion.div variants={fadeSlideUp} transition={springTransition} style={{ marginBottom: 24 }}>
               <label style={labelStyle}>Date de naissance</label>
               <input
+                type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                placeholder="JJ/MM/AAAA"
-                style={inputStyle}
+                max={new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                style={{ ...inputStyle, colorScheme: isDark ? 'dark' : 'light' }}
               />
               <span style={{ fontSize: 11, color: C.t3, marginTop: 4, display: 'block' }}>
-                JJ/MM/AAAA · Non visible par les membres
+                Minimum 13 ans · Non visible par les membres
               </span>
             </motion.div>
           </motion.div>
