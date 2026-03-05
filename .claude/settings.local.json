@@ -73,7 +73,9 @@
       "Bash(test -f /c/Users/mathi/Desktop/safepin/breveil-landing.html)",
       "Bash(test -f \"/c/Users/mathi/Desktop/safepin/docs/old/BREVEIL_LANDING.html\")",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(psql \"postgresql://postgres.tzdemtgxogagjqqfmvbx:[your-password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres\" -c \"\\\\dt public.*communit* public.dm_* public.direct_*\")"
+      "Bash(psql \"postgresql://postgres.tzdemtgxogagjqqfmvbx:[your-password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres\" -c \"\\\\dt public.*communit* public.dm_* public.direct_*\")",
+      "Bash(git -C /c/Users/mathi/Desktop/safepin log --all --full-history --format=\"%h %s\" -- \"*communities*\")",
+      "Bash(1 head -c 500 /tmp/unescaped.json)"
     ]
   }
 }

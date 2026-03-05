@@ -682,7 +682,7 @@ export type EmailLog = {
 export type EscorteMode = 'immediate' | 'trip';
 export type EscorteStatus = 'active' | 'ended' | 'sos';
 export type CircleStatus = 'notified' | 'following' | 'vocal' | 'inactive';
-export type RouteMode = 'safe' | 'balanced' | 'fast';
+export type RouteMode = 'walk' | 'transit' | 'bike' | 'car';
 
 export type Escorte = {
   id: string;

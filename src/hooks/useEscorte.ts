@@ -8,14 +8,17 @@ export function useEscorte(userId: string) {
   const [circleMembers, setCircleMembers] = useState<EscorteCircleMember[]>([])
   const [elapsed, setElapsed] = useState(0)
   const [juliaCd, setJuliaCd] = useState(120) // 2min countdown
+  const [juliaActive, setJuliaActive] = useState(false)
   const watchRef = useRef<number | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const juliaCdRef = useRef<NodeJS.Timeout | null>(null)
+  const loadingRef = useRef(false)
 
   // ── START ESCORTE IMMEDIATE ──────────────────────
   const startEscorteImmediate = useCallback(async () => {
-    if (!userId) return
-
+    if (!userId || loadingRef.current) return
+    loadingRef.current = true
+    try {
     const { data: escorte, error } = await supabase
       .from('escortes')
       .insert({
@@ -37,6 +40,9 @@ export function useEscorte(userId: string) {
     setView('escorte-notifying')
     startGPSTracking(escorte.id)
     startElapsedTimer()
+    } finally {
+      loadingRef.current = false
+    }
   }, [userId])
 
   // ── START TRIP ───────────────────────────────────
@@ -49,8 +55,9 @@ export function useEscorte(userId: string) {
     etaMinutes: number
     withCircle: boolean
   }) => {
-    if (!userId) return
-
+    if (!userId || loadingRef.current) return
+    loadingRef.current = true
+    try {
     const { data: escorte, error } = await supabase
       .from('escortes')
       .insert({
@@ -75,6 +82,9 @@ export function useEscorte(userId: string) {
     setView('trip-active')
     startGPSTracking(escorte.id)
     startElapsedTimer()
+    } finally {
+      loadingRef.current = false
+    }
   }, [userId])
 
   // ── NOTIFY CIRCLE ────────────────────────────────
@@ -86,7 +96,11 @@ export function useEscorte(userId: string) {
       .eq('user_id', userId)
       .eq('status', 'accepted')
 
-    if (!contacts?.length) return
+    if (!contacts?.length) {
+      // No contacts — activate Julia immediately for demo
+      setJuliaActive(true)
+      return
+    }
 
     // 2. Insert escorte_circle rows
     await supabase.from('escorte_circle').insert(
@@ -112,10 +126,26 @@ export function useEscorte(userId: string) {
 
     // 5. Start Julia countdown (2 min → si personne ne répond)
     setJuliaCd(120)
+    setJuliaActive(false)
     juliaCdRef.current = setInterval(() => {
       setJuliaCd(s => {
         if (s <= 1) {
           clearInterval(juliaCdRef.current!)
+          // Julia joins — update DB + set local state immediately
+          setJuliaActive(true)
+          if (escorteId) {
+            Promise.resolve(
+              supabase
+                .from('escortes')
+                .update({ julia_active: true })
+                .eq('id', escorteId)
+            ).catch(() => {})
+            supabase.functions
+              .invoke('julia-join', {
+                body: { escorte_id: escorteId, user_id: userId },
+              })
+              .catch(() => {})
+          }
           return 0
         }
         return s - 1
@@ -241,6 +271,7 @@ export function useEscorte(userId: string) {
     circleMembers,
     elapsed,
     juliaCd,
+    juliaActive,
     startEscorteImmediate,
     startTrip,
     endEscorte,

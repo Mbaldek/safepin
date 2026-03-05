@@ -873,9 +873,9 @@ function MapView({
       source: ROUTE_SRC,
       layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
-        'line-color': '#f43f5e',
+        'line-color': '#3BB4C1',
         'line-width': 4,
-        'line-opacity': 0.80,
+        'line-opacity': 0.85,
         'line-dasharray': [1, 0],
       },
     }, 'clusters-halo');

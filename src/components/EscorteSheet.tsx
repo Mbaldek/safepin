@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Send, Home, Navigation, Search, Shield, Clock,
   ChevronLeft, ChevronRight, Check, AlertTriangle, Share2,
-  Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase
+  Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase, Sparkles,
+  Footprints, Train, Bike, Car
 } from 'lucide-react'
 import { T, tok, springConfig, gentleSpring } from '@/lib/tokens'
 import { useEscorte }       from '@/hooks/useEscorte'
@@ -18,7 +19,11 @@ import {
   formatElapsed, formatCountdown, calcETA, calcDist, avatarColor
 } from '@/lib/escorteHelpers'
 import FavorisManager from './FavorisManager'
+import dynamic from 'next/dynamic'
+import { toast } from 'sonner'
 import type { FavoriTrajet, MapboxSuggestion, RouteMode } from '@/types'
+
+const AudioChannel = dynamic(() => import('./escorte/AudioChannel'), { ssr: false })
 
 interface Props {
   userId:    string
@@ -41,9 +46,34 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
   const [selectedDest, setSelectedDest] = useState<MapboxSuggestion | null>(null)
-  const [routeMode,   setRouteMode]   = useState<RouteMode>('balanced')
+  const [routeMode,   setRouteMode]   = useState<RouteMode>('walk')
   const [withCircle,  setWithCircle]  = useState(true)
   const [showFavoris, setShowFavoris] = useState(false)
+  const [sosSent, setSosSent] = useState(false)
+
+  // ── Share position link ────────────────────────
+  const handleShare = useCallback(async () => {
+    if (!escorte.activeEscorte) return
+    const url = `https://breveil.app/track/${escorte.activeEscorte.id}`
+    if (navigator.share) {
+      await navigator.share({
+        title: 'Je suis en route',
+        text: 'Suis ma position en direct',
+        url,
+      }).catch(() => {})
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => {})
+      toast.success('Lien copié !')
+    }
+  }, [escorte.activeEscorte])
+
+  // ── SOS with visual feedback ───────────────────
+  const handleSOS = useCallback(async () => {
+    if (sosSent) return
+    setSosSent(true)
+    await escorte.triggerSOS()
+    setTimeout(() => setSosSent(false), 3000)
+  }, [escorte, sosSent])
 
   // ── Sheet height per view ──────────────────────
   const sheetHeights: Record<string, string> = {
@@ -601,22 +631,23 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         </div>
       )}
 
-      {/* Route mode */}
+      {/* Transport mode */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 7 }}>
-          Type de trajet
+          Mode de transport
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
           {([
-            { key: 'safe',     Icon: Shield,     label: 'Plus sur',    color: T.semanticSuccess },
-            { key: 'balanced', Icon: Navigation, label: 'Equilibre',   color: T.gradientStart   },
-            { key: 'fast',     Icon: Clock,      label: 'Plus rapide', color: T.accentGold     },
+            { key: 'walk',    Icon: Footprints, label: 'A pied',   color: T.gradientStart   },
+            { key: 'transit', Icon: Train,      label: 'Transport', color: T.accentPurple    },
+            { key: 'bike',    Icon: Bike,       label: 'Velo',      color: T.semanticSuccess },
+            { key: 'car',     Icon: Car,        label: 'Voiture',   color: T.accentGold      },
           ] as const).map(mode => {
             const active = routeMode === mode.key
             return (
               <button
                 key={mode.key}
-                onClick={() => setRouteMode(mode.key)}
+                onClick={() => setRouteMode(mode.key as RouteMode)}
                 style={{
                   padding: '10px 6px', borderRadius: 10,
                   background: active ? `${mode.color}12` : tk.ih,
@@ -633,33 +664,35 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         </div>
       </div>
 
-      {/* Escorte toggle */}
-      <div style={{
-        background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
-        border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
-        borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
-      }}>
-        <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
-        <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
-          Activer l'escorte cercle
-        </span>
-        <button
-          onClick={() => setWithCircle(!withCircle)}
-          style={{
-            width: 38, height: 21, borderRadius: 100,
-            background: withCircle ? T.gradientStart : tk.ih,
-            border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
-            padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-            flexShrink: 0, transition: 'background 200ms',
-          }}
-        >
-          <motion.div
-            animate={{ x: withCircle ? 17 : 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-          />
-        </button>
-      </div>
+      {/* Escorte toggle — hidden for bike/car */}
+      {(routeMode === 'walk' || routeMode === 'transit') && (
+        <div style={{
+          background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
+          border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
+          borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+        }}>
+          <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
+            Activer l'escorte cercle
+          </span>
+          <button
+            onClick={() => setWithCircle(!withCircle)}
+            style={{
+              width: 38, height: 21, borderRadius: 100,
+              background: withCircle ? T.gradientStart : tk.ih,
+              border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
+              padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+              flexShrink: 0, transition: 'background 200ms',
+            }}
+          >
+            <motion.div
+              animate={{ x: withCircle ? 17 : 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+            />
+          </button>
+        </div>
+      )}
 
       <motion.button
         style={{
@@ -772,7 +805,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         {/* Elapsed + actions */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 8 }}>
           <button
-            onClick={() => { /* navigator.share */ }}
+            onClick={handleShare}
             style={{
               ...cardSt, padding: '11px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', border: `1px solid ${tk.bd}`, fontFamily: 'inherit', fontSize: 12, fontWeight: 500, color: tk.ts,
             }}
@@ -780,15 +813,21 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
             <Share2 size={14} strokeWidth={1.5} /> Partager
           </button>
           <button
-            onClick={escorte.triggerSOS}
+            onClick={handleSOS}
             style={{
-              background: T.semanticDangerSoft, border: `1px solid ${T.semanticDanger}35`,
+              background: sosSent ? 'rgba(239,68,68,0.20)' : T.semanticDangerSoft,
+              border: `1px solid ${T.semanticDanger}35`,
               borderRadius: T.radiusLg, padding: '11px 12px',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: T.semanticDanger,
+              cursor: sosSent ? 'default' : 'pointer',
+              fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: T.semanticDanger,
+              transition: 'background 0.3s',
             }}
           >
-            <AlertTriangle size={14} strokeWidth={1.5} /> SOS
+            {sosSent
+              ? <><Check size={14} strokeWidth={2.5} /> SOS envoyé</>
+              : <><AlertTriangle size={14} strokeWidth={1.5} /> SOS</>
+            }
           </button>
         </div>
 
@@ -939,6 +978,39 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
           </div>
         </motion.div>
 
+        {/* Julia banner (escorte-live) */}
+        <AnimatePresence>
+          {escorte.juliaActive && (
+            <motion.div
+              key="julia-live"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              style={{
+                position: 'absolute', top: 80, left: 16, right: 16,
+                background: 'rgba(167,139,250,0.10)',
+                border: '1px solid rgba(167,139,250,0.25)',
+                borderRadius: 14, padding: '10px 14px',
+                display: 'flex', alignItems: 'center', gap: 10,
+                pointerEvents: 'auto',
+              }}
+            >
+              <Sparkles size={16} color="#A78BFA" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#A78BFA', flex: 1 }}>
+                Julia vous accompagne · canal actif
+              </span>
+              <span style={{
+                fontSize: 8, fontWeight: 700,
+                background: 'rgba(167,139,250,0.15)', color: '#A78BFA',
+                padding: '2px 6px', borderRadius: 4,
+              }}>
+                IA
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Bottom live card */}
         <motion.div
           initial={{ y: 100, opacity: 0 }}
@@ -1017,7 +1089,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
       transition={springConfig}
       style={{
         position:            'absolute',
-        bottom:              72,
+        bottom:              64,
         left:                0,
         right:               0,
         background:          d ? T.surfaceElevated : '#FFFFFF',
@@ -1035,6 +1107,60 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
       <div style={{ padding: '10px 0 0', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: d ? T.borderStrong : 'rgba(15,23,42,0.16)' }} />
       </div>
+
+      {/* Julia banner */}
+      <AnimatePresence>
+        {escorte.juliaActive &&
+         (escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') && (
+          <motion.div
+            key="julia-banner"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={{
+              margin: '8px 16px 0',
+              background: 'rgba(167,139,250,0.10)',
+              border: '1px solid rgba(167,139,250,0.25)',
+              borderRadius: 14,
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexShrink: 0,
+            }}
+          >
+            <Sparkles size={16} color="#A78BFA" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#A78BFA', flex: 1 }}>
+              Julia vous accompagne · canal actif
+            </span>
+            <span style={{
+              fontSize: 8, fontWeight: 700,
+              background: 'rgba(167,139,250,0.15)', color: '#A78BFA',
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              IA
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Audio channel banner */}
+      <AnimatePresence>
+        {(escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') &&
+         escorte.activeEscorte &&
+         escorte.circleMembers.some(m => m.status === 'vocal') && (
+          <div style={{ margin: '6px 16px 0', flexShrink: 0 }}>
+            <AudioChannel
+              escorteId={escorte.activeEscorte.id}
+              userId={userId}
+              isDark={d}
+              circleMembers={escorte.circleMembers}
+              onEnd={() => escorte.endEscorte(false)}
+            />
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>

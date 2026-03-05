@@ -41,7 +41,6 @@ import { CoachMark } from '@/components/CoachMark';
 import { useTour } from '@/hooks/useTour';
 
 // Lazy-loaded heavy components — not on the critical rendering path
-const TripSheet = dynamic(() => import('@/components/TripSheet'), { ssr: false });
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
@@ -900,7 +899,7 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Escorte sheet — replaces TripSheet on trip tab */}
+        {/* Escorte sheet — trip tab */}
         <AnimatePresence>
           {activeTab === 'trip' && userId && (
             <EscorteSheet

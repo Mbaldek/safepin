@@ -130,9 +130,10 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
         style={{
           backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
           borderRadius: "24px 24px 0 0",
-          maxHeight: "90%",
+          height: "88dvh",
           display: "flex",
           flexDirection: "column",
+          overflow: "hidden",
         }}
       >
         {/* Header */}
@@ -199,6 +200,8 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
           </motion.button>
         </div>
 
+        {/* Scrollable content */}
+        <div style={{ flex: 1, overflowY: "auto" }} className="scrollbar-hidden">
         {/* Community selector */}
         {communities.length > 0 && (
           <div style={{ padding: "12px 20px 0" }}>
@@ -276,7 +279,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
             placeholder={placeholders[selectedType]}
             style={{
               width: "100%",
-              height: 150,
+              minHeight: 120,
               padding: 16,
               borderRadius: 12,
               border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
@@ -371,6 +374,8 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
             <span>Ajouter une photo</span>
           </motion.button>
         </div>
+
+        </div>{/* end scrollable content */}
 
         {/* Safe area spacer */}
         <div style={{ height: 20 }} />

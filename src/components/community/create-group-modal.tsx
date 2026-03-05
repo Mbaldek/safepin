@@ -9,69 +9,31 @@ import {
   Copy,
   Check,
   Loader2,
-  Camera,
   Search,
   UserPlus,
   ArrowRight,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { T, springConfig } from "@/lib/tokens";
 import { toast } from "sonner";
 
 const SPRING = springConfig;
 
-/* ─── Emoji categories ─── */
-const EMOJI_CATEGORIES = [
-  {
-    label: "Populaire",
-    emojis: [
-      "👥","🏃","🌙","👶","🎓","💪",
-      "🏘️","🎨","🌳","🔒","💼","🎶",
-    ],
-  },
-  {
-    label: "Personnes",
-    emojis: [
-      "👨‍👩‍👧","👩‍👧","👫","🧑‍🤝‍🧑","🧕","👩‍🎓",
-      "👷","🧑‍💻","🏋️","🚴","🧘","🤝",
-    ],
-  },
-  {
-    label: "Activites",
-    emojis: [
-      "⚽","🎭","🎮","📚","🎵","🎬",
-      "🏊","🧗","🎯","🎲","🎤","📷",
-    ],
-  },
-  {
-    label: "Nature",
-    emojis: [
-      "🌸","🌻","🍀","🌊","⛰️","🌅",
-      "🐾","🦋","🌈","☀️","🌙","⭐",
-    ],
-  },
-  {
-    label: "Lieux",
-    emojis: [
-      "🏠","🏫","🏥","🏢","🏖️","🏕️",
-      "🛕","🏟️","🏪","🌆","🗺️","📍",
-    ],
-  },
-  {
-    label: "Objets",
-    emojis: [
-      "🛡️","💡","🔑","📱","🚗","🚲",
-      "✈️","🎒","☕","🍕","🎁","💐",
-    ],
-  },
-  {
-    label: "Symboles",
-    emojis: [
-      "❤️","💛","💚","💙","💜","🤍",
-      "✨","🔥","💎","🕊️","☮️","♾️",
-    ],
-  },
+/* ─── Icon categories (compact) ─── */
+const ICON_CATEGORIES: Record<string, string[]> = {
+  pop: ['👥','🛡️','🏠','💬','🌟','❤️','🔥','🎯','✅','🌍','🤝','👑','💪','🎉','🌈','⭐','🙏','🌸'],
+  per: ['👩','👩‍🦱','👩‍🦰','🧕','👩‍🎓','👩‍💼','👩‍🔬','👩‍🎨','👸','🧍‍♀️','🏃‍♀️','🚶‍♀️','🤸‍♀️','🧗‍♀️','🏋️‍♀️','🚴‍♀️','🧘‍♀️','👯‍♀️'],
+  act: ['🧘','🏊','🚴','🎨','📚','🎵','🍕','🎬','🎮','🏆','⚽','🎭','🏄‍♀️','🎺','🎸','🤺','🏇','🧗'],
+  lie: ['🏙️','🗼','🏛️','🏟️','🏪','☕','🍽️','🌆','🌇','🌃','🌁','🏘️','🗺️','📍','🧭','🚉','🌉','🏞️'],
+  nat: ['🌿','🌳','🌸','🌺','🌊','🌙','☀️','⛅','🌈','🦋','🐝','🌻','🍃','🌲','🍀','🌾','🦚','🌴'],
+};
+const CAT_LABELS = [
+  { key: 'pop', label: '⭐ Pop.' },
+  { key: 'per', label: '👤 Pers.' },
+  { key: 'act', label: '🎯 Act.' },
+  { key: 'lie', label: '📍 Lieux' },
+  { key: 'nat', label: '🌿 Nat.' },
 ];
 
 /* ─── Types ─── */
@@ -105,16 +67,11 @@ export default function CreateGroupModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [emoji, setEmoji] = useState("👥");
+  const [activeCat, setActiveCat] = useState("pop");
   const [isPrivate, setIsPrivate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createdGroupId, setCreatedGroupId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  /* Photo upload state */
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* Invite state */
   const [cercleContacts, setCercleContacts] = useState<ContactForInvite[]>([]);
@@ -122,13 +79,6 @@ export default function CreateGroupModal({
   const [inviteSearch, setInviteSearch] = useState("");
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [inviting, setInviting] = useState(false);
-
-  /* Cleanup preview URL on unmount */
-  useEffect(() => {
-    return () => {
-      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    };
-  }, [avatarPreview]);
 
   /* Fetch cercle contacts when entering invite step */
   useEffect(() => {
@@ -190,31 +140,8 @@ export default function CreateGroupModal({
 
   /* ─── Handlers ─── */
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Fichier invalide — image uniquement");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image trop lourde — 5 Mo maximum");
-      return;
-    }
-    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-    e.target.value = "";
-  }
-
-  function removePhoto() {
-    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(null);
-    setAvatarPreview(null);
-  }
-
   const handleCreate = async () => {
-    if (!name.trim() || !userId) return;
+    if (name.trim().length < 2 || !userId) return;
     setCreating(true);
 
     const { data, error } = await supabase
@@ -236,39 +163,13 @@ export default function CreateGroupModal({
       return;
     }
 
-    const communityId = data.id;
-
-    /* Upload photo if selected */
-    if (avatarFile) {
-      const ext = avatarFile.name.split(".").pop() ?? "jpg";
-      const path = `communities/${communityId}/avatar.${ext}`;
-
-      const { error: upErr } = await supabase.storage
-        .from("community-avatars")
-        .upload(path, avatarFile, { upsert: true });
-
-      if (!upErr) {
-        const { data: urlData } = supabase.storage
-          .from("community-avatars")
-          .getPublicUrl(path);
-        const avatarUrl = urlData.publicUrl + "?t=" + Date.now();
-
-        await supabase
-          .from("communities")
-          .update({ avatar_url: avatarUrl })
-          .eq("id", communityId);
-
-        setUploadedAvatarUrl(avatarUrl);
-      }
-    }
-
     /* Add creator as member */
     await supabase.from("community_members").insert({
-      community_id: communityId,
+      community_id: data.id,
       user_id: userId,
     });
 
-    setCreatedGroupId(communityId);
+    setCreatedGroupId(data.id);
     setStep("invite");
     setCreating(false);
     onCreated();
@@ -341,25 +242,6 @@ export default function CreateGroupModal({
     letterSpacing: 0.5,
     marginBottom: 8,
     display: "block",
-  };
-
-  /* ─── Group avatar display helper ─── */
-  const renderGroupAvatar = (size: number) => {
-    if (avatarPreview || uploadedAvatarUrl) {
-      return (
-        <img
-          src={avatarPreview || uploadedAvatarUrl || ""}
-          alt=""
-          style={{
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            objectFit: "cover",
-          }}
-        />
-      );
-    }
-    return <span style={{ fontSize: size * 0.45 }}>{emoji}</span>;
   };
 
   return (
@@ -447,18 +329,18 @@ export default function CreateGroupModal({
               </span>
               <button
                 onClick={handleCreate}
-                disabled={creating || !name.trim()}
+                disabled={creating || name.trim().length < 2}
                 style={{
                   padding: "8px 16px",
                   borderRadius: 8,
-                  backgroundColor: !name.trim()
+                  backgroundColor: name.trim().length < 2
                     ? d ? T.surfaceElevated : "#E2E8F0"
                     : T.gradientStart,
                   border: "none",
                   color: "#FFFFFF",
                   fontSize: 14,
                   fontWeight: 600,
-                  cursor: !name.trim() ? "default" : "pointer",
+                  cursor: name.trim().length < 2 ? "default" : "pointer",
                   opacity: creating ? 0.6 : 1,
                   display: "flex",
                   alignItems: "center",
@@ -477,197 +359,127 @@ export default function CreateGroupModal({
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
-              {/* ─── Photo upload ─── */}
+              {/* ─── Emoji preview + Name inline ─── */}
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  marginBottom: 20,
+                  gap: 14,
+                  marginBottom: 16,
                 }}
               >
-                <div style={{ position: "relative" }}>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: "50%",
-                      border: `2px dashed ${d ? T.borderDefault : T.borderDefaultL}`,
-                      background: avatarPreview
-                        ? "transparent"
-                        : `linear-gradient(135deg, ${T.gradientStart}, #06B6D4)`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      overflow: "hidden",
-                      padding: 0,
-                    }}
-                  >
-                    {renderGroupAvatar(80)}
-                  </button>
-                  {/* Camera badge */}
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      right: 0,
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      backgroundColor: T.gradientStart,
-                      border: `2px solid ${d ? T.surfaceBase : T.surfaceBaseL}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Camera size={14} strokeWidth={1.5} color="#FFFFFF" />
-                  </div>
-                  {/* Remove photo button */}
-                  {avatarPreview && (
-                    <div
-                      onClick={removePhoto}
-                      style={{
-                        position: "absolute",
-                        top: -4,
-                        right: -4,
-                        width: 22,
-                        height: 22,
-                        borderRadius: "50%",
-                        backgroundColor: T.semanticDanger,
-                        border: `2px solid ${d ? T.surfaceBase : T.surfaceBaseL}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <X size={12} strokeWidth={2} color="#FFFFFF" />
-                    </div>
-                  )}
-                </div>
-                <span
+                <div
                   style={{
-                    fontSize: 12,
-                    color: d ? T.textTertiary : T.textTertiaryL,
-                    marginTop: 8,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: `linear-gradient(135deg, ${T.gradientStart}, #06B6D4)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  {avatarPreview ? "Photo selectionnee" : "Ajouter une photo"}
-                </span>
+                  <span style={{ fontSize: 24 }}>{emoji}</span>
+                </div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Nom du groupe"
+                  maxLength={50}
+                  style={{
+                    flex: 1,
+                    padding: "12px 14px",
+                    borderRadius: T.radiusMd,
+                    border: `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
+                    backgroundColor: d ? T.surfaceCard : T.surfaceCardL,
+                    color: d ? T.textPrimary : T.textPrimaryL,
+                    fontSize: 15,
+                    outline: "none",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-              />
-
-              {/* ─── Emoji picker (categorized) ─── */}
-              <label style={labelStyle}>
-                {avatarPreview ? "Ou choisir une icone" : "Icone"}
-              </label>
+              {/* ─── Category tabs ─── */}
               <div
                 style={{
-                  maxHeight: 180,
-                  overflowY: "auto",
-                  marginBottom: 20,
-                  borderRadius: T.radiusMd,
-                  border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
-                  padding: "8px 8px 4px",
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  marginBottom: 10,
+                  paddingBottom: 4,
                 }}
+                className="scrollbar-hidden"
               >
-                {EMOJI_CATEGORIES.map((cat) => (
-                  <div key={cat.label} style={{ marginBottom: 8 }}>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: d ? T.textTertiary : T.textTertiaryL,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                        padding: "4px 0",
-                        position: "sticky",
-                        top: 0,
-                        backgroundColor: d ? T.surfaceBase : T.surfaceBaseL,
-                        zIndex: 1,
-                      }}
-                    >
-                      {cat.label}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 6,
-                      }}
-                    >
-                      {cat.emojis.map((e) => (
-                        <button
-                          key={cat.label + e}
-                          onClick={() => {
-                            setEmoji(e);
-                            if (avatarPreview) removePhoto();
-                          }}
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 10,
-                            border:
-                              emoji === e && !avatarPreview
-                                ? `2px solid ${T.gradientStart}`
-                                : `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
-                            backgroundColor:
-                              emoji === e && !avatarPreview
-                                ? "rgba(59,180,193,0.1)"
-                                : d
-                                ? T.interactiveHover
-                                : T.interactiveHoverL,
-                            fontSize: 18,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            padding: 0,
-                          }}
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                {CAT_LABELS.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => setActiveCat(c.key)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 100,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "inherit",
+                      whiteSpace: "nowrap",
+                      cursor: "pointer",
+                      border: activeCat === c.key
+                        ? `1.5px solid ${T.gradientStart}`
+                        : `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
+                      backgroundColor: activeCat === c.key
+                        ? "rgba(59,180,193,0.12)"
+                        : d ? T.interactiveHover : T.interactiveHoverL,
+                      color: activeCat === c.key
+                        ? T.gradientStart
+                        : d ? T.textSecondary : T.textSecondaryL,
+                    }}
+                  >
+                    {c.label}
+                  </button>
                 ))}
               </div>
 
-              {/* ─── Name ─── */}
-              <label style={labelStyle}>Nom du groupe</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Marche du soir 15e"
-                maxLength={50}
+              {/* ─── Emoji strip (single-line scroll) ─── */}
+              <div
                 style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: T.radiusMd,
-                  border: `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
-                  backgroundColor: d ? T.surfaceCard : T.surfaceCardL,
-                  color: d ? T.textPrimary : T.textPrimaryL,
-                  fontSize: 15,
-                  outline: "none",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  paddingBottom: 4,
                   marginBottom: 20,
                 }}
-              />
+                className="scrollbar-hidden"
+              >
+                {ICON_CATEGORIES[activeCat].map((e) => (
+                  <button
+                    key={activeCat + e}
+                    onClick={() => setEmoji(e)}
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      border: emoji === e
+                        ? `2px solid ${T.gradientStart}`
+                        : `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
+                      backgroundColor: emoji === e
+                        ? "rgba(59,180,193,0.1)"
+                        : d ? T.interactiveHover : T.interactiveHoverL,
+                      fontSize: 20,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      padding: 0,
+                    }}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
 
               {/* ─── Description ─── */}
               <label style={labelStyle}>Description (optionnel)</label>
@@ -1125,20 +937,7 @@ export default function CreateGroupModal({
                   gap: 6,
                 }}
               >
-                {uploadedAvatarUrl ? (
-                  <img
-                    src={uploadedAvatarUrl}
-                    alt=""
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <span>{emoji}</span>
-                )}
+                <span>{emoji}</span>
                 {name}
               </div>
             </div>
