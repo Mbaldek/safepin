@@ -325,7 +325,7 @@ export default function Home() {
           <a href="#pricing">Tarifs</a>
           <a href="#community">Communaute</a>
         </div>
-        <Link href="/login" className="nav-cta">Essayer gratuitement</Link>
+        <Link href="/onboarding" className="nav-cta">Essayer gratuitement</Link>
       </nav>
 
       {/* ==================== HERO ==================== */}
@@ -338,7 +338,7 @@ export default function Home() {
           jusqu&apos;a destination, et connecte votre cercle de confiance autour de vous.
         </p>
         <div className="hero-actions">
-          <Link href="/login" className="btn-primary">Commencer gratuitement &rarr;</Link>
+          <Link href="/onboarding" className="btn-primary">Commencer gratuitement &rarr;</Link>
           <a href="#how" className="btn-ghost">Voir comment ca marche</a>
         </div>
         <div className="hero-social-proof">
@@ -592,7 +592,7 @@ export default function Home() {
               <li><span className="lock">&#9919;</span> Marche avec moi</li>
               <li><span className="lock">&#9919;</span> Julia IA</li>
             </ul>
-            <Link href="/login" className="plan-btn ghost">Commencer gratuitement</Link>
+            <Link href="/onboarding" className="plan-btn ghost">Commencer gratuitement</Link>
           </div>
           <div className="pricing-card featured">
             <div className="pricing-badge">&#9889; 7 jours d&apos;essai gratuit</div>
@@ -608,7 +608,7 @@ export default function Home() {
               <li><span className="check">&#10003;</span> Alertes prioritaires</li>
               <li><span className="check">&#10003;</span> Historique complet</li>
             </ul>
-            <Link href="/login" className="plan-btn gold">Commencer l&apos;essai gratuit</Link>
+            <Link href="/onboarding" className="plan-btn gold">Commencer l&apos;essai gratuit</Link>
           </div>
         </div>
       </section>
@@ -619,7 +619,7 @@ export default function Home() {
         <h2 className="cta-title reveal">Prete a marcher<br /><em>sans crainte</em> ?</h2>
         <p className="cta-sub reveal">Rejoignez les milliers de femmes qui font confiance a Breveil chaque soir.</p>
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' as const, position: 'relative' as const }}>
-          <Link href="/login" className="btn-primary">Telecharger Breveil &rarr;</Link>
+          <Link href="/onboarding" className="btn-primary">Telecharger Breveil &rarr;</Link>
           <a href="#how" className="btn-ghost">Voir la demo</a>
         </div>
       </section>

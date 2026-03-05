@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get('next');
   const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,13 +18,17 @@ export default function LoginPage() {
 
   const gradient = 'linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%)';
 
+  const callbackUrl = nextPath
+    ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
+    : `${window.location.origin}/auth/callback`;
+
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setLoading(true);
     setError(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: callbackUrl },
       });
       if (error) throw error;
     } catch (e: unknown) {
@@ -39,7 +45,7 @@ export default function LoginPage() {
       if (mode === 'magic') {
         const { error } = await supabase.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: { emailRedirectTo: callbackUrl },
         });
         if (error) throw error;
         setMagicSent(true);
@@ -47,14 +53,14 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: { emailRedirectTo: callbackUrl },
         });
         if (error) throw error;
         setMagicSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push('/map');
+        router.push(nextPath || '/map');
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'An error occurred');
