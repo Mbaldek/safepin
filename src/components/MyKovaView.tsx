@@ -27,6 +27,23 @@ import ChallengesSection from '@/components/ChallengesSection';
 import ReferralSection from '@/components/ReferralSection';
 import TrendSparkline from '@/components/TrendSparkline';
 import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
+import { useTheme } from '@/stores/useTheme';
+
+// ─── Theme-aware colors ──────────────────────────────────────────────────────
+
+function getColors(isDark: boolean) {
+  return {
+    textPrimary:      isDark ? '#FFFFFF' : '#0F172A',
+    textMuted:        isDark ? '#64748B' : '#94A3B8',
+    accent:           isDark ? '#3BB4C1' : '#C48A1E',
+    accentGold:       '#F5C341',
+    bgCard:           isDark ? '#334155' : '#FFFFFF',
+    bgSecondary:      isDark ? '#1E293B' : '#FFFFFF',
+    border:           isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.10)',
+    surfaceBase:      isDark ? '#0F172A' : '#F8FAFC',
+    interactiveHover: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.03)',
+  };
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -79,18 +96,20 @@ function DangerBadge({ score }: { score: number }) {
 }
 
 function EmptyState({ emoji, title, body, ctaLabel, onCta }: { emoji: string; title: string; body: string; ctaLabel?: string; onCta?: () => void }) {
+  const _isDark = useTheme((s) => s.theme) === 'dark';
+  const _c = getColors(_isDark);
   return (
     <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
       <span className="text-4xl leading-none">{emoji}</span>
       <div>
-        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</p>
-        <p className="text-xs mt-1 max-w-[220px] mx-auto" style={{ color: 'var(--text-muted)' }}>{body}</p>
+        <p className="text-sm font-bold" style={{ color: _c.textPrimary }}>{title}</p>
+        <p className="text-xs mt-1 max-w-[220px] mx-auto" style={{ color: _c.textMuted }}>{body}</p>
       </div>
       {ctaLabel && onCta && (
         <button
           onClick={onCta}
           className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
-          style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+          style={{ backgroundColor: _c.accent, color: '#fff' }}
         >
           {ctaLabel}
         </button>
@@ -100,18 +119,22 @@ function EmptyState({ emoji, title, body, ctaLabel, onCta }: { emoji: string; ti
 }
 
 function SectionLabel({ text }: { text: string }) {
+  const _isDark = useTheme((s) => s.theme) === 'dark';
+  const _c = getColors(_isDark);
   return (
-    <p className="text-[0.65rem] font-black uppercase tracking-widest px-1" style={{ color: 'var(--text-muted)' }}>
+    <p className="text-[0.65rem] font-black uppercase tracking-widest px-1" style={{ color: _c.textMuted }}>
       {text}
     </p>
   );
 }
 
 function SkeletonList({ rows }: { rows: number }) {
+  const _isDark = useTheme((s) => s.theme) === 'dark';
+  const _c = getColors(_isDark);
   return (
     <div className="space-y-2">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)' }} />
+        <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ backgroundColor: _c.bgCard, border: `1.5px solid ${_c.border}` }} />
       ))}
     </div>
   );
@@ -135,6 +158,8 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
   const t = useTranslations('mykova');
   const tOb = useTranslations('onboarding');
+  const isDark = useTheme((s) => s.theme) === 'dark';
+  const c = getColors(isDark);
 
   // ─── Sub-tab state ──────────────────────────────────────────────────────
   const [activeSubTab, setActiveSubTab] = useState<MyKovaTab>('activity');
@@ -433,7 +458,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     onClose();
   }
 
-  const card = { backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' };
+  const card = { backgroundColor: c.bgCard, border: `1px solid ${c.border}` };
 
   // ─── Render ────────────────────────────────────────────────────────────
 
@@ -459,7 +484,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={springTransition}
         className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-110 rounded-t-2xl z-201 flex flex-col overflow-hidden lg:bottom-2 lg:left-2 lg:translate-x-0 lg:w-95 lg:max-w-none lg:rounded-2xl"
-        style={{ backgroundColor: 'var(--surface-base)', maxHeight: '92dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.4)' }}
+        style={{ backgroundColor: c.surfaceBase, maxHeight: '92dvh', boxShadow: '0 -8px 40px rgba(0,0,0,0.4)' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -477,10 +502,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 type="button"
                 onClick={onClose}
                 className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-                style={{ backgroundColor: 'var(--interactive-hover)' }}
+                style={{ backgroundColor: c.interactiveHover }}
                 aria-label="Fermer"
               >
-                <X size={18} style={{ color: 'var(--text-muted)' }} />
+                <X size={18} style={{ color: c.textMuted }} />
               </button>
             </div>
 
@@ -495,7 +520,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, var(--accent-gold), #8B7EC8)' }}
+                  style={{ background: `linear-gradient(135deg, ${c.accentGold}, #8B7EC8)` }}
                 >
                   {userProfile?.avatar_url ? (
                     <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -515,7 +540,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(); } if (e.key === 'Escape') cancelEdit(); }}
                         placeholder="Votre prénom…"
                         className="flex-1 font-serif text-[20px] font-normal outline-none rounded-lg px-2 py-1 min-w-0"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.2)', color: 'var(--text-primary)' }} />
+                        style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.2)', color: c.textPrimary }} />
                       <button onClick={saveName} disabled={saving} className="p-1 rounded-lg" style={{ color: '#10b981' }}><Check size={14} /></button>
                       <button onClick={cancelEdit} className="p-1 rounded-lg" style={{ color: 'rgba(255,255,255,0.4)' }}><X size={14} /></button>
                     </div>
@@ -557,7 +582,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 className="flex flex-col items-center rounded-xl py-3"
                 style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <span className="font-serif text-[24px] leading-none" style={{ color: 'var(--accent-gold)' }}>{myReports.length}</span>
+                <span className="font-serif text-[24px] leading-none" style={{ color: c.accentGold }}>{myReports.length}</span>
                 <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {t('reports')}
                 </span>
@@ -587,7 +612,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 className="flex flex-col items-center rounded-xl py-3"
                 style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                <span className="font-serif text-[24px] leading-none" style={{ color: 'var(--accent-gold)' }}>{thanksCount}</span>
+                <span className="font-serif text-[24px] leading-none" style={{ color: c.accentGold }}>{thanksCount}</span>
                 <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {t('thanks')}
                 </span>
@@ -645,8 +670,8 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                     onClick={() => setActiveSubTab(id)}
                     className="rounded-full px-4 py-2 text-[12px] transition-all duration-200"
                     style={{
-                      backgroundColor: isActive ? 'var(--accent-gold)' : 'transparent',
-                      color: isActive ? 'var(--surface-base)' : 'rgba(255,255,255,0.4)',
+                      backgroundColor: isActive ? c.accentGold : 'transparent',
+                      color: isActive ? c.surfaceBase : 'rgba(255,255,255,0.4)',
                       fontWeight: isActive ? 700 : 500,
                       border: isActive ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
                     }}
@@ -703,13 +728,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                         {favPlaces.map((place) => (
                           <button key={place.id} onClick={() => openTripToPlace(place)}
                             className="w-full text-left flex items-center gap-3 p-3 rounded-2xl transition active:scale-[0.98]"
-                            style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)' }}>
+                            style={{ backgroundColor: c.bgCard, border: `1.5px solid ${c.border}` }}>
                             <span className="text-xl leading-none">{place.emoji}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{place.name || 'Unnamed place'}</p>
-                              {place.note && <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{place.note}</p>}
+                              <p className="text-sm font-semibold truncate" style={{ color: c.textPrimary }}>{place.name || 'Unnamed place'}</p>
+                              {place.note && <p className="text-xs mt-0.5 truncate" style={{ color: c.textMuted }}>{place.note}</p>}
                             </div>
-                            <Navigation size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                            <Navigation size={15} style={{ color: c.accent, flexShrink: 0 }} />
                           </button>
                         ))}
                       </div>
@@ -720,18 +745,18 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                         {routesLoading ? <SkeletonList rows={3} /> : savedRoutes.map((route) => (
                           <button key={route.id} onClick={() => openTripForRoute(route)}
                             className="w-full text-left flex items-center gap-3 p-3 rounded-2xl transition active:scale-[0.98]"
-                            style={{ backgroundColor: 'var(--bg-card)', border: '1.5px solid var(--border)' }}>
+                            style={{ backgroundColor: c.bgCard, border: `1.5px solid ${c.border}` }}>
                             <span className="text-xl leading-none">{MODE_EMOJI[route.mode] ?? '🗺️'}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                              <p className="text-xs font-semibold truncate" style={{ color: c.textPrimary }}>
                                 {route.from_label ? `${route.from_label} → ` : ''}{route.to_label}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <DangerBadge score={route.danger_score_last} />
-                                <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{route.trip_count}x used</span>
+                                <span className="text-[0.6rem]" style={{ color: c.textMuted }}>{route.trip_count}x used</span>
                               </div>
                             </div>
-                            <Navigation size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                            <Navigation size={15} style={{ color: c.accent, flexShrink: 0 }} />
                           </button>
                         ))}
                       </div>
@@ -745,36 +770,36 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {activeSubTab === 'stats' && (
               <motion.div key="stats" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4 pb-2">
                 {/* Trust Score bar */}
-                <div className="rounded-2xl p-4 flex flex-col gap-2.5" style={{ backgroundColor: 'var(--bg-card)', border: `1px solid ${level.color}33` }}>
+                <div className="rounded-2xl p-4 flex flex-col gap-2.5" style={{ backgroundColor: c.bgCard, border: `1px solid ${level.color}33` }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{level.emoji}</span>
                       <div>
                         <p className="text-sm font-black" style={{ color: level.color }}>{level.label}</p>
-                        <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[0.6rem]" style={{ color: c.textMuted }}>
                           {level.next === Infinity ? 'Max level reached' : `${level.next - trustScore} pts to ${LEVELS[LEVELS.findIndex(l => l.label === level.label) + 1]?.label ?? ''}`}
                         </p>
                       </div>
                     </div>
-                    <span className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{trustScore}</span>
+                    <span className="text-2xl font-black" style={{ color: c.textPrimary, fontVariantNumeric: 'tabular-nums' }}>{trustScore}</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: c.bgSecondary }}>
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, progress * 100)}%`, backgroundColor: level.color }} />
                   </div>
                 </div>
 
                 {/* Weekly activity sparkline */}
-                <div className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <div className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}>
                   <div>
-                    <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>7-day activity</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{myPins.length} total pins</p>
+                    <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: c.textMuted }}>7-day activity</p>
+                    <p className="text-xs mt-0.5" style={{ color: c.textMuted }}>{myPins.length} total pins</p>
                   </div>
                   <TrendSparkline pins={myPins} />
                 </div>
 
                 {/* Impact grid */}
                 <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>Your Impact</p>
+                  <p className="text-[0.7rem] font-black uppercase tracking-widest mb-2.5" style={{ color: c.textMuted }}>Your Impact</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { label: 'Reports made',        value: myReports.length,  emoji: '📋', color: '#6366f1' },
@@ -786,7 +811,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       <div key={label} className="rounded-2xl p-3.5 flex flex-col gap-1" style={card}>
                         <span className="text-xl">{emoji}</span>
                         <span className="text-2xl font-black" style={{ color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-                        <span className="text-[0.6rem] font-bold uppercase tracking-wide leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</span>
+                        <span className="text-[0.6rem] font-bold uppercase tracking-wide leading-tight" style={{ color: c.textMuted }}>{label}</span>
                       </div>
                     ))}
                   </div>
@@ -794,7 +819,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                     <button
                       onClick={() => setActiveTab('map')}
                       className="w-full mt-2 py-2.5 rounded-xl text-xs font-bold transition hover:opacity-80"
-                      style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                      style={{ backgroundColor: c.accent, color: '#fff' }}
                     >
                       Report your first incident to earn points
                     </button>
@@ -802,7 +827,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 </div>
 
                 {/* Weekly Challenges — S48 */}
-                <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <div className="rounded-2xl p-4" style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}>
                   <ChallengesSection userId={userId} />
                 </div>
 
@@ -813,11 +838,11 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 <button
                   onClick={() => setShowLocationHistory(true)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition active:scale-[0.98]"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                  style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}
                 >
                   <span className="text-sm">📍</span>
-                  <span className="flex-1 text-xs font-bold text-left" style={{ color: 'var(--text-primary)' }}>{t('locationHistory')}</span>
-                  <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                  <span className="flex-1 text-xs font-bold text-left" style={{ color: c.textPrimary }}>{t('locationHistory')}</span>
+                  <ChevronRight size={14} style={{ color: c.textMuted }} />
                 </button>
 
                 {/* ── Collapsible: My Pins ─────────────────────── */}
@@ -826,13 +851,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                     className="w-full flex items-center justify-between py-2 px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">📍</span>
-                      <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>My Pins</span>
+                      <span className="text-sm font-black" style={{ color: c.textPrimary }}>My Pins</span>
                       {myPins.length > 0 && (
                         <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(212,168,83,0.12)', color: 'var(--accent)' }}>{myPins.length}</span>
+                          style={{ backgroundColor: 'rgba(212,168,83,0.12)', color: c.accent }}>{myPins.length}</span>
                       )}
                     </div>
-                    {expandedSections.has('pins') ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
+                    {expandedSections.has('pins') ? <ChevronUp size={16} style={{ color: c.textMuted }} /> : <ChevronDown size={16} style={{ color: c.textMuted }} />}
                   </button>
                   {expandedSections.has('pins') && (
                     <div className="space-y-2 mt-1">
@@ -841,9 +866,9 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                           <button key={f} onClick={() => setPinFilter(f)}
                             className="px-3 py-1.5 rounded-full text-xs font-bold transition capitalize"
                             style={{
-                              backgroundColor: pinFilter === f ? 'var(--accent)' : 'var(--bg-card)',
-                              color: pinFilter === f ? '#fff' : 'var(--text-muted)',
-                              border: pinFilter === f ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                              backgroundColor: pinFilter === f ? c.accent : c.bgCard,
+                              color: pinFilter === f ? '#fff' : c.textMuted,
+                              border: pinFilter === f ? `1.5px solid ${c.accent}` : `1px solid ${c.border}`,
                             }}>
                             {f === 'all' ? `All (${myPins.length})` : f === 'active' ? `Active (${activePins.length})` : `Resolved (${myPins.length - activePins.length})`}
                           </button>
@@ -852,12 +877,12 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       {filteredPins.length === 0 ? (
                         <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
                           <span className="text-2xl">📍</span>
-                          <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>{pinFilter === 'all' ? 'No pins yet' : `No ${pinFilter} pins`}</p>
+                          <p className="text-sm font-bold" style={{ color: c.textMuted }}>{pinFilter === 'all' ? 'No pins yet' : `No ${pinFilter} pins`}</p>
                           {pinFilter === 'all' && (
                             <button
                               onClick={() => setActiveTab('map')}
                               className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
-                              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                              style={{ backgroundColor: c.accent, color: '#fff' }}
                             >
                               {t('reportIncident')}
                             </button>
@@ -874,14 +899,14 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                             const isConfirmingDelete = confirmDeleteId === pin.id;
                             return (
                               <div key={pin.id} className="rounded-2xl overflow-hidden"
-                                style={{ backgroundColor: 'var(--bg-card)', border: `1px solid ${isEditingPin ? 'var(--accent)' : 'var(--border)'}` }}>
+                                style={{ backgroundColor: c.bgCard, border: `1px solid ${isEditingPin ? c.accent : c.border}` }}>
                                 <div className="flex items-center gap-0">
                                   <div className="w-1 self-stretch shrink-0 rounded-l-2xl"
                                     style={{ backgroundColor: pin.is_emergency ? '#ef4444' : (sev?.color ?? '#6b7490') }} />
                                   <button className="flex-1 px-3 py-2.5 text-left min-w-0"
                                     onClick={() => { setSelectedPin(pin); setActiveSheet('detail'); }}>
                                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                                      <span className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                                      <span className="text-sm font-bold truncate" style={{ color: c.textPrimary }}>
                                         {pin.is_emergency ? '🆘 Emergency' : `${cat?.emoji ?? ''} ${cat?.label ?? pin.category}`}
                                       </span>
                                       <div className="flex items-center gap-1.5 shrink-0">
@@ -889,10 +914,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                                           style={{ backgroundColor: pinIsActive ? 'rgba(34,197,94,0.12)' : 'rgba(107,114,128,0.12)', color: pinIsActive ? '#22c55e' : '#6b7280' }}>
                                           {pinIsActive ? 'Active' : pin.resolved_at ? 'Resolved' : 'Expired'}
                                         </span>
-                                        <span className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>{timeAgo(pin.created_at)}</span>
+                                        <span className="text-[0.6rem]" style={{ color: c.textMuted }}>{timeAgo(pin.created_at)}</span>
                                       </div>
                                     </div>
-                                    <p className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>{pin.description}</p>
+                                    <p className="text-xs line-clamp-1" style={{ color: c.textMuted }}>{pin.description}</p>
                                   </button>
                                   {canManage && !isEditingPin && (
                                     <div className="flex items-center gap-1 pr-2 shrink-0">
@@ -919,27 +944,27 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                                       </button>
                                       <button onClick={() => setEditingPinId(null)}
                                         className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(107,114,128,0.10)' }}>
-                                        <X size={12} style={{ color: 'var(--text-muted)' }} />
+                                        <X size={12} style={{ color: c.textMuted }} />
                                       </button>
                                     </div>
                                   )}
                                 </div>
                                 {isEditingPin && (
-                                  <div className="px-3 pb-3 pt-1 flex flex-col gap-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                                  <div className="px-3 pb-3 pt-1 flex flex-col gap-2 border-t" style={{ borderColor: c.border }}>
                                     <div className="flex gap-1.5">
                                       {Object.entries(SEVERITY).map(([key, { label, color }]) => (
                                         <button key={key} onClick={() => setEditSeverity(key)}
                                           className="flex-1 py-1 rounded-lg text-[0.6rem] font-black transition"
                                           style={{
-                                            backgroundColor: editSeverity === key ? color + '22' : 'var(--bg-secondary)',
-                                            color: editSeverity === key ? color : 'var(--text-muted)',
-                                            border: editSeverity === key ? `1.5px solid ${color}` : '1px solid var(--border)',
+                                            backgroundColor: editSeverity === key ? color + '22' : c.bgSecondary,
+                                            color: editSeverity === key ? color : c.textMuted,
+                                            border: editSeverity === key ? `1.5px solid ${color}` : `1px solid ${c.border}`,
                                           }}>{label}</button>
                                       ))}
                                     </div>
                                     <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2}
                                       className="w-full text-xs rounded-xl px-3 py-2 outline-none resize-none"
-                                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+                                      style={{ backgroundColor: c.bgSecondary, border: `1px solid ${c.border}`, color: c.textPrimary }} />
                                   </div>
                                 )}
                               </div>
@@ -956,24 +981,24 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   <button onClick={() => toggleSection('trips')} className="w-full flex items-center justify-between py-2 px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🗺️</span>
-                      <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>Trip History</span>
+                      <span className="text-sm font-black" style={{ color: c.textPrimary }}>Trip History</span>
                       {tripHistory.length > 0 && (
                         <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(212,168,83,0.12)', color: 'var(--accent)' }}>{tripHistory.length}</span>
+                          style={{ backgroundColor: 'rgba(212,168,83,0.12)', color: c.accent }}>{tripHistory.length}</span>
                       )}
                     </div>
-                    {expandedSections.has('trips') ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
+                    {expandedSections.has('trips') ? <ChevronUp size={16} style={{ color: c.textMuted }} /> : <ChevronDown size={16} style={{ color: c.textMuted }} />}
                   </button>
                   {expandedSections.has('trips') && (
                     <div className="space-y-2 mt-1">
                       {tripHistory.length === 0 ? (
                         <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
                           <span className="text-2xl">🗺️</span>
-                          <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No trips recorded yet</p>
+                          <p className="text-sm font-bold" style={{ color: c.textMuted }}>No trips recorded yet</p>
                           <button
                             onClick={() => setActiveTab('trip')}
                             className="mt-1 px-4 py-2 rounded-xl text-xs font-bold transition hover:opacity-80"
-                            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                            style={{ backgroundColor: c.accent, color: '#fff' }}
                           >
                             {t('planFirstTrip')}
                           </button>
@@ -985,10 +1010,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="text-xl shrink-0">{MODE_EMOJI[trip.mode] ?? '🗺️'}</span>
                               <div className="min-w-0">
-                                <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                                <p className="text-sm font-bold truncate" style={{ color: c.textPrimary }}>
                                   {trip.from_label ? `${trip.from_label} → ` : ''}{trip.to_label}
                                 </p>
-                                <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-[0.6rem]" style={{ color: c.textMuted }}>
                                   {fmtDist(trip.distance_m)} · {fmtDur(trip.duration_s)} · {new Date(trip.ended_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
                                 </p>
                               </div>
@@ -1009,20 +1034,20 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                   <button onClick={() => toggleSection('sos')} className="w-full flex items-center justify-between py-2 px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🆘</span>
-                      <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>SOS History</span>
+                      <span className="text-sm font-black" style={{ color: c.textPrimary }}>SOS History</span>
                       {myAlerts.length > 0 && (
                         <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
                           style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>{myAlerts.length}</span>
                       )}
                     </div>
-                    {expandedSections.has('sos') ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
+                    {expandedSections.has('sos') ? <ChevronUp size={16} style={{ color: c.textMuted }} /> : <ChevronDown size={16} style={{ color: c.textMuted }} />}
                   </button>
                   {expandedSections.has('sos') && (
                     <div className="space-y-2 mt-1">
                       {myAlerts.length === 0 ? (
                         <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center" style={card}>
                           <span className="text-2xl">🆘</span>
-                          <p className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>No SOS signals sent</p>
+                          <p className="text-sm font-bold" style={{ color: c.textMuted }}>No SOS signals sent</p>
                         </div>
                       ) : myAlerts.map((pin) => {
                         const pinIsActive = isPinActive(pin);
@@ -1032,18 +1057,18 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                         return (
                           <button key={pin.id} onClick={() => { setSelectedPin(pin); setActiveSheet('detail'); }}
                             className="w-full rounded-2xl overflow-hidden text-left flex transition active:scale-[0.98]"
-                            style={{ backgroundColor: 'var(--bg-card)', border: `1.5px solid ${pinIsActive ? '#ef444440' : 'var(--border)'}` }}>
+                            style={{ backgroundColor: c.bgCard, border: `1.5px solid ${pinIsActive ? '#ef444440' : c.border}` }}>
                             <div className="w-1 shrink-0" style={{ backgroundColor: pinIsActive ? '#ef4444' : '#6b7280' }} />
                             <div className="flex-1 px-3 py-3 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
-                                <span className="text-sm font-black" style={{ color: pinIsActive ? '#ef4444' : 'var(--text-primary)' }}>🆘 Emergency alert</span>
+                                <span className="text-sm font-black" style={{ color: pinIsActive ? '#ef4444' : c.textPrimary }}>🆘 Emergency alert</span>
                                 <span className="text-[0.55rem] font-black px-1.5 py-0.5 rounded-full"
                                   style={{ backgroundColor: pinIsActive ? 'rgba(239,68,68,0.12)' : 'rgba(107,114,128,0.12)', color: pinIsActive ? '#ef4444' : '#6b7280' }}>
                                   {pinIsActive ? 'Active' : 'Resolved'}
                                 </span>
                               </div>
-                              <p className="text-xs line-clamp-2 mb-1" style={{ color: 'var(--text-muted)' }}>{pin.description}</p>
-                              <p className="text-[0.6rem]" style={{ color: 'var(--text-muted)' }}>
+                              <p className="text-xs line-clamp-2 mb-1" style={{ color: c.textMuted }}>{pin.description}</p>
+                              <p className="text-[0.6rem]" style={{ color: c.textMuted }}>
                                 {createdAt.toLocaleDateString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 {durationMin != null && ` · lasted ${durationMin} min`}
                               </p>
@@ -1058,7 +1083,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 {/* Sign out */}
                 <button onClick={handleSignOut}
                   className="w-full py-3.5 rounded-2xl font-bold text-sm transition hover:opacity-80 mt-2"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                  style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}`, color: c.textMuted }}>
                   Sign out
                 </button>
 

@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { haversineMeters } from '@/lib/utils';
@@ -27,6 +28,14 @@ const EMERGENCY_NUMBERS = [
   { num: '18',  labelKey: 'numbers.fire'   as const },
   { num: '112', labelKey: 'numbers.eu'     as const },
 ] as const;
+
+// ─── Theme colors ────────────────────────────────────────────────────────────
+function getColors(isDark: boolean) {
+  return {
+    surfaceBase: isDark ? '#0F172A' : '#F8FAFC',
+    textPrimary: isDark ? '#FFFFFF' : '#0F172A',
+  };
+}
 
 // ─── Dispatch to trusted contacts via Edge Function ─────────────────────────
 async function dispatchToContacts(
@@ -73,6 +82,8 @@ function formatEta(seconds: number): string {
 
 export default function EmergencyButton({ userId }: { userId: string | null }) {
   const { userLocation, setUserLocation } = useStore();
+  const isDark = useTheme(s => s.theme) === 'dark';
+  const c = getColors(isDark);
   const t = useTranslations('emergency');
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -450,7 +461,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       {phase === 'countdown' && (
         <div
           className="absolute inset-0 z-400 flex flex-col"
-          style={{ background: `radial-gradient(circle at 50% 35%, rgba(230,57,70,0.15) 0%, var(--surface-base) 60%)` }}
+          style={{ background: `radial-gradient(circle at 50% 35%, rgba(230,57,70,0.15) 0%, ${c.surfaceBase} 60%)` }}
         >
           {/* Breveil wordmark */}
           <header className="px-6 pt-5">
@@ -532,7 +543,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           {/* Bottom sheet */}
           <div
             className="absolute inset-x-0 bottom-0 z-360 animate-slide-up rounded-t-3xl px-5 pb-8 pt-2"
-            style={{ backgroundColor: 'var(--surface-base)', boxShadow: '0 -8px 40px rgba(0,0,0,0.45)' }}
+            style={{ backgroundColor: c.surfaceBase, boxShadow: '0 -8px 40px rgba(0,0,0,0.45)' }}
           >
             {/* Drag handle */}
             <div className="flex justify-center py-2">
@@ -574,7 +585,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
                           stroke={DANGER_RED} strokeWidth="1.2" strokeLinejoin="round" fill={`${DANGER_RED}30`} />
                       </svg>
                     </div>
-                    <span className="truncate text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <span className="truncate text-[14px] font-semibold" style={{ color: c.textPrimary }}>
                       {t('enRouteTo')} {nearestSafeSpace.name}
                     </span>
                   </div>
@@ -609,7 +620,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
                 type="button"
                 onClick={handleShare}
                 className="flex-1 rounded-xl py-3 text-[13px] font-semibold transition-all duration-150 active:scale-[0.97]"
-                style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: c.textPrimary }}
               >
                 {t('share')}
               </button>
@@ -620,7 +631,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
                 onClick={handleFlyToSafeSpace}
                 disabled={!nearestSafeSpace}
                 className="flex-1 rounded-xl py-3 text-[13px] font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-40"
-                style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: c.textPrimary }}
               >
                 {t('safeSpot')}
               </button>

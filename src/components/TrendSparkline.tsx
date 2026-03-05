@@ -5,6 +5,17 @@
 import { useMemo } from 'react';
 import type { Pin } from '@/types';
 import { haversineMeters } from '@/lib/utils';
+import { useTheme } from '@/stores/useTheme';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    accent: '#3BB4C1',
+    textMuted: '#64748B',
+  } : {
+    accent: '#C48A1E',
+    textMuted: '#94A3B8',
+  };
+}
 
 type Props = {
   pins: Pin[];
@@ -37,8 +48,11 @@ export default function TrendSparkline({
   days = 7,
   width = 120,
   height = 32,
-  color = 'var(--accent)',
+  color,
 }: Props) {
+  const isDark = useTheme(s => s.theme) === 'dark';
+  const c = getColors(isDark);
+  const resolvedColor = color ?? c.accent;
   const counts = useMemo(() => dailyCounts(pins, days), [pins, days]);
   const max = Math.max(...counts, 1);
 
@@ -59,7 +73,7 @@ export default function TrendSparkline({
   const recent = counts.slice(-3).reduce((a, b) => a + b, 0);
   const older = counts.slice(0, -3).reduce((a, b) => a + b, 0);
   const trend = recent > older ? 'up' : recent < older ? 'down' : 'flat';
-  const trendColor = trend === 'up' ? '#ef4444' : trend === 'down' ? '#22c55e' : 'var(--text-muted)';
+  const trendColor = trend === 'up' ? '#ef4444' : trend === 'down' ? '#22c55e' : c.textMuted;
   const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
 
   return (
@@ -68,14 +82,14 @@ export default function TrendSparkline({
         {/* Filled area */}
         <polygon
           points={`${padX},${padY + innerH} ${points} ${padX + innerW},${padY + innerH}`}
-          fill={color}
+          fill={resolvedColor}
           opacity={0.12}
         />
         {/* Line */}
         <polyline
           points={points}
           fill="none"
-          stroke={color}
+          stroke={resolvedColor}
           strokeWidth={1.5}
           strokeLinecap="round"
           strokeLinejoin="round"

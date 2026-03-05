@@ -6,6 +6,11 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/stores/useTheme';
+
+function getColors(isDark: boolean) {
+  return { accent: isDark ? '#3BB4C1' : '#C48A1E' };
+}
 
 const LS_KEY = 'brume_community_tooltip_shown';
 const SHOW_DELAY_MS = 2000;
@@ -17,6 +22,8 @@ type Props = {
 
 export default function CommunityTooltip({ show }: Props) {
   const t = useTranslations('onboarding');
+  const isDark = useTheme(s => s.theme) === 'dark';
+  const c = getColors(isDark);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -55,7 +62,7 @@ export default function CommunityTooltip({ show }: Props) {
         >
           <div
             className="relative px-4 py-3 rounded-2xl shadow-xl max-w-[240px]"
-            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+            style={{ backgroundColor: c.accent, color: '#fff' }}
           >
             <button
               onClick={dismiss}
@@ -74,7 +81,7 @@ export default function CommunityTooltip({ show }: Props) {
             style={{
               borderLeft: '8px solid transparent',
               borderRight: '8px solid transparent',
-              borderTop: '8px solid var(--accent)',
+              borderTop: `8px solid ${c.accent}`,
             }}
           />
         </motion.div>

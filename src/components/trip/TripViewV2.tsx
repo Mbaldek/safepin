@@ -18,6 +18,24 @@ import {
   Check,
 } from "lucide-react";
 import { useTheme } from "@/stores/useTheme";
+import { useStore } from "@/stores/useStore";
+import { supabase } from "@/lib/supabase";
+
+type Trip = {
+  id: string;
+  destination: string | null;
+  duration_min: number | null;
+  safety_score: number | null;
+  created_at: string;
+};
+
+type SavedPlace = {
+  id: string;
+  label: string;
+  lat: number;
+  lng: number;
+  icon: string | null;
+};
 
 // Brand colors
 const colors = {
@@ -54,10 +72,31 @@ interface TripViewV2Props {
 
 export default function TripViewV2({ onClose }: TripViewV2Props) {
   const isDark = useTheme((s) => s.theme) === "dark";
+  const userId = useStore((s) => s.userId);
   const [state, setState] = useState<AppState>("idle");
   const [walkSubState, setWalkSubState] = useState<WalkSubState>("intro");
-  const [circleEnabled, setCircleEnabled] = useState(true);
+  const [circleEnabled, setCircleEnabled] = useState(false);
   const [destination, setDestination] = useState("");
+  const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
+  const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+
+  // Fetch recent trips + saved places
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("trips")
+      .select("id, destination, duration_min, safety_score, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => { if (data) setRecentTrips(data); });
+    supabase
+      .from("saved_places")
+      .select("id, label, lat, lng, icon")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setSavedPlaces(data); });
+  }, [userId]);
   const [routeMode, setRouteMode] = useState<"safe" | "balanced" | "fast">("balanced");
   const [elapsedSeconds, setElapsedSeconds] = useState(53);
   const [countdownSeconds, setCountdownSeconds] = useState(107);
@@ -284,19 +323,21 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         >
           <Star size={20} color={colors.gold} />
           <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>Favoris</span>
-          <span
-            style={{
-              marginLeft: "auto",
-              backgroundColor: `${colors.cyan}20`,
-              color: colors.cyan,
-              fontSize: 12,
-              fontWeight: 600,
-              padding: "2px 8px",
-              borderRadius: 10,
-            }}
-          >
-            2
-          </span>
+          {savedPlaces.length > 0 && (
+            <span
+              style={{
+                marginLeft: "auto",
+                backgroundColor: `${colors.cyan}20`,
+                color: colors.cyan,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "2px 8px",
+                borderRadius: 10,
+              }}
+            >
+              {savedPlaces.length}
+            </span>
+          )}
         </motion.button>
       </div>
 
@@ -312,26 +353,27 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Signal size={18} color={colors.purple} />
-          <span style={{ fontSize: 14, color: colors.textPrimary[theme] }}>Partage avec le Cercle</span>
+          <Signal size={18} color={colors.textTertiary[theme]} />
+          <div>
+            <span style={{ fontSize: 14, color: colors.textTertiary[theme] }}>Partage avec le Cercle</span>
+            <div style={{ fontSize: 11, color: colors.textTertiary[theme], opacity: 0.7 }}>Disponible avec Marche avec moi</div>
+          </div>
         </div>
-        <motion.button
-          onClick={() => setCircleEnabled(!circleEnabled)}
+        <div
           style={{
             width: 44,
             height: 26,
             borderRadius: 13,
-            backgroundColor: circleEnabled ? colors.cyan : colors.card[theme],
-            border: circleEnabled ? "none" : `1px solid ${colors.textTertiary[theme]}`,
+            backgroundColor: colors.card[theme],
+            border: `1px solid ${colors.textTertiary[theme]}`,
             padding: 2,
-            cursor: "pointer",
+            opacity: 0.4,
+            cursor: "not-allowed",
             display: "flex",
             alignItems: "center",
           }}
         >
-          <motion.div
-            animate={{ x: circleEnabled ? 18 : 0 }}
-            transition={spring}
+          <div
             style={{
               width: 22,
               height: 22,
@@ -340,7 +382,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
               boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
             }}
           />
-        </motion.button>
+        </div>
       </div>
 
       {/* Section header */}
@@ -355,56 +397,69 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
 
       {/* Recent trips */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {[
-          { emoji: "🚶", name: "Gare du Nord", sub: "Hier · 18min", score: 8 },
-          { emoji: "🏛", name: "Châtelet", sub: "Lun. · 25min", score: 7 },
-          { emoji: "🏠", name: "Domicile", sub: "Mer. · 12min", score: 3 },
-        ].map((trip, i) => (
-          <motion.div
-            key={i}
-            whileTap={{ scale: 0.98 }}
-            style={{
-              ...cardStyle,
-              padding: "10px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              cursor: "pointer",
-            }}
-          >
-            <div
+        {recentTrips.length === 0 ? (
+          <div style={{ ...cardStyle, padding: "20px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: colors.textTertiary[theme] }}>
+              Aucun trajet pour le moment
+            </div>
+          </div>
+        ) : recentTrips.map((trip) => {
+          const date = new Date(trip.created_at);
+          const dayLabel = date.toLocaleDateString("fr-FR", { weekday: "short" });
+          const durLabel = trip.duration_min ? `${trip.duration_min}min` : "";
+          return (
+            <motion.div
+              key={trip.id}
+              whileTap={{ scale: 0.98 }}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: colors.elevated[theme],
+                ...cardStyle,
+                padding: "10px 12px",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
+                gap: 10,
+                cursor: "pointer",
               }}
             >
-              {trip.emoji}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>{trip.name}</div>
-              <div style={{ fontSize: 12, color: colors.textTertiary[theme] }}>{trip.sub}</div>
-            </div>
-            <span
-              style={{
-                backgroundColor: `${colors.cyan}20`,
-                color: colors.cyan,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "3px 8px",
-                borderRadius: 8,
-              }}
-            >
-              {trip.score}
-            </span>
-            <ChevronRight size={16} color={colors.textTertiary[theme]} />
-          </motion.div>
-        ))}
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: colors.elevated[theme],
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 18,
+                }}
+              >
+                {"\u{1F6B6}"}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>
+                  {trip.destination || "Trajet"}
+                </div>
+                <div style={{ fontSize: 12, color: colors.textTertiary[theme] }}>
+                  {dayLabel}{durLabel ? ` \u00b7 ${durLabel}` : ""}
+                </div>
+              </div>
+              {trip.safety_score != null && (
+                <span
+                  style={{
+                    backgroundColor: `${colors.cyan}20`,
+                    color: colors.cyan,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "3px 8px",
+                    borderRadius: 8,
+                  }}
+                >
+                  {Math.round(trip.safety_score)}
+                </span>
+              )}
+              <ChevronRight size={16} color={colors.textTertiary[theme]} />
+            </motion.div>
+          );
+        })}
       </div>
     </motion.div>
   );

@@ -62,7 +62,14 @@
       "Bash(TRANSCRIPT=\"C:/Users/mathi/.claude/projects/c--Users-mathi-Desktop-safepin/1a9fdf69-ca08-44fa-bd2d-61a10879c7ab.jsonl\")",
       "Bash(taskkill //F //IM node.exe)",
       "Bash(while read f)",
-      "Bash(do basename \"$f\" .tsx)"
+      "Bash(do basename \"$f\" .tsx)",
+      "Bash(gh api repos/Mbaldek/safepin/hooks)",
+      "Bash(sort -t/ -k3)",
+      "Bash(for comp in RoutePlannerForm LiveBroadcaster LiveViewer TrustedCircleCard TrustedCircleSection SavedPanel FriendsView SafeSpaceDetailSheet SafetyBuddySheet AudioCheckinButton)",
+      "Bash(do echo \"=== $comp ===\")",
+      "Bash(for comp in PinStoriesRow SosBroadcastPanel PinChat LocationHistoryViewer NeighborhoodFeed NeighborhoodScoreLayer SimulationTicker TripChat TripSummary TripQuickResponse)",
+      "Bash(for comp in StoriesRow VerificationView FlagReportModal ChallengesSection ReferralSection DetailSheet CitySelector PlaceNoteSheet TrendSparkline)",
+      "mcp__claude_ai_Supabase__search_docs"
     ]
   }
 }

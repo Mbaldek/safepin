@@ -42,7 +42,6 @@ import { CoachMark } from '@/components/CoachMark';
 import { useTour } from '@/hooks/useTour';
 
 // Lazy-loaded heavy components — not on the critical rendering path
-const TripView = dynamic(() => import('@/components/TripView'), { ssr: false });
 const TripViewV2 = dynamic(() => import('@/components/trip/TripViewV2'), { ssr: false });
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
@@ -392,18 +391,18 @@ export default function MapPage() {
 
   // Show push opt-in after a short delay (first session only)
   useEffect(() => {
-    if (!userId || loading) return;
+    if (!userId || loading || !onboardingDone) return;
     const timer = setTimeout(() => {
       if (shouldShowPushOptIn()) setShowPushOptIn(true);
     }, 8000);
     return () => clearTimeout(timer);
-  }, [userId, loading]);
+  }, [userId, loading, onboardingDone]);
 
   // Run milestone check on first load (catches anything earned between sessions)
   useEffect(() => {
-    if (userId && pins.length > 0) runMilestoneCheck();
+    if (userId && pins.length > 0 && onboardingDone) runMilestoneCheck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, pins.length > 0]);
+  }, [userId, pins.length > 0, onboardingDone]);
 
   // Show session briefing card once per session (after 2s delay)
   useEffect(() => {
@@ -417,7 +416,7 @@ export default function MapPage() {
 
   // ── Streak tracking — update on each session ────────────────────────────
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !onboardingDone) return;
     updateStreak(supabase, userId).then((result) => {
       if (result) {
         setStreakInfo(result.streak, result.isNewRecord ? result.streak : longestStreak);
@@ -427,7 +426,7 @@ export default function MapPage() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, onboardingDone]);
 
   // Listen for SW sync-complete messages → refresh pins + queue count
   useEffect(() => {
@@ -637,6 +636,11 @@ export default function MapPage() {
           style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
       </div>
     );
+  }
+
+  // ── Onboarding takes full priority — nothing else mounts ─────────────────
+  if (!onboardingDone && userId) {
+    return <OnboardingFunnelV2 userId={userId} onComplete={handleOnboardingDone} />;
   }
 
   // ── App layout ────────────────────────────────────────────────────────────
@@ -1028,10 +1032,7 @@ export default function MapPage() {
       {/* ── Settings sheet ─────────────────────────────────────────── */}
       <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
-      {/* ── Onboarding overlay (first launch only) ─────────────────── */}
-      {!loading && !onboardingDone && userId && (
-        <OnboardingFunnelV2 userId={userId} onComplete={handleOnboardingDone} />
-      )}
+      {/* Onboarding is now an early return — see above */}
 
       {/* ── Push notification opt-in ─────────────────────────────────── */}
       <AnimatePresence>

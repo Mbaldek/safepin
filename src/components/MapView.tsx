@@ -603,6 +603,12 @@ export type MapViewProps = {
   onPoiLoadingChange?: (v: boolean) => void;
 };
 
+function getColors(isDark: boolean) {
+  return {
+    accent: isDark ? '#3BB4C1' : '#C48A1E',
+  };
+}
+
 export default function MapView({
   mapStyle,
   showBus,
@@ -625,6 +631,8 @@ export default function MapView({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile, mapBottomPadding } = useStore();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const c = getColors(isDark);
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
@@ -986,7 +994,7 @@ export default function MapView({
         ? 'width:32px;height:32px;border-radius:50%;background:#f59e0b;border:2.5px solid #fff;' +
           'box-shadow:0 2px 10px rgba(245,158,11,0.45);display:flex;align-items:center;justify-content:center;' +
           'font-size:15px;cursor:pointer;'
-        : 'width:28px;height:28px;border-radius:50%;background:var(--accent);border:2px solid #fff;' +
+        : `width:28px;height:28px;border-radius:50%;background:${c.accent};border:2px solid #fff;` +
           'box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;' +
           'font-size:14px;cursor:pointer;';
       el.textContent = note.emoji;

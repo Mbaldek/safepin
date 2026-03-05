@@ -469,7 +469,7 @@ export const useStore = create<Store>((set) => ({
   setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
 
   // Pin labels toggle (persisted)
-  showPinLabels: loadLS('brume_show_pin_labels', true),
+  showPinLabels: loadLS('brume_show_pin_labels', false),
   setShowPinLabels: (v) => { saveLS('brume_show_pin_labels', v); set({ showPinLabels: v }); },
 
   // Simulation toggle (persisted so it survives page navigation)

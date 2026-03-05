@@ -8,8 +8,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, ExternalLink, Phone, MapPin, Clock, Globe, ThumbsUp, Navigation, X, User, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { SafeSpace, DayHours } from '@/types';
 import { toast } from 'sonner';
+
+function getColors(isDark: boolean) {
+  return isDark ? {
+    bgOverlay: 'rgba(15, 23, 42, 0.8)',
+    bgSecondary: '#1E293B',
+    bgCard: '#334155',
+    border: 'rgba(255,255,255,0.12)',
+    textPrimary: '#FFFFFF',
+    textMuted: '#64748B',
+    accent: '#3BB4C1',
+  } : {
+    bgOverlay: 'rgba(248, 250, 252, 0.8)',
+    bgSecondary: '#FFFFFF',
+    bgCard: '#FFFFFF',
+    border: 'rgba(15,23,42,0.10)',
+    textPrimary: '#0F172A',
+    textMuted: '#94A3B8',
+    accent: '#C48A1E',
+  };
+}
 
 type Props = {
   space: SafeSpace | null;
@@ -22,20 +43,19 @@ const TYPE_EMOJI: Record<SafeSpace['type'], string> = {
   pharmacy: '\u{1F48A}',
   hospital: '\u{1F3E5}',
   police: '\u{1F46E}',
-  cafe: '\u{2615}',
+  cafe: '\u2615',
   shelter: '\u{1F3E0}',
 };
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-// Also match short keys from admin form
 const SHORT_TO_LONG: Record<string, string> = { mon: 'monday', tue: 'tuesday', wed: 'wednesday', thu: 'thursday', fri: 'friday', sat: 'saturday', sun: 'sunday' };
 
 function formatDayHours(val: string | DayHours | undefined): string {
   if (!val) return 'Closed';
   if (typeof val === 'string') return val;
   if (val.closed) return 'Closed';
-  const base = `${val.open ?? '09:00'} – ${val.close ?? '18:00'}`;
-  if (val.breakStart && val.breakEnd) return `${base} (break ${val.breakStart}–${val.breakEnd})`;
+  const base = `${val.open ?? '09:00'} \u2013 ${val.close ?? '18:00'}`;
+  if (val.breakStart && val.breakEnd) return `${base} (break ${val.breakStart}\u2013${val.breakEnd})`;
   return base;
 }
 
@@ -50,11 +70,13 @@ function normalizeHoursKeys(hours: Record<string, string | DayHours>): Record<st
 }
 
 function getTodayKey(): string {
-  const d = new Date().getDay(); // 0=Sun
+  const d = new Date().getDay();
   return DAY_KEYS[d === 0 ? 6 : d - 1];
 }
 
 export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
+  const isDark = useTheme(s => s.theme) === 'dark';
+  const c = getColors(isDark);
   const { userId, setTripPrefill, setActiveTab } = useStore();
   const t = useTranslations('safeSpaces');
 
@@ -64,14 +86,12 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when space changes
   useEffect(() => {
     if (!space) return;
     setUpvotes(space.upvotes);
     setHasVoted(false);
     setHoursExpanded(false);
 
-    // Check if user already voted
     if (userId) {
       supabase
         .from('safe_space_votes')
@@ -94,13 +114,12 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
       .insert({ safe_space_id: space.id, user_id: userId });
 
     if (!error) {
-      // Increment upvotes on the safe_spaces row
       await supabase
         .from('safe_spaces')
         .update({ upvotes: upvotes + 1 })
         .eq('id', space.id);
 
-      setUpvotes((c) => c + 1);
+      setUpvotes((v) => v + 1);
       setHasVoted(true);
       toast.success('Upvoted!');
     } else {
@@ -129,7 +148,7 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
           <motion.div
             key="safe-space-backdrop"
             className="absolute inset-0 z-[200]"
-            style={{ backgroundColor: 'var(--bg-overlay)' }}
+            style={{ backgroundColor: c.bgOverlay }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -144,22 +163,21 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
             aria-modal="true"
             aria-label="Safe space details"
             className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-2xl z-[201] overflow-y-auto"
-            style={{ backgroundColor: 'var(--bg-secondary)', maxHeight: '85vh' }}
+            style={{ backgroundColor: c.bgSecondary, maxHeight: '85vh' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={SPRING_TRANSITION}
           >
-            {/* Drag handle */}
-            <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: 'var(--border)' }} />
+            <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: c.border }} />
 
             <div className="p-5 pb-10" ref={scrollRef}>
-              {/* ── Header ─────────────────────────────────────────────── */}
+              {/* Header */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="text-2xl shrink-0">{TYPE_EMOJI[space.type]}</span>
                   <div className="min-w-0">
-                    <h2 className="text-lg font-black leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-lg font-black leading-tight truncate" style={{ color: c.textPrimary }}>
                       {space.name}
                     </h2>
                     {space.is_partner && space.partner_tier && (
@@ -181,18 +199,18 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                 <button
                   onClick={onClose}
                   className="p-2 rounded-full shrink-0 transition hover:opacity-70"
-                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+                  style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}`, color: c.textMuted }}
                   aria-label="Close"
                 >
                   <X size={15} />
                 </button>
               </div>
 
-              {/* ── Type pill + verified ────────────────────────────────── */}
+              {/* Type pill + verified */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  style={{ backgroundColor: c.bgCard, color: c.textMuted, border: `1px solid ${c.border}` }}
                 >
                   {TYPE_EMOJI[space.type]} {t(space.type)}
                 </span>
@@ -214,17 +232,17 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                 )}
               </div>
 
-              {/* ── Address ─────────────────────────────────────────────── */}
+              {/* Address */}
               {space.address && (
                 <div className="flex items-start gap-2.5 mb-3">
-                  <MapPin size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <MapPin size={14} className="mt-0.5 shrink-0" style={{ color: c.textMuted }} />
+                  <p className="text-sm" style={{ color: c.textMuted }}>
                     {space.address}
                   </p>
                 </div>
               )}
 
-              {/* ── Opening hours ───────────────────────────────────────── */}
+              {/* Opening hours */}
               {space.opening_hours && Object.keys(space.opening_hours).length > 0 && (() => {
                 const nh = normalizeHoursKeys(space.opening_hours);
                 const todayVal = nh[todayKey];
@@ -234,29 +252,29 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                       onClick={() => setHoursExpanded((v) => !v)}
                       className="flex items-center gap-2.5 w-full text-left"
                     >
-                      <Clock size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                      <Clock size={14} className="shrink-0" style={{ color: c.textMuted }} />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-sm font-bold" style={{ color: c.textPrimary }}>
                           {todayVal !== undefined
                             ? `Today: ${formatDayHours(todayVal)}`
                             : 'Opening hours'}
                         </span>
                       </div>
                       {hoursExpanded
-                        ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} />
-                        : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
+                        ? <ChevronUp size={14} style={{ color: c.textMuted }} />
+                        : <ChevronDown size={14} style={{ color: c.textMuted }} />}
                     </button>
 
                     {hoursExpanded && (
                       <div
                         className="mt-2 ml-6 rounded-xl p-3 space-y-1.5"
-                        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                        style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}
                       >
                         {DAY_KEYS.map((day) => (
                           <div
                             key={day}
                             className="flex items-center justify-between text-xs"
-                            style={{ color: day === todayKey ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                            style={{ color: day === todayKey ? c.textPrimary : c.textMuted }}
                           >
                             <span className={day === todayKey ? 'font-bold' : 'font-medium'}>
                               {day.charAt(0).toUpperCase() + day.slice(1)}
@@ -272,41 +290,41 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                 );
               })()}
 
-              {/* ── Phone ───────────────────────────────────────────────── */}
+              {/* Phone */}
               {space.phone && (
                 <div className="flex items-center gap-2.5 mb-3">
-                  <Phone size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <Phone size={14} className="shrink-0" style={{ color: c.textMuted }} />
                   <a
                     href={`tel:${space.phone}`}
                     className="text-sm font-bold underline"
-                    style={{ color: 'var(--accent)' }}
+                    style={{ color: c.accent }}
                   >
                     {space.phone}
                   </a>
                 </div>
               )}
 
-              {/* ── Contact name (partners only) ────────────────────────── */}
+              {/* Contact name (partners only) */}
               {space.is_partner && space.contact_name && (
                 <div className="flex items-center gap-2.5 mb-3">
-                  <User size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Contact: <span style={{ color: 'var(--text-primary)' }} className="font-bold">{space.contact_name}</span>
+                  <User size={14} className="shrink-0" style={{ color: c.textMuted }} />
+                  <p className="text-sm" style={{ color: c.textMuted }}>
+                    Contact: <span style={{ color: c.textPrimary }} className="font-bold">{space.contact_name}</span>
                   </p>
                 </div>
               )}
 
-              {/* ── Description ─────────────────────────────────────────── */}
+              {/* Description */}
               {space.description && (
                 <p
                   className="text-sm leading-relaxed mb-4"
-                  style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}
+                  style={{ color: c.textMuted, whiteSpace: 'pre-wrap' }}
                 >
                   {space.description}
                 </p>
               )}
 
-              {/* ── Photo carousel ──────────────────────────────────────── */}
+              {/* Photo carousel */}
               {space.photo_urls.length > 0 && (
                 <div className="mb-4 -mx-1">
                   <div className="flex gap-2.5 overflow-x-auto px-1 pb-2" style={{ scrollSnapType: 'x mandatory' }}>
@@ -316,17 +334,17 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                         src={url}
                         alt={`${space.name} photo ${i + 1}`}
                         className="w-52 h-36 object-cover rounded-xl shrink-0"
-                        style={{ border: '1px solid var(--border)', scrollSnapAlign: 'start' }}
+                        style={{ border: `1px solid ${c.border}`, scrollSnapAlign: 'start' }}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* ── Divider ─────────────────────────────────────────────── */}
-              <div className="mb-4" style={{ height: '1px', backgroundColor: 'var(--border)' }} />
+              {/* Divider */}
+              <div className="mb-4" style={{ height: '1px', backgroundColor: c.border }} />
 
-              {/* ── Upvote row ──────────────────────────────────────────── */}
+              {/* Upvote row */}
               <div className="flex items-center gap-3 mb-4">
                 <button
                   onClick={handleUpvote}
@@ -335,21 +353,20 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                   style={
                     hasVoted
                       ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1.5px solid rgba(16,185,129,0.5)' }
-                      : { backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                      : { backgroundColor: c.bgCard, color: c.textMuted, border: `1px solid ${c.border}` }
                   }
                 >
                   <ThumbsUp size={14} />
                   {upvotes > 0 ? upvotes : ''} {hasVoted ? 'Upvoted' : 'Upvote'}
                 </button>
 
-                {/* Website link */}
                 {space.website && (
                   <a
                     href={space.website}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition hover:opacity-70"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    style={{ backgroundColor: c.bgCard, color: c.textMuted, border: `1px solid ${c.border}` }}
                   >
                     <Globe size={14} />
                     Website
@@ -358,21 +375,21 @@ export default function SafeSpaceDetailSheet({ space, onClose }: Props) {
                 )}
               </div>
 
-              {/* ── Get Directions ───────────────────────────────────────── */}
+              {/* Get Directions */}
               <button
                 onClick={openDirections}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition hover:opacity-90"
-                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                style={{ backgroundColor: c.accent, color: '#fff' }}
               >
                 <Navigation size={15} />
                 Plan Route
               </button>
 
-              {/* ── Close ────────────────────────────────────────────────── */}
+              {/* Close */}
               <button
                 onClick={onClose}
                 className="w-full font-bold rounded-xl py-3.5 text-sm transition hover:opacity-80 mt-3"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}`, color: c.textPrimary }}
               >
                 Close
               </button>
