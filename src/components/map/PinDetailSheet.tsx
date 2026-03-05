@@ -396,13 +396,17 @@ function PinDetailSheet({
 
                     {/* Partager */}
                     <button
-                      onClick={() => {
+                      onClick={async () => {
+                        const shareData = {
+                          title: CATEGORY_LABEL[pin.category],
+                          text: pin.description || '',
+                          url: window.location.href,
+                        }
                         if (navigator.share) {
-                          navigator.share({
-                            title: CATEGORY_LABEL[pin.category],
-                            text: pin.description || '',
-                            url: window.location.href,
-                          })
+                          try { await navigator.share(shareData) } catch {}
+                        } else {
+                          await navigator.clipboard.writeText(shareData.url)
+                          // TODO: toast via prop if needed
                         }
                       }}
                       style={{

@@ -179,6 +179,8 @@ export function ReportSheet() {
         transport_line: tLine || null,
         confirmations: 1,
         decay_type: decayType,
+        address: address || null,
+        last_confirmed_at: new Date().toISOString(),
       };
 
       const { data, error } = await supabase.from('pins').insert(newPin).select().single();

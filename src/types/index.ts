@@ -14,8 +14,7 @@ export type Pin = {
   severity: 'low' | 'med' | 'high';
   description?: string;
   photo_url?: string | null;
-  media_url?: string | null;
-  media_urls?: MediaItem[] | null;
+  media_urls?: string[] | null;
   address?: string;
   environment?: string | null;
   urban_context?: string | null;
@@ -24,9 +23,7 @@ export type Pin = {
   is_emergency?: boolean;
   resolved_at?: string | null;
   last_confirmed_at?: string | null;
-  expires_at?: string;
   flag_count: number;
-  hidden?: boolean;
   hidden_at?: string | null;
   is_simulated?: boolean;
   // Transport fields
