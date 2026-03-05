@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { useTheme } from '@/stores/useTheme';
+import { useStore } from '@/stores/useStore';
 import Header from './CommunityHeader';
 import TabBar from './tab-bar';
 import FilTab from './fil-tab';
@@ -20,6 +21,7 @@ interface CommunityViewProps {
 export default function CommunityView({ onClose }: CommunityViewProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const toggleTheme = useTheme((s) => s.toggleTheme);
+  const userId = useStore((s) => s.userId);
 
   const [activeTab, setActiveTab] = useState(0);
   const [showCompose, setShowCompose] = useState(false);
@@ -64,19 +66,20 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
         {activeTab === 0 && (
           <FilTab
             isDark={isDark}
+            userId={userId}
             onStoryClick={(i) => {
               setStoryIndex(i);
               setShowStoryViewer(true);
             }}
           />
         )}
-        {activeTab === 1 && <CercleTab isDark={isDark} />}
-        {activeTab === 2 && <GroupesTab isDark={isDark} />}
-        {activeTab === 3 && <MessagesTab isDark={isDark} />}
+        {activeTab === 1 && <CercleTab isDark={isDark} userId={userId} />}
+        {activeTab === 2 && <GroupesTab isDark={isDark} userId={userId} />}
+        {activeTab === 3 && <MessagesTab isDark={isDark} userId={userId} />}
       </div>
 
       {showCompose && (
-        <ComposeModal isDark={isDark} onClose={() => setShowCompose(false)} />
+        <ComposeModal isDark={isDark} userId={userId} onClose={() => setShowCompose(false)} />
       )}
 
       {showStoryViewer && (

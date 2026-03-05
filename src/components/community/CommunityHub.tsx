@@ -1,4 +1,5 @@
-// DEPRECATED — remplacé par CommunityView.tsx. À supprimer lors du nettoyage.
+// DEPRECATED — Logique migrée vers les tab-composants individuels (groupes-tab, messages-tab, etc.).
+// À supprimer une fois que tous les fixes sont validés en prod.
 "use client"
 
 import { useState, useEffect } from "react"

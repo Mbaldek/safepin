@@ -2,10 +2,13 @@
 
 import { motion } from "framer-motion";
 import { X, MapPin, Users, Lock, Image, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface ComposeModalProps {
   isDark: boolean;
+  userId: string | null;
   onClose: () => void;
 }
 
@@ -23,12 +26,71 @@ const placeholders: Record<string, string> = {
   post: "Qu'avez-vous à partager ?",
 };
 
-export default function ComposeModal({ isDark, onClose }: ComposeModalProps) {
+interface CommunityOption {
+  id: string;
+  name: string;
+}
+
+export default function ComposeModal({ isDark, userId, onClose }: ComposeModalProps) {
   const [selectedType, setSelectedType] = useState("post");
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState<"public" | "cercle">("public");
+  const [publishing, setPublishing] = useState(false);
+  const [communities, setCommunities] = useState<CommunityOption[]>([]);
+  const [selectedCommunityId, setSelectedCommunityId] = useState<string>("");
+
+  // Fetch user's communities for the publish target
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data: memberships } = await supabase
+        .from("community_members")
+        .select("community_id")
+        .eq("user_id", userId);
+      const ids = memberships?.map((m) => m.community_id) ?? [];
+      if (!ids.length) return;
+      const { data: comms } = await supabase
+        .from("communities")
+        .select("id, name")
+        .in("id", ids);
+      const list = comms || [];
+      setCommunities(list);
+      if (list.length > 0) setSelectedCommunityId(list[0].id);
+    })();
+  }, [userId]);
 
   const activeColor = postTypes.find((t) => t.id === selectedType)?.color || "#3BB4C1";
+
+  const handlePublish = async () => {
+    if (!content.trim() || !selectedCommunityId || !userId) return;
+    setPublishing(true);
+
+    // Get display_name from store or profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", userId)
+      .single();
+
+    const { error } = await supabase.from("community_messages").insert({
+      community_id: selectedCommunityId,
+      user_id: userId,
+      display_name: profile?.display_name || null,
+      content: content.trim(),
+    });
+
+    if (error) {
+      toast.error("Erreur lors de la publication");
+    } else {
+      toast.success("Publié !");
+      setContent("");
+      onClose();
+    }
+    setPublishing(false);
+  };
+
+  const selectedCommunityName =
+    communities.find((c) => c.id === selectedCommunityId)?.name || "Choisir un groupe";
 
   return (
     <motion.div
@@ -98,20 +160,58 @@ export default function ComposeModal({ isDark, onClose }: ComposeModalProps) {
           </span>
           <motion.button
             whileTap={{ scale: 0.95 }}
+            onClick={handlePublish}
+            disabled={publishing || !content.trim() || !selectedCommunityId}
             style={{
               padding: "8px 16px",
               borderRadius: 8,
-              backgroundColor: activeColor,
+              backgroundColor:
+                !content.trim() || !selectedCommunityId
+                  ? isDark
+                    ? "#334155"
+                    : "#E2E8F0"
+                  : activeColor,
               border: "none",
               color: "#FFFFFF",
               fontSize: 14,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor:
+                !content.trim() || !selectedCommunityId
+                  ? "default"
+                  : "pointer",
+              opacity: publishing ? 0.6 : 1,
             }}
           >
-            Publier
+            {publishing ? "…" : "Publier"}
           </motion.button>
         </div>
+
+        {/* Community selector */}
+        {communities.length > 0 && (
+          <div style={{ padding: "12px 20px 0" }}>
+            <select
+              value={selectedCommunityId}
+              onChange={(e) => setSelectedCommunityId(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                color: isDark ? "#FFFFFF" : "#0F172A",
+                fontSize: 14,
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              {communities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Post type selector */}
         <div
@@ -138,7 +238,12 @@ export default function ComposeModal({ isDark, onClose }: ComposeModalProps) {
                   selectedType === type.id
                     ? `${type.color}20`
                     : "transparent",
-                color: selectedType === type.id ? type.color : isDark ? "#94A3B8" : "#64748B",
+                color:
+                  selectedType === type.id
+                    ? type.color
+                    : isDark
+                    ? "#94A3B8"
+                    : "#64748B",
                 fontSize: 13,
                 fontWeight: 500,
                 whiteSpace: "nowrap",
@@ -174,31 +279,6 @@ export default function ComposeModal({ isDark, onClose }: ComposeModalProps) {
 
         {/* Options */}
         <div style={{ padding: "16px 20px" }}>
-          {/* Location */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 16px",
-              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-              borderRadius: 12,
-              marginBottom: 12,
-              border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <MapPin size={18} style={{ color: "#F5C341" }} />
-              <span style={{ fontSize: 14, color: isDark ? "#FFFFFF" : "#0F172A" }}>
-                Paris 15e
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 13, color: "#3BB4C1" }}>Changer</span>
-              <ChevronRight size={16} style={{ color: "#3BB4C1" }} />
-            </div>
-          </div>
-
           {/* Audience */}
           <div
             style={{
@@ -218,13 +298,20 @@ export default function ComposeModal({ isDark, onClose }: ComposeModalProps) {
               ) : (
                 <Lock size={18} style={{ color: "#A78BFA" }} />
               )}
-              <span style={{ fontSize: 14, color: isDark ? "#FFFFFF" : "#0F172A" }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  color: isDark ? "#FFFFFF" : "#0F172A",
+                }}
+              >
                 {audience === "public" ? "Tout le quartier" : "Mon cercle"}
               </span>
             </div>
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => setAudience(audience === "public" ? "cercle" : "public")}
+              onClick={() =>
+                setAudience(audience === "public" ? "cercle" : "public")
+              }
               style={{
                 padding: "6px 12px",
                 borderRadius: 8,

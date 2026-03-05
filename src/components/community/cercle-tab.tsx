@@ -1,72 +1,165 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Check, X, Users } from "lucide-react";
+import { Check, X, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface CercleTabProps {
   isDark: boolean;
+  userId: string | null;
 }
 
-const circleContacts = [
-  {
-    id: 1,
-    name: "Marie",
-    avatar: "M",
-    status: "active",
-    statusText: "En route",
-    ringColor: "#34D399",
-  },
-  {
-    id: 2,
-    name: "Sophie",
-    avatar: "S",
-    status: "story",
-    ringColor: "#F5C341",
-  },
-  {
-    id: 3,
-    name: "Julie",
-    avatar: "J",
-    status: "arrived",
-    statusText: "Arrivée",
-    ringColor: "#34D399",
-  },
-  {
-    id: 4,
-    name: "Léa",
-    avatar: "L",
-    status: "seen",
-    ringColor: "#64748B",
-  },
-];
+interface ContactRow {
+  id: string;
+  contact_id: string;
+  name: string;
+  avatar: string;
+  avatarUrl: string | null;
+  relation: string | null;
+}
 
-const activities = [
-  {
-    id: 1,
-    type: "trip_complete",
-    user: "Marie",
-    avatar: "M",
-    location: "Gare du Nord",
-    time: "il y a 20 min",
-    badge: "Arrivée en sécurité",
-  },
-  {
-    id: 2,
-    type: "trust_request",
-    user: "Tom",
-    avatar: "T",
-    time: "il y a 1h",
-  },
-  {
-    id: 3,
-    type: "live_trip",
-    user: "Anaïs",
-    avatar: "A",
-    time: "il y a 5 min",
-  },
-];
+interface PendingRequest {
+  id: string;
+  user_id: string;
+  name: string;
+  avatar: string;
+  avatarUrl: string | null;
+  created_at: string;
+}
 
-export default function CercleTab({ isDark }: CercleTabProps) {
+function timeAgo(d: string) {
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  if (s < 60) return "à l'instant";
+  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
+  return `il y a ${Math.floor(s / 86400)}j`;
+}
+
+export default function CercleTab({ isDark, userId }: CercleTabProps) {
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      setLoading(true);
+
+      // Fetch accepted contacts where I'm the user_id
+      const { data: myContacts } = await supabase
+        .from("trusted_contacts")
+        .select("id, contact_id, contact_name, contact_relation")
+        .eq("user_id", userId)
+        .eq("status", "accepted");
+
+      // Fetch pending requests where I'm the contact_id (someone added me)
+      const { data: incoming } = await supabase
+        .from("trusted_contacts")
+        .select("id, user_id, created_at")
+        .eq("contact_id", userId)
+        .eq("status", "pending");
+
+      // Enrich with profiles
+      const contactIds = (myContacts || []).map((c) => c.contact_id).filter(Boolean);
+      const requesterIds = (incoming || []).map((r) => r.user_id);
+      const allIds = [...new Set([...contactIds, ...requesterIds])];
+
+      let profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+      if (allIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, display_name, avatar_url")
+          .in("id", allIds);
+        profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+      }
+
+      setContacts(
+        (myContacts || []).map((c) => {
+          const p = profileMap.get(c.contact_id);
+          const name = p?.display_name || c.contact_name || "Contact";
+          return {
+            id: c.id,
+            contact_id: c.contact_id,
+            name,
+            avatar: name.charAt(0).toUpperCase(),
+            avatarUrl: p?.avatar_url || null,
+            relation: c.contact_relation,
+          };
+        })
+      );
+
+      setPendingRequests(
+        (incoming || []).map((r) => {
+          const p = profileMap.get(r.user_id);
+          const name = p?.display_name || "Utilisateur";
+          return {
+            id: r.id,
+            user_id: r.user_id,
+            name,
+            avatar: name.charAt(0).toUpperCase(),
+            avatarUrl: p?.avatar_url || null,
+            created_at: r.created_at,
+          };
+        })
+      );
+      setLoading(false);
+    })();
+  }, [userId]);
+
+  const handleAccept = async (requestId: string) => {
+    const { error } = await supabase
+      .from("trusted_contacts")
+      .update({ status: "accepted" })
+      .eq("id", requestId);
+    if (error) {
+      toast.error("Erreur");
+      return;
+    }
+    const accepted = pendingRequests.find((r) => r.id === requestId);
+    setPendingRequests((p) => p.filter((r) => r.id !== requestId));
+    if (accepted) {
+      setContacts((prev) => [
+        ...prev,
+        {
+          id: accepted.id,
+          contact_id: accepted.user_id,
+          name: accepted.name,
+          avatar: accepted.avatar,
+          avatarUrl: accepted.avatarUrl,
+          relation: null,
+        },
+      ]);
+    }
+    toast.success("Contact accepté !");
+  };
+
+  const handleDecline = async (requestId: string) => {
+    await supabase
+      .from("trusted_contacts")
+      .update({ status: "declined" })
+      .eq("id", requestId);
+    setPendingRequests((p) => p.filter((r) => r.id !== requestId));
+  };
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 40,
+          color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)",
+          fontSize: 13,
+        }}
+      >
+        Chargement…
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "16px" }}>
       {/* Mon Cercle Section */}
@@ -83,219 +176,208 @@ export default function CercleTab({ isDark }: CercleTabProps) {
         >
           Mon Cercle
         </h3>
-        <div
-          style={{
-            display: "flex",
-            gap: 20,
-            overflowX: "auto",
-            paddingBottom: 8,
-          }}
-        >
-          {circleContacts.map((contact, index) => (
-            <motion.div
-              key={contact.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
+        {contacts.length === 0 ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "32px 0",
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 32 }}>💛</span>
+            <p
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-                minWidth: 70,
+                fontSize: 14,
+                fontWeight: 500,
+                color: isDark ? "#94A3B8" : "#64748B",
               }}
             >
-              <div
+              Aucun contact de confiance
+            </p>
+            <p
+              style={{
+                fontSize: 12,
+                color: isDark ? "#64748B" : "#94A3B8",
+              }}
+            >
+              Invitez vos proches pour créer votre cercle
+            </p>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              gap: 20,
+              overflowX: "auto",
+              paddingBottom: 8,
+            }}
+          >
+            {contacts.map((contact, index) => (
+              <motion.div
+                key={contact.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
                 style={{
-                  position: "relative",
-                  width: 56,
-                  height: 56,
-                  borderRadius: "50%",
-                  padding: 3,
-                  background: contact.ringColor,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                  minWidth: 70,
                 }}
               >
                 <div
                   style={{
-                    width: "100%",
-                    height: "100%",
+                    position: "relative",
+                    width: 56,
+                    height: 56,
                     borderRadius: "50%",
-                    backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: isDark ? "#FFFFFF" : "#0F172A",
-                  }}
-                >
-                  {contact.avatar}
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: isDark ? "#FFFFFF" : "#0F172A",
-                  fontWeight: 500,
-                }}
-              >
-                {contact.name}
-              </span>
-              {contact.statusText && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "4px 8px",
-                    borderRadius: 12,
-                    backgroundColor: "rgba(52, 211, 153, 0.15)",
+                    padding: 3,
+                    background: "#34D399",
                   }}
                 >
                   <div
-                    className="animate-pulse-dot"
                     style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      backgroundColor: "#34D399",
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: "#34D399", fontWeight: 500 }}>
-                    {contact.statusText}
-                  </span>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Activité Récente Section */}
-      <div>
-        <h3
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: isDark ? "#64748B" : "#94A3B8",
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            marginBottom: 16,
-          }}
-        >
-          Activité Récente
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {activities.map((activity, index) => (
-            <motion.div
-              key={activity.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              style={{
-                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                borderRadius: 16,
-                padding: 16,
-                border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-              }}
-            >
-              {activity.type === "trip_complete" && (
-                <>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg, #34D399, #10B981)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: "#FFFFFF",
-                      }}
-                    >
-                      {activity.avatar}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, color: isDark ? "#FFFFFF" : "#0F172A" }}>
-                        <strong>{activity.user}</strong> a terminé son trajet
-                      </p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                        <MapPin size={12} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-                        <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
-                          {activity.location} · {activity.time}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 12,
                       width: "100%",
-                      height: 80,
-                      borderRadius: 12,
-                      background: `linear-gradient(135deg, ${isDark ? "#1E293B" : "#E2E8F0"}, ${isDark ? "#0F172A" : "#CBD5E1"})`,
-                      position: "relative",
+                      height: "100%",
+                      borderRadius: "50%",
+                      backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 18,
+                      fontWeight: 600,
+                      color: isDark ? "#FFFFFF" : "#0F172A",
                       overflow: "hidden",
                     }}
                   >
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        backgroundImage: `linear-gradient(to right, ${isDark ? "#334155" : "#CBD5E1"} 1px, transparent 1px), linear-gradient(to bottom, ${isDark ? "#334155" : "#CBD5E1"} 1px, transparent 1px)`,
-                        backgroundSize: "25px 25px",
-                        opacity: 0.3,
-                      }}
-                    />
+                    {contact.avatarUrl ? (
+                      <img
+                        src={contact.avatarUrl}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      contact.avatar
+                    )}
                   </div>
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 10px",
-                      borderRadius: 8,
-                      backgroundColor: "rgba(52, 211, 153, 0.15)",
-                    }}
-                  >
-                    <Check size={14} style={{ color: "#34D399" }} />
-                    <span style={{ fontSize: 12, color: "#34D399", fontWeight: 500 }}>
-                      {activity.badge}
-                    </span>
-                  </div>
-                </>
-              )}
+                </div>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: isDark ? "#FFFFFF" : "#0F172A",
+                    fontWeight: 500,
+                  }}
+                >
+                  {contact.name}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              {activity.type === "trust_request" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {/* Demandes en attente */}
+      {pendingRequests.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: isDark ? "#64748B" : "#94A3B8",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              marginBottom: 16,
+            }}
+          >
+            Demandes en attente
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {pendingRequests.map((request, index) => (
+              <motion.div
+                key={request.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                style={{
+                  backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                  borderRadius: 16,
+                  padding: 16,
+                  border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
                   <div
                     style={{
                       width: 40,
                       height: 40,
                       borderRadius: "50%",
-                      background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
+                      background:
+                        "linear-gradient(135deg, #3BB4C1, #06B6D4)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      overflow: "hidden",
                     }}
                   >
-                    <Users size={18} style={{ color: "#FFFFFF" }} />
+                    {request.avatarUrl ? (
+                      <img
+                        src={request.avatarUrl}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <Users
+                        size={18}
+                        style={{ color: "#FFFFFF" }}
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 14, color: isDark ? "#FFFFFF" : "#0F172A" }}>
-                      <strong>{activity.user}</strong> vous a ajouté comme contact de confiance
+                    <p
+                      style={{
+                        fontSize: 14,
+                        color: isDark ? "#FFFFFF" : "#0F172A",
+                      }}
+                    >
+                      <strong>{request.name}</strong> vous a ajouté
+                      comme contact de confiance
                     </p>
-                    <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
-                      {activity.time}
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: isDark ? "#64748B" : "#94A3B8",
+                      }}
+                    >
+                      {timeAgo(request.created_at)}
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => handleAccept(request.id)}
                       style={{
                         width: 36,
                         height: 36,
@@ -308,10 +390,14 @@ export default function CercleTab({ isDark }: CercleTabProps) {
                         cursor: "pointer",
                       }}
                     >
-                      <Check size={18} style={{ color: "#34D399" }} />
+                      <Check
+                        size={18}
+                        style={{ color: "#34D399" }}
+                      />
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => handleDecline(request.id)}
                       style={{
                         width: 36,
                         height: 36,
@@ -328,66 +414,25 @@ export default function CercleTab({ isDark }: CercleTabProps) {
                     </motion.button>
                   </div>
                 </div>
-              )}
-
-              {activity.type === "live_trip" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #F5C341, #F59E0B)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    {activity.avatar}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <p style={{ fontSize: 14, color: isDark ? "#FFFFFF" : "#0F172A" }}>
-                        <strong>{activity.user}</strong> partage un trajet en cours
-                      </p>
-                      <div
-                        className="animate-pulse-dot"
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor: "#F5C341",
-                        }}
-                      />
-                    </div>
-                    <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
-                      {activity.time}
-                    </span>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    style={{
-                      padding: "8px 14px",
-                      borderRadius: 8,
-                      backgroundColor: "rgba(245, 195, 65, 0.15)",
-                      border: "none",
-                      color: "#F5C341",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Suivre le trajet
-                  </motion.button>
-                </div>
-              )}
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Empty state when no contacts and no requests */}
+      {contacts.length === 0 && pendingRequests.length === 0 && (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "20px 0",
+            color: isDark ? "#64748B" : "#94A3B8",
+            fontSize: 12,
+          }}
+        >
+          Partagez votre lien d&apos;invitation pour ajouter des contacts
+        </div>
+      )}
     </div>
   );
 }
