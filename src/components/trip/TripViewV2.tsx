@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   Share2,
   Check,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useTheme } from "@/stores/useTheme";
 import { useStore } from "@/stores/useStore";
@@ -92,6 +94,8 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
   const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
   const [tripSummary, setTripSummary] = useState<{ duration_s: number; distance_m: number; score: number } | null>(null);
+  const [favAddMode, setFavAddMode] = useState(false);
+  const [sharingStoppedLocal, setSharingStoppedLocal] = useState(false);
   const [plannedDurationS, setPlannedDurationS] = useState(0);
   const [distanceM, setDistanceM] = useState(0);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
@@ -322,7 +326,34 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
     circleContacts.forEach((c) => { initial[c.id] = "waiting"; });
     setContactStatuses(initial);
     setCountdownSeconds(107);
+    setSharingStoppedLocal(false);
   };
+
+  // Save / remove favorite place
+  const refreshSavedPlaces = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("saved_places")
+      .select("id, label, lat, lng, icon")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (data) setSavedPlaces(data);
+  };
+
+  const savePlace = async (label: string, lat: number, lng: number, icon?: string) => {
+    if (!userId) return;
+    await supabase.from("saved_places").insert({ user_id: userId, label, lat, lng, icon: icon || "⭐" });
+    await refreshSavedPlaces();
+  };
+
+  const removePlace = async (id: string) => {
+    await supabase.from("saved_places").delete().eq("id", id);
+    setSavedPlaces((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const isDestSaved = savedPlaces.some(
+    (p) => destCoords && Math.abs(p.lat - destCoords[1]) < 0.0001 && Math.abs(p.lng - destCoords[0]) < 0.0001
+  );
 
   // Shared styles
   const cardStyle: React.CSSProperties = {
@@ -1064,63 +1095,99 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
               {Object.values(contactStatuses).filter((s) => s !== "waiting").length} contacts actifs sur {circleContacts.length}
             </p>
 
-            {/* Active contacts */}
-            <div style={{ ...cardStyle, borderRadius: 14, overflow: "hidden", marginBottom: 20, textAlign: "left" }}>
-              {circleContacts.filter((c) => contactStatuses[c.id] && contactStatuses[c.id] !== "waiting").map((contact, i, arr) => {
-                const status = contactStatuses[contact.id];
-                const contactColor = CONTACT_COLORS[circleContacts.indexOf(contact) % CONTACT_COLORS.length];
-                return (
-                <div
-                  key={contact.id}
-                  style={{
-                    padding: "12px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    borderBottom: i < arr.length - 1 ? `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` : "none",
-                  }}
-                >
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    <Avatar name={contact.name} color={contactColor} size={34} />
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: -1,
-                        right: -1,
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        backgroundColor: status === "following" ? colors.success : colors.cyan,
-                        border: `2px solid ${colors.card[theme]}`,
-                      }}
-                    />
-                  </div>
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: colors.textPrimary[theme] }}>
-                    {contact.name}
-                  </span>
-                  <span
+            {/* Active contacts — hidden when sharing stopped */}
+            {!sharingStoppedLocal && (
+              <div style={{ ...cardStyle, borderRadius: 14, overflow: "hidden", marginBottom: 20, textAlign: "left" }}>
+                {circleContacts.filter((c) => contactStatuses[c.id] && contactStatuses[c.id] !== "waiting").map((contact, i, arr) => {
+                  const status = contactStatuses[contact.id];
+                  const contactColor = CONTACT_COLORS[circleContacts.indexOf(contact) % CONTACT_COLORS.length];
+                  return (
+                  <div
+                    key={contact.id}
                     style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      padding: "3px 8px",
-                      borderRadius: 8,
-                      backgroundColor: status === "following" ? `${colors.success}20` : `${colors.cyan}20`,
-                      color: status === "following" ? colors.success : colors.cyan,
+                      padding: "12px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      borderBottom: i < arr.length - 1 ? `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` : "none",
                     }}
                   >
-                    {status === "following" ? "● Suit" : "🎙 Vocal"}
-                  </span>
-                </div>
-                );
-              })}
-            </div>
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <Avatar name={contact.name} color={contactColor} size={34} />
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: -1,
+                          right: -1,
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          backgroundColor: status === "following" ? colors.success : colors.cyan,
+                          border: `2px solid ${colors.card[theme]}`,
+                        }}
+                      />
+                    </div>
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: colors.textPrimary[theme] }}>
+                      {contact.name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        padding: "3px 8px",
+                        borderRadius: 8,
+                        backgroundColor: status === "following" ? `${colors.success}20` : `${colors.cyan}20`,
+                        color: status === "following" ? colors.success : colors.cyan,
+                      }}
+                    >
+                      {status === "following" ? "● Suit" : "🎙 Vocal"}
+                    </span>
+                  </div>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Stop button */}
+            {sharingStoppedLocal && (
+              <div style={{ ...cardStyle, padding: "16px 14px", marginBottom: 20, textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: colors.textTertiary[theme] }}>
+                  Partage avec le cercle arrêté
+                </div>
+              </div>
+            )}
+
+            {/* Stop sharing button (does NOT end trip) */}
+            <button
+              onClick={() => {
+                setIsSharingLocation(false);
+                setSharingStoppedLocal(true);
+              }}
+              disabled={sharingStoppedLocal}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 14,
+                backgroundColor: sharingStoppedLocal ? colors.card[theme] : `${colors.warning}15`,
+                border: "none",
+                fontSize: 14,
+                fontWeight: 600,
+                color: sharingStoppedLocal ? colors.textTertiary[theme] : colors.warning,
+                cursor: sharingStoppedLocal ? "default" : "pointer",
+                opacity: sharingStoppedLocal ? 0.6 : 1,
+                marginBottom: 8,
+              }}
+            >
+              {sharingStoppedLocal ? "Partage arrêté" : "Arrêter le partage"}
+            </button>
+
+            {/* End trip button */}
             <button
               onClick={async () => {
                 await endTrip();
                 setState("idle");
                 resetWalk();
+                setSharingStoppedLocal(false);
+                setIsSharingLocation(false);
               }}
               style={{
                 width: "100%",
@@ -1134,7 +1201,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
                 cursor: "pointer",
               }}
             >
-              Arrêter le partage
+              Terminer le trajet
             </button>
           </motion.div>
         )}
@@ -1183,24 +1250,56 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       </div>
 
       {/* Destination */}
-      <div style={{ marginBottom: 16 }}>
-        <AutocompleteInput
-          value={destination}
-          onChange={(text, coords) => {
-            setDestination(text);
-            setDestCoords(coords || null);
-          }}
-          placeholder="Rechercher une destination"
-          localSections={savedPlaces.length > 0 ? [{
-            title: "Lieux favoris",
-            items: savedPlaces.map((p) => ({
-              label: p.label,
-              coords: [p.lng, p.lat] as [number, number],
-              icon: p.icon || "⭐",
-            })),
-          }] : undefined}
-          autoFocus
-        />
+      <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <AutocompleteInput
+            value={destination}
+            onChange={(text, coords) => {
+              setDestination(text);
+              setDestCoords(coords || null);
+            }}
+            placeholder="Rechercher une destination"
+            localSections={savedPlaces.length > 0 ? [{
+              title: "Lieux favoris",
+              items: savedPlaces.map((p) => ({
+                label: p.label,
+                coords: [p.lng, p.lat] as [number, number],
+                icon: p.icon || "⭐",
+              })),
+            }] : undefined}
+            autoFocus
+          />
+        </div>
+        {destination && destCoords && (
+          <motion.button
+            whileTap={{ scale: 0.85 }}
+            onClick={async () => {
+              if (isDestSaved) {
+                const match = savedPlaces.find(
+                  (p) => destCoords && Math.abs(p.lat - destCoords[1]) < 0.0001 && Math.abs(p.lng - destCoords[0]) < 0.0001
+                );
+                if (match) await removePlace(match.id);
+              } else {
+                await savePlace(destination, destCoords[1], destCoords[0]);
+              }
+            }}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              backgroundColor: isDestSaved ? `${colors.gold}20` : colors.card[theme],
+              border: `1px solid ${isDestSaved ? colors.gold : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+              marginTop: 1,
+            }}
+          >
+            <Star size={18} color={isDestSaved ? colors.gold : colors.textTertiary[theme]} fill={isDestSaved ? colors.gold : "none"} />
+          </motion.button>
+        )}
       </div>
 
       {/* Quick access — saved places */}
@@ -1580,7 +1679,7 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => setState("idle")}
+          onClick={() => { setState("idle"); setFavAddMode(false); }}
           style={{
             width: 34, height: 34, borderRadius: "50%",
             backgroundColor: colors.card[theme], border: "none",
@@ -1590,51 +1689,101 @@ export default function TripViewV2({ onClose }: TripViewV2Props) {
         >
           <ChevronLeft size={20} color={colors.textPrimary[theme]} />
         </motion.button>
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>Mes favoris</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0, flex: 1 }}>Mes favoris</h1>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setFavAddMode(!favAddMode)}
+          style={{
+            width: 34, height: 34, borderRadius: "50%",
+            backgroundColor: favAddMode ? `${colors.cyan}20` : colors.card[theme],
+            border: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", flexShrink: 0,
+          }}
+        >
+          {favAddMode ? <X size={18} color={colors.cyan} /> : <Plus size={18} color={colors.textPrimary[theme]} />}
+        </motion.button>
       </div>
 
-      {savedPlaces.length === 0 ? (
+      {/* Add place search */}
+      {favAddMode && (
+        <div style={{ marginBottom: 12 }}>
+          <AutocompleteInput
+            value=""
+            onChange={async (text, coords) => {
+              if (coords && text) {
+                await savePlace(text, coords[1], coords[0]);
+                setFavAddMode(false);
+              }
+            }}
+            placeholder="Rechercher un lieu à sauvegarder"
+            autoFocus
+          />
+        </div>
+      )}
+
+      {savedPlaces.length === 0 && !favAddMode ? (
         <div style={{ ...cardStyle, padding: "24px 14px", textAlign: "center" }}>
           <Star size={28} color={colors.textTertiary[theme]} style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 14, color: colors.textTertiary[theme] }}>Aucun lieu enregistré</div>
           <div style={{ fontSize: 12, color: colors.textTertiary[theme], marginTop: 4 }}>
-            Sauvegardez des lieux depuis la carte pour y accéder rapidement
+            Appuyez sur + pour ajouter un lieu favori
           </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {savedPlaces.map((place) => (
-            <motion.button
+            <div
               key={place.id}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setDestination(place.label);
-                setDestCoords([place.lng, place.lat]);
-                setState("planifier");
-              }}
               style={{
                 ...cardStyle,
                 padding: "12px 14px",
                 display: "flex", alignItems: "center", gap: 12,
-                cursor: "pointer", textAlign: "left",
               }}
             >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                backgroundColor: colors.elevated[theme],
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 20,
-              }}>
-                {place.icon || "⭐"}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.label}</div>
-                <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>
-                  {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setDestination(place.label);
+                  setDestCoords([place.lng, place.lat]);
+                  setState("planifier");
+                  setFavAddMode(false);
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  flex: 1, minWidth: 0, background: "none", border: "none",
+                  cursor: "pointer", textAlign: "left", padding: 0,
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  backgroundColor: colors.elevated[theme],
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20, flexShrink: 0,
+                }}>
+                  {place.icon || "⭐"}
                 </div>
-              </div>
-              <ChevronRight size={16} color={colors.textTertiary[theme]} />
-            </motion.button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.label}</div>
+                  <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>
+                    {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+                  </div>
+                </div>
+                <ChevronRight size={16} color={colors.textTertiary[theme]} />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={() => removePlace(place.id)}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  backgroundColor: `${colors.danger}10`,
+                  border: "none", display: "flex", alignItems: "center",
+                  justifyContent: "center", cursor: "pointer", flexShrink: 0,
+                }}
+              >
+                <Trash2 size={14} color={colors.danger} />
+              </motion.button>
+            </div>
           ))}
         </div>
       )}

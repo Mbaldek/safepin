@@ -45,7 +45,14 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} data-theme="dark">
+    <html lang={locale} data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('brume-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-dvh overscroll-none touch-manipulation bg-(--surface-base) text-(--text-primary)">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:px-4 focus:py-2 focus:rounded" style={{ background: '#0F172A', color: '#FFFFFF' }}>Skip to content</a>
         <NextIntlClientProvider messages={messages}>
