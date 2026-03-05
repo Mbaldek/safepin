@@ -48,7 +48,7 @@ const STYLE_URLS: Record<string, string> = {
 
 /** Our custom layer IDs — never hide these. */
 const OWN_LAYERS = new Set([
-  SOURCE_ID, 'clusters', 'cluster-count', 'unclustered-point',
+  SOURCE_ID, 'clusters', 'clusters-halo', 'cluster-count', 'unclustered-point',
   TRANSIT_CIRCLE, TRANSIT_LABEL,
   POI_CIRCLE, POI_LABEL,
   SAFE_CIRCLE, SAFE_LABEL, SAFE_PARTNER,
@@ -75,6 +75,22 @@ const CATEGORY_COLORS: Record<string, string> = {
   suspect: '#F59E0B', group: '#F59E0B', unsafe: '#F59E0B',
   lighting: '#64748B', blocked: '#64748B', closed: '#64748B',
   safe: '#34D399', help: '#34D399', presence: '#34D399',
+};
+
+const PIN_COLORS = {
+  urgent:   '#EF4444',
+  warning:  '#FBBF24',
+  infra:    '#60A5FA',
+  positive: '#34D399',
+  safeSpace:   '#34D399',
+  safePartner: '#F5C341',
+  emergency:   '#EF4444',
+  destination: '#34D399',
+  transport:   '#22D3EE',
+  watchContact: '#3BB4C1',
+  surface:  '#1E293B',
+  elevated: '#334155',
+  stroke:   '#FFFFFF',
 };
 
 const DECAY_HOURS: Record<string, number> = {
@@ -158,6 +174,7 @@ function addTransitLayer(m: mapboxgl.Map) {
     id: TRANSIT_CIRCLE,
     type: 'circle',
     source: TRANSIT_SRC,
+    minzoom: 13,
     paint: {
       'circle-radius': ['match', ['get', 'kind'], 'metro', 7, 'rer', 7, 'bus', 4, 5],
       'circle-color':  ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', 'bus', '#f59e0b', '#10b981'],
@@ -165,7 +182,7 @@ function addTransitLayer(m: mapboxgl.Map) {
       'circle-stroke-color': '#fff',
       'circle-opacity': 0.92,
     },
-  });
+  }, 'clusters-halo');
   m.addLayer({
     id: TRANSIT_LABEL,
     type: 'symbol',
@@ -183,7 +200,7 @@ function addTransitLayer(m: mapboxgl.Map) {
       'text-halo-color': '#fff',
       'text-halo-width': 1.5,
     },
-  });
+  }, 'clusters-halo');
 
   // Station click → popup with name + transport type
   m.on('click', TRANSIT_CIRCLE, (e) => {
@@ -245,6 +262,7 @@ function addPOILayers(m: mapboxgl.Map) {
     id: POI_CIRCLE,
     type: 'circle',
     source: POI_SRC,
+    minzoom: 14,
     paint: {
       'circle-radius': 6,
       'circle-color': ['match', ['get', 'kind'], 'pharmacy', '#10b981', 'hospital', '#ef4444', 'police', '#3b82f6', '#6b7280'],
@@ -252,7 +270,7 @@ function addPOILayers(m: mapboxgl.Map) {
       'circle-stroke-color': '#fff',
       'circle-opacity': 0.9,
     },
-  });
+  }, 'clusters-halo');
   m.addLayer({
     id: POI_LABEL,
     type: 'symbol',
@@ -270,7 +288,7 @@ function addPOILayers(m: mapboxgl.Map) {
       'text-halo-color': '#fff',
       'text-halo-width': 1.5,
     },
-  });
+  }, 'clusters-halo');
 }
 
 function buildPOIFilter(show: { pharmacy: boolean; hospital: boolean; police: boolean }): mapboxgl.FilterSpecification {
@@ -303,7 +321,7 @@ function addHeatmapLayer(m: mapboxgl.Map, geojson: GeoJSON.FeatureCollection) {
       'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 17, 20],
       'heatmap-opacity': 0.55,
     },
-  }, 'clusters');
+  }, 'clusters-halo');
 }
 
 // ── Custom pin image helpers ──────────────────────────────────────────────────
@@ -417,8 +435,8 @@ function addClusterLayers(m: mapboxgl.Map) {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
     cluster: true,
-    clusterMaxZoom: 15,
-    clusterRadius: 70,
+    clusterMaxZoom: 14,
+    clusterRadius: 40,
     clusterProperties: {
       urgent:   ['+', ['case', ['==', ['get', 'categoryGroup'], 'urgent'],  1, 0]],
       warning:  ['+', ['case', ['==', ['get', 'categoryGroup'], 'warning'], 1, 0]],
@@ -434,19 +452,51 @@ function addClusterLayers(m: mapboxgl.Map) {
     source: SOURCE_ID,
     filter: ['has', 'point_count'],
     paint: {
+      'circle-radius': [
+        'step', ['get', 'point_count'],
+        18,
+        5,  24,
+        20, 30,
+      ],
       'circle-color': [
         'case',
-        ['>=', ['get', 'urgent'],  ['max', ['get', 'warning'], ['get', 'infra'], ['get', 'positive']]], '#EF4444',
-        ['>=', ['get', 'warning'], ['max', ['get', 'urgent'],  ['get', 'infra'], ['get', 'positive']]], '#F59E0B',
-        ['>=', ['get', 'positive'],['max', ['get', 'urgent'],  ['get', 'warning'],['get', 'infra']]],   '#34D399',
+        ['>', ['get', 'urgent'],  0], PIN_COLORS.urgent,
+        ['>', ['get', 'warning'], 0], PIN_COLORS.warning,
+        ['>', ['get', 'positive'],0], PIN_COLORS.positive,
         '#64748B',
       ],
-      'circle-radius': ['step', ['get', 'point_count'], 20, 5, 28, 20, 36],
-      'circle-opacity': 0.88,
+      'circle-opacity': 0.92,
       'circle-stroke-width': 3,
-      'circle-stroke-color': 'rgba(255,255,255,0.3)',
+      'circle-stroke-color': PIN_COLORS.stroke,
+      'circle-stroke-opacity': 0.95,
+      'circle-blur': 0,
     },
   });
+
+  // Cluster halo — subtle outer ring for depth
+  m.addLayer({
+    id: 'clusters-halo',
+    type: 'circle',
+    source: SOURCE_ID,
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-radius': [
+        'step', ['get', 'point_count'],
+        24,
+        5,  30,
+        20, 38,
+      ],
+      'circle-color': [
+        'case',
+        ['>', ['get', 'urgent'],  0], PIN_COLORS.urgent,
+        ['>', ['get', 'warning'], 0], PIN_COLORS.warning,
+        ['>', ['get', 'positive'],0], PIN_COLORS.positive,
+        '#64748B',
+      ],
+      'circle-opacity': 0.15,
+      'circle-stroke-width': 0,
+    },
+  }, 'clusters');
 
   // Cluster count label
   m.addLayer({
@@ -456,10 +506,10 @@ function addClusterLayers(m: mapboxgl.Map) {
     filter: ['has', 'point_count'],
     layout: {
       'text-field': '{point_count_abbreviated}',
-      'text-size': 13,
-      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+      'text-size': 12,
+      'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
     },
-    paint: { 'text-color': '#fff' },
+    paint: { 'text-color': PIN_COLORS.stroke },
   });
 
   // Register category-group pin images: 4 groups × 4 tiers = 16 icons
@@ -509,18 +559,33 @@ function addClusterLayers(m: mapboxgl.Map) {
         // fallback
         'pin-infra-sm',
       ],
-      'icon-allow-overlap': true,
+      'icon-allow-overlap': false,
       'icon-ignore-placement': false,
       'icon-size': [
         'interpolate', ['linear'], ['zoom'],
-        8,  0.4,
-        11, 0.65,
-        14, 1.0,
-        18, 1.2,
+        8,  0.35,
+        11, 0.55,
+        14, 0.85,
+        16, 1.0,
+        18, 1.1,
+      ],
+      'symbol-sort-key': [
+        'match', ['get', 'categoryGroup'],
+        'urgent',  4,
+        'warning', 3,
+        'infra',   2,
+        'positive',1,
+        0,
       ],
     },
     paint: {
-      'icon-opacity': ['get', 'opacity'],
+      'icon-opacity': [
+        'interpolate', ['linear'], ['zoom'],
+        8,  0.0,
+        10, 0.6,
+        12, 1.0,
+        22, 1.0,
+      ],
     },
   });
 
@@ -600,6 +665,7 @@ function MapView({
     setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations,
     userId, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
+    setTripPrefill, setActiveTab,
   } = useStore(useShallow((s) => ({
     pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
@@ -611,6 +677,7 @@ function MapView({
     setSelectedPlaceNote: s.setSelectedPlaceNote, favPlaceIds: s.favPlaceIds,
     safeSpaces: s.safeSpaces, setSafeSpaces: s.setSafeSpaces,
     showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
+    setTripPrefill: s.setTripPrefill, setActiveTab: s.setActiveTab,
   })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -618,6 +685,12 @@ function MapView({
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
+
+  const handleSafeNavigate = useCallback((lat: number, lng: number, name: string) => {
+    setTripPrefill({ destination: name, destCoords: [lng, lat] });
+    setActiveTab('trip');
+    setSelectedSafeSpace(null);
+  }, [setTripPrefill, setActiveTab]);
   const [filteredTransportPins, setFilteredTransportPins] = useState<Pin[]>([]);
   const [labelsVisible, setLabelsVisible] = useState(false);
   const zoomRef = useRef(13);
@@ -796,13 +869,13 @@ function MapView({
         'line-opacity': 0.80,
         'line-dasharray': [1, 0],
       },
-    }, 'clusters');
+    }, 'clusters-halo');
 
     // Destination marker
     const last = activeRoute.coords[activeRoute.coords.length - 1];
     const el = document.createElement('div');
-    el.style.cssText = 'width:36px;height:36px;border-radius:50%;background:#f43f5e;border:3px solid #fff;box-shadow:0 2px 10px #f43f5e88;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:default';
-    el.textContent = '📍';
+    el.style.cssText = `width:36px;height:36px;border-radius:50%;background:${PIN_COLORS.destination};border:3px solid ${PIN_COLORS.stroke};box-shadow:0 0 0 6px rgba(52,211,153,0.20),0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer`;
+    el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
     destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
       .setLngLat(last)
       .addTo(m);
@@ -812,7 +885,7 @@ function MapView({
     const lats  = activeRoute.coords.map((c) => c[1]);
     m.fitBounds(
       [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-      { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, duration: 1200 },
+      { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
     );
   }, [activeRoute, mapReady, layersReady]);
 
@@ -846,7 +919,7 @@ function MapView({
           'line-width': 4,
           'line-opacity': 0.85,
         },
-      }, 'clusters');
+      }, 'clusters-halo');
     });
 
     // Fit bounds to show all routes
@@ -856,7 +929,7 @@ function MapView({
       const lats  = allCoords.map((c) => c[1]);
       m.fitBounds(
         [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, duration: 1200 },
+        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
       );
     }
   }, [pendingRoutes, mapReady, layersReady]);
@@ -899,7 +972,7 @@ function MapView({
           'line-opacity': 0.9,
           ...(seg.dashed ? { 'line-dasharray': [2, 2] } : {}),
         },
-      }, 'clusters');
+      }, 'clusters-halo');
     });
 
     // Fit bounds to show all segments
@@ -909,7 +982,7 @@ function MapView({
       const lats = allCoords.map((c) => c[1]);
       m.fitBounds(
         [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, duration: 1200 },
+        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
       );
     }
   }, [transitSegments, mapReady, layersReady]);
@@ -938,10 +1011,10 @@ function MapView({
       type: 'circle',
       source: WATCH_SRC,
       paint: {
-        'circle-radius': 18,
-        'circle-color': '#6366f1',
+        'circle-radius': 16,
+        'circle-color': PIN_COLORS.watchContact,
         'circle-stroke-width': 2.5,
-        'circle-stroke-color': '#fff',
+        'circle-stroke-color': PIN_COLORS.stroke,
         'circle-opacity': 0.92,
       },
     });
@@ -980,14 +1053,13 @@ function MapView({
     for (const note of placeNotes) {
       const el = document.createElement('div');
       const isFavorite = favPlaceIds.includes(note.id);
-      el.style.cssText = isFavorite
-        ? 'width:32px;height:32px;border-radius:50%;background:#f59e0b;border:2.5px solid #fff;' +
-          'box-shadow:0 2px 10px rgba(245,158,11,0.45);display:flex;align-items:center;justify-content:center;' +
-          'font-size:15px;cursor:pointer;'
-        : `width:28px;height:28px;border-radius:50%;background:${c.accent};border:2px solid #fff;` +
-          'box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;' +
-          'font-size:14px;cursor:pointer;';
-      el.textContent = note.emoji;
+      if (isFavorite) {
+        el.style.cssText = `width:32px;height:32px;border-radius:50%;background:rgba(245,195,65,0.15);border:2px solid rgba(245,195,65,0.5);box-shadow:0 0 0 5px rgba(245,195,65,0.1),0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+        el.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+      } else {
+        el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${PIN_COLORS.surface};border:2px solid rgba(255,255,255,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+        el.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>';
+      }
       el.title = note.name || note.note;
       el.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1134,8 +1206,9 @@ function MapView({
       }
 
       const dot = document.createElement('div');
-      dot.style.cssText = `width:${dotPx}px;height:${dotPx}px;border-radius:50%;background-color:#ef4444;border:3px solid ${theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)'};box-shadow:0 2px 8px #ef444488;z-index:1;position:relative;font-size:${Math.round(dotPx * 0.47)}px;display:flex;align-items:center;justify-content:center`;
-      dot.textContent = '🆘';
+      dot.style.cssText = `width:${dotPx}px;height:${dotPx}px;border-radius:50%;background-color:${PIN_COLORS.emergency};border:3px solid ${theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)'};box-shadow:0 2px 8px #ef444488;z-index:1;position:relative;display:flex;align-items:center;justify-content:center`;
+      const iconSz = idx === 0 ? 16 : 12;
+      dot.innerHTML = `<svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" stroke="${PIN_COLORS.stroke}" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
 
       wrapper.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1342,7 +1415,7 @@ function MapView({
           'fill-color': ['get', 'color'],
           'fill-opacity': 0.6,
         },
-      });
+      }, 'clusters-halo');
     }
   }, [showScores, mapReady, pins, mapFilters.timeOfDay]);
 
@@ -1433,7 +1506,14 @@ function MapView({
         'icon-allow-overlap': true,
         'icon-size': 0.9,
       },
-    });
+      paint: {
+        'icon-opacity': [
+          'interpolate', ['linear'], ['zoom'],
+          10, 0.0,
+          12, 1.0,
+        ],
+      },
+    }, 'clusters-halo');
 
     // Partner: drop-pin icons
     m.addLayer({
@@ -1447,7 +1527,14 @@ function MapView({
         'icon-anchor': 'bottom',
         'icon-allow-overlap': true,
       },
-    });
+      paint: {
+        'icon-opacity': [
+          'interpolate', ['linear'], ['zoom'],
+          9,  0.0,
+          11, 1.0,
+        ],
+      },
+    }, 'clusters-halo');
 
     // Labels for all safe spaces
     m.addLayer({
@@ -1469,7 +1556,7 @@ function MapView({
         'text-halo-color': '#fff',
         'text-halo-width': 1.5,
       },
-    });
+    }, 'clusters-halo');
 
     const handleSafeClick = (e: mapboxgl.MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.id;
@@ -1517,6 +1604,7 @@ function MapView({
           userId={userId ?? ''}
           isOpen={!!selectedSafeSpace}
           onClose={handleSafeSheetClose}
+          onNavigate={handleSafeNavigate}
         />
       )}
     </div>

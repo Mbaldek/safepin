@@ -99,6 +99,7 @@ function renderSheet(space: SafeSpace) {
       userId="test-user-id"
       isOpen={true}
       onClose={vi.fn()}
+      onNavigate={vi.fn()}
     />,
   );
 }

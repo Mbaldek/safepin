@@ -348,6 +348,38 @@ export type TripLog = {
   ended_at: string;
 };
 
+export type Trip = {
+  id: string;
+  user_id: string;
+  dest_name: string;
+  dest_lat: number;
+  dest_lng: number;
+  dest_address: string | null;
+  status: 'active' | 'arrived' | 'cancelled' | 'sos';
+  walk_with_me: boolean;
+  eta_minutes: number | null;
+  started_at: string;
+  ended_at: string | null;
+  last_lat: number | null;
+  last_lng: number | null;
+  last_seen_at: string | null;
+  destination: string | null;
+  distance_km: number | null;
+  duration_min: number | null;
+  safety_score: number | null;
+  created_at: string;
+};
+
+export type TripContact = {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  is_watching: boolean;
+  notified: boolean;
+};
+
+export type TripView = 'idle' | 'active' | 'arrived' | 'sos';
+
 export type Profile = {
   id: string;
   name: string;
