@@ -6,6 +6,9 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { T, springConfig } from "@/lib/tokens";
 import { toast } from "sonner";
+import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
+import { attachHashtags } from "@/hooks/useHashtags";
+import type { Hashtag } from "@/types";
 
 const SPRING = springConfig;
 
@@ -37,6 +40,7 @@ export default function StoryComposeModal({
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [storyTags, setStoryTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -100,18 +104,33 @@ export default function StoryComposeModal({
       .eq("id", userId)
       .single();
 
-    const { error } = await supabase.from("community_stories").insert({
+    const { data: inserted, error } = await supabase.from("community_stories").insert({
       community_id: selectedCommunityId,
       user_id: userId,
       display_name: profile?.display_name || null,
       media_url: urlData.publicUrl,
       media_type: mediaType,
       caption: caption.trim() || null,
-    });
+    }).select("id").single();
 
     if (error) {
       toast.error("Erreur lors de la publication");
     } else {
+      // Attach selected safety tags
+      if (inserted && storyTags.length > 0) {
+        const { data: tagRows } = await supabase
+          .from("hashtags")
+          .select("*")
+          .in("tag", storyTags);
+        if (tagRows && tagRows.length > 0) {
+          await attachHashtags({
+            tags: tagRows as Hashtag[],
+            contentType: 'story',
+            contentId: inserted.id,
+            userId,
+          });
+        }
+      }
       toast.success("Story publiee !");
       onPublished();
       onClose();
@@ -402,6 +421,46 @@ export default function StoryComposeModal({
               lineHeight: 1.5,
             }}
           />
+
+          {/* Safety chips */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 700, textTransform: "uppercase" as const,
+              letterSpacing: ".08em", color: d ? T.textTertiary : T.textTertiaryL, marginBottom: 6,
+            }}>
+              Contexte safety
+            </div>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
+              {(Object.entries(SAFETY_TAG_COLORS) as [string, { color: string; bg: string; border: string }][]).slice(0, 7).map(([tag, meta]) => {
+                const isSelected = storyTags.includes(tag);
+                const display = "#" + tag.charAt(0).toUpperCase() + tag.slice(1);
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setStoryTags(prev =>
+                      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                    )}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      padding: "4px 10px", borderRadius: 100,
+                      fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+                      background: isSelected ? meta.color : meta.bg,
+                      color: isSelected ? "#fff" : meta.color,
+                      border: `1px solid ${meta.border}`,
+                      transition: "all 150ms",
+                    }}
+                  >
+                    {isSelected && (
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                    {display}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div style={{ height: 20 }} />

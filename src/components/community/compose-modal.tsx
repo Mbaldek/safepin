@@ -5,6 +5,9 @@ import { X, MapPin, Users, Lock, Image, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { HashtagComposer } from "@/components/hashtags";
+import { attachHashtags } from "@/hooks/useHashtags";
+import type { Hashtag } from "@/types";
 
 interface ComposeModalProps {
   isDark: boolean;
@@ -38,6 +41,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
   const [publishing, setPublishing] = useState(false);
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string>("");
+  const [postTags, setPostTags] = useState<Hashtag[]>([]);
 
   // Fetch user's communities for the publish target
   useEffect(() => {
@@ -72,18 +76,27 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
       .eq("id", userId)
       .single();
 
-    const { error } = await supabase.from("community_messages").insert({
+    const { data: inserted, error } = await supabase.from("community_messages").insert({
       community_id: selectedCommunityId,
       user_id: userId,
       display_name: profile?.display_name || null,
       content: content.trim(),
-    });
+    }).select("id").single();
 
     if (error) {
       toast.error("Erreur lors de la publication");
     } else {
+      if (inserted && postTags.length > 0) {
+        await attachHashtags({
+          tags: postTags,
+          contentType: 'post',
+          contentId: inserted.id,
+          userId,
+        });
+      }
       toast.success("Publié !");
       setContent("");
+      setPostTags([]);
       onClose();
     }
     setPublishing(false);
@@ -275,6 +288,16 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
               outline: "none",
             }}
           />
+
+          <div style={{ marginTop: 12 }}>
+            <HashtagComposer
+              isDark={isDark}
+              selectedTags={postTags}
+              onTagsChange={setPostTags}
+              showSafetyChips={selectedType === "alerte"}
+              maxFree={5}
+            />
+          </div>
         </div>
 
         {/* Options */}

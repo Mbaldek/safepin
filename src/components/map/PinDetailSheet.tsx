@@ -17,6 +17,8 @@ import type { Pin } from '@/types'
 import { T } from '@/lib/tokens'
 import { toast } from 'sonner'
 import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
+import { HashtagPill } from '@/components/hashtags'
+import type { Hashtag } from '@/types'
 
 // ─── Category config ─────────────────────────────
 const CAT: Record<string, {
@@ -125,6 +127,7 @@ function PinDetailSheet({
   const [loadingNearby, setLoadingNearby] = useState(true)
   const [resolving, setResolving] = useState(false)
   const [showFalseReportConfirm, setShowFalseReportConfirm] = useState(false)
+  const [pinHashtags, setPinHashtags] = useState<Hashtag[]>([])
 
   useEffect(() => {
     if (!pin) return
@@ -179,6 +182,21 @@ function PinDetailSheet({
         setNearbyPins(filtered)
       }
       setLoadingNearby(false)
+
+      // Fetch hashtags for this pin
+      const { data: chRows } = await supabase
+        .from('content_hashtags')
+        .select('hashtags(id, tag, category, display, color, icon, uses_count, created_at)')
+        .eq('content_type', 'incident')
+        .eq('content_id', pin.id)
+      if (chRows) {
+        const tags = chRows
+          .map((r: Record<string, unknown>) => r.hashtags as unknown as Hashtag)
+          .filter(Boolean)
+        setPinHashtags(tags)
+      } else {
+        setPinHashtags([])
+      }
     }
     load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,6 +362,9 @@ function PinDetailSheet({
                       }}>
                         {cat.label}
                       </span>
+                      {pinHashtags.map(tag => (
+                        <HashtagPill key={tag.id} tag={tag} isDark={d} size="xs" />
+                      ))}
                     </div>
                   </div>
 

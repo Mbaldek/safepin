@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin } from "lucide-react";
+import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
 
 interface Post {
   id: number;
@@ -183,7 +184,25 @@ export default function PostCard({ post, isDark }: PostCardProps) {
             lineHeight: 1.5,
           }}
         >
-          {post.content}
+          {post.content.split(/(#[\wÀ-ÿ]+)/g).map((part, i) => {
+            if (part.startsWith('#')) {
+              const tagName = part.slice(1).toLowerCase();
+              const meta = SAFETY_TAG_COLORS[tagName];
+              return (
+                <span
+                  key={i}
+                  style={{
+                    color: meta?.color ?? '#3BB4C1',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {part}
+                </span>
+              );
+            }
+            return <span key={i}>{part}</span>;
+          })}
         </p>
       </div>
 

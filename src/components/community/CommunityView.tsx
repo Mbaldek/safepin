@@ -16,6 +16,9 @@ import ComposeModal from './compose-modal';
 import StoryViewer, { type DBStory } from './story-viewer';
 import StoryComposeModal from './story-compose-modal';
 import CreateGroupModal from './create-group-modal';
+import { TrendingHashtags, HashtagFeedSheet } from '@/components/hashtags';
+import { AnimatePresence } from 'framer-motion';
+import type { Hashtag } from '@/types';
 
 const GRADIENTS = [
   ['#A78BFA', '#8B5CF6'],
@@ -48,6 +51,7 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [dbStories, setDbStories] = useState<DBStory[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeHashtag, setActiveHashtag] = useState<Hashtag | null>(null);
 
   const fetchStories = useCallback(async () => {
     if (!userId) return;
@@ -146,15 +150,21 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
 
       <div style={{ flex: 1, overflowY: 'auto' }} className="scrollbar-hidden">
         {activeTab === 0 && (
-          <FilTab
-            isDark={isDark}
-            userId={userId}
-            onStoryClick={(i) => {
-              setStoryIndex(i);
-              setShowStoryViewer(true);
-            }}
-            onPublish={() => setShowStoryCompose(true)}
-          />
+          <>
+            <TrendingHashtags
+              isDark={isDark}
+              onTagPress={setActiveHashtag}
+            />
+            <FilTab
+              isDark={isDark}
+              userId={userId}
+              onStoryClick={(i) => {
+                setStoryIndex(i);
+                setShowStoryViewer(true);
+              }}
+              onPublish={() => setShowStoryCompose(true)}
+            />
+          </>
         )}
         {activeTab === 1 && <CercleTab isDark={isDark} userId={userId} />}
         {activeTab === 2 && (
@@ -198,6 +208,16 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
           onCreated={() => setRefreshKey((k) => k + 1)}
         />
       )}
+
+      <AnimatePresence>
+        {activeHashtag && (
+          <HashtagFeedSheet
+            hashtag={activeHashtag}
+            isDark={isDark}
+            onClose={() => setActiveHashtag(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
