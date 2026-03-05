@@ -4,35 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Camera, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { T, springConfig } from "@/lib/tokens";
 import { toast } from "sonner";
 
-const T = {
-  surfaceBase: "#0F172A",
-  surfaceCard: "#1E293B",
-  surfaceElevated: "#334155",
-  surfaceBaseL: "#F8FAFC",
-  surfaceCardL: "#FFFFFF",
-  surfaceElevatedL: "#FFFFFF",
-  textPrimary: "#FFFFFF",
-  textPrimaryL: "#0F172A",
-  textSecondary: "#94A3B8",
-  textSecondaryL: "#475569",
-  textTertiary: "#64748B",
-  textTertiaryL: "#94A3B8",
-  textInverse: "#0F172A",
-  textInverseL: "#FFFFFF",
-  borderSubtle: "rgba(255,255,255,0.08)",
-  borderSubtleL: "rgba(15,23,42,0.06)",
-  borderDefault: "rgba(255,255,255,0.12)",
-  borderDefaultL: "rgba(15,23,42,0.10)",
-  interactiveHover: "rgba(255,255,255,0.05)",
-  interactiveHoverL: "rgba(15,23,42,0.04)",
-  gradientStart: "#3BB4C1",
-  radiusMd: "12px",
-  radiusXl: "24px",
-};
-
-const SPRING = { type: "spring" as const, stiffness: 300, damping: 30 };
+const SPRING = springConfig;
 
 interface StoryComposeModalProps {
   isDark: boolean;

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useTheme } from '@/stores/useTheme';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { checkMilestones, type MilestoneStats } from '@/lib/milestones';
@@ -41,6 +42,7 @@ import { useTour } from '@/hooks/useTour';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const TripSheet = dynamic(() => import('@/components/TripSheet'), { ssr: false });
+const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
@@ -109,6 +111,7 @@ export default function MapPage() {
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
   } = useStore();
+  const isDark = useTheme((s) => s.theme) === 'dark';
   const tMap = useTranslations('map');
   const tTour = useTranslations('tour');
 
@@ -897,20 +900,15 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
-        {/* Trip sheet — overlays the map when on trip tab */}
+        {/* Escorte sheet — replaces TripSheet on trip tab */}
         <AnimatePresence>
           {activeTab === 'trip' && userId && (
-            <TripSheet
-              key="trip-sheet"
+            <EscorteSheet
+              key="escorte-sheet"
               userId={userId}
-              userLat={userLocation?.lat ?? 48.8566}
-              userLng={userLocation?.lng ?? 2.3522}
-              onTripStart={() => {}}
-              onTripEnd={() => {
-                setActiveRoute(null);
-                setTransitSegments(null);
-                setPendingRoutes(null);
-              }}
+              isDark={isDark}
+              userLat={userLocation?.lat}
+              userLng={userLocation?.lng}
               onClose={() => setActiveTab('map')}
             />
           )}

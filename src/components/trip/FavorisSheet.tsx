@@ -10,50 +10,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/stores/useTheme';
 import { SavedPlace } from '@/types';
+import { T } from '@/lib/tokens';
 import { toast } from 'sonner';
-
-// ─── Brand tokens ───────────────────────────────────────────────────
-
-const T = {
-  surfaceBase: '#0F172A',
-  surfaceCard: '#1E293B',
-  surfaceElevated: '#334155',
-  surfaceGlass: 'rgba(30,41,59,0.85)',
-  surfaceBaseL: '#F8FAFC',
-  surfaceCardL: '#FFFFFF',
-  surfaceElevatedL: '#FFFFFF',
-  surfaceGlassL: 'rgba(255,255,255,0.92)',
-  textPrimary: '#FFFFFF',
-  textSecondary: '#94A3B8',
-  textTertiary: '#64748B',
-  textInverse: '#0F172A',
-  textPrimaryL: '#0F172A',
-  textSecondaryL: '#475569',
-  textTertiaryL: '#94A3B8',
-  gradientStart: '#3BB4C1',
-  accentGold: '#F5C341',
-  accentCyan: '#22D3EE',
-  semanticSuccess: '#34D399',
-  semanticSuccessSoft: 'rgba(52,211,153,0.15)',
-  borderSubtle: 'rgba(255,255,255,0.08)',
-  borderDefault: 'rgba(255,255,255,0.12)',
-  borderStrong: 'rgba(255,255,255,0.20)',
-  borderFocus: '#3BB4C1',
-  borderSubtleL: 'rgba(15,23,42,0.06)',
-  borderDefaultL: 'rgba(15,23,42,0.10)',
-  borderStrongL: 'rgba(15,23,42,0.20)',
-  interactiveHover: 'rgba(255,255,255,0.05)',
-  interactiveActive: 'rgba(255,255,255,0.10)',
-  interactiveHoverL: 'rgba(15,23,42,0.04)',
-  interactiveActiveL: 'rgba(15,23,42,0.07)',
-  radiusMd: '12px',
-  radiusLg: '16px',
-  radiusXl: '24px',
-  radiusFull: '9999px',
-  shadowMd: '0 4px 12px rgba(0,0,0,0.25)',
-  shadowGlow: '0 0 20px rgba(59,180,193,0.3)',
-  easeOut: 'cubic-bezier(0.16,1,0.3,1)',
-};
 
 // ─── Helpers ────────────────────────────────────────────────────────
 

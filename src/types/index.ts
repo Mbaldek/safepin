@@ -673,3 +673,92 @@ export type EmailLog = {
   error_message: string | null;
   created_at: string;
 };
+
+// ════════════════════════════════════════════════════════════════════
+// ESCORTE (Safety Escort)
+// ════════════════════════════════════════════════════════════════════
+
+export type EscorteMode = 'immediate' | 'trip';
+export type EscorteStatus = 'active' | 'ended' | 'sos';
+export type CircleStatus = 'notified' | 'following' | 'vocal' | 'inactive';
+export type RouteMode = 'safe' | 'balanced' | 'fast';
+
+export type Escorte = {
+  id: string;
+  user_id: string;
+  mode: EscorteMode;
+  status: EscorteStatus;
+  dest_name?: string;
+  dest_lat?: number;
+  dest_lng?: number;
+  dest_address?: string;
+  route_mode?: RouteMode;
+  eta_minutes?: number;
+  last_lat?: number;
+  last_lng?: number;
+  last_seen_at?: string;
+  circle_notified: boolean;
+  audio_active: boolean;
+  julia_active: boolean;
+  started_at: string;
+  ended_at?: string;
+};
+
+export type EscorteCircleMember = {
+  id: string;
+  escorte_id: string;
+  contact_id: string;
+  status: CircleStatus;
+  notified_at: string;
+  responded_at?: string;
+  // join
+  profiles?: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+  };
+};
+
+export type FavoriTrajet = {
+  id: string;
+  user_id: string;
+  name: string;
+  icon: string;
+  dest_lat: number;
+  dest_lng: number;
+  dest_address: string;
+  color: string;
+  position: number;
+};
+
+export type TrajetRecent = {
+  id: string;
+  user_id: string;
+  escorte_id?: string;
+  dest_name: string;
+  dest_address?: string;
+  dest_lat?: number;
+  dest_lng?: number;
+  duration_min?: number;
+  distance_km?: number;
+  score?: number;
+  used_at: string;
+};
+
+// State machine du panel Escorte
+export type EscorteView =
+  | 'hub'
+  | 'escorte-intro'
+  | 'escorte-notifying'
+  | 'escorte-live'
+  | 'trip-form'
+  | 'trip-active'
+  | 'arrived';
+
+export type MapboxSuggestion = {
+  id: string;
+  place_name: string;
+  text: string;
+  center: [number, number];
+  place_type: string[];
+};

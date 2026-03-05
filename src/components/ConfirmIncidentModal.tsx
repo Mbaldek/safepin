@@ -13,52 +13,13 @@ import { useStore } from '@/stores/useStore'
 import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
+import { T } from '@/lib/tokens'
 import { toast } from 'sonner'
-
-// ─── Brand tokens ────────────────────────────────
-const T = {
-  surfaceBase:     '#0F172A',
-  surfaceCard:     '#1E293B',
-  surfaceElevated: '#334155',
-  surfaceGlass:    'rgba(30,41,59,0.85)',
-  surfaceBaseL:     '#F8FAFC',
-  surfaceCardL:     '#FFFFFF',
-  surfaceElevatedL: '#FFFFFF',
-  textPrimary:   '#FFFFFF',   textPrimaryL:   '#0F172A',
-  textSecondary: '#94A3B8',   textSecondaryL: '#475569',
-  textTertiary:  '#64748B',   textTertiaryL:  '#94A3B8',
-  textInverse:   '#0F172A',   textInverseL:   '#FFFFFF',
-  gradientStart: '#3BB4C1',
-  accentGold:    '#F5C341',
-  accentCyan:    '#22D3EE',
-  semanticSuccess:     '#34D399',
-  semanticSuccessSoft: 'rgba(52,211,153,0.15)',
-  semanticWarning:     '#FBBF24',
-  semanticWarningS:    'rgba(251,191,36,0.15)',
-  semanticDanger:      '#EF4444',
-  semanticDangerS:     'rgba(239,68,68,0.15)',
-  borderSubtle:  'rgba(255,255,255,0.08)',
-  borderDefault: 'rgba(255,255,255,0.12)',
-  borderStrong:  'rgba(255,255,255,0.20)',
-  borderSubtleL:  'rgba(15,23,42,0.06)',
-  borderDefaultL: 'rgba(15,23,42,0.10)',
-  borderStrongL:  'rgba(15,23,42,0.20)',
-  interactiveHover:  'rgba(255,255,255,0.05)',
-  interactiveActive: 'rgba(255,255,255,0.10)',
-  interactiveHoverL:  'rgba(15,23,42,0.04)',
-  interactiveActiveL: 'rgba(15,23,42,0.07)',
-  radiusMd: '12px', radiusLg: '16px', radiusXl: '24px',
-  radius2xl: '32px', radiusFull: '9999px',
-  shadowMd:   '0 4px 12px rgba(0,0,0,0.25)',
-  shadowLg:   '0 24px 60px rgba(0,0,0,0.50)',
-  easeOut:    'cubic-bezier(0.16,1,0.3,1)',
-  easeSpring: 'cubic-bezier(0.34,1.56,0.64,1)',
-}
 
 // ─── Category config ─────────────────────────────
 const CATEGORY_CONFIG: Record<string, { color: string; colorSoft: string }> = {
-  urgent:   { color: T.semanticDanger,  colorSoft: T.semanticDangerS },
-  warning:  { color: T.semanticWarning, colorSoft: T.semanticWarningS },
+  urgent:   { color: T.semanticDanger,  colorSoft: T.semanticDangerSoft },
+  warning:  { color: T.semanticWarning, colorSoft: T.semanticWarningSoft },
   infra:    { color: T.accentCyan,      colorSoft: 'rgba(34,211,238,0.12)' },
   positive: { color: T.semanticSuccess, colorSoft: T.semanticSuccessSoft },
 }

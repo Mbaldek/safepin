@@ -439,3 +439,80 @@ const tokens = {
 };
 
 export default tokens;
+
+// ============================================
+// FLAT TOKEN OBJECT — used by inline-style components
+// ============================================
+
+export const T = {
+  // Surfaces
+  surfaceBase:      '#0F172A',  surfaceBaseL:      '#F8FAFC',
+  surfaceCard:      '#1E293B',  surfaceCardL:      '#FFFFFF',
+  surfaceElevated:  '#334155',  surfaceElevatedL:  '#FFFFFF',
+  surfaceGlass:     'rgba(30,41,59,0.88)',
+  surfaceGlassL:    'rgba(255,255,255,0.92)',
+
+  // Text
+  textPrimary:    '#FFFFFF',  textPrimaryL:    '#0F172A',
+  textSecondary:  '#94A3B8',  textSecondaryL:  '#475569',
+  textTertiary:   '#64748B',  textTertiaryL:   '#94A3B8',
+  textInverse:    '#0F172A',  textInverseL:    '#FFFFFF',
+
+  // Brand
+  gradientStart:  '#3BB4C1',
+  accentGold:     '#F5C341',
+  accentCyan:     '#22D3EE',
+  accentPurple:   '#A78BFA',
+
+  // Semantic
+  semanticSuccess:      '#34D399',
+  semanticSuccessSoft:  'rgba(52,211,153,0.12)',
+  semanticWarning:      '#FBBF24',
+  semanticWarningSoft:  'rgba(251,191,36,0.10)',
+  semanticDanger:       '#EF4444',
+  semanticDangerSoft:   'rgba(239,68,68,0.10)',
+  semanticInfo:         '#60A5FA',
+  semanticInfoSoft:     'rgba(96,165,250,0.10)',
+
+  // Borders
+  borderSubtle:   'rgba(255,255,255,0.08)',  borderSubtleL:   'rgba(15,23,42,0.06)',
+  borderDefault:  'rgba(255,255,255,0.12)',  borderDefaultL:  'rgba(15,23,42,0.10)',
+  borderStrong:   'rgba(255,255,255,0.20)',  borderStrongL:   'rgba(15,23,42,0.20)',
+
+  // Interactive
+  interactiveHover:   'rgba(255,255,255,0.05)',  interactiveHoverL:   'rgba(15,23,42,0.04)',
+  interactiveActive:  'rgba(255,255,255,0.10)',  interactiveActiveL:  'rgba(15,23,42,0.07)',
+
+  // Radii
+  radiusMd: '12px',  radiusLg: '16px',  radiusXl: '24px',
+  radius2xl: '32px', radiusFull: '9999px',
+
+  // Shadows
+  shadowMd: '0 4px 12px rgba(0,0,0,0.25)',
+  shadowLg: '0 8px 32px rgba(0,0,0,0.40)',
+  shadowGlow: '0 0 20px rgba(59,180,193,0.3)',
+
+  // Focus
+  borderFocus: '#3BB4C1',
+
+  // Motion
+  easeOut:    'cubic-bezier(0.16,1,0.3,1)',
+  easeSpring: 'cubic-bezier(0.34,1.56,0.64,1)',
+} as const;
+
+export const springConfig = { type: 'spring' as const, stiffness: 300, damping: 30 };
+export const gentleSpring = { type: 'spring' as const, stiffness: 200, damping: 25 };
+
+// Helper: returns resolved tokens for current theme
+export const tok = (isDark: boolean) => ({
+  surface:    isDark ? T.surfaceElevated   : '#FFFFFF',
+  card:       isDark ? T.surfaceCard       : T.surfaceCardL,
+  tp:         isDark ? T.textPrimary       : T.textPrimaryL,
+  ts:         isDark ? T.textSecondary     : T.textSecondaryL,
+  tt:         isDark ? T.textTertiary      : T.textTertiaryL,
+  bd:         isDark ? T.borderSubtle      : T.borderSubtleL,
+  bdd:        isDark ? T.borderDefault     : T.borderDefaultL,
+  ih:         isDark ? T.interactiveHover  : T.interactiveHoverL,
+  ia:         isDark ? T.interactiveActive : T.interactiveActiveL,
+  glass:      isDark ? T.surfaceGlass      : T.surfaceGlassL,
+});

@@ -14,49 +14,9 @@ import { useStore } from '@/stores/useStore'
 import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
+import { T } from '@/lib/tokens'
 import { toast } from 'sonner'
 import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
-
-// ─── Brand tokens ────────────────────────────────
-const T = {
-  surfaceBase:     '#0F172A',
-  surfaceCard:     '#1E293B',
-  surfaceElevated: '#334155',
-  surfaceGlass:    'rgba(30,41,59,0.85)',
-  surfaceBaseL:     '#F8FAFC',
-  surfaceCardL:     '#FFFFFF',
-  surfaceElevatedL: '#FFFFFF',
-  textPrimary:   '#FFFFFF',   textPrimaryL:   '#0F172A',
-  textSecondary: '#94A3B8',   textSecondaryL: '#475569',
-  textTertiary:  '#64748B',   textTertiaryL:  '#94A3B8',
-  textInverse:   '#0F172A',   textInverseL:   '#FFFFFF',
-  gradientStart: '#3BB4C1',
-  accentGold:    '#F5C341',
-  accentCyan:    '#22D3EE',
-  semanticSuccess:      '#34D399',
-  semanticSuccessSoft:  'rgba(52,211,153,0.15)',
-  semanticWarning:      '#FBBF24',
-  semanticWarningSoft:  'rgba(251,191,36,0.12)',
-  semanticDanger:       '#EF4444',
-  semanticDangerSoft:   'rgba(239,68,68,0.12)',
-  semanticInfo:         '#60A5FA',
-  semanticInfoSoft:     'rgba(96,165,250,0.12)',
-  borderSubtle:  'rgba(255,255,255,0.08)',
-  borderDefault: 'rgba(255,255,255,0.12)',
-  borderStrong:  'rgba(255,255,255,0.20)',
-  borderSubtleL:  'rgba(15,23,42,0.06)',
-  borderDefaultL: 'rgba(15,23,42,0.10)',
-  borderStrongL:  'rgba(15,23,42,0.20)',
-  interactiveHover:  'rgba(255,255,255,0.05)',
-  interactiveActive: 'rgba(255,255,255,0.10)',
-  interactiveHoverL:  'rgba(15,23,42,0.04)',
-  interactiveActiveL: 'rgba(15,23,42,0.07)',
-  radiusMd: '12px', radiusLg: '16px', radiusXl: '24px',
-  radius2xl: '32px', radiusFull: '9999px',
-  shadowMd:   '0 4px 12px rgba(0,0,0,0.25)',
-  shadowLg:   '0 8px 32px rgba(0,0,0,0.40)',
-  easeOut:    'cubic-bezier(0.16,1,0.3,1)',
-}
 
 // ─── Category config ─────────────────────────────
 const CAT: Record<string, {

@@ -8,7 +8,10 @@ import { useStore } from '@/stores/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '@/stores/useTheme';
 import { Pin, CATEGORY_DETAILS } from '@/types';
+import type { Escorte, EscorteView } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
+import { T } from '@/lib/tokens';
+import { Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PlaceNote } from '@/types';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
@@ -632,6 +635,9 @@ export type MapViewProps = {
   showPinLabels: boolean;
   onTransitLoadingChange?: (v: boolean) => void;
   onPoiLoadingChange?: (v: boolean) => void;
+  escorteView?: EscorteView;
+  activeEscorte?: Escorte | null;
+  onTriggerSOS?: () => void;
 };
 
 function getColors(isDark: boolean) {
@@ -652,6 +658,9 @@ function MapView({
   showPinLabels,
   onTransitLoadingChange,
   onPoiLoadingChange,
+  escorteView,
+  activeEscorte,
+  onTriggerSOS,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -1606,6 +1615,53 @@ function MapView({
           onClose={handleSafeSheetClose}
           onNavigate={handleSafeNavigate}
         />
+      )}
+
+      {/* ── Trip-active progress bar ── */}
+      {escorteView === 'trip-active' && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: `linear-gradient(90deg,${T.gradientStart},${T.semanticSuccess})`,
+        }} />
+      )}
+
+      {/* ── Trip-active HUD ── */}
+      {escorteView === 'trip-active' && activeEscorte && (
+        <div style={{
+          position: 'absolute', top: 16, left: 16, right: 16,
+          display: 'flex', alignItems: 'center', gap: 8,
+          pointerEvents: 'auto',
+        }}>
+          {/* ETA pill */}
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(30,41,59,0.88)', backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)', borderRadius: 100,
+            padding: '8px 14px',
+          }}>
+            <Clock size={13} strokeWidth={1.5} color={T.semanticSuccess} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#FFFFFF' }}>
+              {activeEscorte.eta_minutes} min
+            </span>
+            <div style={{ width: 1, height: 13, background: 'rgba(255,255,255,0.10)' }} />
+            <span style={{ fontSize: 12, color: '#94A3B8' }}>1,2 km</span>
+            <div style={{ flex: 1 }} />
+            <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 100, padding: '2px 8px', fontSize: 10, color: '#94A3B8' }}>
+              🚶 Pied
+            </div>
+          </div>
+          {/* SOS button */}
+          <button
+            onClick={onTriggerSOS}
+            style={{
+              width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+              background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.32)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <AlertTriangle size={16} strokeWidth={1.5} color='#EF4444' />
+          </button>
+        </div>
       )}
     </div>
   );
