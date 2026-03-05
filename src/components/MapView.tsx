@@ -2,9 +2,10 @@
 
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, memo, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useStore } from '@/stores/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '@/stores/useTheme';
 import { Pin, CATEGORY_DETAILS } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
@@ -83,13 +84,6 @@ const DECAY_HOURS: Record<string, number> = {
   safe: 720, help: 168, presence: 720,
 };
 
-function getPinSize(confirmations: number): number {
-  if (confirmations >= 10) return 28;
-  if (confirmations >= 4) return 22;
-  if (confirmations >= 2) return 18;
-  return 14;
-}
-
 function getPinOpacity(createdAt: string, category: string): number {
   const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
   const maxHours = DECAY_HOURS[category] || 24;
@@ -98,34 +92,6 @@ function getPinOpacity(createdAt: string, category: string): number {
 
 function getPinColor(category: string): string {
   return CATEGORY_COLORS[category] || '#94A3B8';
-}
-
-function createPinElement(pin: Pin): HTMLElement {
-  const size = getPinSize(pin.confirmations || 1);
-  const opacity = getPinOpacity(pin.created_at, pin.category);
-  const color = getPinColor(pin.category);
-  const isHotspot = (pin.confirmations || 1) >= 10;
-  const isTransport = pin.is_transport;
-
-  const container = document.createElement('div');
-  container.style.cssText = `position:relative;width:${size}px;height:${size}px;cursor:pointer;transform:translate(-50%,-50%);`;
-
-  const circle = document.createElement('div');
-  circle.style.cssText = `width:100%;height:100%;border-radius:50%;background:${color};opacity:${opacity};border:${(pin.confirmations||1)>=4?'2px solid rgba(255,255,255,0.3)':'none'};box-shadow:${isHotspot?`0 0 12px ${color}`:'none'};transition:transform 0.2s ease;`;
-  container.appendChild(circle);
-
-  if (isTransport) {
-    for (let i = 0; i < 2; i++) {
-      const ripple = document.createElement('div');
-      ripple.style.cssText = `position:absolute;inset:0;border-radius:50%;border:2px solid ${color};opacity:0;animation:pin-ripple 2s ease-out infinite;animation-delay:${i*0.7}s;`;
-      container.appendChild(ripple);
-    }
-  }
-
-  container.onmouseenter = () => circle.style.transform = 'scale(1.2)';
-  container.onmouseleave = () => circle.style.transform = 'scale(1)';
-
-  return container;
 }
 
 // Module-level caches so they survive style switches
@@ -609,7 +575,7 @@ function getColors(isDark: boolean) {
   };
 }
 
-export default function MapView({
+function MapView({
   mapStyle,
   showBus,
   showMetroRER,
@@ -629,7 +595,23 @@ export default function MapView({
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { pins, mapFilters, setSelectedPin, setActiveSheet, mapFlyTo, setMapFlyTo, setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId, setNewPlaceNoteCoords, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds, safeSpaces, setSafeSpaces, showSafeSpaces, setShowSafeSpaces, showSimulated, setShowSimulated, userProfile, mapBottomPadding } = useStore();
+  const {
+    pins, mapFilters, setSelectedPin, activeSheet, setActiveSheet, mapFlyTo, setMapFlyTo,
+    setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations,
+    userId, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds,
+    safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
+  } = useStore(useShallow((s) => ({
+    pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
+    activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
+    mapFlyTo: s.mapFlyTo, setMapFlyTo: s.setMapFlyTo,
+    setUserLocation: s.setUserLocation, activeRoute: s.activeRoute,
+    pendingRoutes: s.pendingRoutes, transitSegments: s.transitSegments,
+    watchedLocations: s.watchedLocations, userId: s.userId,
+    placeNotes: s.placeNotes, setPlaceNotes: s.setPlaceNotes,
+    setSelectedPlaceNote: s.setSelectedPlaceNote, favPlaceIds: s.favPlaceIds,
+    safeSpaces: s.safeSpaces, setSafeSpaces: s.setSafeSpaces,
+    showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
+  })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const c = getColors(isDark);
@@ -637,13 +619,14 @@ export default function MapView({
   const [layersReady, setLayersReady] = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
   const [filteredTransportPins, setFilteredTransportPins] = useState<Pin[]>([]);
-  const [zoomLevel, setZoomLevel] = useState(13);
+  const [labelsVisible, setLabelsVisible] = useState(false);
+  const zoomRef = useRef(13);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
   const LABEL_ZOOM_THRESHOLD = 13;
-  const effectiveLabels = showPinLabels && zoomLevel >= LABEL_ZOOM_THRESHOLD;
+  const effectiveLabels = showPinLabels && labelsVisible;
 
   // Initialize map
   useEffect(() => {
@@ -655,6 +638,7 @@ export default function MapView({
       center: [2.3522, 48.8566],
       zoom: 13,
       performanceMetricsCollection: false,
+      fadeDuration: 0,
     });
 
     navigator.geolocation?.getCurrentPosition(
@@ -719,7 +703,13 @@ export default function MapView({
     });
 
     map.current.on('zoomend', () => {
-      if (map.current) setZoomLevel(Math.round(map.current.getZoom()));
+      if (!map.current) return;
+      const z = Math.round(map.current.getZoom());
+      const prev = zoomRef.current;
+      zoomRef.current = z;
+      // Only trigger re-render when crossing the label threshold
+      const crossed = (prev < LABEL_ZOOM_THRESHOLD) !== (z < LABEL_ZOOM_THRESHOLD);
+      if (crossed) setLabelsVisible(z >= LABEL_ZOOM_THRESHOLD);
     });
 
     return () => {
@@ -1198,7 +1188,7 @@ export default function MapView({
     const allVisiblePins = pins.filter(passesFilters);
     const currentIds = new Set(allVisiblePins.map((p) => p.id));
     const prevIds = prevPinIdsRef.current;
-    if (prevIds.size > 0 && map.current) {
+    if (prevIds.size > 0 && map.current && activeSheet === 'none') {
       const m = map.current;
       for (const pin of allVisiblePins) {
         if (prevIds.has(pin.id)) continue;
@@ -1221,7 +1211,7 @@ export default function MapView({
     // Ghost trail cleanup (kept for legacy)
     ghostTrailRef.current.forEach((m) => m.remove());
     ghostTrailRef.current = [];
-  }, [pins, mapFilters, mapReady, layersReady, theme, setSelectedPin, setActiveSheet]);
+  }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet]);
 
   // Show / hide Paris transit station dots (Bus / Metro-RER split)
   useEffect(() => {
@@ -1497,6 +1487,14 @@ export default function MapView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSafeSpaces, safeSpaces, mapReady, layersReady]);
 
+  // ── Stable callbacks for JSX (avoid re-creating on every render) ────────
+  const handleTransportPinClick = useCallback((p: unknown) => {
+    setSelectedPin(p as Pin);
+    setActiveSheet('detail');
+  }, [setSelectedPin, setActiveSheet]);
+
+  const handleSafeSheetClose = useCallback(() => setSelectedSafeSpace(null), []);
+
   // ── UI ───────────────────────────────────────────────────────────────────
 
   return (
@@ -1508,15 +1506,14 @@ export default function MapView({
           key={pin.id}
           map={map.current!}
           pin={pin}
-          onClick={(p) => {
-            setSelectedPin(p as Pin);
-            setActiveSheet('detail');
-          }}
+          onClick={handleTransportPinClick}
           showLabels={effectiveLabels}
         />
       ))}
 
-      <SafeSpaceDetailSheet space={selectedSafeSpace} onClose={() => setSelectedSafeSpace(null)} />
+      <SafeSpaceDetailSheet space={selectedSafeSpace} onClose={handleSafeSheetClose} />
     </div>
   );
 }
+
+export default memo(MapView);

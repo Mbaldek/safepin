@@ -104,7 +104,7 @@ interface PinDetailSheetProps {
     transport_line?: string
     address?: string
     description?: string
-    media_url?: string | null
+    media_urls?: string[] | null
     [key: string]: unknown
   } | null
   isOpen: boolean
@@ -330,9 +330,9 @@ function PinDetailSheet({
                   )}
 
                   {/* Media */}
-                  {pin.media_url && (
+                  {pin.media_urls && Array.isArray(pin.media_urls) && pin.media_urls.length > 0 && (
                     <img
-                      src={pin.media_url}
+                      src={pin.media_urls[0]}
                       alt="Photo du signalement"
                       style={{
                         width: '100%',

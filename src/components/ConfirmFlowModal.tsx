@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { CATEGORY_DETAILS } from '@/types';
 import { springTransition } from '@/lib/tokens';
 import { Button } from '@/components/ui';
+import { toast } from 'sonner';
 
 export function ConfirmFlowModal() {
   const {
@@ -34,32 +35,23 @@ export function ConfirmFlowModal() {
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      const currentConfirmations = confirmingPin.confirmations ?? 0;
       const { data, error } = await supabase
-        .from('pins')
-        .update({ confirmations: currentConfirmations + 1 })
-        .eq('id', confirmingPin.id)
-        .select()
-        .single();
+        .rpc('confirm_pin', { p_pin_id: confirmingPin.id });
 
-      if (error) throw error;
-
-      // Add evidence if media uploaded
-      if (mediaUrl) {
-        await supabase.from('pin_evidence').insert({
-          pin_id: confirmingPin.id,
-          user_id: userId,
-          activity: 'confirmation',
-          media_url: mediaUrl,
-        });
+      if (error) {
+        if (error.message?.includes('already_confirmed')) {
+          toast.error('Vous avez d\u00e9j\u00e0 confirm\u00e9 ce signalement');
+        } else {
+          toast.error('Erreur lors de la confirmation');
+        }
+        return;
       }
 
-      // Update local store
       if (data) updatePin(data);
-
+      toast.success('Confirmation enregistr\u00e9e');
       handleClose();
-    } catch (error) {
-      console.error('Error confirming:', error);
+    } catch (err) {
+      console.error('Error confirming:', err);
     } finally {
       setIsSubmitting(false);
     }

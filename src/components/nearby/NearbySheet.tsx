@@ -116,7 +116,7 @@ export default function NearbySheet({ onClose }: Props) {
   const enrichedPins = useMemo(() => {
     const now = Date.now();
     return pins
-      .filter((p) => !p.resolved_at && !p.hidden)
+      .filter((p) => !p.resolved_at && !p.hidden_at)
       .filter((p) => (now - new Date(p.created_at).getTime()) / 3_600_000 < 48)
       .map((p) => ({
         pin: p,

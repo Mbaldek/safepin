@@ -110,6 +110,7 @@ export default function MapPage() {
     mapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
+    setConfirmingPin, setShowConfirmFlow,
   } = useStore();
   const tMap = useTranslations('map');
   const tTour = useTranslations('tour');
@@ -525,7 +526,8 @@ export default function MapPage() {
 
   // Realtime: new/updated pins
   const handleNewPin = useCallback((pin: Pin) => {
-    addPin(pin);
+    const exists = useStore.getState().pins.some((p) => p.id === pin.id);
+    if (!exists) addPin(pin);
     if (pin.is_emergency) {
       setSosPin(pin);
       addNotification({
@@ -955,23 +957,49 @@ export default function MapPage() {
         pin={selectedPin}
         isOpen={activeSheet === 'detail' && !!selectedPin}
         onClose={() => { setActiveSheet('none'); setSelectedPin(null); }}
-        onConfirm={async (pinId) => {
-          const p = pins.find((x) => x.id === pinId);
-          if (!p) return;
-          const { data, error } = await supabase.from('pins').update({ confirmations: (p.confirmations || 1) + 1 }).eq('id', pinId).select().single();
-          if (!error && data) updatePin(data);
+        onConfirm={(pinId) => {
+          const pin = pins.find((p) => p.id === pinId);
+          if (!pin) return;
+          setConfirmingPin(pin);
+          setShowConfirmFlow(true);
         }}
         onResolved={async (pinId) => {
-          await supabase.from('pins').update({ hidden: true }).eq('id', pinId);
+          const { data, error } = await supabase.rpc('resolve_pin', { p_pin_id: pinId });
+          if (error) { toast.error('Impossible de marquer comme résolu'); return; }
+          if (data) updatePin(data);
+          toast.success('Signalement marqué comme résolu');
           setActiveSheet('none'); setSelectedPin(null);
         }}
         onFalse={async (pinId) => {
-          const p = pins.find((x) => x.id === pinId);
-          if (!p) return;
-          await supabase.from('pins').update({ flag_count: (p.flag_count || 0) + 1 }).eq('id', pinId);
+          const { data, error } = await supabase.rpc('flag_pin', { p_pin_id: pinId, p_reason: 'false_report' });
+          if (error) { toast.error('Impossible de signaler'); return; }
+          if (data) updatePin(data);
+          toast('Signalement enregistré');
           setActiveSheet('none'); setSelectedPin(null);
         }}
-        onContact={() => {}}
+        onContact={async (pinId) => {
+          const pin = pins.find((p) => p.id === pinId);
+          if (!pin?.user_id || !userId) { toast.error('Contact impossible'); return; }
+          if (pin.user_id === userId) { toast('C\u2019est votre signalement'); return; }
+          // Find or create DM conversation
+          const { data: existing } = await supabase
+            .from('dm_conversations')
+            .select('*')
+            .or(`and(user1_id.eq.${userId},user2_id.eq.${pin.user_id}),and(user1_id.eq.${pin.user_id},user2_id.eq.${userId})`)
+            .limit(1)
+            .maybeSingle();
+          if (existing) {
+            setActiveSheet('none'); setSelectedPin(null);
+            setActiveTab('community');
+            toast.success('Conversation ouverte');
+            return;
+          }
+          const { error } = await supabase.from('dm_conversations').insert({ user1_id: userId, user2_id: pin.user_id });
+          if (error) { toast.error('Impossible d\u2019ouvrir la conversation'); return; }
+          setActiveSheet('none'); setSelectedPin(null);
+          setActiveTab('community');
+          toast.success('Conversation ouverte');
+        }}
       />
 
       {/* ── New Report Sheet (v2) ── */}

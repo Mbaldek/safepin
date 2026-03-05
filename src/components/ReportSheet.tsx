@@ -88,7 +88,7 @@ interface CategoryItem {
 export function ReportSheet() {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const C = getColors(isDark);
-  const { activeSheet, setActiveSheet, newPinCoords, userId, addPin } = useStore();
+  const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo } = useStore();
 
   const [step, setStep] = useState(1);
   const [cat, setCat] = useState<CategoryItem | null>(null);
@@ -184,6 +184,7 @@ export function ReportSheet() {
       const { data, error } = await supabase.from('pins').insert(newPin).select().single();
       if (error) throw error;
       if (data) addPin(data);
+      setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
 
       setStep(4);
       setTimeout(handleClose, 1500);
