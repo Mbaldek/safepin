@@ -1579,11 +1579,37 @@ export default function TripView({ onClose }: TripViewProps) {
   // Render State 5 - Arrived
   const renderArrived = () => (
     <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 300,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.4)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+      }}
+    >
+    <motion.div
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.92 }}
       transition={spring}
-      style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+      style={{
+        width: "88%",
+        maxWidth: 340,
+        padding: "28px 20px 20px",
+        borderRadius: 24,
+        backgroundColor: colors.sheet[theme],
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
     >
       {/* Success icon */}
       <motion.div
@@ -1664,6 +1690,7 @@ export default function TripView({ onClose }: TripViewProps) {
       >
         Retour
       </motion.button>
+    </motion.div>
     </motion.div>
   );
 

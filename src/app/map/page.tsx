@@ -273,6 +273,9 @@ export default function MapPage() {
     mapFilters.timeOfDay !== 'all',
   ].filter(Boolean).length;
 
+  // Count of unresolved emergency pins created in the last 2 hours (red badge on "Nearby" button)
+  const emergencyNearbyCount = pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length;
+
   const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 
@@ -817,13 +820,13 @@ export default function MapPage() {
               <span className="text-xs font-bold" style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }}>
                 {tMap('nearby')}
               </span>
-              {/* Emergency badge */}
-              {!showIncidentsList && pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length > 0 && (
+              {/* Emergency badge — unresolved emergency pins from last 2 h */}
+              {!showIncidentsList && emergencyNearbyCount > 0 && (
                 <span
                   className="min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
                   style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
-                  {pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length}
+                  {emergencyNearbyCount}
                 </span>
               )}
               {/* Active filter count badge */}

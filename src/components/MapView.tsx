@@ -11,7 +11,7 @@ import { Pin, CATEGORY_DETAILS } from '@/types';
 import type { Escorte, EscorteView } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { T } from '@/lib/tokens';
-import { Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle, Navigation } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
 import { MapPin } from './MapPin';
@@ -482,8 +482,8 @@ function addClusterLayers(m: mapboxgl.Map) {
       'circle-radius': [
         'step', ['get', 'point_count'],
         18,
-        5,  24,
-        20, 30,
+        10, 22,
+        30, 26,
       ],
       'circle-color': [
         'case',
@@ -493,7 +493,7 @@ function addClusterLayers(m: mapboxgl.Map) {
         '#64748B',
       ],
       'circle-opacity': 0.92,
-      'circle-stroke-width': 3,
+      'circle-stroke-width': 2,
       'circle-stroke-color': PIN_COLORS.stroke,
       'circle-stroke-opacity': 0.95,
       'circle-blur': 0,
@@ -510,8 +510,8 @@ function addClusterLayers(m: mapboxgl.Map) {
       'circle-radius': [
         'step', ['get', 'point_count'],
         24,
-        5,  30,
-        20, 38,
+        10, 28,
+        30, 32,
       ],
       'circle-color': [
         'case',
@@ -712,7 +712,7 @@ function MapView({
     pins, mapFilters, setSelectedPin, activeSheet, setActiveSheet, mapFlyTo, setMapFlyTo,
     setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
-    setTripPrefill, setActiveTab, departDragPin, setDepartDragPin,
+    setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords,
   } = useStore(useShallow((s) => ({
     pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
@@ -724,6 +724,7 @@ function MapView({
     showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
     setTripPrefill: s.setTripPrefill, setActiveTab: s.setActiveTab,
     departDragPin: s.departDragPin, setDepartDragPin: s.setDepartDragPin,
+    newPinCoords: s.newPinCoords,
   })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -731,6 +732,7 @@ function MapView({
   const [mapReady, setMapReady] = useState(false);
   const [layersReady, setLayersReady] = useState(false);
   const [selectedSafeSpace, setSelectedSafeSpace] = useState<import('@/types').SafeSpace | null>(null);
+  const [bearing, setBearing] = useState(0);
 
   const handleSafeNavigate = useCallback((lat: number, lng: number, name: string) => {
     setTripPrefill({ destination: name, destCoords: [lng, lat] });
@@ -828,9 +830,10 @@ function MapView({
     map.current.on('contextmenu', handleContextMenu);
     map.current.on('load', handleLoad);
     map.current.on('zoomend', handleZoomEnd);
+    const handleRotate = () => setBearing(map.current?.getBearing() ?? 0);
+    map.current.on('rotate', handleRotate);
 
     return () => {
-      // cleanup: retire 7 listeners (mousedown, mouseup, mousemove, touchend, contextmenu, load, zoomend)
       map.current?.off('mousedown', handleMouseDown);
       map.current?.off('mouseup',   cancelLong);
       map.current?.off('mousemove', cancelLong);
@@ -838,6 +841,7 @@ function MapView({
       map.current?.off('contextmenu', handleContextMenu);
       map.current?.off('load', handleLoad);
       map.current?.off('zoomend', handleZoomEnd);
+      map.current?.off('rotate', handleRotate);
       map.current?.remove();
       map.current = null;
     };
@@ -1644,6 +1648,67 @@ function MapView({
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
+
+      {/* Report-mode center pin preview — always at map center, coords follow via moveend */}
+      {activeSheet === 'report' && newPinCoords && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -100%)',
+            zIndex: 10,
+            pointerEvents: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'rgba(239,68,68,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'report-pin-pulse 1.5s ease-in-out infinite',
+            }}
+          >
+            <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+          </div>
+          <div style={{ width: 2, height: 8, background: '#EF4444', borderRadius: 1, marginTop: -2 }} />
+        </div>
+      )}
+
+      {/* Compass button — visible when map is rotated */}
+      {Math.abs(bearing) > 1 && (
+        <button
+          onClick={() => map.current?.easeTo({ bearing: 0, duration: 400 })}
+          style={{
+            position: 'absolute',
+            top: 160,
+            right: 10,
+            width: 30,
+            height: 30,
+            borderRadius: 4,
+            backgroundColor: '#fff',
+            border: 'none',
+            boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 2,
+            transform: `rotate(${-bearing}deg)`,
+            transition: 'transform 0.1s ease',
+          }}
+          aria-label="Reset north"
+        >
+          <Navigation size={16} strokeWidth={2} color="#333" fill="#e74c3c" />
+        </button>
+      )}
 
       {map.current && filteredTransportPins.map((pin) => (
         <MapPin

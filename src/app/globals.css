@@ -639,6 +639,11 @@ body {
   animation: pin-ripple 1.8s ease-out infinite;
 }
 
+@keyframes report-pin-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.7; }
+}
+
 /* ============================================
    SCROLLBAR HIDDEN
    ============================================ */
