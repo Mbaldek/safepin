@@ -20,7 +20,8 @@ const TYPE_META: Record<string, { icon: string; color: string }> = {
   resolve:   { icon: '✅', color: 'rgba(16,185,129,0.10)' },
   community: { icon: '💬', color: 'rgba(139,92,246,0.10)' },
   milestone: { icon: '🏆', color: 'rgba(245,158,11,0.12)' },
-  digest:    { icon: '📊', color: 'rgba(99,102,241,0.10)' },
+  digest:             { icon: '📊', color: 'rgba(99,102,241,0.10)' },
+  circle_invitation:  { icon: '🤝', color: 'rgba(59,180,193,0.12)' },
 };
 
 function getColors(isDark: boolean) {
@@ -141,11 +142,13 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
                     <span className="text-xl shrink-0">{meta.icon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold" style={{ color: C.textPrimary }}>
-                        {n.title}
+                        {n.title ?? (n.type === 'circle_invitation' ? 'Invitation au cercle' : 'Notification')}
                       </p>
-                      {n.body && (
+                      {(n.body || (n.type === 'circle_invitation' && n.payload)) && (
                         <p className="text-xs mt-0.5 line-clamp-2" style={{ color: C.textSecondary }}>
-                          {n.body}
+                          {n.body ?? (n.type === 'circle_invitation'
+                            ? `${(n.payload as any)?.senderName ?? 'Quelqu\'un'} vous invite à rejoindre son cercle`
+                            : '')}
                         </p>
                       )}
                       <p className="text-[0.6rem] mt-1 font-bold" style={{ color: C.textSecondary }}>

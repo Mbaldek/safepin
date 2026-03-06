@@ -57,9 +57,10 @@ export type Comment = {
 
 export type AppNotification = {
   id: string;
-  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact' | 'milestone' | 'digest' | 'trip_share';
-  title: string;
-  body: string | null;
+  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact' | 'milestone' | 'digest' | 'trip_share' | 'circle_invitation';
+  title?: string;
+  body?: string | null;
+  payload?: Record<string, unknown>;
   read: boolean;
   created_at: string;
   pin_id?: string;

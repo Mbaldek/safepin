@@ -59,7 +59,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
     if (!userId) return;
     (async () => {
       setLoading(true);
-      const [{ data: items }, { data: members }] = await Promise.all([
+      const [{ data: items }, { data: members }, { data: allMembers }] = await Promise.all([
         supabase
           .from("communities")
           .select("*")
@@ -69,12 +69,20 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
           .from("community_members")
           .select("community_id")
           .eq("user_id", userId),
+        supabase
+          .from("community_members")
+          .select("community_id"),
       ]);
+
+      // Build member count map
+      const countMap = new Map<string, number>();
+      (allMembers || []).forEach((r: any) =>
+        countMap.set(r.community_id, (countMap.get(r.community_id) || 0) + 1));
 
       const memberSet = new Set((members || []).map((m) => m.community_id));
       setJoinedIds(memberSet);
 
-      const all = items || [];
+      const all = (items || []).map(c => ({ ...c, member_count: countMap.get(c.id) || 0 }));
       setMyGroups(all.filter((c) => memberSet.has(c.id)));
       setDiscoverGroups(all.filter((c) => !memberSet.has(c.id)));
       setLoading(false);
@@ -125,10 +133,12 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
         async (payload) => {
           const m = payload.new as any;
           if (m.community_id !== activeGroup) return;
-          // Don't duplicate optimistic messages
+          // Replace optimistic message or skip true duplicates
           setMessages(prev => {
-            if (prev.some(p => p.id === m.id)) return prev;
-            return [...prev, {
+            const withoutOpt = prev.filter(p =>
+              !(p.id.startsWith('opt-') && p.user_id === m.user_id && p.content === m.content));
+            if (withoutOpt.some(p => p.id === m.id)) return prev;
+            return [...withoutOpt, {
               id: m.id,
               user_id: m.user_id,
               content: m.content,

@@ -9,6 +9,8 @@ import ChatView from "@/components/chat/ChatView";
 interface MessagesTabProps {
   isDark: boolean;
   userId: string | null;
+  pendingDm?: DMRow | null;
+  onPendingDmConsumed?: () => void;
 }
 
 interface DMRow {
@@ -31,11 +33,19 @@ function timeAgo(d: string) {
   return `${Math.floor(s / 86400)}j`;
 }
 
-export default function MessagesTab({ isDark, userId }: MessagesTabProps) {
+export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmConsumed }: MessagesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [conversations, setConversations] = useState<DMRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConvo, setSelectedConvo] = useState<DMRow | null>(null);
+
+  // Auto-open conversation from circle tab
+  useEffect(() => {
+    if (pendingDm) {
+      setSelectedConvo(pendingDm);
+      onPendingDmConsumed?.();
+    }
+  }, [pendingDm, onPendingDmConsumed]);
 
   useEffect(() => {
     if (!userId) return;

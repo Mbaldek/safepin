@@ -46,9 +46,36 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
   const [pseudoResults, setPseudoResults] = useState<FoundProfile[]>([]);
   const [pseudoSearching, setPseudoSearching] = useState(false);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pushToast = useNotificationStore((s) => s.pushToast);
+
+  // Fetch existing relationships on modal open
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
+      const { data } = await supabase
+        .from("trusted_contacts")
+        .select("user_id, contact_id, status")
+        .or(`user_id.eq.${user.id},contact_id.eq.${user.id}`);
+      const members = new Set<string>();
+      const pending = new Set<string>();
+      for (const row of data || []) {
+        const otherId = row.user_id === user.id ? row.contact_id : row.user_id;
+        if (!otherId) continue;
+        if (row.status === "accepted") members.add(otherId);
+        else if (row.status === "pending") pending.add(otherId);
+      }
+      setMemberIds(members);
+      setPendingIds(pending);
+    })();
+  }, [open]);
 
   const reset = () => {
     setEmail("");
@@ -168,6 +195,14 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
         }
         return;
       }
+
+      // Also create trusted_contacts row so receiver sees it in "Demandes en attente"
+      await supabase.from("trusted_contacts").insert({
+        user_id: user.id,
+        contact_id: target.id,
+        contact_name: target.display_name ?? target.first_name ?? target.username ?? "Contact",
+        status: "pending",
+      });
 
       // Insert notification for receiver
       await supabase.from("notifications").insert({
@@ -291,7 +326,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
               }}
             >
               <h2 style={{ fontSize: 17, fontWeight: 700, color: textPrimary, margin: 0 }}>
-                Ajouter au cercle
+                Inviter au cercle
               </h2>
               <button
                 onClick={handleClose}
@@ -448,8 +483,9 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                   {/* Results list */}
                   {pseudoResults.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {pseudoResults.map((user) => {
-                        const isSent = sentIds.has(user.id);
+                      {pseudoResults.filter((u) => u.id !== currentUserId).map((user) => {
+                        const isMember = memberIds.has(user.id);
+                        const isPending = pendingIds.has(user.id) || sentIds.has(user.id);
                         return (
                           <motion.div
                             key={user.id}
@@ -502,34 +538,56 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                                 </span>
                               )}
                             </div>
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => !isSent && handleInvite(user)}
-                              disabled={adding === user.id || isSent}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 5,
-                                padding: "8px 14px",
-                                borderRadius: 10,
-                                border: "none",
-                                backgroundColor: isSent ? (isDark ? "#334155" : "#E2E8F0") : "#34D399",
-                                color: isSent ? textSecondary : "#FFFFFF",
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: isSent ? "default" : adding === user.id ? "wait" : "pointer",
-                                opacity: adding === user.id ? 0.6 : 1,
-                              }}
-                            >
-                              {isSent ? (
-                                <>Envoyé ✓</>
-                              ) : (
-                                <>
-                                  <UserPlus size={14} />
-                                  Ajouter
-                                </>
-                              )}
-                            </motion.button>
+                            {isMember ? (
+                              <span
+                                style={{
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  backgroundColor: "rgba(59,180,193,0.12)",
+                                  color: "#3BB4C1",
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Membre
+                              </span>
+                            ) : isPending ? (
+                              <span
+                                style={{
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  backgroundColor: isDark ? "#334155" : "#E2E8F0",
+                                  color: textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                En attente
+                              </span>
+                            ) : (
+                              <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleInvite(user)}
+                                disabled={adding === user.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  padding: "8px 14px",
+                                  borderRadius: 10,
+                                  border: "none",
+                                  backgroundColor: "#34D399",
+                                  color: "#FFFFFF",
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: adding === user.id ? "wait" : "pointer",
+                                  opacity: adding === user.id ? 0.6 : 1,
+                                }}
+                              >
+                                <UserPlus size={14} />
+                                Inviter
+                              </motion.button>
+                            )}
                           </motion.div>
                         );
                       })}
@@ -668,7 +726,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                     </div>
                   )}
 
-                  {searched && !searching && found && (
+                  {searched && !searching && found && found.id !== currentUserId && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -715,28 +773,56 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                           Membre Breveil
                         </p>
                       </div>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleAdd}
-                        disabled={adding === found.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          padding: "10px 16px",
-                          borderRadius: 12,
-                          border: "none",
-                          backgroundColor: "#34D399",
-                          color: "#FFFFFF",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          cursor: adding === found.id ? "wait" : "pointer",
-                          opacity: adding === found.id ? 0.6 : 1,
-                        }}
-                      >
-                        <UserPlus size={16} />
-                        Ajouter
-                      </motion.button>
+                      {memberIds.has(found.id) ? (
+                        <span
+                          style={{
+                            padding: "10px 16px",
+                            borderRadius: 12,
+                            backgroundColor: "rgba(59,180,193,0.12)",
+                            color: "#3BB4C1",
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Membre
+                        </span>
+                      ) : pendingIds.has(found.id) ? (
+                        <span
+                          style={{
+                            padding: "10px 16px",
+                            borderRadius: 12,
+                            backgroundColor: isDark ? "#334155" : "#E2E8F0",
+                            color: textSecondary,
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          En attente
+                        </span>
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleAdd}
+                          disabled={adding === found.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "10px 16px",
+                            borderRadius: 12,
+                            border: "none",
+                            backgroundColor: "#34D399",
+                            color: "#FFFFFF",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: adding === found.id ? "wait" : "pointer",
+                            opacity: adding === found.id ? 0.6 : 1,
+                          }}
+                        >
+                          <UserPlus size={16} />
+                          Inviter
+                        </motion.button>
+                      )}
                     </motion.div>
                   )}
 

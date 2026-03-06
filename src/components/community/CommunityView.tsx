@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '@/stores/useTheme';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
+import { getOrCreateConversation } from '@/lib/dm';
 import Header from './CommunityHeader';
 import TabBar from './tab-bar';
 import FilTab from './fil-tab';
@@ -62,6 +63,40 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
   const [dbStories, setDbStories] = useState<DBStory[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeHashtag, setActiveHashtag] = useState<Hashtag | null>(null);
+
+  // DM opening from circle tab
+  const [pendingDm, setPendingDm] = useState<{
+    id: string;
+    user1_id: string;
+    user2_id: string;
+    last_message: string | null;
+    last_message_at: string;
+    partner_id: string;
+    partner_name: string;
+    partner_avatar: string | null;
+    is_unread: boolean;
+  } | null>(null);
+
+  const handleOpenConversation = useCallback(async (partnerId: string, partnerName: string, partnerAvatar: string | null) => {
+    if (!userId) return;
+    try {
+      const convo = await getOrCreateConversation(userId, partnerId);
+      setPendingDm({
+        id: convo.id,
+        user1_id: convo.user1_id,
+        user2_id: convo.user2_id,
+        last_message: convo.last_message,
+        last_message_at: convo.last_message_at,
+        partner_id: partnerId,
+        partner_name: partnerName,
+        partner_avatar: partnerAvatar,
+        is_unread: false,
+      });
+      setActiveTab(3); // Messages tab
+    } catch {
+      // conversation creation failed silently
+    }
+  }, [userId]);
 
   const fetchStories = useCallback(async () => {
     if (!userId) return;
@@ -175,7 +210,7 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
             />
           </>
         )}
-        {activeTab === 1 && <CercleTab isDark={isDark} userId={userId} />}
+        {activeTab === 1 && <CercleTab isDark={isDark} userId={userId} onOpenConversation={handleOpenConversation} />}
         {activeTab === 2 && (
           <GroupesTab
             isDark={isDark}
@@ -183,7 +218,7 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
             onCreateGroup={() => setShowCreateGroup(true)}
           />
         )}
-        {activeTab === 3 && <MessagesTab isDark={isDark} userId={userId} />}
+        {activeTab === 3 && <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />}
       </div>
 
       {showCompose && (

@@ -1,16 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, X, Users, Plus, Trash2 } from "lucide-react";
+import { Check, X, Users, Plus, Trash2, MessageCircle, User } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/stores/notificationStore";
+import { getOrCreateConversation } from "@/lib/dm";
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
   isDark: boolean;
   userId: string | null;
+  onOpenConversation?: (partnerId: string, partnerName: string, partnerAvatar: string | null) => void;
 }
 
 interface ContactRow {
@@ -39,7 +41,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function CercleTab({ isDark, userId }: CercleTabProps) {
+export default function CercleTab({ isDark, userId, onOpenConversation }: CercleTabProps) {
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,8 +60,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
     const { error } = await supabase
       .from("trusted_contacts")
       .delete()
-      .eq("id", selectedContact.id)
-      .eq("user_id", userId);
+      .eq("id", selectedContact.id);
     if (error) {
       toast.error("Erreur lors de la suppression");
     } else {
@@ -82,6 +83,13 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
         .eq("user_id", userId)
         .eq("status", "accepted");
 
+      // Fetch accepted contacts where I'm the contact_id (someone added me, I accepted)
+      const { data: reverseContacts } = await supabase
+        .from("trusted_contacts")
+        .select("id, user_id, contact_name, contact_relation")
+        .eq("contact_id", userId)
+        .eq("status", "accepted");
+
       // Fetch pending requests where I'm the contact_id (someone added me)
       const { data: incoming } = await supabase
         .from("trusted_contacts")
@@ -91,8 +99,9 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
 
       // Enrich with profiles
       const contactIds = (myContacts || []).map((c) => c.contact_id).filter(Boolean);
+      const reverseIds = (reverseContacts || []).map((c) => c.user_id).filter(Boolean);
       const requesterIds = (incoming || []).map((r) => r.user_id);
-      const allIds = [...new Set([...contactIds, ...requesterIds])];
+      const allIds = [...new Set([...contactIds, ...reverseIds, ...requesterIds])];
 
       let profileMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
       if (allIds.length > 0) {
@@ -103,20 +112,42 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
         profileMap = new Map((profiles || []).map((p) => [p.id, p]));
       }
 
-      setContacts(
-        (myContacts || []).map((c) => {
-          const p = profileMap.get(c.contact_id);
-          const name = p?.display_name || c.contact_name || "Contact";
-          return {
-            id: c.id,
-            contact_id: c.contact_id,
-            name,
-            avatar: name.charAt(0).toUpperCase(),
-            avatarUrl: p?.avatar_url || null,
-            relation: c.contact_relation,
-          };
-        })
-      );
+      const myContactRows = (myContacts || []).map((c) => {
+        const p = profileMap.get(c.contact_id);
+        const name = p?.display_name || c.contact_name || "Contact";
+        return {
+          id: c.id,
+          contact_id: c.contact_id,
+          name,
+          avatar: name.charAt(0).toUpperCase(),
+          avatarUrl: p?.avatar_url || null,
+          relation: c.contact_relation,
+        };
+      });
+
+      const reverseContactRows = (reverseContacts || []).map((c) => {
+        const p = profileMap.get(c.user_id);
+        const name = p?.display_name || c.contact_name || "Contact";
+        return {
+          id: c.id,
+          contact_id: c.user_id,
+          name,
+          avatar: name.charAt(0).toUpperCase(),
+          avatarUrl: p?.avatar_url || null,
+          relation: c.contact_relation,
+        };
+      });
+
+      // Deduplicate by contact_id
+      const seen = new Set<string>();
+      const allContacts: ContactRow[] = [];
+      for (const c of [...myContactRows, ...reverseContactRows]) {
+        if (!seen.has(c.contact_id)) {
+          seen.add(c.contact_id);
+          allContacts.push(c);
+        }
+      }
+      setContacts(allContacts);
 
       setPendingRequests(
         (incoming || []).map((r) => {
@@ -269,7 +300,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
             }}
           >
             <Plus size={14} />
-            Ajouter
+            Inviter
           </motion.button>
         </div>
         {contacts.length === 0 ? (
@@ -460,8 +491,8 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                         color: isDark ? "#FFFFFF" : "#0F172A",
                       }}
                     >
-                      <strong>{request.name}</strong> vous a ajouté
-                      comme contact de confiance
+                      <strong>{request.name}</strong> vous invite
+                      à rejoindre son cercle de confiance
                     </p>
                     <span
                       style={{
@@ -528,7 +559,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
             fontSize: 12,
           }}
         >
-          Partagez votre lien d&apos;invitation pour ajouter des contacts
+          Partagez votre lien d&apos;invitation pour inviter des contacts
         </div>
       )}
 
@@ -577,10 +608,59 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
                   {selectedContact.name}
                 </div>
-                <div style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748B", marginTop: 4 }}>
-                  Supprimer ce contact de ton cercle de confiance ?
-                </div>
               </div>
+              {/* Envoyer message */}
+              <button
+                onClick={() => {
+                  if (!onOpenConversation) return;
+                  onOpenConversation(selectedContact.contact_id, selectedContact.name, selectedContact.avatarUrl);
+                  setSelectedContact(null);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  background: "#3BB4C1",
+                  border: "none",
+                  color: "#FFFFFF",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <MessageCircle size={15} />
+                Envoyer message
+              </button>
+              {/* Voir profil (disabled) */}
+              <button
+                disabled
+                style={{
+                  width: "100%",
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  background: "transparent",
+                  border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
+                  color: isDark ? "#94A3B8" : "#64748B",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "default",
+                  opacity: 0.4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <User size={15} />
+                Voir profil (bientot)
+              </button>
+              {/* Supprimer du cercle */}
               <button
                 onClick={handleRemoveContact}
                 disabled={removing}
@@ -605,6 +685,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 <Trash2 size={15} />
                 {removing ? "Suppression…" : "Supprimer du cercle"}
               </button>
+              {/* Annuler */}
               <button
                 onClick={() => setSelectedContact(null)}
                 style={{
