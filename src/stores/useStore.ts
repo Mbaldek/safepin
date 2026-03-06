@@ -130,6 +130,8 @@ type Store = {
   setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
   departDragPin: [number, number] | null;
   setDepartDragPin: (coords: [number, number] | null) => void;
+  escorteView: string | null;
+  setEscorteView: (v: string | null) => void;
   userLocation: { lat: number; lng: number } | null;
   setUserLocation: (loc: { lat: number; lng: number } | null) => void;
 
@@ -326,6 +328,8 @@ export const useStore = create<Store>((set) => ({
   setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
   departDragPin: null,
   setDepartDragPin: (coords) => set({ departDragPin: coords }),
+  escorteView: null,
+  setEscorteView: (v) => set({ escorteView: v }),
   userLocation: null,
   setUserLocation: (loc) => set({ userLocation: loc }),
 

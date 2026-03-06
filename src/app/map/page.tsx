@@ -39,6 +39,7 @@ import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
 import { CoachMark } from '@/components/CoachMark';
 import { useTour } from '@/hooks/useTour';
+import { useEscorte } from '@/hooks/useEscorte';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
@@ -115,6 +116,7 @@ export default function MapPage() {
   const tTour = useTranslations('tour');
 
   const { isActive: tourActive, currentStep: tourStep, currentStepIndex: tourStepIdx, totalSteps: tourTotal, next: tourNext, skip: tourSkip } = useTour();
+  const escorte = useEscorte(userId ?? '');
 
   // Resolve tour step strings eagerly (avoids dynamic key call to t())
   const TOUR_TITLES: Record<string, string> = {
@@ -873,24 +875,29 @@ export default function MapPage() {
         {/* Map contextual card — shows area info */}
 
         {/* TripHUD — persistent map overlay during active trip */}
-        <AnimatePresence>
-          {activeTrip?.state === 'ACTIVE' && activeTab === 'map' && (
-            <TripHUD
-              key="trip-hud"
-              trip={activeTrip}
-              nudge={tripNudge}
-              onImSafe={() => {
-                // Signal COMPLETED — TripView syncs via useEffect and calls completeTrip('safe')
-                if (activeTrip) setActiveTrip({ ...activeTrip, state: 'COMPLETED' });
-                setActiveRoute(null);
-                setTransitSegments(null);
-                setPendingRoutes(null);
-                setActiveTab('trip');
-              }}
-              onOpenTrip={() => setActiveTab('trip')}
-            />
-          )}
-        </AnimatePresence>
+        <TripHUD
+          isDark={isDark}
+          isVisible={escorte.view === 'trip-active'}
+          destName={escorte.activeEscorte?.dest_name ?? ''}
+          etaMinutes={escorte.activeEscorte?.eta_minutes ?? 0}
+          tripProgress={
+            escorte.activeEscorte?.eta_minutes
+              ? Math.min(100, (escorte.elapsed / (escorte.activeEscorte.eta_minutes * 60)) * 100)
+              : 0
+          }
+          juliaActive={escorte.juliaActive}
+          onArrived={() => {
+            escorte.endEscorte(true);
+            setActiveRoute(null);
+            setTransitSegments(null);
+          }}
+          onTerminate={() => {
+            escorte.endEscorte(false);
+            setActiveRoute(null);
+            setTransitSegments(null);
+          }}
+          onSOS={() => escorte.triggerSOS()}
+        />
 
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence>
@@ -908,6 +915,7 @@ export default function MapPage() {
               isDark={isDark}
               userLat={userLocation?.lat}
               userLng={userLocation?.lng}
+              escorte={escorte}
               onClose={() => setActiveTab('map')}
             />
           )}

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Escorte, EscorteCircleMember, EscorteView, RouteMode } from '@/types'
 
+export type UseEscorteReturn = ReturnType<typeof useEscorte>
+
 export function useEscorte(userId: string) {
   const [view, setView] = useState<EscorteView>('hub')
   const [activeEscorte, setActiveEscorte] = useState<Escorte | null>(null)

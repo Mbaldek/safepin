@@ -9,7 +9,7 @@ import {
   Footprints, Train, Bike, Car, Loader2, Edit3, ArrowUpDown
 } from 'lucide-react'
 import { T, tok, springConfig, gentleSpring } from '@/lib/tokens'
-import { useEscorte }       from '@/hooks/useEscorte'
+import type { UseEscorteReturn } from '@/hooks/useEscorte'
 import { useFavoris }       from '@/hooks/useFavoris'
 import { useRecents }       from '@/hooks/useRecents'
 import { useDestinationSearch, formatSearchDistance } from '@/hooks/useDestinationSearch'
@@ -34,15 +34,15 @@ interface Props {
   isDark:    boolean
   userLat?:  number
   userLng?:  number
+  escorte:   UseEscorteReturn
   onClose:   () => void
 }
 
-export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose }: Props) {
+export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte, onClose }: Props) {
   const d  = isDark
   const tk = tok(isDark)
 
   // ── Hooks ──────────────────────────────────────
-  const escorte    = useEscorte(userId)
   const { favoris } = useFavoris(userId)
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
@@ -1473,43 +1473,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, scrollbarWidth: 'none' }}>
-        {/* Julia banner — in scroll flow so it never steals fixed space */}
-        <AnimatePresence>
-          {escorte.juliaActive &&
-           (escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') && (
-            <motion.div
-              key="julia-banner"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div style={{
-                margin: '8px 16px 0',
-                background: 'rgba(167,139,250,0.10)',
-                border: '1px solid rgba(167,139,250,0.25)',
-                borderRadius: 14,
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}>
-                <Sparkles size={16} color="#A78BFA" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#A78BFA', flex: 1 }}>
-                  Julia vous accompagne · canal actif
-                </span>
-                <span style={{
-                  fontSize: 8, fontWeight: 700,
-                  background: 'rgba(167,139,250,0.15)', color: '#A78BFA',
-                  padding: '2px 6px', borderRadius: 4,
-                }}>
-                  IA
-                </span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Audio channel banner — in scroll flow */}
         <AnimatePresence>
