@@ -808,8 +808,9 @@ export default function MapPage() {
                 padding: '8px 16px',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
-                backgroundColor: showIncidentsList ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',
+                backgroundColor: showIncidentsList ? '#3BB4C1' : 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',
                 border: showIncidentsList ? 'none' : '1px solid var(--border)',
+                color: showIncidentsList ? '#FFFFFF' : undefined,
                 backdropFilter: 'blur(12px)',
               }}
             >

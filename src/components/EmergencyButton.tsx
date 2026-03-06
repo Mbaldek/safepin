@@ -11,14 +11,17 @@ import { useTranslations } from 'next-intl';
 import { haversineMeters } from '@/lib/utils';
 import { geocodeReverse } from '@/lib/geocode';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import dynamic from 'next/dynamic';
+
+const EmergencyNumbers = dynamic(() => import('./EmergencyNumbers'), { ssr: false });
 
 type Phase = 'idle' | 'count' | 'sending' | 'sent';
 type DispatchResult = { contact_id: string; contact_name: string | null; status: string };
 
 const TRAIL_MIN_DIST_M = 30;
 const TRAIL_MIN_TIME_MS = 45_000;
-const RING_R = 46;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R; // ≈ 289
+const RING_R = 35;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R; // ≈ 220
 
 // ─── Dispatch to trusted contacts via Edge Function ─────────────────────────
 async function dispatchToContacts(
@@ -55,6 +58,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
   const [fabHoldProgress, setFabHoldProgress] = useState(0);
 
   const [resolving, setResolving] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
 
   // FAB hold refs (3-second hold to activate countdown)
   const fabHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -376,6 +380,10 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         @keyframes sos-spin {
           to { transform: rotate(360deg); }
         }
+        @keyframes sos-slideUp {
+          from { transform: translateX(-50%) translateY(24px); opacity: 0; }
+          to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+        }
       `}</style>
 
       {/* ── Hold progress — centered overlay, above the thumb ──────── */}
@@ -408,241 +416,301 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         </div>
       )}
 
-      {/* ── Fullscreen SOS overlay (count / sending / sent) ─────────── */}
+      {/* ── SOS modal overlay (count / sending / sent) ──────────────── */}
       {isOverlay && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 400,
-            backgroundColor: 'var(--surface-base)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Ambient glow */}
+        <>
+          {/* Scrim */}
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse 80% 45% at 50% 25%, rgba(240,64,96,0.05) 0%, transparent 65%)',
-            pointerEvents: 'none',
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 399,
           }} />
 
-          {/* BLOC 1 — Status pill */}
-          <div style={{
-            marginTop: 52,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: 'rgba(240,64,96,0.10)',
-            border: '1px solid rgba(240,64,96,0.22)',
-            borderRadius: 99, padding: '5px 12px',
-            zIndex: 1,
-          }}>
+          {/* Emergency numbers overlay */}
+          {showEmergency && (
             <div style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: 'var(--semantic-danger)',
-              animation: 'sos-blink 1s ease-in-out infinite',
-            }} />
-            <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
-              textTransform: 'uppercase' as const,
-              color: 'var(--semantic-danger)',
+              position: 'fixed', inset: 0, zIndex: 401,
+              background: 'var(--surface-base)',
+              display: 'flex', flexDirection: 'column',
             }}>
-              SOS ACTIVÉ
-            </span>
-          </div>
-
-          {/* BLOC 2 — Ring countdown */}
-          <div style={{
-            position: 'relative', width: 160, height: 160,
-            marginTop: 24, zIndex: 1,
-          }}>
-            {/* Pulse rings (count phase only) */}
-            {phase === 'count' && [0, 0.85, 1.7].map((delay, i) => (
-              <div key={i} style={{
-                position: 'absolute', inset: 0, borderRadius: '50%',
-                border: '1.5px solid var(--semantic-danger)',
-                animation: `sos-ring 2.6s ease-out infinite`,
-                animationDelay: `${delay}s`,
-              }} />
-            ))}
-
-            {/* SVG progress ring */}
-            <svg width="160" height="160" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-              <circle cx="80" cy="80" r={RING_R}
-                fill="none" stroke="rgba(240,64,96,0.10)" strokeWidth="3" />
-              <circle cx="80" cy="80" r={RING_R}
-                fill="none" stroke="var(--semantic-danger)" strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={RING_CIRCUMFERENCE}
-                strokeDashoffset={ringOffset}
-                style={{ transition: 'stroke-dashoffset 0.95s linear' }}
-              />
-            </svg>
-
-            {/* Inner circle */}
-            <div style={{
-              position: 'absolute', inset: 14, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.4s ease',
-              ...(phase === 'sent'
-                ? {
-                    background: 'var(--semantic-success-soft)',
-                    border: '1px solid rgba(52,211,153,0.30)',
-                  }
-                : {
-                    background: 'rgba(240,64,96,0.10)',
-                    border: '1px solid rgba(240,64,96,0.22)',
-                  }
-              ),
-            }}>
-              {phase === 'count' && (
-                <span style={{
-                  fontSize: 58, fontWeight: 300, letterSpacing: '-0.04em',
-                  color: 'var(--semantic-danger)',
-                  fontFamily: 'Georgia, serif',
-                }}>
-                  {count}
-                </span>
-              )}
-              {phase === 'sending' && (
-                <div style={{
-                  width: 24, height: 24,
-                  border: '3px solid rgba(240,64,96,0.22)',
-                  borderTopColor: 'var(--semantic-danger)',
-                  borderRadius: '50%',
-                  animation: 'sos-spin 0.7s linear infinite',
-                }} />
-              )}
-              {phase === 'sent' && (
-                <span style={{
-                  fontSize: 32,
-                  color: 'var(--semantic-success)',
-                }}>
-                  ✓
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* BLOC 3 — Status text */}
-          <div style={{ marginTop: 20, textAlign: 'center', zIndex: 1, padding: '0 32px' }}>
-            <div style={{
-              fontSize: 20, fontWeight: 300, letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-              fontFamily: 'Georgia, serif',
-            }}>
-              {phase === 'count' && `Alerte dans ${count}s`}
-              {phase === 'sending' && 'Envoi en cours…'}
-              {phase === 'sent' && 'Alerte envoyée'}
-            </div>
-            <div style={{
-              fontSize: 12, color: 'var(--text-secondary)',
-              lineHeight: 1.6, textAlign: 'center',
-              marginTop: 6,
-            }}>
-              {phase === 'count' && 'Ton cercle et les utilisatrices\nproches seront alertés'}
-              {phase === 'sending' && 'Notification à ton cercle de confiance'}
-              {phase === 'sent' && 'Position partagée · Cercle notifié'}
-            </div>
-          </div>
-
-          {/* BLOC 4 — Circle members (sent phase only) */}
-          {phase === 'sent' && dispatchResults.length > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: 'var(--surface-card)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 14, padding: '9px 14px',
-              marginTop: 16, zIndex: 1,
-            }}>
-              {/* Overlapping avatars */}
-              <div style={{ display: 'flex' }}>
-                {dispatchResults.slice(0, 4).map((r, i) => {
-                  const initial = (r.contact_name ?? '?').charAt(0).toUpperCase();
-                  const responded = r.status === 'delivered' || r.status === 'acknowledged';
-                  return (
-                    <div key={r.contact_id} style={{
-                      width: 28, height: 28, borderRadius: '50%',
-                      background: 'var(--surface-elevated)',
-                      border: `2px solid ${responded ? 'var(--semantic-success)' : 'var(--surface-base)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 700, color: 'var(--text-primary)',
-                      marginLeft: i > 0 ? -7 : 0,
-                      zIndex: 10 - i,
-                      transition: 'border-color 0.4s',
-                    }}>
-                      {initial}
-                    </div>
-                  );
-                })}
-              </div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {respondedCount > 0 ? `${respondedCount} ont répondu` : `${dispatchResults.length} alertés`}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                  {respondedCount > 0 ? (dispatchResults.find(r => r.status === 'acknowledged')?.contact_name ?? 'En attente…') : 'En attente…'}
-                </div>
-              </div>
+              <button
+                onClick={() => setShowEmergency(false)}
+                style={{
+                  position: 'absolute', top: 12, left: 12, zIndex: 1,
+                  background: 'var(--surface-card)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 12, padding: '6px 12px',
+                  fontSize: 13, fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                ← Retour
+              </button>
+              <EmergencyNumbers />
             </div>
           )}
 
-          {/* BLOC 5 — Actions (bottom) */}
+          {/* Modal card */}
           <div style={{
-            marginTop: 'auto', marginBottom: 88,
-            display: 'flex', flexDirection: 'column', gap: 9,
-            width: '100%', padding: '0 18px',
-            zIndex: 1,
+            position: 'fixed',
+            bottom: 96,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '88%',
+            maxWidth: 340,
+            background: 'var(--surface-card)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 28,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+            zIndex: 400,
+            overflow: 'hidden',
+            animation: 'sos-slideUp 0.3s cubic-bezier(0.16,1,0.3,1)',
           }}>
-            {/* "Je suis en sécurité" — sent phase */}
-            {phase === 'sent' && (
-              <button
-                onClick={resolve}
-                disabled={resolving}
-                style={{
-                  background: 'var(--text-primary)',
-                  color: 'var(--text-inverse)',
-                  borderRadius: 99, padding: 13,
-                  fontSize: 14, fontWeight: 700,
-                  width: '100%',
-                  border: 'none', cursor: resolving ? 'wait' : 'pointer',
-                  opacity: resolving ? 0.6 : 1,
-                }}
-              >
-                {resolving ? 'Confirmation…' : 'Je suis en sécurité ✓'}
-              </button>
-            )}
+            {/* Top accent bar */}
+            <div style={{
+              height: 3,
+              background: phase === 'sent'
+                ? 'linear-gradient(90deg, var(--semantic-success), #6EE7B7)'
+                : 'linear-gradient(90deg, var(--semantic-danger), #FF6B6B)',
+              transition: 'background 0.5s ease',
+            }} />
 
-            {/* "Annuler l'alerte" — count phase */}
-            {phase === 'count' && (
-              <button
-                onClick={cancel}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--border-strong)',
-                  color: 'var(--text-secondary)',
-                  borderRadius: 99, padding: 12,
-                  fontSize: 13, fontWeight: 500,
-                  width: '100%', cursor: 'pointer',
-                }}
-              >
-                Annuler l&apos;alerte
-              </button>
-            )}
-
-            {/* "Appeler le 17" — always */}
-            <button
-              onClick={() => window.open('tel:17', '_self')}
-              style={{
+            {/* Inner content */}
+            <div style={{
+              padding: '18px 20px 16px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+            }}>
+              {/* Status pill */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
                 background: 'rgba(240,64,96,0.10)',
                 border: '1px solid rgba(240,64,96,0.22)',
-                color: 'var(--semantic-danger)',
-                borderRadius: 99, padding: 11,
-                fontSize: 13, fontWeight: 700,
-                width: '100%', cursor: 'pointer',
-              }}
-            >
-              📞 Appeler le 17 · Police
-            </button>
+                borderRadius: 99, padding: '5px 12px',
+              }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: 'var(--semantic-danger)',
+                  animation: 'sos-blink 1s ease-in-out infinite',
+                }} />
+                <span style={{
+                  fontSize: 10, fontWeight: 800, letterSpacing: '0.10em',
+                  textTransform: 'uppercase' as const,
+                  color: 'var(--semantic-danger)',
+                }}>
+                  SOS ACTIVÉ
+                </span>
+              </div>
+
+              {/* Ring countdown */}
+              <div style={{
+                position: 'relative', width: 120, height: 120,
+                marginTop: 16,
+              }}>
+                {/* Pulse rings (count phase only) */}
+                {phase === 'count' && [0, 0.85, 1.7].map((delay, i) => (
+                  <div key={i} style={{
+                    position: 'absolute', inset: 0, borderRadius: '50%',
+                    border: '1.5px solid var(--semantic-danger)',
+                    animation: `sos-ring 2.6s ease-out infinite`,
+                    animationDelay: `${delay}s`,
+                  }} />
+                ))}
+
+                {/* SVG progress ring */}
+                <svg width="120" height="120" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+                  <circle cx="60" cy="60" r={RING_R}
+                    fill="none" stroke="rgba(240,64,96,0.10)" strokeWidth="3" />
+                  <circle cx="60" cy="60" r={RING_R}
+                    fill="none" stroke="var(--semantic-danger)" strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    strokeDashoffset={ringOffset}
+                    style={{ transition: 'stroke-dashoffset 0.95s linear' }}
+                  />
+                </svg>
+
+                {/* Inner circle */}
+                <div style={{
+                  position: 'absolute', inset: 11, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.4s ease',
+                  ...(phase === 'sent'
+                    ? {
+                        background: 'var(--semantic-success-soft)',
+                        border: '1px solid rgba(52,211,153,0.30)',
+                      }
+                    : {
+                        background: 'rgba(240,64,96,0.10)',
+                        border: '1px solid rgba(240,64,96,0.22)',
+                      }
+                  ),
+                }}>
+                  {phase === 'count' && (
+                    <span style={{
+                      fontSize: 46, fontWeight: 300, letterSpacing: '-0.04em',
+                      color: 'var(--semantic-danger)',
+                      fontFamily: 'Georgia, serif',
+                    }}>
+                      {count}
+                    </span>
+                  )}
+                  {phase === 'sending' && (
+                    <div style={{
+                      width: 20, height: 20,
+                      border: '3px solid rgba(240,64,96,0.22)',
+                      borderTopColor: 'var(--semantic-danger)',
+                      borderRadius: '50%',
+                      animation: 'sos-spin 0.7s linear infinite',
+                    }} />
+                  )}
+                  {phase === 'sent' && (
+                    <span style={{
+                      fontSize: 28,
+                      color: 'var(--semantic-success)',
+                    }}>
+                      ✓
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status text */}
+              <div style={{ marginTop: 14, textAlign: 'center' }}>
+                <div style={{
+                  fontSize: 18, fontWeight: 300, letterSpacing: '-0.02em',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'Georgia, serif',
+                }}>
+                  {phase === 'count' && `Alerte dans ${count}s`}
+                  {phase === 'sending' && 'Envoi en cours…'}
+                  {phase === 'sent' && 'Alerte envoyée'}
+                </div>
+                <div style={{
+                  fontSize: 11, color: 'var(--text-secondary)',
+                  lineHeight: 1.6, marginTop: 4,
+                }}>
+                  {phase === 'count' && 'Ton cercle et les utilisatrices proches seront alertés'}
+                  {phase === 'sending' && 'Notification à ton cercle de confiance'}
+                  {phase === 'sent' && 'Position partagée · Cercle notifié'}
+                </div>
+              </div>
+
+              {/* Circle members (sent phase only) */}
+              {phase === 'sent' && dispatchResults.length > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: 'var(--surface-elevated)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 14, padding: '8px 12px',
+                  marginTop: 12, width: '100%',
+                }}>
+                  <div style={{ display: 'flex' }}>
+                    {dispatchResults.slice(0, 4).map((r, i) => {
+                      const initial = (r.contact_name ?? '?').charAt(0).toUpperCase();
+                      const responded = r.status === 'delivered' || r.status === 'acknowledged';
+                      return (
+                        <div key={r.contact_id} style={{
+                          width: 26, height: 26, borderRadius: '50%',
+                          background: 'var(--surface-card)',
+                          border: `2px solid ${responded ? 'var(--semantic-success)' : 'var(--border-default)'}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 10, fontWeight: 700, color: 'var(--text-primary)',
+                          marginLeft: i > 0 ? -6 : 0,
+                          zIndex: 10 - i,
+                          transition: 'border-color 0.4s',
+                        }}>
+                          {initial}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {respondedCount > 0 ? `${respondedCount} ont répondu` : `${dispatchResults.length} alertés`}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
+                      {respondedCount > 0 ? (dispatchResults.find(r => r.status === 'acknowledged')?.contact_name ?? 'En attente…') : 'En attente…'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 8,
+                width: '100%', marginTop: 14,
+              }}>
+                {phase === 'sent' && (
+                  <button
+                    onClick={resolve}
+                    disabled={resolving}
+                    style={{
+                      background: 'var(--text-primary)',
+                      color: 'var(--text-inverse)',
+                      borderRadius: 99, padding: 12,
+                      fontSize: 13, fontWeight: 700,
+                      width: '100%',
+                      border: 'none', cursor: resolving ? 'wait' : 'pointer',
+                      opacity: resolving ? 0.6 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {resolving ? 'Confirmation…' : 'Je suis en sécurité ✓'}
+                  </button>
+                )}
+
+                {phase === 'count' && (
+                  <button
+                    onClick={cancel}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--border-strong)',
+                      color: 'var(--text-secondary)',
+                      borderRadius: 99, padding: 11,
+                      fontSize: 12, fontWeight: 500,
+                      width: '100%', cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Annuler l&apos;alerte
+                  </button>
+                )}
+
+                <button
+                  onClick={() => window.open('tel:17', '_self')}
+                  style={{
+                    background: 'rgba(240,64,96,0.10)',
+                    border: '1px solid rgba(240,64,96,0.22)',
+                    color: 'var(--semantic-danger)',
+                    borderRadius: 99, padding: 10,
+                    fontSize: 12, fontWeight: 700,
+                    width: '100%', cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  📞 Appeler le 17 · Police
+                </button>
+
+                <button
+                  onClick={() => setShowEmergency(true)}
+                  style={{
+                    background: 'transparent', border: 'none',
+                    color: 'var(--text-tertiary)',
+                    fontSize: 10, fontWeight: 600,
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                    cursor: 'pointer', padding: '2px 0', width: '100%',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  Numéros d&apos;urgence ↓
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ── Red flash after SOS triggers ────────────────────────────── */}
