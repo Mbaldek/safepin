@@ -11,6 +11,15 @@ const PRICE_MAP: Record<string, string | undefined> = {
 };
 
 export async function POST(req: NextRequest) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('[Stripe Checkout] STRIPE_SECRET_KEY manquant — vérifier .env');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+  if (!process.env.STRIPE_PRO_MONTHLY_PRICE_ID) {
+    console.error('[Stripe Checkout] STRIPE_PRO_MONTHLY_PRICE_ID manquant — vérifier .env');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   const { userId, email, plan } = (await req.json()) as {
     userId: string;
     email: string;

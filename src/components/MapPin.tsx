@@ -125,7 +125,13 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
 
 export function MapPin({ map, pin, onClick, showLabels = true }: MapPinProps) {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const labelRef = useRef<HTMLDivElement | null>(null);
+  const onClickRef = useRef(onClick);
+  const pinRef = useRef(pin);
+  onClickRef.current = onClick;
+  pinRef.current = pin;
 
+  // Create marker once on mount (key={pin.id} in parent handles identity)
   useEffect(() => {
     const config = CATEGORY_CONFIG[pin.category] || CATEGORY_CONFIG.unsafe;
     const size = getSize(pin.confirmations || 1);
@@ -142,25 +148,24 @@ export function MapPin({ map, pin, onClick, showLabels = true }: MapPinProps) {
       container = createStandardPin(size, config.color, config.emoji);
     }
 
-    // Add label
-    if (showLabels) {
-      const label = document.createElement('div');
-      label.style.cssText = `
-        padding:2px 6px;border-radius:6px;background:rgba(30,41,59,0.9);
-        font-size:10px;font-weight:500;color:#fff;white-space:nowrap;
-        box-shadow:0 1px 4px rgba(0,0,0,0.2);
-      `;
-      label.textContent = config.label + (isTransport && pin.transport_line ? ` ${pin.transport_line}` : '');
-      container.appendChild(label);
-    }
+    // Add label (always create, toggle visibility via separate effect)
+    const label = document.createElement('div');
+    label.style.cssText = `
+      padding:2px 6px;border-radius:6px;background:rgba(30,41,59,0.9);
+      font-size:10px;font-weight:500;color:#fff;white-space:nowrap;
+      box-shadow:0 1px 4px rgba(0,0,0,0.2);
+    `;
+    label.textContent = config.label + (isTransport && pin.transport_line ? ` ${pin.transport_line}` : '');
+    container.appendChild(label);
+    labelRef.current = label;
 
     // Hover effect
     const pinEl = container.firstElementChild as HTMLElement;
     container.addEventListener('mouseenter', () => { if (pinEl) pinEl.style.transform = 'scale(1.25)'; });
     container.addEventListener('mouseleave', () => { if (pinEl) pinEl.style.transform = 'scale(1)'; });
 
-    // Click handler
-    container.addEventListener('click', (e) => { e.stopPropagation(); onClick(pin); });
+    // Click handler (uses ref to always get current pin/onClick)
+    container.addEventListener('click', (e) => { e.stopPropagation(); onClickRef.current(pinRef.current); });
 
     // Create marker
     const marker = new mapboxgl.Marker({ element: container, anchor: 'center' })
@@ -168,8 +173,21 @@ export function MapPin({ map, pin, onClick, showLabels = true }: MapPinProps) {
       .addTo(map);
 
     markerRef.current = marker;
-    return () => { marker.remove(); };
-  }, [map, pin, onClick, showLabels]);
+    return () => { marker.remove(); markerRef.current = null; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, pin.id]);
+
+  // Update position without recreating marker
+  useEffect(() => {
+    markerRef.current?.setLngLat([pin.lng, pin.lat]);
+  }, [pin.lng, pin.lat]);
+
+  // Toggle label visibility without recreating marker
+  useEffect(() => {
+    if (labelRef.current) {
+      labelRef.current.style.display = showLabels ? '' : 'none';
+    }
+  }, [showLabels]);
 
   return null;
 }

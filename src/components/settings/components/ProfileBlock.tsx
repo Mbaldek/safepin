@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Check, ChevronRight } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 
@@ -37,6 +38,7 @@ export default function ProfileBlock({ name, email, isVerified, avatarUrl, onPre
       {/* Avatar */}
       <div
         style={{
+          position: 'relative',
           width: 52,
           height: 52,
           borderRadius: '50%',
@@ -52,7 +54,7 @@ export default function ProfileBlock({ name, email, isVerified, avatarUrl, onPre
         }}
       >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <Image src={avatarUrl} alt="" fill className="object-cover" />
         ) : (
           initial
         )}

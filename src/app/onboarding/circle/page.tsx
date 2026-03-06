@@ -107,6 +107,12 @@ export default function OnboardingCirclePage() {
       { user_id: userId, contact_id: profile.id },
       { onConflict: 'user_id,contact_id' },
     );
+    // Send circle invitation email (fire-and-forget)
+    fetch('/api/circle/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId: profile.id }),
+    }).catch(() => {});
     setToast(true);
     setTimeout(() => setToast(false), 3000);
     inputRef.current?.focus();

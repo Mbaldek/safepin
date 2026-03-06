@@ -1365,7 +1365,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <MapPin size={14} strokeWidth={2} />
           Retour a la carte
         </button>
-        <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }}>
+        <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }} onClick={() => toast('Résumé du trajet bientôt disponible')}>
           Voir le resume du trajet
         </button>
       </motion.div>

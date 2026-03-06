@@ -5,10 +5,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase-admin';
 import Stripe from 'stripe';
+import { Resend } from 'resend';
+import { proWelcomeEmail } from '@/lib/email-templates';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: NextRequest) {
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET manquant — vérifier .env');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature')!;
 
@@ -56,6 +63,30 @@ export async function POST(req: NextRequest) {
           period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
           period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
         });
+      }
+
+      // Send Pro welcome email (fire-and-forget)
+      if (process.env.RESEND_API_KEY) {
+        try {
+          const { data: profile } = await db.from('profiles').select('display_name').eq('id', userId).single();
+          const { data: { user: authUser } } = await db.auth.admin.getUserById(userId);
+          if (authUser?.email) {
+            const interval = subscription.items.data[0]?.price.recurring?.interval;
+            const template = proWelcomeEmail({
+              recipientName: profile?.display_name ?? 'there',
+              planLabel: interval === 'year' ? 'annuel' : 'mensuel',
+            });
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+              from: 'Breveil <onboarding@resend.dev>',
+              to: authUser.email,
+              subject: template.subject,
+              html: template.html,
+            });
+          }
+        } catch (err: unknown) {
+          console.error('[Email] Pro welcome failed:', err instanceof Error ? err.message : err);
+        }
       }
       break;
     }

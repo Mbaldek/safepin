@@ -80,6 +80,77 @@ export function inactiveReengagementEmail(displayName: string | null) {
   };
 }
 
+export function sosCircleAlertEmail(params: {
+  recipientName: string;
+  triggerName: string;
+  triggeredAt: string;
+  locationLabel: string | null;
+}) {
+  const { recipientName, triggerName, triggeredAt, locationLabel } = params;
+  return {
+    subject: `🚨 ${triggerName} a déclenché une alerte SOS`,
+    html: wrap('Alerte SOS', `
+      <h2 style="margin:0 0 16px;font-size:22px;color:#18181b;">🚨 Alerte SOS déclenchée</h2>
+      <p style="color:#3f3f46;font-size:15px;line-height:1.6;">
+        ${recipientName}, ${triggerName} a déclenché une alerte SOS à ${triggeredAt}.
+      </p>
+      ${locationLabel ? `<p style="color:#3f3f46;font-size:15px;line-height:1.6;">Dernière position connue\u00a0: <strong>${locationLabel}</strong></p>` : ''}
+      <div style="text-align:center;margin:28px 0 12px;">
+        <a href="${APP_URL}/map" style="display:inline-block;padding:12px 32px;background:#DC2626;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">Ouvrir Breveil</a>
+      </div>
+    `),
+  };
+}
+
+export function circleInvitationEmail(params: {
+  recipientName: string;
+  inviterName: string;
+  inviteLink: string;
+}) {
+  const { recipientName, inviterName, inviteLink } = params;
+  return {
+    subject: `💛 ${inviterName} t'invite dans son cercle Breveil`,
+    html: wrap('Invitation cercle', `
+      <h2 style="margin:0 0 16px;font-size:22px;color:#18181b;">${inviterName} veut marcher avec toi.</h2>
+      <p style="color:#3f3f46;font-size:15px;line-height:1.6;">
+        ${recipientName}, tu as été invitée à rejoindre le cercle de confiance de ${inviterName} sur Breveil.
+      </p>
+      <div style="text-align:center;margin:28px 0 12px;">
+        <a href="${inviteLink}" style="display:inline-block;padding:12px 32px;background:#0F172A;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">Accepter l'invitation</a>
+      </div>
+      <div style="text-align:center;margin:0 0 12px;">
+        <a href="${APP_URL}" style="color:#3BB4C1;font-size:13px;text-decoration:underline;">Télécharger Breveil</a>
+      </div>
+    `),
+  };
+}
+
+export function proWelcomeEmail(params: {
+  recipientName: string;
+  planLabel: string;
+}) {
+  const { recipientName, planLabel } = params;
+  return {
+    subject: '✨ Bienvenue dans Breveil Pro',
+    html: wrap('Breveil Pro', `
+      <h2 style="margin:0 0 16px;font-size:22px;color:#18181b;">Tu es maintenant Pro. 🎉</h2>
+      <p style="color:#3f3f46;font-size:15px;line-height:1.6;">
+        ${recipientName}, ton abonnement ${planLabel} est actif.
+      </p>
+      <ul style="color:#3f3f46;font-size:15px;line-height:2;padding-left:20px;list-style:none;">
+        <li>✓ Trajets protégés illimités</li>
+        <li>✓ Marche avec moi</li>
+        <li>✓ Julia IA (20 sessions/mois)</li>
+        <li>✓ Cercle de confiance illimité</li>
+        <li>✓ Historique complet</li>
+      </ul>
+      <div style="text-align:center;margin:28px 0 12px;">
+        <a href="${APP_URL}/map" style="display:inline-block;padding:12px 32px;background:#0F172A;color:#fff;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px;">Découvrir mes nouvelles fonctionnalités</a>
+      </div>
+    `),
+  };
+}
+
 export function streakMilestoneEmail(displayName: string | null, streak: number) {
   const name = displayName || 'there';
   const emoji = streak >= 30 ? '\u{1F48E}' : '\u26A1';

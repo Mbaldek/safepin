@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import {
   Moon, MapPin, Users, Heart, Shield, AlertTriangle, Eye,
   Check, Camera, X, Bell, Mail, Lock,
@@ -698,7 +699,7 @@ export function OnboardingFunnelV2({
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              width: 110, height: 110, borderRadius: '50%',
+              position: 'relative', width: 110, height: 110, borderRadius: '50%',
               border: '2px dashed rgba(255,255,255,0.22)',
               background: avatarPreview ? 'transparent' : 'rgba(255,255,255,0.07)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -707,7 +708,7 @@ export function OnboardingFunnelV2({
             }}
           >
             {avatarPreview
-              ? <img src={avatarPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <Image src={avatarPreview} alt="" fill className="object-cover" unoptimized />
               : <Camera size={28} color="rgba(255,255,255,0.38)" />
             }
           </div>

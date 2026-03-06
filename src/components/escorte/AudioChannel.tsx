@@ -63,7 +63,7 @@ export default function AudioChannel({ escorteId, userId, isDark, circleMembers,
         await room.localParticipant.setMicrophoneEnabled(true)
         setConnected(true)
       } catch (err) {
-        console.warn('[AudioChannel] Connection failed:', err)
+        void err
         if (!cancelled) setError(true)
       }
     })()

@@ -19,6 +19,11 @@ import { MapPin } from './MapPin';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+// Prewarm WebGL dès le chargement du module
+if (typeof window !== 'undefined') {
+  mapboxgl.prewarm();
+}
+
 const SOURCE_ID    = 'pins-source';
 const ROUTE_SRC    = 'route-source';
 const ROUTE_LYR    = 'route-line';
@@ -59,6 +64,18 @@ const OWN_LAYERS = new Set([
   WATCH_CIRCLE, WATCH_LABEL,
   ROUTE_LYR,
 ]);
+
+// ── Module-level handler refs for proper cleanup ────────────────────────────
+let _clusterClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
+let _unclusteredClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
+let _clusterMouseEnter: (() => void) | null = null;
+let _clusterMouseLeave: (() => void) | null = null;
+let _unclusteredMouseEnter: (() => void) | null = null;
+let _unclusteredMouseLeave: (() => void) | null = null;
+
+let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
+let _transitMouseEnter: (() => void) | null = null;
+let _transitMouseLeave: (() => void) | null = null;
 
 /** Hide built-in Mapbox circle/dot layers from the base style.
  *  Keeps our own layers (OWN_LAYERS) and all text/line/fill layers. */
@@ -205,8 +222,13 @@ function addTransitLayer(m: mapboxgl.Map) {
     },
   }, 'clusters-halo');
 
+  // Remove previous transit listeners before adding new ones
+  if (_transitClickHandler) m.off('click', TRANSIT_CIRCLE, _transitClickHandler);
+  if (_transitMouseEnter)   m.off('mouseenter', TRANSIT_CIRCLE, _transitMouseEnter);
+  if (_transitMouseLeave)   m.off('mouseleave', TRANSIT_CIRCLE, _transitMouseLeave);
+
   // Station click → popup with name + transport type
-  m.on('click', TRANSIT_CIRCLE, (e) => {
+  _transitClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
     const f = e.features?.[0];
     if (!f) return;
     const name = f.properties?.name || 'Station';
@@ -217,9 +239,13 @@ function addTransitLayer(m: mapboxgl.Map) {
       .setLngLat(coords)
       .setHTML(`<div style="font-size:13px;font-weight:600">${emoji} ${name}</div><div style="font-size:11px;color:#666;text-transform:capitalize">${kind}</div>`)
       .addTo(m);
-  });
-  m.on('mouseenter', TRANSIT_CIRCLE, () => { m.getCanvas().style.cursor = 'pointer'; });
-  m.on('mouseleave', TRANSIT_CIRCLE, () => { m.getCanvas().style.cursor = ''; });
+  };
+  _transitMouseEnter = () => { m.getCanvas().style.cursor = 'pointer'; };
+  _transitMouseLeave = () => { m.getCanvas().style.cursor = ''; };
+
+  m.on('click', TRANSIT_CIRCLE, _transitClickHandler);
+  m.on('mouseenter', TRANSIT_CIRCLE, _transitMouseEnter);
+  m.on('mouseleave', TRANSIT_CIRCLE, _transitMouseLeave);
 }
 
 // ── POI (Points of Interest) ──────────────────────────────────────────────────
@@ -592,8 +618,16 @@ function addClusterLayers(m: mapboxgl.Map) {
     },
   });
 
+  // Remove previous cluster listeners before adding new ones
+  if (_clusterClickHandler)     m.off('click', 'clusters', _clusterClickHandler);
+  if (_unclusteredClickHandler) m.off('click', 'unclustered-point', _unclusteredClickHandler);
+  if (_clusterMouseEnter)       m.off('mouseenter', 'clusters', _clusterMouseEnter);
+  if (_clusterMouseLeave)       m.off('mouseleave', 'clusters', _clusterMouseLeave);
+  if (_unclusteredMouseEnter)   m.off('mouseenter', 'unclustered-point', _unclusteredMouseEnter);
+  if (_unclusteredMouseLeave)   m.off('mouseleave', 'unclustered-point', _unclusteredMouseLeave);
+
   // Cluster click → zoom in
-  m.on('click', 'clusters', (e) => {
+  _clusterClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
     const features = m.queryRenderedFeatures(e.point, { layers: ['clusters'] });
     if (!features[0]) return;
     const clusterId = features[0].properties?.cluster_id;
@@ -605,22 +639,29 @@ function addClusterLayers(m: mapboxgl.Map) {
         m.easeTo({ center: coords, zoom: zoom + 0.5 });
       }
     );
-  });
+  };
 
   // Individual pin click
-  m.on('click', 'unclustered-point', (e) => {
+  _unclusteredClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
     const pinId = e.features?.[0]?.properties?.id;
     if (!pinId) return;
     const store = useStore.getState();
     const pin = store.pins.find((p) => p.id === pinId);
     if (pin) { store.setSelectedPin(pin); store.setActiveSheet('detail'); }
-  });
+  };
 
   // Cursor pointers
-  m.on('mouseenter', 'clusters', () => { m.getCanvas().style.cursor = 'pointer'; });
-  m.on('mouseleave', 'clusters', () => { m.getCanvas().style.cursor = ''; });
-  m.on('mouseenter', 'unclustered-point', () => { m.getCanvas().style.cursor = 'pointer'; });
-  m.on('mouseleave', 'unclustered-point', () => { m.getCanvas().style.cursor = ''; });
+  _clusterMouseEnter     = () => { m.getCanvas().style.cursor = 'pointer'; };
+  _clusterMouseLeave     = () => { m.getCanvas().style.cursor = ''; };
+  _unclusteredMouseEnter = () => { m.getCanvas().style.cursor = 'pointer'; };
+  _unclusteredMouseLeave = () => { m.getCanvas().style.cursor = ''; };
+
+  m.on('click', 'clusters', _clusterClickHandler);
+  m.on('click', 'unclustered-point', _unclusteredClickHandler);
+  m.on('mouseenter', 'clusters', _clusterMouseEnter);
+  m.on('mouseleave', 'clusters', _clusterMouseLeave);
+  m.on('mouseenter', 'unclustered-point', _unclusteredMouseEnter);
+  m.on('mouseleave', 'unclustered-point', _unclusteredMouseLeave);
 }
 
 export type MapViewProps = {
@@ -723,6 +764,8 @@ function MapView({
       zoom: 13,
       performanceMetricsCollection: false,
       fadeDuration: 0,
+      antialias: false,
+      renderWorldCopies: false,
     });
 
     navigator.geolocation?.getCurrentPosition(
@@ -744,7 +787,7 @@ function MapView({
     );
 
     // Long-press (2 s) → open Report sheet (add pin funnel)
-    map.current.on('mousedown', (e) => {
+    const handleMouseDown = (e: mapboxgl.MapMouseEvent) => {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
       longPressTimer.current = setTimeout(() => {
         longPressTimer.current = null;
@@ -755,31 +798,26 @@ function MapView({
           store.setActiveSheet('report');
         }
       }, 2000);
-    });
+    };
     const cancelLong = () => {
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
     };
-    map.current.on('mouseup',   cancelLong);
-    map.current.on('mousemove', cancelLong);
-    map.current.on('touchend',  cancelLong);
     // Also handle mobile long-press via contextmenu
-    map.current.on('contextmenu', (e) => {
+    const handleContextMenu = (e: mapboxgl.MapMouseEvent) => {
       const store = useStore.getState();
       const blockedTab = store.activeTab === 'trip' || store.activeTab === 'me' || store.showIncidentsList;
       if (store.activeSheet === 'none' && !blockedTab) {
         store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         store.setActiveSheet('report');
       }
-    });
-
-    map.current.on('load', () => {
+    };
+    const handleLoad = () => {
       hideBuiltinPOIDots(map.current!);
       addClusterLayers(map.current!);
       setLayersReady(true);
       setMapReady(true);
-    });
-
-    map.current.on('zoomend', () => {
+    };
+    const handleZoomEnd = () => {
       if (!map.current) return;
       const z = Math.round(map.current.getZoom());
       const prev = zoomRef.current;
@@ -787,9 +825,25 @@ function MapView({
       // Only trigger re-render when crossing the label threshold
       const crossed = (prev < LABEL_ZOOM_THRESHOLD) !== (z < LABEL_ZOOM_THRESHOLD);
       if (crossed) setLabelsVisible(z >= LABEL_ZOOM_THRESHOLD);
-    });
+    };
+
+    map.current.on('mousedown', handleMouseDown);
+    map.current.on('mouseup',   cancelLong);
+    map.current.on('mousemove', cancelLong);
+    map.current.on('touchend',  cancelLong);
+    map.current.on('contextmenu', handleContextMenu);
+    map.current.on('load', handleLoad);
+    map.current.on('zoomend', handleZoomEnd);
 
     return () => {
+      // cleanup: retire 7 listeners (mousedown, mouseup, mousemove, touchend, contextmenu, load, zoomend)
+      map.current?.off('mousedown', handleMouseDown);
+      map.current?.off('mouseup',   cancelLong);
+      map.current?.off('mousemove', cancelLong);
+      map.current?.off('touchend',  cancelLong);
+      map.current?.off('contextmenu', handleContextMenu);
+      map.current?.off('load', handleLoad);
+      map.current?.off('zoomend', handleZoomEnd);
       map.current?.remove();
       map.current = null;
     };
@@ -1597,12 +1651,27 @@ function MapView({
         if (space) setSelectedSafeSpace(space);
       }
     };
+    const safeCircleEnter   = () => { m.getCanvas().style.cursor = 'pointer'; };
+    const safeCircleLeave   = () => { m.getCanvas().style.cursor = ''; };
+    const safePartnerEnter  = () => { m.getCanvas().style.cursor = 'pointer'; };
+    const safePartnerLeave  = () => { m.getCanvas().style.cursor = ''; };
+
     m.on('click', SAFE_CIRCLE, handleSafeClick);
     m.on('click', SAFE_PARTNER, handleSafeClick);
-    m.on('mouseenter', SAFE_CIRCLE, () => { m.getCanvas().style.cursor = 'pointer'; });
-    m.on('mouseleave', SAFE_CIRCLE, () => { m.getCanvas().style.cursor = ''; });
-    m.on('mouseenter', SAFE_PARTNER, () => { m.getCanvas().style.cursor = 'pointer'; });
-    m.on('mouseleave', SAFE_PARTNER, () => { m.getCanvas().style.cursor = ''; });
+    m.on('mouseenter', SAFE_CIRCLE, safeCircleEnter);
+    m.on('mouseleave', SAFE_CIRCLE, safeCircleLeave);
+    m.on('mouseenter', SAFE_PARTNER, safePartnerEnter);
+    m.on('mouseleave', SAFE_PARTNER, safePartnerLeave);
+
+    return () => {
+      // cleanup: retire 6 listeners (click×2, mouseenter×2, mouseleave×2)
+      m.off('click', SAFE_CIRCLE, handleSafeClick);
+      m.off('click', SAFE_PARTNER, handleSafeClick);
+      m.off('mouseenter', SAFE_CIRCLE, safeCircleEnter);
+      m.off('mouseleave', SAFE_CIRCLE, safeCircleLeave);
+      m.off('mouseenter', SAFE_PARTNER, safePartnerEnter);
+      m.off('mouseleave', SAFE_PARTNER, safePartnerLeave);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSafeSpaces, safeSpaces, mapReady, layersReady]);
 

@@ -3,10 +3,35 @@
 // Triggered by the client immediately after pin insert.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { haversineMetersRaw } from '@/lib/utils';
+import { Resend } from 'resend';
+import { sosCircleAlertEmail } from '@/lib/email-templates';
 
 export async function POST(req: NextRequest) {
+  // Auth check
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { pin } = await req.json() as {
     pin: { id: string; lat: number; lng: number; is_emergency: boolean; category: string; severity: string; user_id: string };
   };
@@ -98,5 +123,65 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── SOS: email trusted circle members (fire-and-forget) ──────────────────
+  if (pin.is_emergency && process.env.RESEND_API_KEY) {
+    sendSosEmails(admin, pin).catch((err) => {
+      console.error('[Email] SOS circle alert failed:', err instanceof Error ? err.message : err);
+    });
+  }
+
   return NextResponse.json({ sent });
+}
+
+async function sendSosEmails(
+  admin: ReturnType<typeof createAdminClient>,
+  pin: { user_id: string; lat: number; lng: number },
+) {
+  // Get trigger user's name
+  const { data: triggerProfile } = await admin
+    .from('profiles')
+    .select('display_name')
+    .eq('id', pin.user_id)
+    .single();
+  const triggerName = triggerProfile?.display_name ?? 'Un membre';
+
+  // Get trusted circle members
+  const { data: contacts } = await admin
+    .from('trusted_contacts')
+    .select('user_id, contact_id')
+    .or(`user_id.eq.${pin.user_id},contact_id.eq.${pin.user_id}`)
+    .eq('status', 'accepted');
+
+  if (!contacts?.length) return;
+
+  const contactIds = contacts.map((c) =>
+    c.user_id === pin.user_id ? c.contact_id : c.user_id,
+  );
+
+  // Get contact profiles + emails
+  const { data: profiles } = await admin
+    .from('profiles')
+    .select('id, display_name')
+    .in('id', contactIds);
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name ?? 'there']));
+
+  const triggeredAt = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+  const locationLabel = `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}`;
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = 'Breveil <onboarding@resend.dev>';
+
+  await Promise.allSettled(
+    contactIds.map(async (contactId) => {
+      const { data: { user: authUser } } = await admin.auth.admin.getUserById(contactId);
+      if (!authUser?.email) return;
+      const template = sosCircleAlertEmail({
+        recipientName: profileMap.get(contactId) ?? 'there',
+        triggerName,
+        triggeredAt,
+        locationLabel,
+      });
+      await resend.emails.send({ from, to: authUser.email, subject: template.subject, html: template.html });
+    }),
+  );
 }

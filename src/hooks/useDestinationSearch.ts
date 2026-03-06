@@ -228,10 +228,9 @@ export function useDestinationSearch(userLat?: number, userLng?: number) {
         const mapbox = mapboxRes.status === 'fulfilled' ? mapboxRes.value : []
 
         setResults(mergeAndDedupe(photon, mapbox))
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          setResults([])
-        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return
+        setResults([])
       } finally {
         if (!abortRef.current?.signal.aborted) setLoading(false)
       }

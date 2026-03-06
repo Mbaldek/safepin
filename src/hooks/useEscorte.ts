@@ -113,8 +113,6 @@ export function useEscorte(userId: string) {
 
   // ── NOTIFY CIRCLE ────────────────────────────────
   const notifyCircle = useCallback(async (escorteId: string) => {
-    console.log('[notifyCircle] called — escorteId:', escorteId, 'userId:', userId)
-
     // 1. Fetch trusted_contacts
     const { data: contacts, error: fetchError } = await supabase
       .from('trusted_contacts')
@@ -122,11 +120,8 @@ export function useEscorte(userId: string) {
       .eq('user_id', userId)
       .eq('status', 'accepted')
 
-    console.log('[notifyCircle] contacts found:', contacts?.length ?? 0, fetchError ? `error: ${fetchError.message}` : 'ok')
-
     if (!contacts?.length) {
       // No contacts — activate Julia immediately for demo
-      console.warn('[notifyCircle] no contacts — activating Julia fallback')
       setJuliaActive(true)
       return
     }
@@ -197,7 +192,7 @@ export function useEscorte(userId: string) {
           })
           .eq('id', escorteId)
       },
-      (err) => console.warn('GPS error:', err),
+      () => {},
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     )
   }, [])

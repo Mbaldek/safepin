@@ -1,6 +1,8 @@
 // src/app/api/push-notify/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase-admin';
 
 // Only import web-push if the env vars are configured
@@ -53,6 +55,27 @@ async function sendPushNotifications(payload: { title: string; body: string }) {
 }
 
 export async function POST(req: NextRequest) {
+  // Auth check
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const result = await sendPushNotifications({

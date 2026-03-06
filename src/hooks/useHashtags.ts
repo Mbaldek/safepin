@@ -39,7 +39,7 @@ export function useTrendingHashtags(lat?: number, lng?: number, radiusKm = 2) {
 
       setTrending(sorted)
     } catch (e) {
-      console.warn('useTrendingHashtags:', e)
+      void e
     } finally {
       setLoading(false)
     }
@@ -91,7 +91,7 @@ export async function upsertHashtag(
     .select()
     .single()
 
-  if (error) { console.warn('upsertHashtag:', error); return null }
+  if (error) return null
   return data
 }
 
@@ -119,7 +119,7 @@ export async function attachHashtags(params: {
     .from('content_hashtags')
     .insert(rows)
 
-  if (error) console.warn('attachHashtags:', error)
+  if (error) return
 
   await Promise.all(
     params.tags.map(t =>

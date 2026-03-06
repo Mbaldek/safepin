@@ -508,17 +508,6 @@
     "departure": "Départ {time}",
     "arrival": "Arrivée {time}"
   },
-  "engagement": {
-    "welcome": "Bienvenue sur Breveil !",
-    "welcomeDesc": "Explorez les signalements de sécurité dans votre zone",
-    "verifyPrompt": "Vérifiez votre identité pour débloquer la confiance",
-    "verifyBonus": "Les utilisateurs vérifiés obtiennent 2x le score de confiance",
-    "verifyUrgent": "Plus que 2 jours pour compléter la vérification",
-    "verifyLast": "Dernière chance — vérifiez maintenant pour le badge Confiance",
-    "streakReminder": "Revenez demain pour maintenir votre série de {count} jours !",
-    "communityMissesYou": "Votre communauté vous manque — {count} nouveaux signalements près de vous",
-    "newReportsNearby": "Votre quartier a {count} nouveaux signalements"
-  },
   "incidents": {
     "nearbyIncidents": "Signalements proches",
     "allClear": "Tout est calme autour de vous ☀️",

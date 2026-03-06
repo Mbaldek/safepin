@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -519,11 +520,11 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 <button
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={avatarUploading}
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full overflow-hidden"
+                  className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full overflow-hidden"
                   style={{ background: `linear-gradient(135deg, ${c.accentGold}, #8B7EC8)` }}
                 >
                   {userProfile?.avatar_url ? (
-                    <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={userProfile.avatar_url} alt="Avatar" fill className="object-cover" />
                   ) : avatarUploading ? (
                     <span className="text-xs animate-pulse text-white">…</span>
                   ) : (

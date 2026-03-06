@@ -3,6 +3,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { Search, Plus, ChevronRight, MessageCircle, Users, Building2, X } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/Avatar"
@@ -208,8 +209,9 @@ export default function CommunityHub({ onClose, onViewAllGroups }: CommunityHubP
         <h1 className="text-xl font-semibold" style={{ color: C.t1 }}>Communauté</h1>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => toast("Nouveau — bientôt disponible ✨")}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-            style={{ backgroundColor: F.cyan, color: '#fff' }}
+            style={{ backgroundColor: F.cyan, color: '#fff', opacity: 0.5, cursor: 'default' }}
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -262,14 +264,15 @@ export default function CommunityHub({ onClose, onViewAllGroups }: CommunityHubP
             {filteredDMs.map((dm) => (
               <button
                 key={dm.id}
+                onClick={() => toast(`${dm.partner_name} — bientôt disponible ✨`)}
                 className="w-full flex items-center gap-3 px-5 py-3 transition-colors text-left"
-                style={{ borderBottom: `1px solid ${C.border}` }}
+                style={{ borderBottom: `1px solid ${C.border}`, opacity: 0.5, cursor: 'default' }}
               >
                 <div className="relative">
                   <Avatar className="w-12 h-12" style={{ backgroundColor: C.elevated } as React.CSSProperties}>
-                    <AvatarFallback className="text-lg" style={{ backgroundColor: C.elevated, color: C.t1 } as React.CSSProperties}>
+                    <AvatarFallback className="relative text-lg" style={{ backgroundColor: C.elevated, color: C.t1 } as React.CSSProperties}>
                       {dm.partner_avatar
-                        ? <img src={dm.partner_avatar} alt="" className="w-full h-full object-cover rounded-full" />
+                        ? <Image src={dm.partner_avatar} alt="" fill className="object-cover rounded-full" />
                         : dm.partner_name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -297,10 +300,10 @@ export default function CommunityHub({ onClose, onViewAllGroups }: CommunityHubP
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.t3 }}>Mon Cercle</h3>
-                <button className="text-xs font-medium" style={{ color: F.cyan }}>Inviter</button>
+                <button onClick={() => toast("Inviter — bientôt disponible ✨")} className="text-xs font-medium" style={{ color: F.cyan, opacity: 0.5, cursor: 'default' }}>Inviter</button>
               </div>
-              <button className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors"
-                style={{ backgroundColor: C.hover }}>
+              <button onClick={() => toast("Mes proches — bientôt disponible ✨")} className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors"
+                style={{ backgroundColor: C.hover, opacity: 0.5, cursor: 'default' }}>
                 <div className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: F.cyanSoft }}>
                   <span className="text-lg">💛</span>
@@ -327,7 +330,7 @@ export default function CommunityHub({ onClose, onViewAllGroups }: CommunityHubP
               )}
               <div className="space-y-1">
                 {filteredMyGroups.map((group) => (
-                  <button key={group.id} className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors">
+                  <button key={group.id} onClick={() => toast(`${group.name} — bientôt disponible ✨`)} className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors" style={{ opacity: 0.5, cursor: 'default' }}>
                     <Avatar className="w-10 h-10" style={{ backgroundColor: C.elevated } as React.CSSProperties}>
                       <AvatarFallback className="text-lg" style={{ backgroundColor: C.elevated } as React.CSSProperties}>{group.avatar_emoji}</AvatarFallback>
                     </Avatar>
@@ -374,7 +377,7 @@ export default function CommunityHub({ onClose, onViewAllGroups }: CommunityHubP
               )}
               <div className="space-y-1">
                 {filteredMyCommunities.map((c) => (
-                  <button key={c.id} className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors">
+                  <button key={c.id} onClick={() => toast(`${c.name} — bientôt disponible ✨`)} className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors" style={{ opacity: 0.5, cursor: 'default' }}>
                     <Avatar className="w-10 h-10" style={{ backgroundColor: C.elevated } as React.CSSProperties}>
                       <AvatarFallback className="text-lg" style={{ backgroundColor: C.elevated } as React.CSSProperties}>{c.avatar_emoji}</AvatarFallback>
                     </Avatar>

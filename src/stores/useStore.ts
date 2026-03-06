@@ -284,12 +284,6 @@ type Store = {
   isDetailExpanded: boolean;
   setDetailExpanded: (expanded: boolean) => void;
 
-  // Confirm flow
-  showConfirmFlow: boolean;
-  setShowConfirmFlow: (show: boolean) => void;
-  confirmingPin: Pin | null;
-  setConfirmingPin: (pin: Pin | null) => void;
-
   // Report flow
   reportStep: number;
   setReportStep: (step: number) => void;
@@ -518,12 +512,6 @@ export const useStore = create<Store>((set) => ({
   // Detail sheet expand
   isDetailExpanded: false,
   setDetailExpanded: (expanded) => set({ isDetailExpanded: expanded }),
-
-  // Confirm flow
-  showConfirmFlow: false,
-  setShowConfirmFlow: (show) => set({ showConfirmFlow: show }),
-  confirmingPin: null,
-  setConfirmingPin: (pin) => set({ confirmingPin: pin }),
 
   // Report flow
   reportStep: 1,

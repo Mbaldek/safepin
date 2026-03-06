@@ -508,17 +508,6 @@
     "departure": "Departs {time}",
     "arrival": "Arrives {time}"
   },
-  "engagement": {
-    "welcome": "Welcome to Breveil!",
-    "welcomeDesc": "Start exploring safety reports in your area",
-    "verifyPrompt": "Verify your identity to unlock full trust",
-    "verifyBonus": "Verified users get 2x trust score",
-    "verifyUrgent": "2 days left to complete verification",
-    "verifyLast": "Last chance — verify now for Trusted badge",
-    "streakReminder": "Come back tomorrow to keep your {count}-day streak!",
-    "communityMissesYou": "Your community misses you — {count} new reports near you",
-    "newReportsNearby": "Your neighborhood has {count} new reports"
-  },
   "incidents": {
     "nearbyIncidents": "Nearby Reports",
     "allClear": "All clear around you ☀️",
