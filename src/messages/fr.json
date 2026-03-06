@@ -808,20 +808,5 @@
     "gardien": "Gardien",
     "sentinelle": "Sentinelle",
     "protecteur": "Protecteur"
-  },
-  "tour": {
-    "skip": "Passer",
-    "next": "Suivant",
-    "done": "Compris !",
-    "sosTitle": "SOS d'urgence",
-    "sosDesc": "Maintenez ce bouton 5 secondes pour alerter vos contacts de confiance et partager votre position.",
-    "reportTitle": "Signaler un incident",
-    "reportDesc": "Appuyez pour déposer un repère et signaler ce que vous voyez. Vos signalements protègent les autres.",
-    "filtersTitle": "Filtrer les incidents",
-    "filtersDesc": "Filtrez par gravité, heure ou type pour voir ce qui compte pour vous.",
-    "tripTitle": "Planifier un trajet sûr",
-    "tripDesc": "Obtenez des itinéraires qui tiennent compte des incidents récents.",
-    "profileTitle": "Votre espace sécurité",
-    "profileDesc": "Gérez vos contacts de confiance, vos stats et vos paramètres."
   }
 }

@@ -644,6 +644,18 @@ body {
   50% { transform: scale(1.35); opacity: 0.7; }
 }
 
+@keyframes sosPulse {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  70%  { transform: scale(1.6); opacity: 0;   }
+  100% { transform: scale(1.6); opacity: 0;   }
+}
+
+@keyframes previewPulse {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  70%  { transform: scale(1.8); opacity: 0;   }
+  100% { transform: scale(1.8); opacity: 0;   }
+}
+
 /* ============================================
    SCROLLBAR HIDDEN
    ============================================ */

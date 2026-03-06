@@ -67,15 +67,19 @@ export default function DeleteAccountScreen({ onBack }: DeleteAccountScreenProps
     if (!confirmMatch || deleting) return;
     setDeleting(true);
 
-    // Attempt server-side deletion via RPC, fallback to sign-out only
     const { error } = await supabase.rpc('delete_account');
     if (error) {
-      // RPC may not exist yet — sign out anyway and notify
-      toast.error('Demande de suppression envoyée. Votre compte sera supprimé sous 30 jours.');
-    } else {
-      toast.success('Compte supprimé');
+      console.error('[delete_account]', error);
+      toast.error('Échec de la suppression. Réessayez ou contactez le support.');
+      setDeleting(false);
+      return;
     }
 
+    // Clear all client-side state
+    localStorage.clear();
+    document.cookie = 'ob_done=;path=/;max-age=0';
+
+    toast.success('Compte supprimé');
     await supabase.auth.signOut();
     window.location.href = '/';
   }

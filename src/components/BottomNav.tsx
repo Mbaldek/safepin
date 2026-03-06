@@ -70,7 +70,7 @@ export default function BottomNav() {
             aria-current={isActive ? 'page' : undefined}
             aria-disabled={isDisabled || undefined}
             className="flex-1 flex flex-col items-center justify-center gap-1 relative"
-            {...(id === 'trip' ? { 'data-tour': 'nav-trip' } : id === 'me' ? { 'data-tour': 'nav-me' } : {})}
+
           >
             {/* Active dot indicator */}
             {isActive && !isDisabled && (

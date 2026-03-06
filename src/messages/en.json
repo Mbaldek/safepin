@@ -808,20 +808,5 @@
     "gardien": "Guardian",
     "sentinelle": "Sentinel",
     "protecteur": "Protector"
-  },
-  "tour": {
-    "skip": "Skip tour",
-    "next": "Next",
-    "done": "Got it!",
-    "sosTitle": "Emergency SOS",
-    "sosDesc": "Hold this button for 5 seconds to alert your trusted contacts and share your live location.",
-    "reportTitle": "Report an incident",
-    "reportDesc": "Tap to drop a pin and report what you see. Your reports help keep others safe.",
-    "filtersTitle": "Filter incidents",
-    "filtersDesc": "Filter by severity, time, or type to see what matters most to you.",
-    "tripTitle": "Plan safe routes",
-    "tripDesc": "Get directions that factor in recent incidents and danger zones.",
-    "profileTitle": "Your safety hub",
-    "profileDesc": "Manage your trusted circle, see your stats, and customize settings."
   }
 }

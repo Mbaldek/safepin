@@ -728,7 +728,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         onPointerLeave={handleFabPointerUp}
         onPointerCancel={handleFabPointerUp}
         onContextMenu={(e) => e.preventDefault()}
-        data-tour="sos-button"
+
         disabled={phase !== 'idle'}
         aria-label="Emergency alert — hold 3 seconds to activate"
         style={{

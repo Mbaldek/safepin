@@ -33,11 +33,8 @@ import SosBanner from '@/components/SosBanner';
 import { useOnboardingDone } from '@/components/OnboardingFunnel';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
-import SessionBriefingCard from '@/components/SessionBriefingCard';
 import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
-import { CoachMark } from '@/components/CoachMark';
-import { useTour } from '@/hooks/useTour';
 import { useEscorte } from '@/hooks/useEscorte';
 
 // Lazy-loaded heavy components — not on the critical rendering path
@@ -110,26 +107,7 @@ export default function MapPage() {
   } = useStore();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const tMap = useTranslations('map');
-  const tTour = useTranslations('tour');
-
-  const { isActive: tourActive, currentStep: tourStep, currentStepIndex: tourStepIdx, totalSteps: tourTotal, next: tourNext, skip: tourSkip } = useTour();
   const escorte = useEscorte(userId ?? '');
-
-  // Resolve tour step strings eagerly (avoids dynamic key call to t())
-  const TOUR_TITLES: Record<string, string> = {
-    sos:     tTour('sosTitle'),
-    report:  tTour('reportTitle'),
-    filters: tTour('filtersTitle'),
-    trip:    tTour('tripTitle'),
-    profile: tTour('profileTitle'),
-  };
-  const TOUR_DESCS: Record<string, string> = {
-    sos:     tTour('sosDesc'),
-    report:  tTour('reportDesc'),
-    filters: tTour('filtersDesc'),
-    trip:    tTour('tripDesc'),
-    profile: tTour('profileDesc'),
-  };
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
   const justCompletedOnboardingRef = useRef(false);
@@ -247,7 +225,6 @@ export default function MapPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
-  const [showBriefing, setShowBriefing] = useState(false);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
 
   // Layer state (controls passed to MapView)
@@ -276,7 +253,6 @@ export default function MapPage() {
   // Count of unresolved emergency pins created in the last 2 hours (red badge on "Nearby" button)
   const emergencyNearbyCount = pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length;
 
-  const briefingShownRef = useRef(false);
   const deepLinkHandled = useRef(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -406,15 +382,6 @@ export default function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, pins.length > 0, onboardingDone]);
 
-  // Show session briefing card once per session (after 2s delay)
-  useEffect(() => {
-    if (!userId || loading || briefingShownRef.current || !onboardingDone) return;
-    const timer = setTimeout(() => {
-      briefingShownRef.current = true;
-      setShowBriefing(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [userId, loading, onboardingDone]);
 
   // ── Streak tracking — update on each session ────────────────────────────
   useEffect(() => {
@@ -744,20 +711,6 @@ export default function MapPage() {
           onPoiLoadingChange={setPoiLoading}
         />
 
-        {/* Center pin — visible when report sheet is open */}
-        {activeSheet === 'report' && (
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-40"
-               style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <svg width={36} height={44} viewBox="0 0 36 44" fill="none">
-                <path d="M18 0C8.06 0 0 8.06 0 18c0 12.6 18 26 18 26s18-13.4 18-26C36 8.06 27.94 0 18 0z" fill="#3b82f6"/>
-                <circle cx="18" cy="18" r="8" fill="#fff"/>
-              </svg>
-              <div style={{ width: 2, height: 8, background: 'rgba(59,130,246,0.4)', borderRadius: 1 }} />
-            </div>
-          </div>
-        )}
-
         <EmergencyButton userId={userId} />
 
         {/* Location sharing chip — visible while Walk With Me broadcast is active */}
@@ -787,12 +740,6 @@ export default function MapPage() {
         )}
 
 
-        {/* Session briefing card — shown once per session on map tab */}
-        <AnimatePresence>
-          {showBriefing && activeTab === 'map' && !sosPin && (
-            <SessionBriefingCard key="briefing" onDismiss={() => setShowBriefing(false)} />
-          )}
-        </AnimatePresence>
 
         {/* Report + incidents list toggle — map tab only */}
         {activeTab === 'map' && (
@@ -801,7 +748,7 @@ export default function MapPage() {
             <button
               onClick={() => setShowIncidentsList(!showIncidentsList)}
               aria-label={showIncidentsList ? 'Hide incidents list' : 'Show incidents list'}
-              data-tour="filter-bar"
+
               className="absolute top-3 left-3 rounded-xl shadow-lg z-50 hover:scale-105 active:scale-95 transition"
               style={{
                 display: 'flex',
@@ -847,7 +794,7 @@ export default function MapPage() {
                 setActiveSheet('report');
               }}
               whileTap={{ scale: 0.93 }}
-              data-tour="report-button"
+
               style={{
                 position: 'fixed',
                 bottom: 140,
@@ -1071,25 +1018,6 @@ export default function MapPage() {
       {/* ── Offline banner ──────────────────────────────────────────── */}
       <OfflineBanner />
 
-      {/* ── Map tour coachmarks ─────────────────────────────────────── */}
-      <AnimatePresence>
-        {tourActive && tourStep && (
-          <CoachMark
-            key={tourStep.id}
-            targetSelector={tourStep.targetSelector}
-            title={TOUR_TITLES[tourStep.id] ?? ''}
-            description={TOUR_DESCS[tourStep.id] ?? ''}
-            position={tourStep.position}
-            currentStep={tourStepIdx + 1}
-            totalSteps={tourTotal}
-            onNext={tourNext}
-            onSkip={tourSkip}
-            skipLabel={tTour('skip')}
-            nextLabel={tTour('next')}
-            doneLabel={tTour('done')}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -66,7 +66,7 @@ interface OnboardingFunnelProps {
 }
 
 type CircleContact = { name: string; relation: string; phone: string };
-type Community = { id: string; name: string; description: string | null; member_count: number | null };
+type Community = { id: string; name: string; emoji?: string | null; description: string | null; member_count: number | null };
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -279,16 +279,15 @@ export function OnboardingFunnel({
   // ─── Communities fetch ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (step !== 8) return; // Communities is now step 8
-    const city = selectedCity || customCityRef.current || 'Paris';
+    if (step !== 8) return;
     supabase
       .from('communities')
-      .select('id, name, description, member_count')
-      .ilike('name', `%${city}%`)
+      .select('id, name, emoji, member_count, description')
+      .order('member_count', { ascending: false })
       .limit(5)
       .then(({ data }) => setCommunities((data as Community[]) ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedCity]);
+  }, [step]);
 
   // ─── Complete ─────────────────────────────────────────────────────────
 
@@ -331,6 +330,14 @@ export function OnboardingFunnel({
 
       document.cookie = 'ob_done=1;path=/;max-age=31536000';
       localStorage.setItem('brume_onboarding_done', '1');
+
+      // Welcome email — fire and forget
+      fetch('/api/send-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      }).catch(() => {});
+
       onComplete?.();
     } catch (e) {
       console.error('[Onboarding] Erreur etape:', e);
@@ -1174,14 +1181,23 @@ export function OnboardingFunnel({
   // STEP 8 — GROUPES
   // ════════════════════════════════════════════════════════════════════════
 
+  const FALLBACK_GROUPS: Community[] = [
+    { id: 'fallback-1', name: 'Femmes de Paris', emoji: '\u{1F338}', member_count: 234, description: null },
+    { id: 'fallback-2', name: 'Breveil France', emoji: '\u{1F499}', member_count: 891, description: null },
+    { id: 'fallback-3', name: 'Trajet s\u00e9curis\u00e9', emoji: '\u{1F6B6}\u200D\u2640\uFE0F', member_count: 156, description: null },
+  ];
+
   const GroupesStep = () => {
-    const joinGroup = async (communityId: string) => {
-      if (joinedCommunities.includes(communityId) || !userId) return;
+    const displayGroups = communities.length > 0 ? communities : FALLBACK_GROUPS;
+
+    const joinGroup = async (groupId: string) => {
+      if (joinedCommunities.includes(groupId)) return;
+      setJoinedCommunities(p => [...p, groupId]);
+      if (!userId || groupId.startsWith('fallback-')) return;
       await supabase.from('community_members').insert({
-        community_id: communityId,
+        community_id: groupId,
         user_id: userId,
       });
-      setJoinedCommunities(p => [...p, communityId]);
     };
 
     return (
@@ -1189,66 +1205,66 @@ export function OnboardingFunnel({
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
-            Étape 8 / {TOTAL_STEPS - 1}
+            &Eacute;tape 8 / {TOTAL_STEPS - 1}
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Rejoignez votre communauté</h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{selectedCity || customCityRef.current || 'Paris'}</p>
+          <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Ton quartier t&apos;attend</h1>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>Rejoins les femmes de ton secteur</p>
         </div>
 
-        <div style={{ flex: 1 }}>
-          {communities.length > 0
-            ? communities.map(c => (
-              <div key={c.id} style={{
-                padding: '12px 14px', marginBottom: 8,
-                border: '1px solid',
-                borderColor: joinedCommunities.includes(c.id) ? 'rgba(59,180,193,0.38)' : 'rgba(255,255,255,0.07)',
-                borderRadius: 12,
-                background: 'rgba(255,255,255,0.05)',
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+          {displayGroups.map(g => {
+            const joined = joinedCommunities.includes(g.id);
+            return (
+              <div key={g.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 14px', borderRadius: 16,
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${joined ? 'rgba(59,180,193,0.38)' : 'rgba(255,255,255,0.07)'}`,
                 transition: 'border-color .2s',
               }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{c.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.33)', marginTop: 2 }}>{c.member_count ?? 0} membres</div>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: 'rgba(59,180,193,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20, flexShrink: 0,
+                }}>
+                  {g.emoji || '\u{1F30D}'}
                 </div>
-                <button
-                  onClick={() => joinGroup(c.id)}
-                  style={{
-                    padding: '6px 13px', borderRadius: 100, border: 'none',
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'inherit', whiteSpace: 'nowrap',
-                    background: joinedCommunities.includes(c.id) ? '#34D399' : '#fff',
-                    color: '#0F172A', transition: 'all .2s',
-                  }}
-                >
-                  {joinedCommunities.includes(c.id) ? '\u2713 Rejoint' : 'Rejoindre'}
-                </button>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{g.name}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{g.member_count ?? 0} membres</div>
+                </div>
+                {joined ? (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#3BB4C1' }}>{'\u2713'} Rejoint</span>
+                ) : (
+                  <button
+                    onClick={() => joinGroup(g.id)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 99,
+                      background: 'rgba(59,180,193,0.12)',
+                      border: '1px solid rgba(59,180,193,0.3)',
+                      color: '#3BB4C1', fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Rejoindre
+                  </button>
+                )}
               </div>
-            ))
-            : (
-              <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                Pas encore de groupe pour {selectedCity || customCityRef.current || 'votre ville'}.
-              </div>
-            )
-          }
-
-          <button
-            onClick={() => setStep(9)}
-            style={{
-              width: '100%', padding: 13, borderRadius: 100,
-              background: 'transparent',
-              border: '1px solid rgba(59,180,193,0.4)',
-              color: '#3BB4C1', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', marginTop: 12, fontFamily: 'inherit',
-            }}
-          >
-            + Créer mon propre groupe
-          </button>
+            );
+          })}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
-          <button onClick={() => setStep(9)} style={btnMainStyle}>Continuer &rarr;</button>
-          <button onClick={() => setStep(9)} style={btnGhostStyle}>Passer cette étape</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20, alignItems: 'center' }}>
+          <button onClick={() => setStep(9)} style={btnMainStyle}>
+            {joinedCommunities.length > 0 ? 'C\u2019est parti\u00A0! \u2192' : 'Continuer \u2192'}
+          </button>
+          <span
+            onClick={() => setStep(9)}
+            style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+          >
+            Cr&eacute;er un groupe plus tard
+          </span>
         </div>
       </div>
     );

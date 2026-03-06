@@ -64,11 +64,8 @@ const OWN_LAYERS = new Set([
 
 // ── Module-level handler refs for proper cleanup ────────────────────────────
 let _clusterClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
-let _unclusteredClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
 let _clusterMouseEnter: (() => void) | null = null;
 let _clusterMouseLeave: (() => void) | null = null;
-let _unclusteredMouseEnter: (() => void) | null = null;
-let _unclusteredMouseLeave: (() => void) | null = null;
 
 let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
 let _transitMouseEnter: (() => void) | null = null;
@@ -482,8 +479,8 @@ function addClusterLayers(m: mapboxgl.Map) {
       'circle-radius': [
         'step', ['get', 'point_count'],
         18,
-        10, 22,
-        30, 26,
+        10, 21,
+        30, 24,
       ],
       'circle-color': [
         'case',
@@ -510,8 +507,8 @@ function addClusterLayers(m: mapboxgl.Map) {
       'circle-radius': [
         'step', ['get', 'point_count'],
         24,
-        10, 28,
-        30, 32,
+        10, 27,
+        30, 30,
       ],
       'circle-color': [
         'case',
@@ -554,75 +551,13 @@ function addClusterLayers(m: mapboxgl.Map) {
     }
   }
 
-  // Individual unclustered pins — icon based on categoryGroup + confirmation tier
-  m.addLayer({
-    id: 'unclustered-point',
-    type: 'symbol',
-    source: SOURCE_ID,
-    filter: ['!', ['has', 'point_count']],
-    layout: {
-      'icon-image': [
-        'case',
-        // urgent
-        ['all', ['==', ['get', 'categoryGroup'], 'urgent'], ['>=', ['get', 'confirmations'], 10]], 'pin-urgent-xl',
-        ['all', ['==', ['get', 'categoryGroup'], 'urgent'], ['>=', ['get', 'confirmations'], 4]],  'pin-urgent-lg',
-        ['all', ['==', ['get', 'categoryGroup'], 'urgent'], ['>=', ['get', 'confirmations'], 2]],  'pin-urgent-md',
-        ['==', ['get', 'categoryGroup'], 'urgent'], 'pin-urgent-sm',
-        // warning
-        ['all', ['==', ['get', 'categoryGroup'], 'warning'], ['>=', ['get', 'confirmations'], 10]], 'pin-warning-xl',
-        ['all', ['==', ['get', 'categoryGroup'], 'warning'], ['>=', ['get', 'confirmations'], 4]],  'pin-warning-lg',
-        ['all', ['==', ['get', 'categoryGroup'], 'warning'], ['>=', ['get', 'confirmations'], 2]],  'pin-warning-md',
-        ['==', ['get', 'categoryGroup'], 'warning'], 'pin-warning-sm',
-        // infra
-        ['all', ['==', ['get', 'categoryGroup'], 'infra'], ['>=', ['get', 'confirmations'], 10]], 'pin-infra-xl',
-        ['all', ['==', ['get', 'categoryGroup'], 'infra'], ['>=', ['get', 'confirmations'], 4]],  'pin-infra-lg',
-        ['all', ['==', ['get', 'categoryGroup'], 'infra'], ['>=', ['get', 'confirmations'], 2]],  'pin-infra-md',
-        ['==', ['get', 'categoryGroup'], 'infra'], 'pin-infra-sm',
-        // positive
-        ['all', ['==', ['get', 'categoryGroup'], 'positive'], ['>=', ['get', 'confirmations'], 10]], 'pin-positive-xl',
-        ['all', ['==', ['get', 'categoryGroup'], 'positive'], ['>=', ['get', 'confirmations'], 4]],  'pin-positive-lg',
-        ['all', ['==', ['get', 'categoryGroup'], 'positive'], ['>=', ['get', 'confirmations'], 2]],  'pin-positive-md',
-        ['==', ['get', 'categoryGroup'], 'positive'], 'pin-positive-sm',
-        // fallback
-        'pin-infra-sm',
-      ],
-      'icon-allow-overlap': false,
-      'icon-ignore-placement': false,
-      'icon-size': [
-        'interpolate', ['linear'], ['zoom'],
-        8,  0.35,
-        11, 0.55,
-        14, 0.85,
-        16, 1.0,
-        18, 1.1,
-      ],
-      'symbol-sort-key': [
-        'match', ['get', 'categoryGroup'],
-        'urgent',  4,
-        'warning', 3,
-        'infra',   2,
-        'positive',1,
-        0,
-      ],
-    },
-    paint: {
-      'icon-opacity': [
-        'interpolate', ['linear'], ['zoom'],
-        8,  0.0,
-        10, 0.6,
-        12, 1.0,
-        22, 1.0,
-      ],
-    },
-  });
+  // DISABLED — unclustered pins now rendered as HTML markers via <MapPin> in JSX.
+  // GeoJSON source kept for cluster layers only.
 
   // Remove previous cluster listeners before adding new ones
-  if (_clusterClickHandler)     m.off('click', 'clusters', _clusterClickHandler);
-  if (_unclusteredClickHandler) m.off('click', 'unclustered-point', _unclusteredClickHandler);
-  if (_clusterMouseEnter)       m.off('mouseenter', 'clusters', _clusterMouseEnter);
-  if (_clusterMouseLeave)       m.off('mouseleave', 'clusters', _clusterMouseLeave);
-  if (_unclusteredMouseEnter)   m.off('mouseenter', 'unclustered-point', _unclusteredMouseEnter);
-  if (_unclusteredMouseLeave)   m.off('mouseleave', 'unclustered-point', _unclusteredMouseLeave);
+  if (_clusterClickHandler) m.off('click', 'clusters', _clusterClickHandler);
+  if (_clusterMouseEnter)   m.off('mouseenter', 'clusters', _clusterMouseEnter);
+  if (_clusterMouseLeave)   m.off('mouseleave', 'clusters', _clusterMouseLeave);
 
   // Cluster click → zoom in
   _clusterClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
@@ -639,27 +574,13 @@ function addClusterLayers(m: mapboxgl.Map) {
     );
   };
 
-  // Individual pin click
-  _unclusteredClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
-    const pinId = e.features?.[0]?.properties?.id;
-    if (!pinId) return;
-    const store = useStore.getState();
-    const pin = store.pins.find((p) => p.id === pinId);
-    if (pin) { store.setSelectedPin(pin); store.setActiveSheet('detail'); }
-  };
-
   // Cursor pointers
-  _clusterMouseEnter     = () => { m.getCanvas().style.cursor = 'pointer'; };
-  _clusterMouseLeave     = () => { m.getCanvas().style.cursor = ''; };
-  _unclusteredMouseEnter = () => { m.getCanvas().style.cursor = 'pointer'; };
-  _unclusteredMouseLeave = () => { m.getCanvas().style.cursor = ''; };
+  _clusterMouseEnter = () => { m.getCanvas().style.cursor = 'pointer'; };
+  _clusterMouseLeave = () => { m.getCanvas().style.cursor = ''; };
 
   m.on('click', 'clusters', _clusterClickHandler);
-  m.on('click', 'unclustered-point', _unclusteredClickHandler);
   m.on('mouseenter', 'clusters', _clusterMouseEnter);
   m.on('mouseleave', 'clusters', _clusterMouseLeave);
-  m.on('mouseenter', 'unclustered-point', _unclusteredMouseEnter);
-  m.on('mouseleave', 'unclustered-point', _unclusteredMouseLeave);
 }
 
 export type MapViewProps = {
@@ -706,7 +627,7 @@ function MapView({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const departDragMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const reportPinRef = useRef<mapboxgl.Marker | null>(null);
+  const previewMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
@@ -741,13 +662,12 @@ function MapView({
     setSelectedSafeSpace(null);
   }, [setTripPrefill, setActiveTab]);
   const [filteredTransportPins, setFilteredTransportPins] = useState<Pin[]>([]);
+  const [filteredRegularPins, setFilteredRegularPins] = useState<Pin[]>([]);
   const [labelsVisible, setLabelsVisible] = useState(false);
   const zoomRef = useRef(13);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
-  const sosClusterMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const sosPulseThrottleRef = useRef(0);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
   const LABEL_ZOOM_THRESHOLD = 13;
   const effectiveLabels = showPinLabels && labelsVisible;
@@ -896,17 +816,10 @@ function MapView({
     });
   }, [mapBottomPadding, mapReady]);
 
-  // Center-pin for incident reporting: pin stays at map center, coords update on moveend
+  // Tap-to-place pin for incident reporting: tap empty canvas → move pin there
   useEffect(() => {
     const m = map.current;
     if (!m || !mapReady) return;
-
-    const onMoveEnd = () => {
-      const store = useStore.getState();
-      if (store.activeSheet !== 'report') return;
-      const center = m.getCenter();
-      store.setNewPinCoords({ lat: center.lat, lng: center.lng });
-    };
 
     // Set initial coords when report opens without them
     const unsub = useStore.subscribe((state, prev) => {
@@ -918,33 +831,49 @@ function MapView({
       }
     });
 
-    m.on('moveend', onMoveEnd);
-    return () => { m.off('moveend', onMoveEnd); unsub(); };
+    // Tap on empty canvas → move pin to tap location
+    const onMapClick = (e: mapboxgl.MapMouseEvent) => {
+      const store = useStore.getState();
+      if (store.activeSheet !== 'report') return;
+      const features = m.queryRenderedFeatures(e.point);
+      if (features.length > 0) return;
+      store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+    };
+
+    m.on('click', onMapClick);
+    return () => { m.off('click', onMapClick); unsub(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady]);
 
-  // Report pin marker — follows newPinCoords in real time
+  // Report pin preview marker — follows newPinCoords in real time
   useEffect(() => {
-    if (!map.current) return;
-    if (activeSheet === 'report' && newPinCoords) {
-      if (!reportPinRef.current) {
-        const el = document.createElement('div');
-        el.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none">
-            <div style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;animation:report-pin-pulse 1.5s ease-in-out infinite">
-              <div style="width:14px;height:14px;border-radius:50%;background:#EF4444;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
-            </div>
-            <div style="width:2px;height:8px;background:#EF4444;border-radius:1px;margin-top:-2px"></div>
-          </div>`;
-        reportPinRef.current = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([newPinCoords.lng, newPinCoords.lat])
-          .addTo(map.current);
-      } else {
-        reportPinRef.current.setLngLat([newPinCoords.lng, newPinCoords.lat]);
-      }
+    if (!map.current || !newPinCoords) {
+      previewMarkerRef.current?.remove();
+      previewMarkerRef.current = null;
+      return;
+    }
+    if (activeSheet !== 'report') {
+      previewMarkerRef.current?.remove();
+      previewMarkerRef.current = null;
+      return;
+    }
+
+    // Coords valides — créer ou déplacer
+    const lngLat: [number, number] = [newPinCoords.lng, newPinCoords.lat];
+
+    if (!previewMarkerRef.current) {
+      const el = document.createElement('div');
+      el.style.cssText = 'width:64px;height:64px;position:relative;pointer-events:none;';
+      el.innerHTML = `
+        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(239,68,68,0.5)"></div>
+        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(239,68,68,0.5)"></div>
+        <div style="position:absolute;top:50%;left:50%;width:14px;height:14px;transform:translate(-50%,-50%);border-radius:50%;background:#EF4444;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
+        <div style="position:absolute;top:50%;left:50%;width:32px;height:32px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(239,68,68,0.5);animation:previewPulse 1.6s ease-out infinite"></div>`;
+      previewMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat(lngLat)
+        .addTo(map.current);
     } else {
-      reportPinRef.current?.remove();
-      reportPinRef.current = null;
+      previewMarkerRef.current.setLngLat(lngLat);
     }
   }, [activeSheet, newPinCoords]);
 
@@ -1352,77 +1281,14 @@ function MapView({
     }
     prevPinIdsRef.current = currentIds;
 
-    // ── Transport pins — rendered as <MapPin> in JSX ────────────────
+    // ── All visible pins — rendered as <MapPin> in JSX ────────────────
+    setFilteredRegularPins(regularPins);
     setFilteredTransportPins(pins.filter((pin) => passesFilters(pin) && pin.is_transport));
 
     // Ghost trail cleanup (kept for legacy)
     ghostTrailRef.current.forEach((m) => m.remove());
     ghostTrailRef.current = [];
   }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet]);
-
-  // SOS pulse markers on clusters containing emergency pins
-  useEffect(() => {
-    const m = map.current;
-    if (!m || !mapReady || !layersReady) return;
-
-    const updateSosPulse = () => {
-      const now = Date.now();
-      if (now - sosPulseThrottleRef.current < 500) return;
-      sosPulseThrottleRef.current = now;
-
-      const sosPins = new Set(
-        pins.filter((p) => p.is_emergency && !p.resolved_at).map((p) => p.id),
-      );
-      if (sosPins.size === 0) {
-        sosClusterMarkersRef.current.forEach((mk) => mk.remove());
-        sosClusterMarkersRef.current.clear();
-        return;
-      }
-
-      const clusterFeatures = m.queryRenderedFeatures({ layers: ['clusters'] });
-      const activeClusterIds = new Set<string>();
-      const src = m.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
-      if (!src) return;
-
-      for (const feat of clusterFeatures) {
-        const clusterId = feat.properties?.cluster_id;
-        if (clusterId == null) continue;
-        const key = String(clusterId);
-        const coords = (feat.geometry as GeoJSON.Point).coordinates as [number, number];
-
-        src.getClusterLeaves(clusterId, 999, 0, (_err, leaves) => {
-          if (!leaves) return;
-          const hasEmergency = leaves.some(
-            (l) => l.properties?.categoryGroup === 'urgent' && sosPins.has(l.properties?.id),
-          );
-          if (!hasEmergency) return;
-          activeClusterIds.add(key);
-
-          if (!sosClusterMarkersRef.current.has(key)) {
-            const el = document.createElement('div');
-            el.style.cssText = 'width:52px;height:52px;border-radius:50%;border:2.5px solid #EF4444;animation:sosPulse 1.4s ease-out infinite;pointer-events:none;';
-            const mk = new mapboxgl.Marker({ element: el, anchor: 'center' })
-              .setLngLat(coords)
-              .addTo(m);
-            sosClusterMarkersRef.current.set(key, mk);
-          } else {
-            sosClusterMarkersRef.current.get(key)!.setLngLat(coords);
-          }
-        });
-      }
-
-      // Cleanup stale markers
-      setTimeout(() => {
-        sosClusterMarkersRef.current.forEach((mk, key) => {
-          if (!activeClusterIds.has(key)) { mk.remove(); sosClusterMarkersRef.current.delete(key); }
-        });
-      }, 100);
-    };
-
-    m.on('render', updateSosPulse);
-    updateSosPulse();
-    return () => { m.off('render', updateSosPulse); };
-  }, [pins, mapReady, layersReady]);
 
   // Show / hide Paris transit station dots (Bus / Metro-RER split)
   useEffect(() => {
@@ -1748,13 +1614,13 @@ function MapView({
           style={{
             position: 'absolute',
             top: 160,
-            right: 10,
+            right: 12,
             width: 40,
             height: 40,
             borderRadius: 8,
             backgroundColor: '#fff',
-            border: 'none',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1763,9 +1629,19 @@ function MapView({
           }}
           aria-label="Reset north"
         >
-          <Navigation size={18} strokeWidth={2} color="#333" fill="#e74c3c" style={{ transform: `rotate(${-bearing}deg)`, transition: 'transform 0.2s ease' }} />
+          <Navigation size={18} style={{ transform: `rotate(${-bearing}deg)`, transition: 'transform 0.2s' }} color="#1E3A5F" />
         </button>
       )}
+
+      {map.current && filteredRegularPins.map((pin) => (
+        <MapPin
+          key={pin.id}
+          map={map.current!}
+          pin={pin}
+          onClick={handleTransportPinClick}
+          showLabels={effectiveLabels}
+        />
+      ))}
 
       {map.current && filteredTransportPins.map((pin) => (
         <MapPin

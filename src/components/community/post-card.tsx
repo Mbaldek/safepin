@@ -610,9 +610,9 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
               style={{
                 borderTop: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
                 background: isDark ? "rgba(15,23,42,0.4)" : "#F8FAFC",
-                padding: "8px 14px 12px",
+                padding: "8px 14px 6px",
                 borderRadius: "0 0 16px 16px",
-                marginTop: 12,
+                marginTop: 8,
                 marginLeft: -16,
                 marginRight: -16,
                 marginBottom: -16,
@@ -670,17 +670,17 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
 
               {/* Comment input */}
               {currentUserId && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px 2px" }}>
                   <div
                     style={{
-                      width: 28,
-                      height: 28,
+                      width: 24,
+                      height: 24,
                       borderRadius: "50%",
                       background: "linear-gradient(135deg, #3BB4C1, #0E7490)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 12,
+                      fontSize: 10,
                       color: "#fff",
                       fontWeight: 600,
                       flexShrink: 0,
@@ -696,7 +696,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
                     disabled={submitting}
                     style={{
                       flex: 1,
-                      padding: "8px 12px",
+                      padding: "5px 10px",
                       borderRadius: 20,
                       border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
                       background: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF",
@@ -706,28 +706,27 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
                       outline: "none",
                     }}
                   />
-                  {newComment.trim().length > 0 && (
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={submitComment}
-                      disabled={submitting}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: "#3BB4C1",
-                        border: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        opacity: submitting ? 0.5 : 1,
-                      }}
-                    >
-                      <Send size={13} color="#FFFFFF" />
-                    </motion.button>
-                  )}
+                  <motion.button
+                    whileTap={newComment.trim() ? { scale: 0.9 } : undefined}
+                    onClick={submitComment}
+                    disabled={submitting || !newComment.trim()}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: "#3BB4C1",
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: newComment.trim() ? "pointer" : "default",
+                      flexShrink: 0,
+                      opacity: !newComment.trim() ? 0.35 : submitting ? 0.5 : 1,
+                      transition: "opacity 0.15s",
+                    }}
+                  >
+                    <Send size={12} color="#FFFFFF" />
+                  </motion.button>
                 </div>
               )}
             </div>

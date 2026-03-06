@@ -87,6 +87,17 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
 
+      // Fetch comment counts for all posts
+      const postIds = messages.map((m) => m.id);
+      const { data: commentRows } = await supabase
+        .from("post_comments")
+        .select("post_id")
+        .in("post_id", postIds);
+      const commentCountMap = new Map<string, number>();
+      (commentRows || []).forEach((r: any) =>
+        commentCountMap.set(r.post_id, (commentCountMap.get(r.post_id) || 0) + 1)
+      );
+
       setPosts(
         messages.map((m) => {
           const p = profileMap.get(m.user_id);
@@ -104,6 +115,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
             time: timeAgo(m.created_at),
             title: "",
             content: m.content,
+            comments: commentCountMap.get(m.id) || 0,
             userId: m.user_id,
             _createdAt: m.created_at,
           };

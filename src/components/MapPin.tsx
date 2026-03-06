@@ -45,10 +45,10 @@ const TRANSPORT_COLORS: Record<string, string> = {
 };
 
 function getSize(confirmations: number): number {
-  if (confirmations >= 10) return 28;
-  if (confirmations >= 4) return 22;
-  if (confirmations >= 2) return 18;
-  return 14;
+  if (confirmations >= 10) return 32;
+  if (confirmations >= 4) return 26;
+  if (confirmations >= 2) return 20;
+  return 16;
 }
 
 // Standard pin - simple circle with emoji
