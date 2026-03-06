@@ -6,7 +6,7 @@ import {
   Users, Send, Navigation, Search, Shield, Clock,
   ChevronLeft, ChevronRight, Check, AlertTriangle,
   Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase, Sparkles,
-  Footprints, Train, Bike, Car, Loader2, Edit3, ArrowUpDown
+  Footprints, Train, Bike, Car, Edit3, ArrowUpDown
 } from 'lucide-react'
 import { T, tok, springConfig, gentleSpring } from '@/lib/tokens'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
@@ -180,7 +180,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     'escorte-intro':     '60vh',
     'escorte-notifying': '52vh',
     'escorte-live':      '72vh',
-    'trip-form':         '46vh',
+    'trip-form':         '38vh',
     'trip-active':       '0px',
     'arrived':           '0px',
   }
@@ -989,7 +989,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         }} />
 
         <div style={{
-          flex:1, overflowY:'auto', padding:'9px 14px 12px',
+          flex:1, overflowY:'auto', padding:'9px 14px 16px',
           display:'flex', flexDirection:'column', gap:8,
           scrollbarWidth:'none',
         }}>
@@ -1009,20 +1009,20 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             <span style={{ fontSize:13, fontWeight:700, color: C.btn, flex:1 }}>
               Trajet avec destination
             </span>
-            {selectedDest && routeDurationLabel && (
+            {selectedDest && (
               <button
                 onClick={handleStartTrip}
                 disabled={escorte.isStarting}
                 style={{
                   background: C.btn, color: C.btnTxt,
-                  padding:'8px 14px', borderRadius:99,
-                  fontSize:13, fontWeight:700, border:'none',
+                  padding:'8px 16px', borderRadius:99,
+                  fontSize:14, fontWeight:600, border:'none',
                   cursor: escorte.isStarting ? 'default' : 'pointer',
                   opacity: escorte.isStarting ? 0.7 : 1,
                   fontFamily:'inherit', flexShrink:0,
                 }}
               >
-                {routeDurationLabel} ➤
+                {escorte.isStarting ? 'Démarrage…' : `${routeDurationLabel ?? 'Démarrer'} →`}
               </button>
             )}
           </div>
@@ -1214,32 +1214,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 </div>
               )}
 
-              {/* CTA */}
-              <button
-                onClick={handleStartTrip}
-                disabled={escorte.isStarting}
-                style={{
-                  width:'100%', padding:'11px', borderRadius:28,
-                  background: C.btn,
-                  color: C.btnTxt,
-                  fontFamily:'inherit', fontSize:13, fontWeight:800,
-                  border:'none', cursor: escorte.isStarting ? 'default' : 'pointer',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-                  opacity: escorte.isStarting ? 0.7 : 1,
-                }}
-              >
-                {escorte.isStarting ? (
-                  <>
-                    <Loader2 size={12} strokeWidth={2} style={{ animation:'spin 0.6s linear infinite' }} />
-                    Démarrage…
-                  </>
-                ) : (
-                  <>
-                    <Navigation size={12} strokeWidth={2.5} />
-                    Démarrer · {routeDurationLabel ?? '—'}
-                  </>
-                )}
-              </button>
             </>
           )}
         </div>
@@ -1262,8 +1236,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         style={{
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(5px)',
-          WebkitBackdropFilter: 'blur(5px)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
           zIndex: 299,
         }}
       />
@@ -1280,15 +1254,13 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '88%', maxWidth: 360,
-          maxHeight: '80vh', overflowY: 'auto',
-          borderRadius: 28,
-          background: tk.card,
+          borderRadius: 24,
+          background: 'var(--surface-card)',
           zIndex: 300,
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          border: `1px solid ${tk.bd}`,
-          padding: '28px 22px 22px',
+          border: '1px solid var(--border-default)',
+          padding: '28px 24px 24px',
           textAlign: 'center',
-          scrollbarWidth: 'none',
         }}
       >
         <motion.div

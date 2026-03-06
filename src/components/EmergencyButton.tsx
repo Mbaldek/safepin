@@ -406,6 +406,15 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
     );
   }
 
+  // ─── External SOS trigger (from TripHUD, etc.) ──────────────────────────
+  useEffect(() => {
+    function onExternalSOS() {
+      if (phase === 'idle') handleTap();
+    }
+    window.addEventListener('breveil:trigger-sos', onExternalSOS);
+    return () => window.removeEventListener('breveil:trigger-sos', onExternalSOS);
+  });
+
   // ─── FAB hold-to-activate (3 seconds) ────────────────────────────────────
   function handleFabPointerDown(e: React.PointerEvent) {
     if (phase !== 'idle') return;

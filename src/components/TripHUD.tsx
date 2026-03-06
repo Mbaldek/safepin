@@ -124,9 +124,9 @@ export default function TripHUD({
             </button>
             <button onClick={onSOS} style={{
               flex: 1, padding: '9px', borderRadius: 12,
-              background: 'rgba(239,68,68,0.08)',
-              border: '1px solid rgba(239,68,68,0.22)',
-              fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+              background: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
               color: '#EF4444', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>

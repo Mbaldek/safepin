@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, X, Users } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Check, X, Users, Plus } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
   isDark: boolean;
@@ -41,6 +42,12 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleAdded = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -106,7 +113,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
       );
       setLoading(false);
     })();
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   const handleAccept = async (requestId: string) => {
     const { error } = await supabase
@@ -164,18 +171,40 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
     <div style={{ padding: "16px" }}>
       {/* Mon Cercle Section */}
       <div style={{ marginBottom: 24 }}>
-        <h3
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: isDark ? "#64748B" : "#94A3B8",
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            marginBottom: 16,
-          }}
-        >
-          Mon Cercle
-        </h3>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h3
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: isDark ? "#64748B" : "#94A3B8",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              margin: 0,
+            }}
+          >
+            Mon Cercle
+          </h3>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowAddModal(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "6px 12px",
+              borderRadius: 10,
+              border: "none",
+              backgroundColor: "#3BB4C1",
+              color: "#FFFFFF",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={14} />
+            Ajouter
+          </motion.button>
+        </div>
         {contacts.length === 0 ? (
           <div
             style={{
@@ -433,6 +462,13 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
           Partagez votre lien d&apos;invitation pour ajouter des contacts
         </div>
       )}
+
+      <AddCircleContactModal
+        isDark={isDark}
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdded={handleAdded}
+      />
     </div>
   );
 }

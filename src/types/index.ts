@@ -374,8 +374,10 @@ export type Profile = {
   id: string;
   name: string;
   display_name?: string | null;
+  avatar_emoji?: string | null;
   avatar_url?: string | null;
   city?: string | null;
+  country_code?: string | null;
   date_of_birth?: string | null;
   persona?: 'solo_traveler' | 'night_worker' | 'student' | 'commuter' | 'parent' | null;
   phone?: string | null;

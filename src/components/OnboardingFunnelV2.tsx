@@ -92,6 +92,68 @@ const goalsList = [
   { id: 'safe', label: 'Trouver des lieux sûrs', icon: Shield },
 ];
 
+const AVATAR_EMOJIS = ['🌸', '🦋', '⭐', '🌿', '💫', '🌙', '🦄', '🌺', '✨', '🌊', '🍀', '🌈'];
+
+const MONTHS_FR = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+];
+
+function daysInMonth(month: number, year: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+const CURRENT_YEAR = new Date().getFullYear();
+const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 13 - (CURRENT_YEAR - 100) + 1 }, (_, i) => CURRENT_YEAR - 13 - i);
+
+const PRIORITY_COUNTRIES: { code: string; flag: string; name: string }[] = [
+  { code: 'FR', flag: '🇫🇷', name: 'France' },
+  { code: 'BE', flag: '🇧🇪', name: 'Belgique' },
+  { code: 'CH', flag: '🇨🇭', name: 'Suisse' },
+  { code: 'MA', flag: '🇲🇦', name: 'Maroc' },
+  { code: 'SN', flag: '🇸🇳', name: 'Sénégal' },
+  { code: 'CI', flag: '🇨🇮', name: 'Côte d\'Ivoire' },
+];
+
+const OTHER_COUNTRIES: { code: string; name: string }[] = [
+  { code: 'AF', name: 'Afghanistan' }, { code: 'ZA', name: 'Afrique du Sud' },
+  { code: 'AL', name: 'Albanie' }, { code: 'DZ', name: 'Algérie' },
+  { code: 'DE', name: 'Allemagne' }, { code: 'AR', name: 'Argentine' },
+  { code: 'AU', name: 'Australie' }, { code: 'AT', name: 'Autriche' },
+  { code: 'BR', name: 'Brésil' }, { code: 'BG', name: 'Bulgarie' },
+  { code: 'CA', name: 'Canada' }, { code: 'CL', name: 'Chili' },
+  { code: 'CN', name: 'Chine' }, { code: 'CO', name: 'Colombie' },
+  { code: 'KR', name: 'Corée du Sud' }, { code: 'HR', name: 'Croatie' },
+  { code: 'CU', name: 'Cuba' }, { code: 'DK', name: 'Danemark' },
+  { code: 'EG', name: 'Égypte' }, { code: 'AE', name: 'Émirats arabes unis' },
+  { code: 'ES', name: 'Espagne' }, { code: 'US', name: 'États-Unis' },
+  { code: 'FI', name: 'Finlande' }, { code: 'GA', name: 'Gabon' },
+  { code: 'GR', name: 'Grèce' }, { code: 'HU', name: 'Hongrie' },
+  { code: 'IN', name: 'Inde' }, { code: 'IE', name: 'Irlande' },
+  { code: 'IT', name: 'Italie' }, { code: 'JP', name: 'Japon' },
+  { code: 'LB', name: 'Liban' }, { code: 'LU', name: 'Luxembourg' },
+  { code: 'MG', name: 'Madagascar' }, { code: 'ML', name: 'Mali' },
+  { code: 'MX', name: 'Mexique' }, { code: 'MC', name: 'Monaco' },
+  { code: 'NL', name: 'Pays-Bas' }, { code: 'PE', name: 'Pérou' },
+  { code: 'PL', name: 'Pologne' }, { code: 'PT', name: 'Portugal' },
+  { code: 'GB', name: 'Royaume-Uni' }, { code: 'RO', name: 'Roumanie' },
+  { code: 'RU', name: 'Russie' }, { code: 'SE', name: 'Suède' },
+  { code: 'TN', name: 'Tunisie' }, { code: 'TR', name: 'Turquie' },
+];
+
+const selectStyle: React.CSSProperties = {
+  padding: '12px 10px', height: 48,
+  background: 'rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: 14, color: '#fff', fontSize: 14,
+  fontFamily: 'inherit', outline: 'none',
+  appearance: 'none', WebkitAppearance: 'none',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 10px center',
+  paddingRight: 28,
+};
+
 const slideVariants = {
   enter: { x: 80, opacity: 0 },
   center: { x: 0, opacity: 1 },
@@ -156,14 +218,29 @@ export function OnboardingFunnelV2({
 }: OnboardingFunnelV2Props) {
   const [step, setStep] = useState(initialStep);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals ?? []);
+
+  // FIX C — profile text inputs use refs, synced to state on blur
+  const firstNameRef = useRef('');
+  const lastNameRef = useRef('');
+  const pseudoRef = useRef('');
+  const customCityRef = useRef('');
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [pseudo, setPseudo] = useState('');
+
+  // FIX A — emoji avatar
+  const [avatarEmoji, setAvatarEmoji] = useState('🌸');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [birthDate, setBirthDate] = useState('');
+
+  // FIX B — birth date as 3 fields
+  const [birthDay, setBirthDay] = useState(0);
+  const [birthMonth, setBirthMonth] = useState(0);
+  const [birthYear, setBirthYear] = useState(1995);
+  const [birthError, setBirthError] = useState('');
+
+  // FIX D — country
+  const [countryCode, setCountryCode] = useState('FR');
+
   const [selectedCity, setSelectedCity] = useState('');
-  const [customCity, setCustomCity] = useState('');
   const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
   const [contactName, setContactName] = useState('');
   const [contactRelation, setContactRelation] = useState('');
@@ -193,14 +270,15 @@ export function OnboardingFunnelV2({
 
   useEffect(() => {
     if (step !== 8) return; // Communities is now step 8
-    const city = selectedCity || customCity || 'Paris';
+    const city = selectedCity || customCityRef.current || 'Paris';
     supabase
       .from('communities')
       .select('id, name, description, member_count')
       .ilike('name', `%${city}%`)
       .limit(5)
       .then(({ data }) => setCommunities((data as Community[]) ?? []));
-  }, [step, selectedCity, customCity]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, selectedCity]);
 
   // ─── Complete ─────────────────────────────────────────────────────────
 
@@ -208,20 +286,34 @@ export function OnboardingFunnelV2({
     if (!userId) return;
     setIsSubmitting(true);
     try {
-      const city = selectedCity || customCity || null;
+      const fn = firstNameRef.current.trim();
+      const ln = lastNameRef.current.trim();
+      const ps = pseudoRef.current.trim();
+      const city = selectedCity || customCityRef.current.trim() || null;
+
+      // Build birth date string from 3 selects
+      let birthDate: string | null = null;
+      if (birthDay > 0 && birthMonth > 0) {
+        const d = String(birthDay).padStart(2, '0');
+        const m = String(birthMonth).padStart(2, '0');
+        birthDate = `${birthYear}-${m}-${d}`;
+      }
+
       await supabase.from('profiles').update({
-        ...(firstName.trim() && {
-          name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '),
-          first_name: firstName.trim(),
-          last_name: lastName.trim() || null,
+        ...(fn && {
+          name: [fn, ln].filter(Boolean).join(' '),
+          first_name: fn,
+          last_name: ln || null,
         }),
-        ...(pseudo.trim() && {
-          display_name: pseudo.trim(),
-          username: pseudo.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''),
+        ...(ps && {
+          display_name: ps,
+          username: ps.toLowerCase().replace(/[^a-z0-9_]/g, ''),
         }),
+        avatar_emoji: avatarEmoji,
         ...(avatarUrl && { avatar_url: avatarUrl }),
         ...(city && { city }),
         ...(birthDate && { date_of_birth: birthDate }),
+        country_code: countryCode,
         onboarding_goals: selectedGoals,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
@@ -604,7 +696,8 @@ export function OnboardingFunnelV2({
   // ════════════════════════════════════════════════════════════════════════
 
   const PrenomStep = () => {
-    const canContinue = firstName.trim().length > 0;
+    const [localHasName, setLocalHasName] = useState(firstNameRef.current.trim().length > 0);
+    const [emojiOpen, setEmojiOpen] = useState(false);
 
     return (
       <div style={stepContainer}>
@@ -620,38 +713,91 @@ export function OnboardingFunnelV2({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <input
             placeholder="Prénom *"
-            value={firstName}
-            onChange={e => setFirstName(e.target.value)}
+            defaultValue={firstNameRef.current}
+            onInput={e => {
+              firstNameRef.current = (e.target as HTMLInputElement).value;
+              setLocalHasName(firstNameRef.current.trim().length > 0);
+            }}
+            onBlur={() => setFirstName(firstNameRef.current.trim())}
             style={inputStyle}
           />
           <input
             placeholder="Nom (optionnel)"
-            value={lastName}
-            onChange={e => setLastName(e.target.value)}
+            defaultValue={lastNameRef.current}
+            onInput={e => { lastNameRef.current = (e.target as HTMLInputElement).value; }}
             style={inputStyle}
           />
+
+          {/* FIX A — Emoji selector + pseudo input */}
           <div>
-            <input
-              placeholder="Pseudonyme  ex: 🌙 Sofia"
-              value={pseudo}
-              onChange={e => setPseudo(e.target.value)}
-              style={inputStyle}
-            />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setEmojiOpen(v => !v)}
+                style={{
+                  width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: emojiOpen ? '2px solid #3BB4C1' : '2px solid rgba(255,255,255,0.14)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22, cursor: 'pointer', transition: 'border-color .2s',
+                }}
+              >
+                {avatarEmoji}
+              </button>
+              <input
+                placeholder="Ton pseudo..."
+                defaultValue={pseudoRef.current}
+                maxLength={20}
+                onInput={e => {
+                  const v = (e.target as HTMLInputElement).value.replace(/^\s+/, '');
+                  (e.target as HTMLInputElement).value = v;
+                  pseudoRef.current = v;
+                }}
+                style={{ ...inputStyle, flex: 1, width: 'auto' }}
+              />
+            </div>
+            {emojiOpen && (
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6,
+                marginTop: 10, padding: 10, borderRadius: 14,
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}>
+                {AVATAR_EMOJIS.map(em => (
+                  <button
+                    key={em}
+                    type="button"
+                    onClick={() => { setAvatarEmoji(em); setEmojiOpen(false); }}
+                    style={{
+                      width: 40, height: 40, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 20, cursor: 'pointer', border: 'none',
+                      background: avatarEmoji === em ? 'rgba(59,180,193,0.25)' : 'transparent',
+                      transform: avatarEmoji === em ? 'scale(1.2)' : 'scale(1)',
+                      outline: avatarEmoji === em ? '2px solid #3BB4C1' : 'none',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 4, paddingLeft: 4 }}>
-              Utilisé dans la communauté · Emojis autorisés
+              Utilisé dans la communauté · Max 20 caractères
             </div>
           </div>
         </div>
 
         <button
-          disabled={!canContinue}
-          onClick={() => setStep(5)}
+          disabled={!localHasName}
+          onClick={() => { setFirstName(firstNameRef.current.trim()); setStep(5); }}
           style={{
             ...btnMainStyle,
             marginTop: 20,
-            background: canContinue ? '#fff' : 'rgba(255,255,255,0.18)',
-            color: canContinue ? '#0A0F1E' : 'rgba(255,255,255,0.3)',
-            cursor: canContinue ? 'pointer' : 'not-allowed',
+            background: localHasName ? '#fff' : 'rgba(255,255,255,0.18)',
+            color: localHasName ? '#0A0F1E' : 'rgba(255,255,255,0.3)',
+            cursor: localHasName ? 'pointer' : 'not-allowed',
           }}
         >
           Continuer &rarr;
@@ -747,7 +893,28 @@ export function OnboardingFunnelV2({
   // ════════════════════════════════════════════════════════════════════════
 
   const DateVilleStep = () => {
-    const minAge13 = new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const validateBirthDate = () => {
+      if (birthDay === 0 || birthMonth === 0) {
+        setBirthError('');
+        return true; // Optional, no selection = skip
+      }
+      const maxDays = daysInMonth(birthMonth, birthYear);
+      if (birthDay > maxDays) {
+        setBirthError('Date invalide');
+        return false;
+      }
+      const age = CURRENT_YEAR - birthYear - (new Date() < new Date(CURRENT_YEAR, birthMonth - 1, birthDay) ? 1 : 0);
+      if (age < 13) {
+        setBirthError('Tu dois avoir au moins 13 ans');
+        return false;
+      }
+      setBirthError('');
+      return true;
+    };
+
+    const handleContinue = () => {
+      if (validateBirthDate()) setStep(7);
+    };
 
     return (
       <div style={{ ...stepContainer, overflowY: 'auto' }}>
@@ -770,17 +937,62 @@ export function OnboardingFunnelV2({
           {'\u{1F512}'} Ces informations ne sont jamais vendues. Elles servent à adapter les contenus, protéger votre cercle (parents, enfants) et affiner les alertes autour de vous.
         </div>
 
-        {/* Date de naissance */}
+        {/* FIX B — Date de naissance : 3 selects */}
         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
           Date de naissance
         </div>
-        <input
-          type="date"
-          value={birthDate}
-          onChange={e => setBirthDate(e.target.value)}
-          max={minAge13}
-          style={{ ...inputStyle, colorScheme: 'dark', marginBottom: 20 }}
-        />
+        <div style={{ display: 'flex', gap: 8, marginBottom: birthError ? 4 : 20 }}>
+          <select
+            value={birthDay}
+            onChange={e => { setBirthDay(Number(e.target.value)); setBirthError(''); }}
+            style={{ ...selectStyle, flex: 1 }}
+          >
+            <option value={0} style={{ color: '#000' }}>Jour</option>
+            {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+              <option key={d} value={d} style={{ color: '#000' }}>{d}</option>
+            ))}
+          </select>
+          <select
+            value={birthMonth}
+            onChange={e => { setBirthMonth(Number(e.target.value)); setBirthError(''); }}
+            style={{ ...selectStyle, flex: 2 }}
+          >
+            <option value={0} style={{ color: '#000' }}>Mois</option>
+            {MONTHS_FR.map((m, i) => (
+              <option key={i} value={i + 1} style={{ color: '#000' }}>{m}</option>
+            ))}
+          </select>
+          <select
+            value={birthYear}
+            onChange={e => { setBirthYear(Number(e.target.value)); setBirthError(''); }}
+            style={{ ...selectStyle, flex: 1 }}
+          >
+            {BIRTH_YEARS.map(y => (
+              <option key={y} value={y} style={{ color: '#000' }}>{y}</option>
+            ))}
+          </select>
+        </div>
+        {birthError && (
+          <p style={{ fontSize: 12, color: '#F87171', marginBottom: 16 }}>{birthError}</p>
+        )}
+
+        {/* FIX D — Pays de résidence */}
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
+          Pays de résidence
+        </div>
+        <select
+          value={countryCode}
+          onChange={e => setCountryCode(e.target.value)}
+          style={{ ...selectStyle, width: '100%', marginBottom: 20 }}
+        >
+          {PRIORITY_COUNTRIES.map(c => (
+            <option key={c.code} value={c.code} style={{ color: '#000' }}>{c.flag} {c.name}</option>
+          ))}
+          <option disabled style={{ color: '#999' }}>───────────</option>
+          {OTHER_COUNTRIES.map(c => (
+            <option key={c.code} value={c.code} style={{ color: '#000' }}>{c.name}</option>
+          ))}
+        </select>
 
         {/* Ville */}
         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>
@@ -790,7 +1002,7 @@ export function OnboardingFunnelV2({
           {CITIES.map(city => (
             <button
               key={city}
-              onClick={() => { setSelectedCity(city); setCustomCity(''); }}
+              onClick={() => { setSelectedCity(city); customCityRef.current = ''; }}
               style={{
                 padding: '7px 14px', borderRadius: 100,
                 border: '1px solid',
@@ -807,13 +1019,13 @@ export function OnboardingFunnelV2({
         </div>
         <input
           placeholder="Autre ville..."
-          value={customCity}
-          onChange={e => { setCustomCity(e.target.value); setSelectedCity(''); }}
+          defaultValue={customCityRef.current}
+          onInput={e => { customCityRef.current = (e.target as HTMLInputElement).value; setSelectedCity(''); }}
           style={{ ...inputStyle, fontSize: 13, marginTop: 8 }}
         />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto', paddingTop: 20 }}>
-          <button onClick={() => setStep(7)} style={btnMainStyle}>Continuer &rarr;</button>
+          <button onClick={handleContinue} style={btnMainStyle}>Continuer &rarr;</button>
           <button onClick={() => setStep(7)} style={btnGhostStyle}>Passer cette étape</button>
         </div>
       </div>
@@ -973,7 +1185,7 @@ export function OnboardingFunnelV2({
             Étape 8 / {TOTAL_STEPS - 1}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Rejoignez votre communauté</h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{selectedCity || customCity || 'Paris'}</p>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>{selectedCity || customCityRef.current || 'Paris'}</p>
         </div>
 
         <div style={{ flex: 1 }}>
@@ -1008,7 +1220,7 @@ export function OnboardingFunnelV2({
             ))
             : (
               <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                Pas encore de groupe pour {selectedCity || customCity || 'votre ville'}.
+                Pas encore de groupe pour {selectedCity || customCityRef.current || 'votre ville'}.
               </div>
             )
           }

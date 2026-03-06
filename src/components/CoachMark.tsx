@@ -2,9 +2,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useTheme } from '@/stores/useTheme';
+import { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -22,28 +21,10 @@ interface CoachMarkProps {
   doneLabel?: string;
 }
 
-function getColors(isDark: boolean) {
-  return isDark ? {
-    bg: '#0F172A', card: '#1E293B', elevated: '#334155',
-    textPrimary: '#FFFFFF', textSecondary: '#94A3B8', textTertiary: '#64748B',
-    border: 'rgba(255,255,255,0.08)', borderMid: 'rgba(255,255,255,0.12)',
-    hover: 'rgba(255,255,255,0.05)', active: 'rgba(255,255,255,0.10)',
-    inputBg: 'rgba(255,255,255,0.06)',
-  } : {
-    bg: '#F8FAFC', card: '#FFFFFF', elevated: '#F1F5F9',
-    textPrimary: '#0F172A', textSecondary: '#475569', textTertiary: '#94A3B8',
-    border: 'rgba(15,23,42,0.06)', borderMid: 'rgba(15,23,42,0.10)',
-    hover: 'rgba(15,23,42,0.03)', active: 'rgba(15,23,42,0.06)',
-    inputBg: 'rgba(15,23,42,0.04)',
-  };
-}
-const FIXED = {
-  accentCyan: '#3BB4C1', accentCyanSoft: 'rgba(59,180,193,0.12)',
-  accentGold: '#F5C341', semanticDanger: '#EF4444',
-};
-
 const TOOLTIP_WIDTH = 280;
-const GAP = 14; // px between target edge and tooltip
+const GAP = 14;
+const ARROW_SIZE = 8;
+const PADDING = 6; // ring padding around target
 
 export function CoachMark({
   targetSelector,
@@ -58,215 +39,302 @@ export function CoachMark({
   nextLabel = 'Next →',
   doneLabel = 'Got it!',
 }: CoachMarkProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
-  const C = getColors(isDark);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [targetRadius, setTargetRadius] = useState(12);
+  const prevStepRef = useRef(currentStep);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     function measure() {
       const el = document.querySelector(targetSelector);
-      if (el) setRect(el.getBoundingClientRect());
+      if (!el) return;
+      setRect(el.getBoundingClientRect());
+      const computed = getComputedStyle(el);
+      const r = parseFloat(computed.borderRadius) || 12;
+      setTargetRadius(r);
+      // Elevate the target element
+      const htmlEl = el as HTMLElement;
+      htmlEl.style.position = 'relative';
+      htmlEl.style.zIndex = '999';
     }
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+      // Clean up z-index on unmount
+      const el = document.querySelector(targetSelector) as HTMLElement | null;
+      if (el) {
+        el.style.zIndex = '';
+      }
+    };
   }, [targetSelector]);
+
+  // Fade transition between steps
+  useEffect(() => {
+    if (currentStep !== prevStepRef.current) {
+      setVisible(false);
+      const t = setTimeout(() => {
+        prevStepRef.current = currentStep;
+        setVisible(true);
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [currentStep]);
 
   if (!rect) return null;
 
-  // ── Spotlight geometry ───────────────────────────────────────────────────────
+  // ── Spotlight clip path (rectangular with rounded corners) ──────────────
+  const spotLeft = rect.left - PADDING;
+  const spotTop = rect.top - PADDING;
+  const spotW = rect.width + PADDING * 2;
+  const spotH = rect.height + PADDING * 2;
+  const r = targetRadius + 2;
+
+  // ── Tooltip placement ──────────────────────────────────────────────────
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
-  const spotRadius = Math.max(rect.width, rect.height) / 2 + 14;
 
-  // ── Tooltip placement ────────────────────────────────────────────────────────
-  // Clamp tooltip so it never overflows the viewport edges
   const clampLeft = (x: number) =>
-    Math.max(8, Math.min(x, window.innerWidth - TOOLTIP_WIDTH - 8));
+    Math.max(12, Math.min(x, window.innerWidth - TOOLTIP_WIDTH - 12));
 
   let tooltipStyle: React.CSSProperties = { position: 'fixed', width: TOOLTIP_WIDTH };
-  // horizontal center of target relative to where the tooltip starts
-  let arrowOffset = 0; // px from left (or top) edge of tooltip to arrow center
+  let arrowLeft = 0;
+  let arrowTop = 0;
+  let arrowSide: 'top' | 'bottom' | 'left' | 'right' = 'top';
 
   switch (position) {
     case 'bottom': {
       const left = clampLeft(cx - TOOLTIP_WIDTH / 2);
-      tooltipStyle = { ...tooltipStyle, top: rect.bottom + GAP, left };
-      arrowOffset = cx - left;
+      tooltipStyle = { ...tooltipStyle, top: rect.bottom + GAP + PADDING, left };
+      arrowLeft = cx - left;
+      arrowSide = 'top';
       break;
     }
     case 'top': {
       const left = clampLeft(cx - TOOLTIP_WIDTH / 2);
-      tooltipStyle = { ...tooltipStyle, bottom: window.innerHeight - rect.top + GAP, left };
-      arrowOffset = cx - left;
+      tooltipStyle = { ...tooltipStyle, bottom: window.innerHeight - rect.top + GAP + PADDING, left };
+      arrowLeft = cx - left;
+      arrowSide = 'bottom';
       break;
     }
     case 'right': {
-      const top = Math.max(8, cy - 64);
-      tooltipStyle = { ...tooltipStyle, top, left: rect.right + GAP };
-      arrowOffset = cy - top;
+      const top = Math.max(12, cy - 64);
+      tooltipStyle = { ...tooltipStyle, top, left: rect.right + GAP + PADDING };
+      arrowTop = cy - top;
+      arrowSide = 'left';
       break;
     }
     case 'left': {
-      const top = Math.max(8, cy - 64);
-      tooltipStyle = { ...tooltipStyle, top, left: rect.left - TOOLTIP_WIDTH - GAP };
-      arrowOffset = cy - top;
+      const top = Math.max(12, cy - 64);
+      tooltipStyle = { ...tooltipStyle, top, left: rect.left - TOOLTIP_WIDTH - GAP - PADDING };
+      arrowTop = cy - top;
+      arrowSide = 'right';
       break;
     }
   }
 
-  // ── Animation direction ──────────────────────────────────────────────────────
-  const initialY = position === 'bottom' ? -6 : position === 'top' ? 6 : 0;
-  const initialX = position === 'right' ? -6 : position === 'left' ? 6 : 0;
+  const isLast = currentStep === totalSteps;
 
   return (
     <>
-      {/* ── Dark backdrop with spotlight cutout ─────────────────────────────── */}
+      {/* ── Scrim with rectangular cutout ──────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         className="fixed inset-0"
         style={{
-          zIndex: 200,
-          background: `radial-gradient(
-            circle ${spotRadius}px at ${cx}px ${cy}px,
-            transparent ${spotRadius}px,
-            rgba(0,0,0,0.72) ${spotRadius + 18}px
-          )`,
+          zIndex: 998,
+          pointerEvents: 'auto',
         }}
         onClick={onSkip}
+      >
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+          <defs>
+            <mask id="coach-mask">
+              <rect width="100%" height="100%" fill="white" />
+              <rect
+                x={spotLeft} y={spotTop}
+                width={spotW} height={spotH}
+                rx={r} ry={r}
+                fill="black"
+              />
+            </mask>
+          </defs>
+          <rect
+            width="100%" height="100%"
+            fill="rgba(0,0,0,0.6)"
+            mask="url(#coach-mask)"
+          />
+        </svg>
+      </motion.div>
+
+      {/* ── Highlight ring around target ───────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          left: spotLeft,
+          top: spotTop,
+          width: spotW,
+          height: spotH,
+          borderRadius: r,
+          boxShadow: '0 0 0 4px var(--accent-teal, #3BB4C1), 0 0 0 8px rgba(59,180,193,0.25)',
+          zIndex: 999,
+          pointerEvents: 'none',
+        }}
       />
 
-      {/* ── Tooltip ─────────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: initialY, x: initialX }}
-        animate={{ opacity: 1, y: 0, x: 0 }}
-        exit={{ opacity: 0 }}
-        transition={{ delay: 0.08, duration: 0.2 }}
-        style={{
-          ...tooltipStyle,
-          zIndex: 201,
-          backgroundColor: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 16,
-          padding: 16,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Arrow pointer */}
-        <Arrow position={position} offset={arrowOffset} />
+      {/* ── Tooltip bubble ────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {visible && (
+          <motion.div
+            key={`tooltip-${currentStep}`}
+            initial={{ opacity: 0, y: position === 'top' ? -8 : position === 'bottom' ? 8 : 0, x: position === 'left' ? -8 : position === 'right' ? 8 : 0 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{
+              ...tooltipStyle,
+              zIndex: 1000,
+              background: 'var(--surface-elevated, #1E293B)',
+              border: '1px solid var(--border-default, rgba(255,255,255,0.08))',
+              borderRadius: 24,
+              padding: '16px 18px',
+              maxWidth: TOOLTIP_WIDTH,
+              boxShadow: 'var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.4))',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Arrow */}
+            <TooltipArrow side={arrowSide} offsetX={arrowLeft} offsetY={arrowTop} />
 
-        {/* Content */}
-        <p className="text-sm font-semibold mb-1" style={{ color: C.textPrimary }}>
-          {title}
-        </p>
-        <p className="text-xs leading-relaxed mb-4" style={{ color: C.textSecondary }}>
-          {description}
-        </p>
+            {/* Step counter */}
+            <p style={{
+              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.08em', marginBottom: 6,
+              color: 'var(--text-tertiary, #64748B)',
+            }}>
+              {currentStep} / {totalSteps}
+            </p>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs tabular-nums" style={{ color: C.textSecondary }}>
-            {currentStep}/{totalSteps}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onSkip}
-              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
-              style={{ color: C.textSecondary }}
-            >
-              {skipLabel}
-            </button>
-            <button
-              onClick={onNext}
-              className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-opacity hover:opacity-80"
-              style={{ backgroundColor: FIXED.accentCyan, color: C.bg }}
-            >
-              {currentStep === totalSteps ? doneLabel : nextLabel}
-            </button>
-          </div>
-        </div>
-      </motion.div>
+            {/* Title */}
+            <p style={{
+              fontSize: 15, fontWeight: 600, marginBottom: 4,
+              color: 'var(--text-primary, #FFFFFF)',
+              lineHeight: 1.3,
+            }}>
+              {title}
+            </p>
+
+            {/* Description */}
+            <p style={{
+              fontSize: 13, lineHeight: 1.55, marginBottom: 14,
+              color: 'var(--text-secondary, #94A3B8)',
+            }}>
+              {description}
+            </p>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={onSkip}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, padding: '8px 12px',
+                  color: 'var(--text-tertiary, #64748B)',
+                  fontFamily: 'inherit',
+                  transition: 'opacity .15s',
+                }}
+              >
+                {skipLabel}
+              </button>
+              <button
+                onClick={onNext}
+                style={{
+                  background: 'var(--text-primary, #FFFFFF)',
+                  color: 'var(--text-inverse, #0F172A)',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 600,
+                  padding: '8px 16px',
+                  borderRadius: 9999,
+                  fontFamily: 'inherit',
+                  transition: 'opacity .15s',
+                }}
+              >
+                {isLast ? doneLabel : nextLabel}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
 
-// ─── Arrow pointer ────────────────────────────────────────────────────────────
-// Uses a rotated 12x12 square with selective borders so only the
-// outer-facing sides are visible, creating a clean tooltip arrow.
+// ─── Tooltip arrow ──────────────────────────────────────────────────────────
 
-const ARROW = 12; // px
-const HALF = ARROW / 2;
+function TooltipArrow({ side, offsetX, offsetY }: { side: 'top' | 'bottom' | 'left' | 'right'; offsetX: number; offsetY: number }) {
+  const size = ARROW_SIZE;
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max));
 
-function Arrow({ position, offset }: { position: TooltipPosition; offset: number }) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
-  const C = getColors(isDark);
   const base: React.CSSProperties = {
     position: 'absolute',
-    width: ARROW,
-    height: ARROW,
-    backgroundColor: C.card,
-    transform: 'rotate(45deg)',
+    width: 0, height: 0,
+    borderStyle: 'solid',
   };
 
-  // Offset clamp so arrow stays within tooltip bounds
-  const safeOffset = Math.max(ARROW + 4, Math.min(offset, TOOLTIP_WIDTH - ARROW - 4));
-  const safeOffsetV = Math.max(ARROW + 4, offset);
+  const bg = 'var(--surface-elevated, #1E293B)';
 
-  switch (position) {
-    // Tooltip is below target → arrow points up → triangle at top of tooltip
-    case 'bottom':
+  switch (side) {
+    case 'top': {
+      const left = clamp(offsetX, 20, TOOLTIP_WIDTH - 20);
       return (
-        <div
-          style={{
-            ...base,
-            top: -HALF,
-            left: safeOffset - HALF,
-            borderTop: `1px solid ${C.border}`,
-            borderLeft: `1px solid ${C.border}`,
-          }}
-        />
+        <div style={{
+          ...base,
+          top: -size, left: left - size,
+          borderWidth: `0 ${size}px ${size}px ${size}px`,
+          borderColor: `transparent transparent ${bg} transparent`,
+        }} />
       );
-    // Tooltip is above target → arrow points down → triangle at bottom of tooltip
-    case 'top':
+    }
+    case 'bottom': {
+      const left = clamp(offsetX, 20, TOOLTIP_WIDTH - 20);
       return (
-        <div
-          style={{
-            ...base,
-            bottom: -HALF,
-            left: safeOffset - HALF,
-            borderBottom: `1px solid ${C.border}`,
-            borderRight: `1px solid ${C.border}`,
-          }}
-        />
+        <div style={{
+          ...base,
+          bottom: -size, left: left - size,
+          borderWidth: `${size}px ${size}px 0 ${size}px`,
+          borderColor: `${bg} transparent transparent transparent`,
+        }} />
       );
-    // Tooltip is to the right of target → arrow points left → triangle at left of tooltip
-    case 'right':
+    }
+    case 'left': {
+      const top = clamp(offsetY, 20, 200);
       return (
-        <div
-          style={{
-            ...base,
-            left: -HALF,
-            top: safeOffsetV - HALF,
-            borderLeft: `1px solid ${C.border}`,
-            borderBottom: `1px solid ${C.border}`,
-          }}
-        />
+        <div style={{
+          ...base,
+          left: -size, top: top - size,
+          borderWidth: `${size}px ${size}px ${size}px 0`,
+          borderColor: `transparent ${bg} transparent transparent`,
+        }} />
       );
-    // Tooltip is to the left of target → arrow points right → triangle at right of tooltip
-    case 'left':
+    }
+    case 'right': {
+      const top = clamp(offsetY, 20, 200);
       return (
-        <div
-          style={{
-            ...base,
-            right: -HALF,
-            top: safeOffsetV - HALF,
-            borderRight: `1px solid ${C.border}`,
-            borderTop: `1px solid ${C.border}`,
-          }}
-        />
+        <div style={{
+          ...base,
+          right: -size, top: top - size,
+          borderWidth: `${size}px 0 ${size}px ${size}px`,
+          borderColor: `transparent transparent transparent ${bg}`,
+        }} />
       );
+    }
   }
 }

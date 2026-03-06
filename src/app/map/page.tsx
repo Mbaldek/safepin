@@ -892,7 +892,10 @@ export default function MapPage() {
             setActiveRoute(null);
             setTransitSegments(null);
           }}
-          onSOS={() => escorte.triggerSOS()}
+          onSOS={() => {
+            escorte.triggerSOS();
+            window.dispatchEvent(new Event('breveil:trigger-sos'));
+          }}
         />
 
         {/* Community tab — trusted circle, groups, messages */}
