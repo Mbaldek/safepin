@@ -25,7 +25,7 @@ function commentTimeAgo(d: string) {
 }
 
 interface Post {
-  id: number;
+  id: string;
   type: "alerte" | "bonplan" | "evenement" | "quartier";
   user: {
     name: string;
@@ -52,7 +52,7 @@ interface PostCardProps {
   post: Post;
   isDark: boolean;
   currentUserId?: string | null;
-  onHide?: (postId: number) => void;
+  onHide?: (postId: string) => void;
 }
 
 const typeStyles = {
@@ -140,6 +140,8 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
         .maybeSingle();
       setComments((prev) => [...prev, { ...data, _profile: prof ?? null }]);
       setNewComment("");
+    } else if (error) {
+      console.error("[PostCard] comment insert error:", error.message);
     }
     setSubmitting(false);
   };
@@ -668,7 +670,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
 
               {/* Comment input */}
               {currentUserId && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 8px" }}>
                   <div
                     style={{
                       width: 28,

@@ -41,10 +41,10 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
   const [sosPosts, setSosPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hiddenIds, setHiddenIds] = useState<Set<number>>(new Set());
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [sosTab, setSosTab] = useState<'active' | 'resolved' | 'notifs'>('active');
 
-  const handleHide = useCallback((postId: number) => {
+  const handleHide = useCallback((postId: string) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
   }, []);
 
