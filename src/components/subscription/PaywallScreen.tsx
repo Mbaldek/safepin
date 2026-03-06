@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
@@ -21,6 +21,9 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
+import { useWaitlist } from '@/hooks/useWaitlist';
+import { useStore } from '@/stores/useStore';
+import { supabase } from '@/lib/supabase';
 
 // Brand Colors
 const colors = {
@@ -198,6 +201,19 @@ function PaywallView({
   onClose?: () => void;
   context?: 'onboarding' | 'settings';
 }) {
+  const waitlist = useWaitlist();
+  const userId = useStore((s) => s.userId);
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [showWaitlist, setShowWaitlist] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setWaitlistEmail(data.user.email);
+    });
+  }, []);
+
+  const billingCycle = isAnnual ? 'yearly' as const : 'monthly' as const;
+
   return (
     <motion.div
       initial={{ x: direction * 40, opacity: 0 }}
@@ -456,6 +472,132 @@ function PaywallView({
               >
                 {"Commencer l'essai gratuit"}
               </motion.button>
+
+              <p style={{ fontSize: 11, color: theme.textTertiary, textAlign: 'center', marginTop: 8 }}>
+                7 jours gratuits · Sans CB requise
+              </p>
+
+              {/* Separator */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                margin: '12px 0',
+              }}>
+                <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }} />
+                <span style={{ fontSize: 10, fontWeight: 600, color: isDark ? '#64748B' : '#94A3B8' }}>ou</span>
+                <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }} />
+              </div>
+
+              {/* CTA waitlist — outline */}
+              {!showWaitlist && waitlist.state !== 'success' && waitlist.state !== 'already' && (
+                <button
+                  onClick={() => setShowWaitlist(true)}
+                  style={{
+                    width: '100%', padding: '12px 24px', borderRadius: 32,
+                    background: 'transparent',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)'}`,
+                    fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                    color: isDark ? '#94A3B8' : '#64748B',
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    transition: 'all 150ms',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1.5">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  {"Être notifiée au lancement"}
+                </button>
+              )}
+
+              {/* Waitlist form */}
+              {showWaitlist && waitlist.state !== 'success' && waitlist.state !== 'already' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                  style={{
+                    background: isDark ? '#1E293B' : '#F8FAFC',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                    borderRadius: 16, padding: 14,
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#FFF' : '#0F172A' }}>
+                    {"Rejoindre la liste d'attente"}
+                  </div>
+                  <div style={{ fontSize: 11, color: isDark ? '#64748B' : '#94A3B8' }}>
+                    {"Tu seras parmi les premières informées du lancement officiel."}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 7 }}>
+                    <input
+                      type="email"
+                      value={waitlistEmail}
+                      onChange={e => setWaitlistEmail(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') waitlist.join({ email: waitlistEmail, userId: userId ?? undefined, billingPref: billingCycle })
+                      }}
+                      placeholder="ton@email.com"
+                      style={{
+                        flex: 1, background: isDark ? '#334155' : '#FFF',
+                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.12)'}`,
+                        borderRadius: 10, padding: '9px 12px',
+                        fontSize: 13, fontFamily: 'inherit',
+                        color: isDark ? '#FFF' : '#0F172A', outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={() => waitlist.join({ email: waitlistEmail, userId: userId ?? undefined, billingPref: billingCycle })}
+                      disabled={waitlist.state === 'loading'}
+                      style={{
+                        padding: '9px 14px', borderRadius: 10,
+                        background: '#3BB4C1', color: '#0F172A',
+                        fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                        border: 'none', cursor: 'pointer',
+                        opacity: waitlist.state === 'loading' ? 0.7 : 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {waitlist.state === 'loading' ? '...' : "M'inscrire"}
+                    </button>
+                  </div>
+
+                  {waitlist.state === 'error' && (
+                    <div style={{ fontSize: 11, color: '#EF4444' }}>
+                      {"Une erreur est survenue. Réessaie."}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Success state */}
+              {(waitlist.state === 'success' || waitlist.state === 'already') && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{
+                    padding: '12px 14px',
+                    background: 'rgba(52,211,153,0.08)',
+                    border: '1px solid rgba(52,211,153,0.25)',
+                    borderRadius: 12,
+                    display: 'flex', alignItems: 'center', gap: 9,
+                  }}
+                >
+                  <Check size={16} color={colors.success} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: colors.success }}>
+                      {waitlist.state === 'already' ? 'Déjà inscrite' : 'Tu es sur la liste !'}
+                    </div>
+                    <div style={{ fontSize: 10, color: isDark ? '#64748B' : '#94A3B8', marginTop: 1 }}>
+                      {waitlist.state === 'already'
+                        ? "On t'a déjà enregistrée — tu seras notifiée."
+                        : "On te contacte dès l'ouverture officielle."}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </motion.div>
 

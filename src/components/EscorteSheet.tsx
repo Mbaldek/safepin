@@ -165,7 +165,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   const SHEET_HEIGHTS: Record<string, string> = {
     'hub':               '52vh',
     'escorte-intro':     '60vh',
-    'escorte-notifying': '72vh',
+    'escorte-notifying': '52vh',
     'escorte-live':      '72vh',
     'trip-form':         '46vh',
     'trip-active':       '0px',
@@ -682,79 +682,90 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={springConfig}
-        style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
+        style={{ padding: '0 18px 14px', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarWidth: 'none' }}
       >
-        {/* Pulsing icon */}
-        <div style={{ position: 'relative', height: 76, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-          {[1,2].map(i => (
-            <motion.div
-              key={i}
-              animate={{ scale: [1, 1.6+i*0.3, 1], opacity: [0.3, 0, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
-              style={{
-                position: 'absolute', width: 64, height: 64, borderRadius: '50%',
-                background: T.gradientStart, opacity: 0.15,
-              }}
-            />
-          ))}
+        {/* Julia banner */}
+        <div style={{
+          background: juliaSoon ? 'rgba(167,139,250,0.12)' : 'rgba(245,195,65,0.10)',
+          border: `1px solid ${juliaSoon ? T.accentPurple : T.accentGold}35`,
+          borderRadius: 12, padding: '8px 12px', marginBottom: 10,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
           <div style={{
-            width: 64, height: 64, borderRadius: '50%', position: 'relative', zIndex: 1,
-            background: 'rgba(59,180,193,0.12)', border: `1px solid ${T.gradientStart}35`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 28, height: 28, borderRadius: '50%',
+            background: juliaSoon ? 'rgba(167,139,250,0.2)' : 'rgba(245,195,65,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            fontSize: 14,
           }}>
-            <Users size={28} strokeWidth={1.5} color={T.gradientStart} />
+            🤖
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: juliaSoon ? T.accentPurple : T.accentGold }}>
+              {escorte.juliaCd > 0
+                ? `Julia rejoint dans ${formatCountdown(escorte.juliaCd)}`
+                : 'Julia est dans le canal'}
+            </div>
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp, marginBottom: 4 }}>
-            {hasResponded ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}` : 'Notification envoyee'}
-          </div>
-          <div style={{ fontSize: 12, color: tk.ts }}>
-            {hasResponded ? "Ton cercle t'accompagne" : 'En attente de reponse'}
-          </div>
-        </div>
-
-        {/* Julia countdown */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-          <div style={{
-            background:   juliaSoon ? 'rgba(167,139,250,0.12)' : 'rgba(245,195,65,0.10)',
-            border:       `1px solid ${juliaSoon ? T.accentPurple : T.accentGold}35`,
-            borderRadius: 100, padding: '5px 12px',
-            fontSize: 11, fontWeight: 500,
-            color: juliaSoon ? T.accentPurple : T.accentGold,
-          }}>
-            {escorte.juliaCd > 0
-              ? `Julia rejoint dans ${formatCountdown(escorte.juliaCd)}`
-              : 'Julia est dans le canal'}
-          </div>
-        </div>
-
-        {/* Contacts list */}
-        {escorte.circleMembers.length > 0 && (
-          <div style={{ ...cardSt, borderRadius: T.radiusLg, overflow: 'hidden', marginBottom: 12 }}>
-            {escorte.circleMembers.map((m, i) => (
-              <ContactRow
-                key={m.id}
-                member={m}
-                isDark={d}
-                showBorder={i < escorte.circleMembers.length - 1}
+        {/* Centered pulsing icon + title */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'relative', width: 52, height: 52, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+            {[1,2].map(i => (
+              <motion.div
+                key={i}
+                animate={{ scale: [1, 1.5+i*0.3, 1], opacity: [0.25, 0, 0.25] }}
+                transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
+                style={{
+                  position: 'absolute', width: 48, height: 48, borderRadius: '50%',
+                  background: T.gradientStart, opacity: 0.15,
+                }}
               />
             ))}
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%', position: 'relative', zIndex: 1,
+              background: 'rgba(59,180,193,0.12)', border: `1px solid ${T.gradientStart}35`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Users size={22} strokeWidth={1.5} color={T.gradientStart} />
+            </div>
           </div>
-        )}
 
-        <button style={btnPrimary} onClick={() => escorte.setView('escorte-live')}>
-          <Check size={15} strokeWidth={2.5} />
-          {hasResponded ? 'Continuer' : 'Demarrer sans attendre'}
-        </button>
+          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp, marginBottom: 2, textAlign: 'center' }}>
+            {hasResponded ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}` : 'Notification envoyee'}
+          </div>
+          <div style={{ fontSize: 11, color: tk.ts, textAlign: 'center' }}>
+            {hasResponded ? "Ton cercle t'accompagne" : 'En attente de reponse'}
+          </div>
 
-        <button
-          onClick={() => { escorte.endEscorte(); }}
-          style={{ width: '100%', padding: '11px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: tk.tt, marginTop: 4 }}
-        >
-          Annuler
-        </button>
+          {/* Inline contacts */}
+          {escorte.circleMembers.length > 0 && (
+            <div style={{ ...cardSt, borderRadius: T.radiusLg, overflow: 'hidden', marginTop: 10, width: '100%' }}>
+              {escorte.circleMembers.map((m, i) => (
+                <ContactRow
+                  key={m.id}
+                  member={m}
+                  isDark={d}
+                  showBorder={i < escorte.circleMembers.length - 1}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom actions */}
+        <div style={{ flexShrink: 0, marginTop: 8 }}>
+          <button style={btnPrimary} onClick={() => escorte.setView('escorte-live')}>
+            <Check size={15} strokeWidth={2.5} />
+            {hasResponded ? 'Continuer' : 'Demarrer sans attendre'}
+          </button>
+          <button
+            onClick={() => { escorte.endEscorte(); }}
+            style={{ width: '100%', padding: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: tk.tt, marginTop: 2 }}
+          >
+            Annuler
+          </button>
+        </div>
       </motion.div>
     )
   }
