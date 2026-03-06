@@ -7,6 +7,7 @@ import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
+import { useUiStore } from "@/stores/uiStore";
 
 type PostComment = {
   id: string;
@@ -80,6 +81,7 @@ const typeStyles = {
 };
 
 export default function PostCard({ post, isDark, currentUserId, onHide }: PostCardProps) {
+  const openContextMenu = useUiStore((s) => s.openContextMenu);
   const [confirmed, setConfirmed] = useState(false);
   const [confirmCount, setConfirmCount] = useState(post.confirmations || 0);
   const [liked, setLiked] = useState(false);
@@ -216,44 +218,56 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div
+          onClick={(e) => { e.stopPropagation(); if (post.userId) openContextMenu({ userId: post.userId, username: post.user.name }); }}
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: `linear-gradient(135deg, ${post.user.gradientColors[0]}, ${post.user.gradientColors[1]})`,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-            fontWeight: 600,
-            color: "#FFFFFF",
-            overflow: "hidden",
+            gap: 10,
+            cursor: post.userId ? "pointer" : "default",
+            flex: 1,
           }}
         >
-          {post.user.avatarUrl ? (
-            <img src={post.user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            post.user.avatar
-          )}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: isDark ? "#FFFFFF" : "#0F172A",
-              }}
-            >
-              {post.user.name}
-            </span>
-            {post.user.verified && (
-              <CheckCircle size={14} style={{ color: "#3BB4C1" }} fill="#3BB4C1" />
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${post.user.gradientColors[0]}, ${post.user.gradientColors[1]})`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#FFFFFF",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {post.user.avatarUrl ? (
+              <img src={post.user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              post.user.avatar
             )}
           </div>
-          <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
-            {post.time}
-          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: isDark ? "#FFFFFF" : "#0F172A",
+                }}
+              >
+                {post.user.name}
+              </span>
+              {post.user.verified && (
+                <CheckCircle size={14} style={{ color: "#3BB4C1" }} fill="#3BB4C1" />
+              )}
+            </div>
+            <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+              {post.time}
+            </span>
+          </div>
         </div>
         {post.location && (
           <div

@@ -8,6 +8,7 @@ import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
 import SimulationTicker from '@/components/SimulationTicker';
 import GlobalToast from '@/components/GlobalToast';
+import GlobalModals from '@/components/GlobalModals';
 
 export const metadata: Metadata = {
   title: 'Breveil',
@@ -62,6 +63,7 @@ export default async function RootLayout({
             <SimulationTicker />
           </ThemeProvider>
         </NextIntlClientProvider>
+        <GlobalModals />
         <GlobalToast />
         <Toaster
           position="top-center"

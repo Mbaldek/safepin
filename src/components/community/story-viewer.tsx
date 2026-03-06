@@ -5,6 +5,7 @@ import { X, Heart, Send, Share2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useUiStore } from "@/stores/uiStore";
 
 export interface DBStory {
   id: string;
@@ -43,6 +44,7 @@ export default function StoryViewer({
   onNavigate,
   userId,
 }: StoryViewerProps) {
+  const openProfile = useUiStore((s) => s.openProfile);
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [message, setMessage] = useState("");
@@ -220,7 +222,10 @@ export default function StoryViewer({
           padding: "8px 16px 16px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          onClick={() => { openProfile(story.user_id); onClose(); }}
+          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+        >
           <div
             style={{
               width: 36,

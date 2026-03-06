@@ -5,6 +5,7 @@ import { Search, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import ChatView from "@/components/chat/ChatView";
+import { useUiStore } from "@/stores/uiStore";
 
 interface MessagesTabProps {
   isDark: boolean;
@@ -34,6 +35,7 @@ function timeAgo(d: string) {
 }
 
 export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmConsumed }: MessagesTabProps) {
+  const openProfile = useUiStore((s) => s.openProfile);
   const [searchQuery, setSearchQuery] = useState("");
   const [conversations, setConversations] = useState<DMRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,44 +175,55 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
             <ArrowLeft size={20} />
           </motion.button>
           <div
+            onClick={() => openProfile(selectedConvo.partner_id)}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#FFFFFF",
-              flexShrink: 0,
-              overflow: "hidden",
+              gap: 12,
+              cursor: "pointer",
+              flex: 1,
             }}
           >
-            {selectedConvo.partner_avatar ? (
-              <img
-                src={selectedConvo.partner_avatar}
-                alt=""
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              selectedConvo.partner_name.charAt(0).toUpperCase()
-            )}
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#FFFFFF",
+                flexShrink: 0,
+                overflow: "hidden",
+              }}
+            >
+              {selectedConvo.partner_avatar ? (
+                <img
+                  src={selectedConvo.partner_avatar}
+                  alt=""
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                selectedConvo.partner_name.charAt(0).toUpperCase()
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: isDark ? "#FFFFFF" : "#0F172A",
+              }}
+            >
+              {selectedConvo.partner_name}
+            </span>
           </div>
-          <span
-            style={{
-              fontSize: 16,
-              fontWeight: 600,
-              color: isDark ? "#FFFFFF" : "#0F172A",
-            }}
-          >
-            {selectedConvo.partner_name}
-          </span>
         </div>
 
         {/* ChatView */}

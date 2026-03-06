@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
+import { useUiStore } from '@/stores/uiStore';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 import SettingsToggle from '../components/SettingsToggle';
@@ -21,10 +22,18 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === 'dark';
 
+  const openProfile = useUiStore((s) => s.openProfile);
   const [currentLocale, setCurrentLocale] = useState(getCurrentLocale);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [notifyDm, setNotifyDm] = useState(true);
   const [notifySettingsLoaded, setNotifySettingsLoaded] = useState(false);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setMyUserId(user.id);
+    });
+  }, []);
 
   // Load notification settings
   useEffect(() => {
@@ -174,6 +183,17 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
                 onChange={handleToggleDm}
               />
             }
+          />
+        </SettingsSection>
+
+        {/* Mon compte */}
+        <SettingsSection label="Mon compte">
+          <SettingsRow
+            icon="Eye"
+            iconColor="#8B5CF6"
+            label="Voir mon profil public"
+            subtitle="Apercu de votre fiche publique"
+            onPress={myUserId ? () => openProfile(myUserId) : undefined}
           />
         </SettingsSection>
 
