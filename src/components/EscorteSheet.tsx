@@ -3,8 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Users, Send, Home, Navigation, Search, Shield, Clock,
-  ChevronLeft, ChevronRight, Check, AlertTriangle, Share2,
+  Users, Send, Navigation, Search, Shield, Clock,
+  ChevronLeft, ChevronRight, Check, AlertTriangle,
   Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase, Sparkles,
   Footprints, Train, Bike, Car, Loader2, Edit3, ArrowUpDown
 } from 'lucide-react'
@@ -47,7 +47,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
-  const { setPendingRoutes, setMapFlyTo, setDepartDragPin, departDragPin } = useStore()
+  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes } = useStore()
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -55,7 +55,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   const [routeMode,   setRouteMode]   = useState<RouteMode>('walk')
   const [withCircle,  setWithCircle]  = useState(true)
   const [showFavoris, setShowFavoris] = useState(false)
-  const [sosSent, setSosSent] = useState(false)
 
   // ── Depart state ─────────────────────────────
   const [departAddress, setDepartAddress] = useState<string | null>(null)
@@ -162,38 +161,14 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
     setMapFlyTo({ lat, lng, zoom: 14 })
   }, [selectedDest, setMapFlyTo])
 
-  // ── Share position link ────────────────────────
-  const handleShare = useCallback(async () => {
-    if (!escorte.activeEscorte) return
-    const url = `https://breveil.app/track/${escorte.activeEscorte.id}`
-    if (navigator.share) {
-      await navigator.share({
-        title: 'Je suis en route',
-        text: 'Suis ma position en direct',
-        url,
-      }).catch(() => {})
-    } else {
-      await navigator.clipboard.writeText(url).catch(() => {})
-      toast.success('Lien copié !')
-    }
-  }, [escorte.activeEscorte])
-
-  // ── SOS with visual feedback ───────────────────
-  const handleSOS = useCallback(async () => {
-    if (sosSent) return
-    setSosSent(true)
-    await escorte.triggerSOS()
-    setTimeout(() => setSosSent(false), 3000)
-  }, [escorte, sosSent])
-
   // ── Sheet height per view ──────────────────────
   const SHEET_HEIGHTS: Record<string, string> = {
     'hub':               '52vh',
     'escorte-intro':     '60vh',
     'escorte-notifying': '72vh',
     'escorte-live':      '72vh',
-    'trip-form':         '68vh',
-    'trip-active':       '64vh',
+    'trip-form':         '46vh',
+    'trip-active':       '0px',
     'arrived':           '72vh',
   }
 
@@ -342,7 +317,14 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
       ? calcDist(departCoords[1], departCoords[0], lat, lng)
       : 1.5
     const etaMin = routeInfo ? Math.round(routeInfo.duration / 60) : calcETA(distKm)
-    setPendingRoutes(null) // clear preview, useEscorte will set activeRoute
+
+    // Promote pending route → active route so MapView draws it + fitBounds
+    const route = storeRoutes?.[0]
+    if (route) {
+      setActiveRoute({ coords: route.coords, destination: selectedDest.text })
+    }
+    setPendingRoutes(null)
+
     await escorte.startTrip({
       destName:    selectedDest.text,
       destLat:     lat,
@@ -960,18 +942,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         transition={springConfig}
         style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        {/* Header — compact */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <button onClick={handleBackToHub} style={{
-            width: 30, height: 30, borderRadius: '50%', background: tk.ih,
+            width: 28, height: 28, borderRadius: '50%', background: tk.ih,
             border: `1px solid ${tk.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
-            <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
+            <ChevronLeft size={13} strokeWidth={2} color={tk.ts} />
           </button>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Trajet avec destination</div>
-            <div style={{ fontSize: 11, color: tk.tt }}>Escorte par ton cercle</div>
-          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp }}>Mon trajet</div>
         </div>
 
         {/* ── Departure + Connector + Destination ── */}
@@ -1024,6 +1003,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
               <Search size={15} strokeWidth={1.5} color={selectedDest ? T.gradientStart : tk.tt} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <input
+                  id="dest-input"
                   type="text"
                   placeholder="Adresse, lieu, gare..."
                   value={query}
@@ -1058,8 +1038,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         )}
         {destSearch.results.length > 0 && renderResultList(destSearch.results, handleResultSelect)}
 
-        {/* Favoris grid */}
-        {favoris.length > 0 && !query && (
+        {/* Favoris grid — hidden once destination is selected */}
+        {favoris.length > 0 && !selectedDest && (
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 8 }}>
               Acces rapide
@@ -1072,250 +1052,114 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
           </div>
         )}
 
-        {/* Transport mode */}
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 7 }}>
-            Mode de transport
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
-            {([
-              { key: 'walk',    Icon: Footprints, label: 'A pied',   color: T.gradientStart   },
-              { key: 'transit', Icon: Train,      label: 'Transport', color: T.accentPurple    },
-              { key: 'bike',    Icon: Bike,       label: 'Velo',      color: T.semanticSuccess },
-              { key: 'car',     Icon: Car,        label: 'Voiture',   color: T.accentGold      },
-            ] as const).map(mode => {
-              const active = routeMode === mode.key
-              return (
+        {/* ── Below only visible once destination is selected ── */}
+        {selectedDest && (
+          <>
+            {/* Transport mode */}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 7 }}>
+                Mode de transport
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
+                {([
+                  { key: 'walk',    Icon: Footprints, label: 'A pied',   color: T.gradientStart   },
+                  { key: 'transit', Icon: Train,      label: 'Transport', color: T.accentPurple    },
+                  { key: 'bike',    Icon: Bike,       label: 'Velo',      color: T.semanticSuccess },
+                  { key: 'car',     Icon: Car,        label: 'Voiture',   color: T.accentGold      },
+                ] as const).map(mode => {
+                  const active = routeMode === mode.key
+                  return (
+                    <button
+                      key={mode.key}
+                      onClick={() => setRouteMode(mode.key as RouteMode)}
+                      style={{
+                        padding: '10px 6px', borderRadius: 10,
+                        background: active ? `${mode.color}12` : tk.ih,
+                        border: `1px solid ${active ? `${mode.color}40` : tk.bd}`,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      <mode.Icon size={16} strokeWidth={1.5} color={active ? mode.color : tk.tt} />
+                      <span style={{ fontSize: 10, fontWeight: 500, color: active ? mode.color : tk.ts }}>{mode.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Route estimation */}
+            {(loadingRoute || routeInfo) && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                marginBottom: 10, padding: '6px 0',
+              }}>
+                {loadingRoute ? (
+                  <Loader2 size={13} strokeWidth={1.5} color={T.gradientStart} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : routeInfo ? (
+                  <>
+                    <Clock size={12} strokeWidth={1.5} color={T.gradientStart} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: T.gradientStart }}>
+                      ~{routeDurationLabel}
+                    </span>
+                    {routeInfo.distance > 0 && (
+                      <span style={{ fontSize: 12, color: tk.tt }}>
+                        · {formatDistance(routeInfo.distance)}
+                      </span>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            )}
+
+            {/* Escorte toggle — hidden for bike/car */}
+            {(routeMode === 'walk' || routeMode === 'transit') && (
+              <div style={{
+                background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
+                border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
+                borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+              }}>
+                <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
+                  Activer l'escorte cercle
+                </span>
                 <button
-                  key={mode.key}
-                  onClick={() => setRouteMode(mode.key as RouteMode)}
+                  onClick={() => setWithCircle(!withCircle)}
                   style={{
-                    padding: '10px 6px', borderRadius: 10,
-                    background: active ? `${mode.color}12` : tk.ih,
-                    border: `1px solid ${active ? `${mode.color}40` : tk.bd}`,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                    cursor: 'pointer', fontFamily: 'inherit',
+                    width: 38, height: 21, borderRadius: 100,
+                    background: withCircle ? T.gradientStart : tk.ih,
+                    border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
+                    padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    flexShrink: 0, transition: 'background 200ms',
                   }}
                 >
-                  <mode.Icon size={16} strokeWidth={1.5} color={active ? mode.color : tk.tt} />
-                  <span style={{ fontSize: 10, fontWeight: 500, color: active ? mode.color : tk.ts }}>{mode.label}</span>
+                  <motion.div
+                    animate={{ x: withCircle ? 17 : 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                  />
                 </button>
-              )
-            })}
-          </div>
-        </div>
+              </div>
+            )}
 
-        {/* Route estimation */}
-        {(loadingRoute || routeInfo) && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            marginBottom: 10, padding: '6px 0',
-          }}>
-            {loadingRoute ? (
-              <Loader2 size={13} strokeWidth={1.5} color={T.gradientStart} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : routeInfo ? (
-              <>
-                <Clock size={12} strokeWidth={1.5} color={T.gradientStart} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: T.gradientStart }}>
-                  ~{routeDurationLabel}
-                </span>
-                {routeInfo.distance > 0 && (
-                  <span style={{ fontSize: 12, color: tk.tt }}>
-                    · {formatDistance(routeInfo.distance)}
-                  </span>
-                )}
-              </>
-            ) : null}
-          </div>
-        )}
-
-        {/* Escorte toggle — hidden for bike/car */}
-        {(routeMode === 'walk' || routeMode === 'transit') && (
-          <div style={{
-            background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
-            border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
-            borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
-          }}>
-            <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
-            <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
-              Activer l'escorte cercle
-            </span>
-            <button
-              onClick={() => setWithCircle(!withCircle)}
-              style={{
-                width: 38, height: 21, borderRadius: 100,
-                background: withCircle ? T.gradientStart : tk.ih,
-                border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
-                padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                flexShrink: 0, transition: 'background 200ms',
-              }}
+            <motion.button
+              style={btnPrimary}
+              onClick={handleStartTrip}
+              whileTap={{ scale: 0.98 }}
             >
-              <motion.div
-                animate={{ x: withCircle ? 17 : 0 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-              />
-            </button>
-          </div>
+              <Navigation size={14} strokeWidth={2} />
+              {routeDurationLabel
+                ? `Demarrer · ${routeDurationLabel}`
+                : 'Demarrer le trajet'}
+            </motion.button>
+          </>
         )}
-
-        <motion.button
-          style={{
-            ...btnPrimary,
-            opacity:    selectedDest ? 1 : 0.45,
-            cursor:     selectedDest ? 'pointer' : 'default',
-            background: selectedDest ? (d ? '#FFFFFF' : '#0F172A') : tk.ih,
-            color:      selectedDest ? (d ? '#0F172A' : '#FFFFFF') : tk.tt,
-          }}
-          onClick={selectedDest ? handleStartTrip : undefined}
-          whileTap={selectedDest ? { scale: 0.98 } : {}}
-        >
-          <Navigation size={14} strokeWidth={2} />
-          {selectedDest && routeDurationLabel
-            ? `Demarrer · ${routeDurationLabel}`
-            : 'Demarrer le trajet'}
-        </motion.button>
       </motion.div>
     )
   }
 
-  // ── VIEW : TRIP ACTIVE ─────────────────────────
-  const renderTripActive = () => {
-    const ae = escorte.activeEscorte
-    return (
-      <motion.div
-        key="trip-active"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={springConfig}
-        style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
-      >
-        {/* Destination row */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '0 0 12px', borderBottom: `1px solid ${tk.bd}`, marginBottom: 10,
-        }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-            background: T.semanticSuccessSoft, border: `1px solid ${T.semanticSuccess}35`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Home size={18} strokeWidth={1.5} color={T.semanticSuccess} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp }}>{ae?.dest_name ?? 'Destination'}</div>
-            <div style={{ fontSize: 10, color: tk.ts, marginTop: 2 }}>
-              ~{ae?.eta_minutes ?? '?'} min restantes
-            </div>
-          </div>
-          <div style={{
-            background: T.semanticSuccessSoft, border: `1px solid ${T.semanticSuccess}35`,
-            borderRadius: 100, padding: '5px 10px', fontSize: 11, fontWeight: 700, color: T.semanticSuccess, whiteSpace: 'nowrap',
-          }}>
-            {ae?.eta_minutes ?? '?'} min
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div style={{ height: 4, background: tk.bd, borderRadius: 2, marginBottom: 8, overflow: 'hidden' }}>
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: '35%' }}
-            style={{ height: '100%', background: `linear-gradient(90deg,${T.gradientStart},${T.semanticSuccess})`, borderRadius: 2 }}
-          />
-        </div>
-
-        {/* Context tags */}
-        <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
-          {[
-            { label: '2 incidents', color: T.semanticDanger, bg: T.semanticDangerSoft },
-            { label: '3 proches',   color: T.gradientStart,  bg: 'rgba(59,180,193,0.08)' },
-            { label: 'Zone calme',  color: T.semanticSuccess, bg: T.semanticSuccessSoft },
-          ].map(t => (
-            <span key={t.label} style={{
-              background: t.bg, border: `1px solid ${t.color}35`,
-              color: t.color, fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 100,
-            }}>
-              {t.label}
-            </span>
-          ))}
-        </div>
-
-        {/* Circle suiveurs */}
-        {escorte.circleMembers.filter(m => m.status !== 'inactive').length > 0 && (
-          <div style={{
-            ...cardSt, padding: '8px 12px', marginBottom: 10,
-            display: 'flex', alignItems: 'center', gap: 7,
-          }}>
-            <div style={{ display: 'flex' }}>
-              {escorte.circleMembers.filter(m => m.status !== 'inactive').slice(0, 3).map((m, i) => {
-                const name = m.profiles?.name ?? '?'
-                const col  = avatarColor(name)
-                return (
-                  <div key={m.id} style={{
-                    width: 22, height: 22, borderRadius: '50%',
-                    background: `${col}25`, border: `1.5px solid ${d ? T.surfaceCard : '#fff'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 8, fontWeight: 700, color: col, marginLeft: i > 0 ? -8 : 0,
-                  }}>
-                    {name[0]}
-                  </div>
-                )
-              })}
-            </div>
-            <span style={{ fontSize: 11, color: tk.ts }}>
-              {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).join(', ')} te suivent
-            </span>
-          </div>
-        )}
-
-        {/* Elapsed + actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 8 }}>
-          <button
-            onClick={handleShare}
-            style={{
-              ...cardSt, padding: '11px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', border: `1px solid ${tk.bd}`, fontFamily: 'inherit', fontSize: 12, fontWeight: 500, color: tk.ts,
-            }}
-          >
-            <Share2 size={14} strokeWidth={1.5} /> Partager
-          </button>
-          <button
-            onClick={handleSOS}
-            style={{
-              background: sosSent ? 'rgba(239,68,68,0.20)' : T.semanticDangerSoft,
-              border: `1px solid ${T.semanticDanger}35`,
-              borderRadius: T.radiusLg, padding: '11px 12px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              cursor: sosSent ? 'default' : 'pointer',
-              fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: T.semanticDanger,
-              transition: 'background 0.3s',
-            }}
-          >
-            {sosSent
-              ? <><Check size={14} strokeWidth={2.5} /> SOS envoyé</>
-              : <><AlertTriangle size={14} strokeWidth={1.5} /> SOS</>
-            }
-          </button>
-        </div>
-
-        <button
-          style={btnPrimary}
-          onClick={() => escorte.endEscorte(true)}
-        >
-          <Check size={15} strokeWidth={2.5} />
-          Je suis arrivee
-        </button>
-
-        <button
-          onClick={() => escorte.endEscorte(false)}
-          style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: tk.tt, marginTop: 4 }}
-        >
-          Terminer le trajet
-        </button>
-      </motion.div>
-    )
-  }
+  // ── VIEW : TRIP ACTIVE — delegated to TripHUD on map ──
+  const renderTripActive = () => null
 
   // ── VIEW : ARRIVED ─────────────────────────────
   const renderArrived = () => (
