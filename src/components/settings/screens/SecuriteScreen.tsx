@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/stores/useTheme';
+import { useStore } from '@/stores/useStore';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -77,7 +78,11 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
                 ? 'Chargement…'
                 : `${circleCount} contact${circleCount !== 1 ? 's' : ''} de confiance`
             }
-            onPress={comingSoon}
+            onPress={() => {
+              useStore.getState().setCommunityDefaultTab(1);
+              useStore.getState().setActiveTab('community');
+              onBack();
+            }}
           />
           <div style={divider} />
           <SettingsRow

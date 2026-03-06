@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, UserPlus, Send, Mail, Phone } from "lucide-react";
+import { X, Search, UserPlus, Send, Mail, Phone, User, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useNotificationStore } from "@/stores/notificationStore";
 
 interface Props {
   isDark: boolean;
@@ -12,12 +14,14 @@ interface Props {
   onAdded?: () => void;
 }
 
-type SearchMode = "email" | "phone";
+type SearchMode = "pseudo" | "email" | "phone";
 
 interface FoundProfile {
   id: string;
   display_name: string | null;
+  username: string | null;
   avatar_url: string | null;
+  is_verified: boolean;
 }
 
 const COUNTRY_CODES = [
@@ -29,22 +33,34 @@ const COUNTRY_CODES = [
 ];
 
 export default function AddCircleContactModal({ isDark, open, onClose, onAdded }: Props) {
-  const [mode, setMode] = useState<SearchMode>("email");
+  const [mode, setMode] = useState<SearchMode>("pseudo");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [pseudoQuery, setPseudoQuery] = useState("");
   const [countryCode, setCountryCode] = useState("+33");
   const [searching, setSearching] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [found, setFound] = useState<FoundProfile | null>(null);
+  // Pseudo mode: multiple results
+  const [pseudoResults, setPseudoResults] = useState<FoundProfile[]>([]);
+  const [pseudoSearching, setPseudoSearching] = useState(false);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pushToast = useNotificationStore((s) => s.pushToast);
 
   const reset = () => {
     setEmail("");
     setPhone("");
+    setPseudoQuery("");
     setSearched(false);
     setFound(null);
     setSearching(false);
-    setAdding(false);
+    setAdding(null);
+    setPseudoResults([]);
+    setPseudoSearching(false);
+    setSentIds(new Set());
   };
 
   const handleClose = () => {
@@ -52,6 +68,50 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
     onClose();
   };
 
+  // ── Pseudo search with debounce ──────────────────────────────────────────
+  const searchPseudo = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setPseudoResults([]);
+      setPseudoSearching(false);
+      return;
+    }
+    setPseudoSearching(true);
+    try {
+      const clean = query.startsWith("@") ? query.slice(1) : query;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url, is_verified")
+        .or(`username.ilike.${clean}%,display_name.ilike.%${clean}%`)
+        .limit(20);
+      setPseudoResults(
+        (data || []).map((p) => ({
+          id: p.id,
+          display_name: p.display_name,
+          username: p.username,
+          avatar_url: p.avatar_url,
+          is_verified: p.is_verified ?? false,
+        }))
+      );
+    } catch {
+      // silent
+    } finally {
+      setPseudoSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "pseudo") return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (pseudoQuery.length < 2) {
+      setPseudoResults([]);
+      return;
+    }
+    setPseudoSearching(true);
+    debounceRef.current = setTimeout(() => searchPseudo(pseudoQuery), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [pseudoQuery, mode, searchPseudo]);
+
+  // ── Email/Phone search ───────────────────────────────────────────────────
   const handleSearch = async () => {
     const value = mode === "email" ? email.trim() : `${countryCode}${phone.trim()}`;
     if (!value || (mode === "email" && !value.includes("@")) || (mode === "phone" && phone.trim().length < 6)) {
@@ -72,7 +132,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
       const data = await res.json();
       setSearched(true);
       if (data.found) {
-        setFound(data.profile);
+        setFound({ ...data.profile, username: null, is_verified: false });
       }
     } catch {
       toast.error("Erreur de recherche");
@@ -81,9 +141,62 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
     }
   };
 
+  // ── Send circle invitation (pseudo mode) ─────────────────────────────────
+  const handleInvite = async (target: FoundProfile) => {
+    setAdding(target.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Non connecté"); return; }
+
+      // Get my display name
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
+
+      // Insert invitation
+      const { error: invErr } = await supabase
+        .from("circle_invitations")
+        .insert({ sender_id: user.id, receiver_id: target.id });
+
+      if (invErr) {
+        if (invErr.code === "23505") {
+          toast.info("Invitation déjà envoyée");
+        } else {
+          toast.error(invErr.message);
+        }
+        return;
+      }
+
+      // Insert notification for receiver
+      await supabase.from("notifications").insert({
+        user_id: target.id,
+        type: "circle_invitation",
+        payload: {
+          senderId: user.id,
+          senderName: myProfile?.display_name ?? "Quelqu\u2019un",
+        },
+      });
+
+      setSentIds((prev) => new Set(prev).add(target.id));
+      pushToast({
+        type: "circle_invitation",
+        message: "Invitation envoyée",
+        subMessage: `${target.display_name ?? target.username ?? "Utilisateur"} recevra ta demande`,
+        variant: "success",
+      });
+    } catch {
+      toast.error("Erreur réseau");
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  // ── Legacy add (email/phone mode) ────────────────────────────────────────
   const handleAdd = async () => {
     if (!found) return;
-    setAdding(true);
+    setAdding(found.id);
     try {
       const res = await fetch("/api/circle/add", {
         method: "POST",
@@ -103,17 +216,16 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
     } catch {
       toast.error("Erreur reseau");
     } finally {
-      setAdding(false);
+      setAdding(null);
     }
   };
 
-  const handleInvite = async () => {
+  const handleExternalInvite = async () => {
     if (mode === "phone") {
       toast.info("Invitation par SMS bientot disponible");
       return;
     }
     toast.info("Invitation envoyee !");
-    // Fire-and-forget email invite for non-users
     try {
       await fetch("/api/circle/invite", {
         method: "POST",
@@ -207,34 +319,251 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                   marginBottom: 20,
                 }}
               >
-                {(["email", "phone"] as const).map((m) => (
+                {(["pseudo", "email", "phone"] as const).map((m) => (
                   <button
                     key={m}
-                    onClick={() => { setMode(m); setSearched(false); setFound(null); }}
+                    onClick={() => { setMode(m); setSearched(false); setFound(null); setPseudoResults([]); }}
                     style={{
                       flex: 1,
                       padding: "10px 0",
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: 600,
                       border: "none",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 6,
+                      gap: 5,
                       backgroundColor: mode === m ? (isDark ? "#1E293B" : "#F1F5F9") : "transparent",
                       color: mode === m ? "#3BB4C1" : textSecondary,
                       transition: "all 0.2s",
                     }}
                   >
-                    {m === "email" ? <Mail size={15} /> : <Phone size={15} />}
-                    {m === "email" ? "Email" : "Telephone"}
+                    {m === "pseudo" ? <User size={14} /> : m === "email" ? <Mail size={14} /> : <Phone size={14} />}
+                    {m === "pseudo" ? "Pseudo" : m === "email" ? "Email" : "Tél."}
                   </button>
                 ))}
               </div>
 
-              {/* Search input */}
-              {mode === "email" ? (
+              {/* ── Pseudo mode ──────────────────────────────────────── */}
+              {mode === "pseudo" && (
+                <>
+                  <div style={{ position: "relative", marginBottom: 16 }}>
+                    <input
+                      type="text"
+                      value={pseudoQuery}
+                      onChange={(e) => setPseudoQuery(e.target.value)}
+                      placeholder="@pseudo ou nom..."
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        paddingRight: pseudoResults.length > 0 ? 48 : 14,
+                        borderRadius: 12,
+                        border: `1px solid ${border}`,
+                        backgroundColor: inputBg,
+                        color: textPrimary,
+                        fontSize: 15,
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    {pseudoResults.length > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "#3BB4C1",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          borderRadius: 10,
+                          padding: "2px 7px",
+                          minWidth: 20,
+                          textAlign: "center",
+                        }}
+                      >
+                        {pseudoResults.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {pseudoQuery.length > 0 && pseudoQuery.length < 2 && (
+                    <div style={{ textAlign: "center", padding: "12px 0", color: textSecondary, fontSize: 13 }}>
+                      Tape 2 caractères minimum
+                    </div>
+                  )}
+
+                  {/* Skeletons */}
+                  {pseudoSearching && pseudoResults.length === 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: 12,
+                            borderRadius: 14,
+                            backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: "50%",
+                              background: isDark ? "#334155" : "#E2E8F0",
+                              animation: "pulse 1.5s ease-in-out infinite",
+                            }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div
+                              style={{
+                                width: 100 + i * 20,
+                                height: 12,
+                                borderRadius: 6,
+                                background: isDark ? "#334155" : "#E2E8F0",
+                                marginBottom: 6,
+                                animation: "pulse 1.5s ease-in-out infinite",
+                              }}
+                            />
+                            <div
+                              style={{
+                                width: 60,
+                                height: 10,
+                                borderRadius: 5,
+                                background: isDark ? "#334155" : "#E2E8F0",
+                                animation: "pulse 1.5s ease-in-out infinite",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Results list */}
+                  {pseudoResults.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {pseudoResults.map((user) => {
+                        const isSent = sentIds.has(user.id);
+                        return (
+                          <motion.div
+                            key={user.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              padding: 12,
+                              borderRadius: 14,
+                              backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                              border: `1px solid ${border}`,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                overflow: "hidden",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {user.avatar_url ? (
+                                <img
+                                  src={user.avatar_url}
+                                  alt=""
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
+                                  {(user.display_name ?? user.username ?? "?").charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: textPrimary }}>
+                                  {user.display_name ?? user.username ?? "Utilisateur"}
+                                </span>
+                                {user.is_verified && (
+                                  <BadgeCheck size={14} style={{ color: "#3BB4C1" }} />
+                                )}
+                              </div>
+                              {user.username && (
+                                <span style={{ fontSize: 12, color: textSecondary }}>
+                                  @{user.username}
+                                </span>
+                              )}
+                            </div>
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => !isSent && handleInvite(user)}
+                              disabled={adding === user.id || isSent}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 5,
+                                padding: "8px 14px",
+                                borderRadius: 10,
+                                border: "none",
+                                backgroundColor: isSent ? (isDark ? "#334155" : "#E2E8F0") : "#34D399",
+                                color: isSent ? textSecondary : "#FFFFFF",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: isSent ? "default" : adding === user.id ? "wait" : "pointer",
+                                opacity: adding === user.id ? 0.6 : 1,
+                              }}
+                            >
+                              {isSent ? (
+                                <>Envoyé ✓</>
+                              ) : (
+                                <>
+                                  <UserPlus size={14} />
+                                  Ajouter
+                                </>
+                              )}
+                            </motion.button>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* No results */}
+                  {pseudoQuery.length >= 2 && !pseudoSearching && pseudoResults.length === 0 && (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "24px 16px",
+                        borderRadius: 16,
+                        backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                        border: `1px solid ${border}`,
+                      }}
+                    >
+                      <p style={{ fontSize: 28, margin: "0 0 8px" }}>{"\u{1F50D}"}</p>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: textPrimary, margin: "0 0 4px" }}>
+                        Aucun résultat
+                      </p>
+                      <p style={{ fontSize: 13, color: textSecondary, margin: 0 }}>
+                        Essaie un autre pseudo ou nom
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Email mode ───────────────────────────────────────── */}
+              {mode === "email" && (
                 <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                   <input
                     type="email"
@@ -271,7 +600,10 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                     <Search size={18} />
                   </button>
                 </div>
-              ) : (
+              )}
+
+              {/* ── Phone mode ───────────────────────────────────────── */}
+              {mode === "phone" && (
                 <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
                   <select
                     value={countryCode}
@@ -330,127 +662,129 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                 </div>
               )}
 
-              {/* Results */}
-              {searching && (
-                <div style={{ textAlign: "center", padding: 20, color: textSecondary, fontSize: 14 }}>
-                  Recherche...
-                </div>
-              )}
+              {/* ── Email/Phone results ──────────────────────────────── */}
+              {(mode === "email" || mode === "phone") && (
+                <>
+                  {searching && (
+                    <div style={{ textAlign: "center", padding: 20, color: textSecondary, fontSize: 14 }}>
+                      Recherche...
+                    </div>
+                  )}
 
-              {searched && !searching && found && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: 16,
-                    borderRadius: 16,
-                    backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                    border: `1px solid ${border}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      overflow: "hidden",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {found.avatar_url ? (
-                      <img
-                        src={found.avatar_url}
-                        alt=""
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
-                        {(found.display_name ?? "?").charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: textPrimary }}>
-                      {found.display_name ?? "Utilisateur"}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: textSecondary }}>
-                      Membre Breveil
-                    </p>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleAdd}
-                    disabled={adding}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "10px 16px",
-                      borderRadius: 12,
-                      border: "none",
-                      backgroundColor: "#34D399",
-                      color: "#FFFFFF",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: adding ? "wait" : "pointer",
-                      opacity: adding ? 0.6 : 1,
-                    }}
-                  >
-                    <UserPlus size={16} />
-                    Ajouter
-                  </motion.button>
-                </motion.div>
-              )}
+                  {searched && !searching && found && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: 16,
+                        borderRadius: 16,
+                        backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                        border: `1px solid ${border}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {found.avatar_url ? (
+                          <img
+                            src={found.avatar_url}
+                            alt=""
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
+                            {(found.display_name ?? "?").charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: textPrimary }}>
+                          {found.display_name ?? "Utilisateur"}
+                        </p>
+                        <p style={{ margin: "2px 0 0", fontSize: 12, color: textSecondary }}>
+                          Membre Breveil
+                        </p>
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleAdd}
+                        disabled={adding === found.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "10px 16px",
+                          borderRadius: 12,
+                          border: "none",
+                          backgroundColor: "#34D399",
+                          color: "#FFFFFF",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: adding === found.id ? "wait" : "pointer",
+                          opacity: adding === found.id ? 0.6 : 1,
+                        }}
+                      >
+                        <UserPlus size={16} />
+                        Ajouter
+                      </motion.button>
+                    </motion.div>
+                  )}
 
-              {searched && !searching && !found && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    textAlign: "center",
-                    padding: "24px 16px",
-                    borderRadius: 16,
-                    backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                    border: `1px solid ${border}`,
-                  }}
-                >
-                  <p style={{ fontSize: 28, margin: "0 0 8px" }}>
-                    {"\u{1F50D}"}
-                  </p>
-                  <p style={{ fontSize: 15, fontWeight: 600, color: textPrimary, margin: "0 0 4px" }}>
-                    Pas encore sur Breveil
-                  </p>
-                  <p style={{ fontSize: 13, color: textSecondary, margin: "0 0 16px" }}>
-                    Envoyez-lui une invitation pour rejoindre votre cercle
-                  </p>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleInvite}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "10px 20px",
-                      borderRadius: 12,
-                      border: "none",
-                      backgroundColor: "#3BB4C1",
-                      color: "#FFFFFF",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Send size={15} />
-                    Envoyer une invitation
-                  </motion.button>
-                </motion.div>
+                  {searched && !searching && !found && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        textAlign: "center",
+                        padding: "24px 16px",
+                        borderRadius: 16,
+                        backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                        border: `1px solid ${border}`,
+                      }}
+                    >
+                      <p style={{ fontSize: 28, margin: "0 0 8px" }}>{"\u{1F50D}"}</p>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: textPrimary, margin: "0 0 4px" }}>
+                        Pas encore sur Breveil
+                      </p>
+                      <p style={{ fontSize: 13, color: textSecondary, margin: "0 0 16px" }}>
+                        Envoyez-lui une invitation pour rejoindre votre cercle
+                      </p>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleExternalInvite}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "10px 20px",
+                          borderRadius: 12,
+                          border: "none",
+                          backgroundColor: "#3BB4C1",
+                          color: "#FFFFFF",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Send size={15} />
+                        Envoyer une invitation
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </>
               )}
             </div>
           </motion.div>

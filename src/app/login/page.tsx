@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { registerPushSubscription } from '@/lib/pushSubscription';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -120,6 +121,7 @@ export default function LoginPage() {
       const userId = data.user?.id;
       if (userId) {
         const { data: profile } = await supabase.from('profiles').select('id').eq('id', userId).single();
+        if (profile) registerPushSubscription().catch(() => {});
         router.push(profile ? (nextPath || '/map') : '/onboarding');
       } else {
         router.push('/onboarding');

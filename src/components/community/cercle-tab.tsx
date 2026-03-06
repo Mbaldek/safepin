@@ -5,6 +5,7 @@ import { Check, X, Users, Plus } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useNotificationStore } from "@/stores/notificationStore";
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
@@ -114,6 +115,52 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
       setLoading(false);
     })();
   }, [userId, refreshKey]);
+
+  // ── Realtime: listen for accepted invitations I sent ────────────────────
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("circle_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "circle_invitations",
+          filter: `sender_id=eq.${userId}`,
+        },
+        async (payload) => {
+          const row = payload.new as { status: string; receiver_id: string };
+          if (row.status !== "accepted") return;
+
+          // Refresh circle list
+          setRefreshKey((k) => k + 1);
+
+          // Get receiver name for notification
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", row.receiver_id)
+            .single();
+
+          useNotificationStore.getState().addNotification({
+            id: `circle-accepted-${row.receiver_id}-${Date.now()}`,
+            type: "circle_accepted",
+            payload: {
+              receiverName: profile?.display_name ?? "Quelqu\u2019un",
+              receiverId: row.receiver_id,
+            },
+            read: false,
+            created_at: new Date().toISOString(),
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const handleAccept = async (requestId: string) => {
     const { error } = await supabase

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { registerPushSubscription } from '@/lib/pushSubscription';
 import PaywallScreen from '@/components/subscription/PaywallScreen';
 
 // ─── Exports ────────────────────────────────────────────────────────────────
@@ -337,6 +338,9 @@ export function OnboardingFunnel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       }).catch(() => {});
+
+      // Register push notifications — fire and forget
+      registerPushSubscription().catch(() => {});
 
       onComplete?.();
     } catch (e) {

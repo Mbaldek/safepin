@@ -43,8 +43,18 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
 
   const userId = useStore((s) => s.userId);
 
+  const communityDefaultTab = useStore((s) => s.communityDefaultTab);
+  const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
+
   const [activeTab, setActiveTab] = useState(0);
   const [showCompose, setShowCompose] = useState(false);
+
+  useEffect(() => {
+    if (communityDefaultTab !== null) {
+      setActiveTab(communityDefaultTab);
+      setCommunityDefaultTab(null);
+    }
+  }, [communityDefaultTab, setCommunityDefaultTab]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [storyIndex, setStoryIndex] = useState(0);
   const [showStoryCompose, setShowStoryCompose] = useState(false);

@@ -7,6 +7,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
 import SimulationTicker from '@/components/SimulationTicker';
+import GlobalToast from '@/components/GlobalToast';
 
 export const metadata: Metadata = {
   title: 'Breveil',
@@ -61,6 +62,7 @@ export default async function RootLayout({
             <SimulationTicker />
           </ThemeProvider>
         </NextIntlClientProvider>
+        <GlobalToast />
         <Toaster
           position="top-center"
           toastOptions={{

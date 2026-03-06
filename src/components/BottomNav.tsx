@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { MapPin, MessageCircle, Navigation, Sparkles, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
+import { useNotificationStore } from '@/stores/notificationStore';
 import { useTranslations } from 'next-intl';
 
 function getColors(isDark: boolean) {
@@ -32,6 +33,8 @@ export default function BottomNav() {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const C = getColors(isDark);
   const { activeTab, setActiveTab, pins, unreadDmCount } = useStore();
+  const badgeCount = useNotificationStore((s) => s.badgeCount);
+  const markAllRead = useNotificationStore((s) => s.markAllRead);
   const t = useTranslations('nav');
 
   const emergencyCount = pins.filter((p) => {
@@ -58,14 +61,18 @@ export default function BottomNav() {
         const label = t(key);
         const badge =
           id === 'map' && emergencyCount > 0 ? emergencyCount :
-          id === 'community' && unreadDmCount > 0 ? unreadDmCount : 0;
+          id === 'community' && (badgeCount + unreadDmCount) > 0 ? (badgeCount + unreadDmCount) : 0;
 
         const isDisabled = id === 'me';
 
         return (
           <button
             key={id}
-            onClick={() => { if (!isDisabled) setActiveTab(id); }}
+            onClick={() => {
+              if (isDisabled) return;
+              if (id === 'community') markAllRead();
+              setActiveTab(id);
+            }}
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
             aria-disabled={isDisabled || undefined}
@@ -86,9 +93,9 @@ export default function BottomNav() {
             {badge > 0 && (
               <span
                 className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-semibold flex items-center justify-center px-1 z-10"
-                style={{ color: '#fff', background: id === 'community' ? FIXED.accentCyan : FIXED.semanticDanger }}
+                style={{ color: '#fff', background: FIXED.semanticDanger }}
               >
-                {badge}
+                {badge > 9 ? '9+' : badge}
               </span>
             )}
 
