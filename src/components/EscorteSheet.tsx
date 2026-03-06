@@ -182,7 +182,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     'escorte-live':      '72vh',
     'trip-form':         '46vh',
     'trip-active':       '0px',
-    'arrived':           '68vh',
+    'arrived':           '0px',
   }
 
   const sheetH = SHEET_HEIGHTS[escorte.view] ?? '60vh'
@@ -580,6 +580,62 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </div>
       </div>
 
+      {/* Cercle + CTA card */}
+      <div style={{
+        background: 'rgba(59,180,193,0.08)', border: '1px solid rgba(59,180,193,0.25)',
+        borderRadius: 16, padding: '12px 14px', marginBottom: 12,
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: T.gradientStart, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+          TON CERCLE
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex' }}>
+              {['Marie','Tom','Alex','Sara'].map((name, i) => {
+                const col = avatarColor(name)
+                return (
+                  <div key={i} style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: `${col}25`, border: `2px solid ${d ? T.surfaceElevated : '#fff'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 700, color: col,
+                    marginLeft: i > 0 ? -9 : 0,
+                  }}>
+                    {name[0]}
+                  </div>
+                )
+              })}
+            </div>
+            <span style={{ fontSize: 12, color: tk.ts }}>4 personnes</span>
+          </div>
+          <button
+            style={{
+              ...btnPrimary,
+              width: 'auto', padding: '9px 16px',
+              opacity: escorte.isStarting ? 0.7 : 1,
+              cursor: escorte.isStarting ? 'default' : 'pointer',
+            }}
+            onClick={escorte.startEscorteImmediate}
+            disabled={escorte.isStarting}
+          >
+            <Users size={13} strokeWidth={2} />
+            {escorte.isStarting ? 'Connexion...' : 'Notifier mon cercle'}
+          </button>
+        </div>
+      </div>
+
+      {escorte.escorteError && (
+        <div style={{
+          marginBottom: 10, padding: '10px 14px',
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.20)',
+          borderRadius: 12, fontSize: 12,
+          color: '#EF4444',
+        }}>
+          {escorte.escorteError}
+        </div>
+      )}
+
       {/* 3 niveaux */}
       {[
         {
@@ -628,53 +684,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           </div>
         </div>
       ))}
-
-      {/* Circle preview */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '0 2px' }}>
-        <span style={{ fontSize: 12, color: tk.ts, flexShrink: 0 }}>Ton cercle :</span>
-        <div style={{ display: 'flex' }}>
-          {['Marie','Tom','Alex','Sara'].map((name, i) => {
-            const col = avatarColor(name)
-            return (
-              <div key={i} style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: `${col}25`, border: `2px solid ${d ? T.surfaceElevated : '#fff'}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 700, color: col,
-                marginLeft: i > 0 ? -9 : 0,
-              }}>
-                {name[0]}
-              </div>
-            )
-          })}
-        </div>
-        <span style={{ fontSize: 12, color: tk.ts }}>4 personnes</span>
-      </div>
-
-      {escorte.escorteError && (
-        <div style={{
-          marginBottom: 10, padding: '10px 14px',
-          background: 'rgba(239,68,68,0.08)',
-          border: '1px solid rgba(239,68,68,0.20)',
-          borderRadius: 12, fontSize: 12,
-          color: '#EF4444',
-        }}>
-          {escorte.escorteError}
-        </div>
-      )}
-
-      <button
-        style={{
-          ...btnPrimary,
-          opacity: escorte.isStarting ? 0.7 : 1,
-          cursor: escorte.isStarting ? 'default' : 'pointer',
-        }}
-        onClick={escorte.startEscorteImmediate}
-        disabled={escorte.isStarting}
-      >
-        <Users size={15} strokeWidth={2} />
-        {escorte.isStarting ? 'Connexion...' : 'Notifier mon cercle'}
-      </button>
     </motion.div>
   )
 
@@ -997,9 +1006,25 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             >
               <ChevronLeft size={10} strokeWidth={2.5} color={C.t2} />
             </button>
-            <span style={{ fontSize:13, fontWeight:700, color: C.btn }}>
+            <span style={{ fontSize:13, fontWeight:700, color: C.btn, flex:1 }}>
               Trajet avec destination
             </span>
+            {selectedDest && routeDurationLabel && (
+              <button
+                onClick={handleStartTrip}
+                disabled={escorte.isStarting}
+                style={{
+                  background: C.btn, color: C.btnTxt,
+                  padding:'8px 14px', borderRadius:99,
+                  fontSize:13, fontWeight:700, border:'none',
+                  cursor: escorte.isStarting ? 'default' : 'pointer',
+                  opacity: escorte.isStarting ? 0.7 : 1,
+                  fontFamily:'inherit', flexShrink:0,
+                }}
+              >
+                {routeDurationLabel} ➤
+              </button>
+            )}
           </div>
 
           {/* Card départ → destination */}
@@ -1227,92 +1252,124 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
 
   // ── VIEW : ARRIVED ─────────────────────────────
   const renderArrived = () => (
-    <motion.div
-      key="arrived"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0 }}
-      transition={gentleSpring}
-      style={{ padding: '16px 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none', textAlign: 'center' }}
-    >
+    <>
+      {/* Scrim */}
       <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: [0, 1.2, 1] }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+        key="arrived-scrim"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         style={{
-          width: 64, height: 64, borderRadius: '50%',
-          background: T.semanticSuccessSoft, border: `2px solid ${T.semanticSuccess}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 14px',
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(5px)',
+          WebkitBackdropFilter: 'blur(5px)',
+          zIndex: 299,
+        }}
+      />
+
+      {/* Modal card */}
+      <motion.div
+        key="arrived"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0 }}
+        transition={gentleSpring}
+        style={{
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '88%', maxWidth: 360,
+          maxHeight: '80vh', overflowY: 'auto',
+          borderRadius: 28,
+          background: tk.card,
+          zIndex: 300,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          border: `1px solid ${tk.bd}`,
+          padding: '28px 22px 22px',
+          textAlign: 'center',
+          scrollbarWidth: 'none',
         }}
       >
-        <Check size={28} strokeWidth={2.5} color={T.semanticSuccess} />
-      </motion.div>
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: [0, 1.2, 1] }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          style={{
+            width: 64, height: 64, borderRadius: '50%',
+            background: T.semanticSuccessSoft, border: `2px solid ${T.semanticSuccess}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 14px',
+          }}
+        >
+          <Check size={28} strokeWidth={2.5} color={T.semanticSuccess} />
+        </motion.div>
 
-      <div style={{ fontSize: 24, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous etes arrivee !</div>
-      <div style={{ fontSize: 13, color: tk.ts, marginBottom: 4 }}>
-        {escorte.activeEscorte?.dest_name ?? 'Destination'}
-      </div>
-      <div style={{ fontSize: 11, color: tk.tt, marginBottom: 16 }}>
-        Trajet enregistre · {Math.round(escorte.elapsed / 60)} min
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-        {[
-          { val: Math.round(escorte.elapsed / 60), unit: 'min',   color: tk.tp },
-          { val: '1,2',                            unit: 'km',    color: tk.tp },
-          { val: '6,8',                            unit: 'score', color: T.accentGold },
-        ].map((s, i) => (
-          <div key={i} style={{
-            background: i === 2 ? 'rgba(245,195,65,0.08)' : (d ? T.surfaceCard : T.surfaceBaseL),
-            border: `1px solid ${i === 2 ? 'rgba(245,195,65,0.18)' : tk.bd}`,
-            borderRadius: T.radiusLg, padding: '10px',
-          }}>
-            <div style={{ fontSize: 22, fontWeight: 600, color: s.color }}>{s.val}</div>
-            <div style={{ fontSize: 10, color: tk.tt }}>{s.unit}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Cercle merci */}
-      {escorte.circleMembers.filter(m => m.status !== 'inactive').length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'center',
-          marginBottom: 14, padding: '8px 14px',
-          background: T.semanticSuccessSoft, border: `1px solid ${T.semanticSuccess}25`,
-          borderRadius: 12,
-        }}>
-          <div style={{ display: 'flex' }}>
-            {escorte.circleMembers.filter(m => m.status !== 'inactive').slice(0, 2).map((m, i) => {
-              const name = m.profiles?.name ?? '?'
-              const col = avatarColor(name)
-              return (
-                <div key={m.id} style={{
-                  width: 22, height: 22, borderRadius: '50%', background: `${col}25`,
-                  border: `1.5px solid ${d ? T.surfaceCard : '#fff'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 8, fontWeight: 700, color: col, marginLeft: i > 0 ? -8 : 0,
-                }}>
-                  {name[0]}
-                </div>
-              )
-            })}
-          </div>
-          <span style={{ fontSize: 11, color: T.semanticSuccess }}>
-            {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' et ')} t'ont accompagnee
-          </span>
+        <div style={{ fontSize: 24, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous etes arrivee !</div>
+        <div style={{ fontSize: 13, color: tk.ts, marginBottom: 4 }}>
+          {escorte.activeEscorte?.dest_name ?? 'Destination'}
         </div>
-      )}
+        <div style={{ fontSize: 11, color: tk.tt, marginBottom: 16 }}>
+          Trajet enregistre · {Math.round(escorte.elapsed / 60)} min
+        </div>
 
-      <button style={btnPrimary} onClick={() => { escorte.setView('hub'); onClose() }}>
-        <MapPin size={14} strokeWidth={2} />
-        Retour a la carte
-      </button>
-      <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }}>
-        Voir le resume du trajet
-      </button>
-    </motion.div>
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
+          {[
+            { val: Math.round(escorte.elapsed / 60), unit: 'min',   color: tk.tp },
+            { val: '1,2',                            unit: 'km',    color: tk.tp },
+            { val: '6,8',                            unit: 'score', color: T.accentGold },
+          ].map((s, i) => (
+            <div key={i} style={{
+              background: i === 2 ? 'rgba(245,195,65,0.08)' : (d ? T.surfaceCard : T.surfaceBaseL),
+              border: `1px solid ${i === 2 ? 'rgba(245,195,65,0.18)' : tk.bd}`,
+              borderRadius: T.radiusLg, padding: '10px',
+            }}>
+              <div style={{ fontSize: 22, fontWeight: 600, color: s.color }}>{s.val}</div>
+              <div style={{ fontSize: 10, color: tk.tt }}>{s.unit}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Cercle merci */}
+        {escorte.circleMembers.filter(m => m.status !== 'inactive').length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'center',
+            marginBottom: 14, padding: '8px 14px',
+            background: T.semanticSuccessSoft, border: `1px solid ${T.semanticSuccess}25`,
+            borderRadius: 12,
+          }}>
+            <div style={{ display: 'flex' }}>
+              {escorte.circleMembers.filter(m => m.status !== 'inactive').slice(0, 2).map((m, i) => {
+                const name = m.profiles?.name ?? '?'
+                const col = avatarColor(name)
+                return (
+                  <div key={m.id} style={{
+                    width: 22, height: 22, borderRadius: '50%', background: `${col}25`,
+                    border: `1.5px solid ${d ? T.surfaceCard : '#fff'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 8, fontWeight: 700, color: col, marginLeft: i > 0 ? -8 : 0,
+                  }}>
+                    {name[0]}
+                  </div>
+                )
+              })}
+            </div>
+            <span style={{ fontSize: 11, color: T.semanticSuccess }}>
+              {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' et ')} t'ont accompagnee
+            </span>
+          </div>
+        )}
+
+        <button style={btnPrimary} onClick={() => { escorte.setView('hub'); onClose() }}>
+          <MapPin size={14} strokeWidth={2} />
+          Retour a la carte
+        </button>
+        <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }}>
+          Voir le resume du trajet
+        </button>
+      </motion.div>
+    </>
   )
 
   // ─────────────────────────────────────────────
@@ -1327,7 +1384,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           animate={{ opacity: 1, y: 0 }}
           style={{
             position: 'absolute', top: 16, left: 16, right: 16,
-            background: T.surfaceGlass, backdropFilter: 'blur(16px)',
+            background: tk.glass, backdropFilter: 'blur(16px)',
             border: `1px solid ${T.gradientStart}30`, borderRadius: T.radiusXl,
             padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
             pointerEvents: 'auto',
@@ -1340,7 +1397,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: T.gradientStart }}>Canal audio actif</div>
-            <div style={{ fontSize: 10, color: T.textSecondary }}>
+            <div style={{ fontSize: 10, color: tk.ts }}>
               {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' · ')} vous ecoutent
             </div>
           </div>
@@ -1392,9 +1449,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           style={{
-            position: 'absolute', bottom: 82, left: 12, right: 12,
-            background: T.surfaceGlass, backdropFilter: 'blur(20px)',
-            border: `1px solid ${T.borderSubtle}`, borderRadius: 20,
+            position: 'absolute', bottom: 72, left: 12, right: 12,
+            background: tk.glass, backdropFilter: 'blur(20px)',
+            border: `1px solid ${tk.bd}`, borderRadius: 20,
             padding: '14px 16px', pointerEvents: 'auto',
           }}
         >
@@ -1402,8 +1459,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
               style={{ width: 7, height: 7, borderRadius: '50%', background: T.gradientStart }}
             />
-            <span style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary, flex: 1 }}>Escorte active</span>
-            <span style={{ fontSize: 10, color: T.textTertiary, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: tk.tp, flex: 1 }}>Escorte active</span>
+            <span style={{ fontSize: 10, color: tk.tt, fontVariantNumeric: 'tabular-nums' }}>
               {formatElapsed(escorte.elapsed)}
             </span>
           </div>
@@ -1413,8 +1470,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               const name = m.profiles?.name ?? '?'
               const col  = avatarColor(name)
               const isActive = m.status !== 'inactive'
-              const bgColor  = m.status === 'following' ? T.semanticSuccessSoft : m.status === 'vocal' ? 'rgba(59,180,193,0.08)' : T.interactiveHover
-              const bdColor  = m.status === 'following' ? `${T.semanticSuccess}35` : m.status === 'vocal' ? `${T.gradientStart}35` : T.borderSubtle
+              const bgColor  = m.status === 'following' ? T.semanticSuccessSoft : m.status === 'vocal' ? 'rgba(59,180,193,0.08)' : tk.ih
+              const bdColor  = m.status === 'following' ? `${T.semanticSuccess}35` : m.status === 'vocal' ? `${T.gradientStart}35` : tk.bd
               return (
                 <div key={m.id} style={{
                   flex: 1, background: bgColor, border: `1px solid ${bdColor}`,
@@ -1428,8 +1485,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                     fontSize: 8, fontWeight: 700, color: col, flexShrink: 0,
                   }}>{name[0]}</div>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: T.textPrimary }}>{name}</div>
-                    <div style={{ fontSize: 9, color: m.status === 'following' ? T.semanticSuccess : m.status === 'vocal' ? T.gradientStart : T.textTertiary }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: tk.tp }}>{name}</div>
+                    <div style={{ fontSize: 9, color: m.status === 'following' ? T.semanticSuccess : m.status === 'vocal' ? T.gradientStart : tk.tt }}>
                       {m.status === 'following' ? '● Suit' : m.status === 'vocal' ? '🎙' : 'Hors ligne'}
                     </div>
                   </div>
