@@ -227,6 +227,10 @@ export function OnboardingFunnel({
   const customCityRef = useRef('');
   const [firstName, setFirstName] = useState('');
 
+  // PrenomStep local state (hoisted here so step can be called as function, not component)
+  const [localHasName, setLocalHasName] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+
   // FIX A — emoji avatar
   const [avatarEmoji, setAvatarEmoji] = useState('🌸');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -266,6 +270,11 @@ export function OnboardingFunnel({
   const toggleGoal = (id: string) => {
     setSelectedGoals(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
   };
+
+  // Sync localHasName when navigating to PrenomStep
+  useEffect(() => {
+    if (step === 4) setLocalHasName(firstNameRef.current.trim().length > 0);
+  }, [step]);
 
   // ─── Communities fetch ──────────────────────────────────────────────────
 
@@ -697,9 +706,6 @@ export function OnboardingFunnel({
   // ════════════════════════════════════════════════════════════════════════
 
   const PrenomStep = () => {
-    const [localHasName, setLocalHasName] = useState(firstNameRef.current.trim().length > 0);
-    const [emojiOpen, setEmojiOpen] = useState(false);
-
     return (
       <div style={stepContainer}>
         <button onClick={prevStep} style={closeBtn}><X size={20} /></button>
@@ -1315,7 +1321,7 @@ export function OnboardingFunnel({
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           style={{ height: '100%' }}
         >
-          <CurrentStep />
+          {CurrentStep()}
         </motion.div>
       </AnimatePresence>
     </div>
