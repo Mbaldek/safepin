@@ -667,6 +667,7 @@ function MapView({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const departDragMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
@@ -674,7 +675,7 @@ function MapView({
     setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations,
     userId, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
-    setTripPrefill, setActiveTab,
+    setTripPrefill, setActiveTab, departDragPin, setDepartDragPin,
   } = useStore(useShallow((s) => ({
     pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
@@ -687,6 +688,7 @@ function MapView({
     safeSpaces: s.safeSpaces, setSafeSpaces: s.setSafeSpaces,
     showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
     setTripPrefill: s.setTripPrefill, setActiveTab: s.setActiveTab,
+    departDragPin: s.departDragPin, setDepartDragPin: s.setDepartDragPin,
   })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -740,13 +742,6 @@ function MapView({
         showUserHeading: true,
       })
     );
-
-    map.current.on('click', (e) => {
-      const store = useStore.getState();
-      if (store.activeSheet === 'report') {
-        store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-      }
-    });
 
     // Long-press (2 s) → open Report sheet (add pin funnel)
     map.current.on('mousedown', (e) => {
@@ -807,6 +802,34 @@ function MapView({
     map.current.flyTo({ center: [mapFlyTo.lng, mapFlyTo.lat], zoom: mapFlyTo.zoom });
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
+
+  // Draggable departure pin
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady) return;
+
+    // Remove previous marker
+    departDragMarkerRef.current?.remove();
+    departDragMarkerRef.current = null;
+
+    if (!departDragPin) return;
+
+    const marker = new mapboxgl.Marker({ draggable: true, color: '#34D399' })
+      .setLngLat(departDragPin)
+      .addTo(m);
+
+    marker.on('dragend', () => {
+      const { lng, lat } = marker.getLngLat();
+      setDepartDragPin([lng, lat]);
+    });
+
+    departDragMarkerRef.current = marker;
+
+    return () => {
+      marker.remove();
+      departDragMarkerRef.current = null;
+    };
+  }, [departDragPin, mapReady, setDepartDragPin]);
 
   // Adjust map logical center when a bottom sheet opens/resizes/closes
   useEffect(() => {

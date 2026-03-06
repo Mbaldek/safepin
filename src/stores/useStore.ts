@@ -128,6 +128,8 @@ type Store = {
   setNewPinCoords: (coords: { lat: number; lng: number } | null) => void;
   mapFlyTo: { lat: number; lng: number; zoom: number } | null;
   setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
+  departDragPin: [number, number] | null;
+  setDepartDragPin: (coords: [number, number] | null) => void;
   userLocation: { lat: number; lng: number } | null;
   setUserLocation: (loc: { lat: number; lng: number } | null) => void;
 
@@ -322,6 +324,8 @@ export const useStore = create<Store>((set) => ({
   setNewPinCoords: (coords) => set({ newPinCoords: coords }),
   mapFlyTo: null,
   setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
+  departDragPin: null,
+  setDepartDragPin: (coords) => set({ departDragPin: coords }),
   userLocation: null,
   setUserLocation: (loc) => set({ userLocation: loc }),
 

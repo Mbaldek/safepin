@@ -8,12 +8,13 @@ import Link from 'next/link';
 export default function LoginPage() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get('next');
-  const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'magic' | 'reset'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [magicSent, setMagicSent] = useState(false);
+  const [sentMode, setSentMode] = useState<string>('magic');
   const router = useRouter();
 
   const gradient = 'linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%)';
@@ -42,12 +43,20 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      if (mode === 'magic') {
+      if (mode === 'reset') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        });
+        if (error) throw error;
+        setSentMode('reset');
+        setMagicSent(true);
+      } else if (mode === 'magic') {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: { emailRedirectTo: callbackUrl },
         });
         if (error) throw error;
+        setSentMode('magic');
         setMagicSent(true);
       } else if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
@@ -56,6 +65,7 @@ export default function LoginPage() {
           options: { emailRedirectTo: callbackUrl },
         });
         if (error) throw error;
+        setSentMode('signup');
         setMagicSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -117,9 +127,12 @@ export default function LoginPage() {
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 300, color: '#FFFFFF', marginBottom: 12 }}>Check ton email</h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 24 }}>
-            On t&apos;a envoyé un lien de connexion à <strong>{email}</strong>
+            {sentMode === 'reset'
+              ? <>On t&apos;a envoyé un lien de réinitialisation à <strong>{email}</strong></>
+              : <>On t&apos;a envoyé un lien de connexion à <strong>{email}</strong></>
+            }
           </p>
-          <button onClick={() => setMagicSent(false)} style={{ ...btnPrimary, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)' }}>
+          <button onClick={() => { setMagicSent(false); setMode('signin'); }} style={{ ...btnPrimary, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)' }}>
             Retour
           </button>
         </div>
@@ -193,7 +206,7 @@ export default function LoginPage() {
             required
             style={inputStyle}
           />
-          {mode !== 'magic' && (
+          {mode !== 'magic' && mode !== 'reset' && (
             <input
               type="password"
               placeholder="Mot de passe"
@@ -204,11 +217,20 @@ export default function LoginPage() {
               style={inputStyle}
             />
           )}
+          {mode === 'signin' && (
+            <button
+              type="button"
+              onClick={() => { setMode('reset'); setError(null); }}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', textAlign: 'right', padding: 0 }}
+            >
+              Mot de passe oublié ?
+            </button>
+          )}
           {error && (
             <p style={{ fontSize: 14, color: '#F87171', textAlign: 'center' }}>{error}</p>
           )}
           <button type="submit" disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, marginTop: 8 }}>
-            {loading ? 'Chargement...' : mode === 'magic' ? 'Envoyer le lien' : mode === 'signup' ? 'Créer un compte' : 'Se connecter'}
+            {loading ? 'Chargement...' : mode === 'reset' ? 'Envoyer le lien' : mode === 'magic' ? 'Envoyer le lien' : mode === 'signup' ? 'Créer un compte' : 'Se connecter'}
           </button>
         </form>
 

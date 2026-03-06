@@ -1,23 +1,27 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Send, Home, Navigation, Search, Shield, Clock,
   ChevronLeft, ChevronRight, Check, AlertTriangle, Share2,
   Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase, Sparkles,
-  Footprints, Train, Bike, Car
+  Footprints, Train, Bike, Car, Loader2, Edit3, ArrowUpDown
 } from 'lucide-react'
 import { T, tok, springConfig, gentleSpring } from '@/lib/tokens'
 import { useEscorte }       from '@/hooks/useEscorte'
 import { useFavoris }       from '@/hooks/useFavoris'
 import { useRecents }       from '@/hooks/useRecents'
-import { useMapboxSearch }  from '@/hooks/useMapboxSearch'
+import { useDestinationSearch, formatSearchDistance } from '@/hooks/useDestinationSearch'
+import type { SearchResult } from '@/hooks/useDestinationSearch'
 import { ContactRow }       from './escorte/ContactRow'
 import { FavoriButton }     from './escorte/FavoriButton'
 import {
   formatElapsed, formatCountdown, calcETA, calcDist, avatarColor
 } from '@/lib/escorteHelpers'
+import { fetchDirections, formatDuration, formatDistance } from '@/lib/directions'
+import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
+import { useStore } from '@/stores/useStore'
 import FavorisManager from './FavorisManager'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
@@ -41,7 +45,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   const escorte    = useEscorte(userId)
   const { favoris } = useFavoris(userId)
   const { recents } = useRecents(userId)
-  const mapbox      = useMapboxSearch()
+  const destSearch   = useDestinationSearch(userLat, userLng)
+  const departSearch = useDestinationSearch(userLat, userLng)
+  const { setPendingRoutes, setMapFlyTo, setDepartDragPin, departDragPin } = useStore()
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -50,6 +56,111 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   const [withCircle,  setWithCircle]  = useState(true)
   const [showFavoris, setShowFavoris] = useState(false)
   const [sosSent, setSosSent] = useState(false)
+
+  // ── Depart state ─────────────────────────────
+  const [departAddress, setDepartAddress] = useState<string | null>(null)
+  const [departCoords,  setDepartCoords]  = useState<[number, number] | null>(null)
+  const [editingDepart, setEditingDepart] = useState(false)
+  const [departQuery,   setDepartQuery]   = useState('')
+
+  // ── Route preview state ──────────────────────
+  const [routeInfo, setRouteInfo]         = useState<{ duration: number; distance: number } | null>(null)
+  const [loadingRoute, setLoadingRoute]   = useState(false)
+  const routeFetchRef = useRef(0)
+
+  // ── Reverse geocode user position ────────────
+  useEffect(() => {
+    if (!userLng || !userLat) return
+    setDepartCoords([userLng, userLat])
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${userLng},${userLat}.json` +
+      `?access_token=${token}&language=fr&types=address&limit=1`
+    )
+      .then(r => r.json())
+      .then(data => {
+        const place = data.features?.[0]
+        if (place) {
+          const full: string = place.place_name_fr ?? place.place_name ?? ''
+          const short = full.split(',').slice(0, 2).join(',').trim()
+          setDepartAddress(short || full)
+        }
+      })
+      .catch(() => {})
+  }, [userLat, userLng])
+
+  // ── Fetch route when depart + dest + mode change ─
+  useEffect(() => {
+    if (!departCoords || !selectedDest) {
+      setRouteInfo(null)
+      setPendingRoutes(null)
+      return
+    }
+
+    const fetchId = ++routeFetchRef.current
+    setLoadingRoute(true)
+
+    const from = departCoords
+    const to = selectedDest.center
+
+    ;(async () => {
+      try {
+        if (routeMode === 'transit') {
+          const routes = await fetchTransitRoute(from, to)
+          if (fetchId !== routeFetchRef.current) return
+          if (routes.length > 0) {
+            const best = routes[0]
+            setRouteInfo({ duration: best.totalDuration, distance: 0 })
+            setPendingRoutes([{
+              id: 'transit-0',
+              label: 'Transit',
+              color: '#A78BFA',
+              coords: best.coords,
+              duration: best.totalDuration,
+              distance: 0,
+              dangerScore: 0,
+            }])
+          } else {
+            setRouteInfo(null)
+            setPendingRoutes(null)
+          }
+        } else {
+          const result = await fetchDirections(from, to, routeMode)
+          if (fetchId !== routeFetchRef.current) return
+          if (result) {
+            setRouteInfo({ duration: result.duration, distance: result.distance })
+            const color = routeMode === 'walk' ? '#3BB4C1' : routeMode === 'bike' ? '#34D399' : '#F5C341'
+            setPendingRoutes([{
+              id: `${routeMode}-0`,
+              label: routeMode,
+              color,
+              coords: result.coords,
+              duration: result.duration,
+              distance: result.distance,
+              dangerScore: 0,
+            }])
+          } else {
+            setRouteInfo(null)
+            setPendingRoutes(null)
+          }
+        }
+      } catch {
+        if (fetchId === routeFetchRef.current) {
+          setRouteInfo(null)
+          setPendingRoutes(null)
+        }
+      } finally {
+        if (fetchId === routeFetchRef.current) setLoadingRoute(false)
+      }
+    })()
+  }, [departCoords, selectedDest, routeMode, setPendingRoutes])
+
+  // ── Fly to destination when selected ─────────
+  useEffect(() => {
+    if (!selectedDest) return
+    const [lng, lat] = selectedDest.center
+    setMapFlyTo({ lat, lng, zoom: 14 })
+  }, [selectedDest, setMapFlyTo])
 
   // ── Share position link ────────────────────────
   const handleShare = useCallback(async () => {
@@ -76,29 +187,35 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   }, [escorte, sosSent])
 
   // ── Sheet height per view ──────────────────────
-  const sheetHeights: Record<string, string> = {
-    'hub':              '68%',
-    'escorte-intro':    '80%',
-    'escorte-notifying':'72%',
-    'escorte-live':     '0%',
-    'trip-form':        '82%',
-    'trip-active':      '52%',
-    'arrived':          '62%',
+  const SHEET_HEIGHTS: Record<string, string> = {
+    'hub':               '52vh',
+    'escorte-intro':     '60vh',
+    'escorte-notifying': '72vh',
+    'escorte-live':      '72vh',
+    'trip-form':         '68vh',
+    'trip-active':       '64vh',
+    'arrived':           '72vh',
   }
 
-  const sheetH = sheetHeights[escorte.view] ?? '60%'
+  const sheetH = SHEET_HEIGHTS[escorte.view] ?? '60vh'
 
   // ── Search handler ─────────────────────────────
   const handleSearch = (v: string) => {
     setQuery(v)
     setSelectedDest(null)
-    mapbox.search(v, userLng && userLat ? [userLng, userLat] : undefined)
+    destSearch.search(v)
   }
 
-  const handleSuggestionSelect = (s: MapboxSuggestion) => {
-    setSelectedDest(s)
-    setQuery(s.place_name)
-    mapbox.clear()
+  const handleResultSelect = (r: SearchResult) => {
+    setSelectedDest({
+      id:         r.id,
+      place_name: r.address,
+      text:       r.name,
+      center:     [r.lng, r.lat],
+      place_type: [r.type],
+    })
+    setQuery(r.name)
+    destSearch.clear()
   }
 
   const handleFavoriSelect = (f: FavoriTrajet) => {
@@ -113,20 +230,126 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
     escorte.setView('trip-form')
   }
 
+  // ── Depart search handlers ───────────────────
+  const handleDepartSearch = (v: string) => {
+    setDepartQuery(v)
+    departSearch.search(v)
+  }
+
+  const handleDepartResultSelect = (r: SearchResult) => {
+    setDepartCoords([r.lng, r.lat])
+    setDepartAddress(r.name)
+    setDepartQuery('')
+    departSearch.clear()
+  }
+
+  // ── Back to hub — cleanup routes ─────────────
+  const handleBackToHub = () => {
+    escorte.setView('hub')
+    setSelectedDest(null)
+    setQuery('')
+    setRouteInfo(null)
+    setPendingRoutes(null)
+    setEditingDepart(false)
+    setDepartDragPin(null)
+    setDepartQuery('')
+  }
+
+  // ── Swap departure ↔ destination ───────────────
+  const handleSwapDepartDest = () => {
+    if (!selectedDest || !departCoords) return
+    const prevDepartAddr = departAddress
+    const prevDepartCoords = departCoords
+    setDepartCoords(selectedDest.center)
+    setDepartAddress(selectedDest.text)
+    setSelectedDest({
+      id:         'swap',
+      place_name: prevDepartAddr || 'Ma position actuelle',
+      text:       prevDepartAddr || 'Ma position actuelle',
+      center:     prevDepartCoords,
+      place_type: ['swap'],
+    })
+    setQuery(prevDepartAddr || 'Ma position actuelle')
+  }
+
+  // ── Open / close departure picker ────────────
+  const handleOpenDepartPicker = () => {
+    setEditingDepart(true)
+    if (departCoords) setDepartDragPin(departCoords)
+  }
+
+  const handleCloseDepartPicker = () => {
+    setEditingDepart(false)
+    setDepartDragPin(null)
+    setDepartQuery('')
+    departSearch.clear()
+  }
+
+  const handleResetToCurrentPosition = () => {
+    if (userLng && userLat) {
+      setDepartCoords([userLng, userLat])
+      setDepartDragPin([userLng, userLat])
+    }
+    // re-resolve address from GPS
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (userLng && userLat && token) {
+      fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${userLng},${userLat}.json` +
+        `?access_token=${token}&language=fr&types=address&limit=1`
+      )
+        .then(r => r.json())
+        .then(data => {
+          const place = data.features?.[0]
+          if (place) {
+            const full: string = place.place_name_fr ?? place.place_name ?? ''
+            const short = full.split(',').slice(0, 2).join(',').trim()
+            setDepartAddress(short || full)
+          }
+        })
+    }
+  }
+
+  // ── Watch draggable pin position changes → reverse geocode ──
+  useEffect(() => {
+    if (!departDragPin || !editingDepart) return
+    // Only update if coords differ from current departCoords
+    const [lng, lat] = departDragPin
+    if (departCoords && departCoords[0] === lng && departCoords[1] === lat) return
+    setDepartCoords([lng, lat])
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (!token) return
+    fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json` +
+      `?access_token=${token}&language=fr&types=address&limit=1`
+    )
+      .then(r => r.json())
+      .then(data => {
+        const place = data.features?.[0]
+        if (place) {
+          const full: string = place.place_name_fr ?? place.place_name ?? ''
+          const short = full.split(',').slice(0, 2).join(',').trim()
+          setDepartAddress(short || full)
+        }
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departDragPin])
+
   // ── Trip launch ────────────────────────────────
   const handleStartTrip = async () => {
-    if (!selectedDest) return
+    if (!selectedDest || !departCoords) return
     const [lng, lat] = selectedDest.center
-    const distKm = userLat && userLng
-      ? calcDist(userLat, userLng, lat, lng)
+    const distKm = departCoords
+      ? calcDist(departCoords[1], departCoords[0], lat, lng)
       : 1.5
+    const etaMin = routeInfo ? Math.round(routeInfo.duration / 60) : calcETA(distKm)
+    setPendingRoutes(null) // clear preview, useEscorte will set activeRoute
     await escorte.startTrip({
       destName:    selectedDest.text,
       destLat:     lat,
       destLng:     lng,
       destAddress: selectedDest.place_name,
       routeMode,
-      etaMinutes:  calcETA(distKm),
+      etaMinutes:  etaMin,
       withCircle,
     })
   }
@@ -535,181 +758,406 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
   }
 
   // ── VIEW : TRIP FORM ──────────────────────────
-  const renderTripForm = () => (
-    <motion.div
-      key="trip-form"
-      initial={{ opacity: 0, x: 32 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -32 }}
-      transition={springConfig}
-      style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
-    >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <button onClick={() => { escorte.setView('hub'); setSelectedDest(null); setQuery('') }} style={{
-          width: 30, height: 30, borderRadius: '50%', background: tk.ih,
-          border: `1px solid ${tk.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-        }}>
-          <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
-        </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Trajet avec destination</div>
-          <div style={{ fontSize: 11, color: tk.tt }}>Escorte par ton cercle</div>
-        </div>
-      </div>
-
-      {/* Depart */}
-      <div style={{
-        ...cardSt, padding: '10px 12px', marginBottom: 6,
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.semanticSuccess, flexShrink: 0 }} />
-        <span style={{ fontSize: 13, color: tk.ts }}>Ma position actuelle</span>
-      </div>
-
-      {/* Search */}
-      <div style={{
-        ...cardSt, padding: '10px 12px', marginBottom: 4,
-        display: 'flex', alignItems: 'center', gap: 8, position: 'relative',
-        border: selectedDest ? `1px solid ${T.gradientStart}45` : `1px solid ${tk.bd}`,
-        boxShadow: selectedDest ? `0 0 0 3px ${T.gradientStart}12` : 'none',
-      }}>
-        <Search size={15} strokeWidth={1.5} color={selectedDest ? T.gradientStart : tk.tt} />
-        <input
-          type="text"
-          placeholder="Rechercher une destination..."
-          value={query}
-          onChange={e => handleSearch(e.target.value)}
+  const renderResultList = (
+    results: SearchResult[],
+    onSelect: (r: SearchResult) => void,
+  ) => (
+    <div style={{ ...cardSt, overflow: 'hidden', marginBottom: 8 }}>
+      {results.map((r, i) => (
+        <button
+          key={r.id}
+          onClick={() => onSelect(r)}
           style={{
-            flex: 1, background: 'none', border: 'none', outline: 'none',
-            fontSize: 13, fontWeight: selectedDest ? 500 : 400,
-            color: selectedDest ? T.gradientStart : tk.ts, fontFamily: 'inherit',
+            width: '100%', background: 'none', border: 'none',
+            borderBottom: i < results.length - 1 ? `1px solid ${tk.bd}` : 'none',
+            padding: '10px 13px', display: 'flex', alignItems: 'center', gap: 10,
+            cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
           }}
-        />
-        {query && (
-          <button onClick={() => { setQuery(''); setSelectedDest(null); mapbox.clear() }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <X size={13} strokeWidth={2} color={tk.tt} />
-          </button>
-        )}
-      </div>
+        >
+          <div style={{
+            width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+            background: r.type === 'poi'
+              ? (d ? 'rgba(59,180,193,0.10)' : 'rgba(59,180,193,0.08)')
+              : tk.ih,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16,
+          }}>
+            {r.icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+            <div style={{ fontSize: 11, color: tk.tt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{r.address}</div>
+          </div>
+          {r.distance !== null && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: tk.tt, flexShrink: 0 }}>
+              {formatSearchDistance(r.distance)}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  )
 
-      {/* Suggestions dropdown */}
-      {mapbox.suggestions.length > 0 && (
-        <div style={{ ...cardSt, overflow: 'hidden', marginBottom: 8 }}>
-          {mapbox.suggestions.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => handleSuggestionSelect(s)}
-              style={{
-                width: '100%', background: 'none', border: 'none',
-                borderBottom: i < mapbox.suggestions.length - 1 ? `1px solid ${tk.bd}` : 'none',
-                padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-              }}
-            >
-              <MapPin size={13} strokeWidth={1.5} color={tk.tt} style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: tk.tp, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.text}</div>
-                <div style={{ fontSize: 10, color: tk.tt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.place_name}</div>
-              </div>
+  const renderTripForm = () => {
+    // ── STATE B: Departure picker ──
+    if (editingDepart) {
+      return (
+        <motion.div
+          key="depart-picker"
+          initial={{ opacity: 0, x: 32 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -32 }}
+          transition={springConfig}
+          style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <button onClick={handleCloseDepartPicker} style={{
+              width: 30, height: 30, borderRadius: '50%', background: tk.ih,
+              border: `1px solid ${tk.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}>
+              <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
             </button>
-          ))}
-        </div>
-      )}
-
-      {/* Favoris grid */}
-      {favoris.length > 0 && !query && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 8 }}>
-            Acces rapide
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Choisir le depart</div>
+              <div style={{ fontSize: 11, color: tk.tt }}>Deplace le pin ou recherche</div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
-            {favoris.map(f => (
-              <FavoriButton key={f.id} favori={f} isDark={d} onClick={handleFavoriSelect} />
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Transport mode */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 7 }}>
-          Mode de transport
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
-          {([
-            { key: 'walk',    Icon: Footprints, label: 'A pied',   color: T.gradientStart   },
-            { key: 'transit', Icon: Train,      label: 'Transport', color: T.accentPurple    },
-            { key: 'bike',    Icon: Bike,       label: 'Velo',      color: T.semanticSuccess },
-            { key: 'car',     Icon: Car,        label: 'Voiture',   color: T.accentGold      },
-          ] as const).map(mode => {
-            const active = routeMode === mode.key
-            return (
-              <button
-                key={mode.key}
-                onClick={() => setRouteMode(mode.key as RouteMode)}
-                style={{
-                  padding: '10px 6px', borderRadius: 10,
-                  background: active ? `${mode.color}12` : tk.ih,
-                  border: `1px solid ${active ? `${mode.color}40` : tk.bd}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                <mode.Icon size={16} strokeWidth={1.5} color={active ? mode.color : tk.tt} />
-                <span style={{ fontSize: 10, fontWeight: 500, color: active ? mode.color : tk.ts }}>{mode.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Escorte toggle — hidden for bike/car */}
-      {(routeMode === 'walk' || routeMode === 'transit') && (
-        <div style={{
-          background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
-          border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
-          borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
-        }}>
-          <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
-            Activer l'escorte cercle
-          </span>
+          {/* Ma position actuelle — card */}
           <button
-            onClick={() => setWithCircle(!withCircle)}
+            onClick={handleResetToCurrentPosition}
             style={{
-              width: 38, height: 21, borderRadius: 100,
-              background: withCircle ? T.gradientStart : tk.ih,
-              border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
-              padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-              flexShrink: 0, transition: 'background 200ms',
+              ...cardSt, width: '100%', padding: '12px 14px', marginBottom: 12,
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              textAlign: 'left', fontFamily: 'inherit',
+              border: `1px solid ${T.semanticSuccess}40`,
+              background: `${T.semanticSuccess}08`,
             }}
           >
-            <motion.div
-              animate={{ x: withCircle ? 17 : 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-            />
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: `${T.semanticSuccess}15`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <MapPin size={15} strokeWidth={1.5} color={T.semanticSuccess} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.semanticSuccess }}>Ma position actuelle</div>
+              <div style={{
+                fontSize: 11, color: tk.tt, marginTop: 1,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {departAddress || 'Position GPS'}
+              </div>
+            </div>
+            <Check size={14} strokeWidth={2} color={T.semanticSuccess} />
           </button>
-        </div>
-      )}
 
-      <motion.button
-        style={{
-          ...btnPrimary,
-          opacity:    selectedDest ? 1 : 0.45,
-          cursor:     selectedDest ? 'pointer' : 'default',
-          background: selectedDest ? (d ? '#FFFFFF' : '#0F172A') : tk.ih,
-          color:      selectedDest ? (d ? '#0F172A' : '#FFFFFF') : tk.tt,
-        }}
-        onClick={selectedDest ? handleStartTrip : undefined}
-        whileTap={selectedDest ? { scale: 0.98 } : {}}
+          {/* Separator */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+          }}>
+            <div style={{ flex: 1, height: 1, background: tk.bd }} />
+            <span style={{ fontSize: 11, fontWeight: 500, color: tk.tt, textTransform: 'uppercase', letterSpacing: '.06em' }}>ou</span>
+            <div style={{ flex: 1, height: 1, background: tk.bd }} />
+          </div>
+
+          {/* Address search */}
+          <div style={{
+            ...cardSt, padding: '10px 12px', marginBottom: 4,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <Search size={14} strokeWidth={1.5} color={tk.tt} />
+            <input
+              type="text"
+              placeholder="Rechercher une adresse..."
+              value={departQuery}
+              onChange={e => handleDepartSearch(e.target.value)}
+              autoFocus
+              style={{
+                flex: 1, background: 'none', border: 'none', outline: 'none',
+                fontSize: 13, color: tk.ts, fontFamily: 'inherit',
+              }}
+            />
+            {departQuery && (
+              <button onClick={() => { setDepartQuery(''); departSearch.clear() }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <X size={13} strokeWidth={2} color={tk.tt} />
+              </button>
+            )}
+          </div>
+
+          {/* Search results */}
+          {departSearch.results.length > 0 && renderResultList(departSearch.results, (r) => {
+            handleDepartResultSelect(r)
+            setDepartDragPin([r.lng, r.lat])
+          })}
+
+          {/* Current resolved address preview */}
+          {departAddress && (
+            <div style={{
+              marginTop: 12, padding: '10px 12px', borderRadius: 10,
+              background: `${T.gradientStart}08`,
+              border: `1px solid ${T.gradientStart}20`,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.semanticSuccess, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, color: tk.tt }}>Depart selectionne</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: tk.tp, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {departAddress}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Confirm button */}
+          <motion.button
+            style={{ ...btnPrimary, marginTop: 16 }}
+            onClick={handleCloseDepartPicker}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Check size={14} strokeWidth={2} />
+            Confirmer le depart
+          </motion.button>
+        </motion.div>
+      )
+    }
+
+    // ── STATE A + C: Main trip form ──
+    const routeDurationLabel = routeInfo
+      ? (routeMode === 'transit'
+          ? formatTransitDuration(routeInfo.duration)
+          : formatDuration(routeInfo.duration))
+      : null
+
+    return (
+      <motion.div
+        key="trip-form"
+        initial={{ opacity: 0, x: 32 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -32 }}
+        transition={springConfig}
+        style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
       >
-        <Navigation size={14} strokeWidth={2} />
-        Demarrer le trajet
-      </motion.button>
-    </motion.div>
-  )
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <button onClick={handleBackToHub} style={{
+            width: 30, height: 30, borderRadius: '50%', background: tk.ih,
+            border: `1px solid ${tk.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Trajet avec destination</div>
+            <div style={{ fontSize: 11, color: tk.tt }}>Escorte par ton cercle</div>
+          </div>
+        </div>
+
+        {/* ── Departure + Connector + Destination ── */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+          {/* Left rail: dots + connector + swap */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 14, width: 20 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.semanticSuccess, flexShrink: 0 }} />
+            <div style={{ width: 2, flex: 1, background: `${T.gradientStart}30`, minHeight: 8 }} />
+            <button
+              onClick={handleSwapDepartDest}
+              disabled={!selectedDest}
+              style={{
+                width: 22, height: 22, borderRadius: '50%',
+                background: selectedDest ? `${T.gradientStart}12` : tk.ih,
+                border: `1px solid ${selectedDest ? `${T.gradientStart}30` : tk.bd}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: selectedDest ? 'pointer' : 'default', padding: 0, flexShrink: 0,
+              }}
+            >
+              <ArrowUpDown size={10} strokeWidth={2} color={selectedDest ? T.gradientStart : tk.tt} />
+            </button>
+            <div style={{ width: 2, flex: 1, background: `${T.gradientStart}30`, minHeight: 8 }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.gradientStart, flexShrink: 0 }} />
+          </div>
+
+          {/* Right side: departure card + destination card */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Departure card */}
+            <button onClick={handleOpenDepartPicker} style={{
+              ...cardSt, padding: '10px 13px', width: '100%',
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              textAlign: 'left', fontFamily: 'inherit',
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, color: tk.tt, marginBottom: 1 }}>Depart</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {departAddress || 'Ma position actuelle'}
+                </div>
+              </div>
+              <Edit3 size={12} strokeWidth={1.5} color={tk.tt} />
+            </button>
+
+            {/* Destination search */}
+            <div style={{
+              ...cardSt, padding: '10px 12px',
+              display: 'flex', alignItems: 'center', gap: 8, position: 'relative',
+              border: selectedDest ? `1px solid ${T.gradientStart}45` : `1px solid ${tk.bd}`,
+              boxShadow: selectedDest ? `0 0 0 3px ${T.gradientStart}12` : 'none',
+            }}>
+              <Search size={15} strokeWidth={1.5} color={selectedDest ? T.gradientStart : tk.tt} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <input
+                  type="text"
+                  placeholder="Adresse, lieu, gare..."
+                  value={query}
+                  onChange={e => handleSearch(e.target.value)}
+                  style={{
+                    width: '100%', background: 'none', border: 'none', outline: 'none',
+                    fontSize: 13, fontWeight: selectedDest ? 500 : 400,
+                    color: selectedDest ? T.gradientStart : tk.ts, fontFamily: 'inherit',
+                  }}
+                />
+                {selectedDest && !query.includes(selectedDest.text) && (
+                  <div style={{ fontSize: 10, color: tk.tt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+                    {selectedDest.place_name}
+                  </div>
+                )}
+              </div>
+              {query && (
+                <button onClick={() => { setQuery(''); setSelectedDest(null); destSearch.clear() }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  <X size={13} strokeWidth={2} color={tk.tt} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Suggestions dropdown */}
+        {destSearch.loading && destSearch.results.length === 0 && (
+          <div style={{ padding: '10px 13px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Loader2 size={12} strokeWidth={1.5} color={T.gradientStart} style={{ animation: 'spin 0.6s linear infinite' }} />
+            <span style={{ fontSize: 12, color: tk.tt }}>Recherche en cours...</span>
+          </div>
+        )}
+        {destSearch.results.length > 0 && renderResultList(destSearch.results, handleResultSelect)}
+
+        {/* Favoris grid */}
+        {favoris.length > 0 && !query && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 8 }}>
+              Acces rapide
+            </div>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
+              {favoris.map(f => (
+                <FavoriButton key={f.id} favori={f} isDark={d} onClick={handleFavoriSelect} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Transport mode */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 7 }}>
+            Mode de transport
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
+            {([
+              { key: 'walk',    Icon: Footprints, label: 'A pied',   color: T.gradientStart   },
+              { key: 'transit', Icon: Train,      label: 'Transport', color: T.accentPurple    },
+              { key: 'bike',    Icon: Bike,       label: 'Velo',      color: T.semanticSuccess },
+              { key: 'car',     Icon: Car,        label: 'Voiture',   color: T.accentGold      },
+            ] as const).map(mode => {
+              const active = routeMode === mode.key
+              return (
+                <button
+                  key={mode.key}
+                  onClick={() => setRouteMode(mode.key as RouteMode)}
+                  style={{
+                    padding: '10px 6px', borderRadius: 10,
+                    background: active ? `${mode.color}12` : tk.ih,
+                    border: `1px solid ${active ? `${mode.color}40` : tk.bd}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  <mode.Icon size={16} strokeWidth={1.5} color={active ? mode.color : tk.tt} />
+                  <span style={{ fontSize: 10, fontWeight: 500, color: active ? mode.color : tk.ts }}>{mode.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Route estimation */}
+        {(loadingRoute || routeInfo) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            marginBottom: 10, padding: '6px 0',
+          }}>
+            {loadingRoute ? (
+              <Loader2 size={13} strokeWidth={1.5} color={T.gradientStart} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : routeInfo ? (
+              <>
+                <Clock size={12} strokeWidth={1.5} color={T.gradientStart} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: T.gradientStart }}>
+                  ~{routeDurationLabel}
+                </span>
+                {routeInfo.distance > 0 && (
+                  <span style={{ fontSize: 12, color: tk.tt }}>
+                    · {formatDistance(routeInfo.distance)}
+                  </span>
+                )}
+              </>
+            ) : null}
+          </div>
+        )}
+
+        {/* Escorte toggle — hidden for bike/car */}
+        {(routeMode === 'walk' || routeMode === 'transit') && (
+          <div style={{
+            background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
+            border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
+            borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+          }}>
+            <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
+            <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
+              Activer l'escorte cercle
+            </span>
+            <button
+              onClick={() => setWithCircle(!withCircle)}
+              style={{
+                width: 38, height: 21, borderRadius: 100,
+                background: withCircle ? T.gradientStart : tk.ih,
+                border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
+                padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                flexShrink: 0, transition: 'background 200ms',
+              }}
+            >
+              <motion.div
+                animate={{ x: withCircle ? 17 : 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+              />
+            </button>
+          </div>
+        )}
+
+        <motion.button
+          style={{
+            ...btnPrimary,
+            opacity:    selectedDest ? 1 : 0.45,
+            cursor:     selectedDest ? 'pointer' : 'default',
+            background: selectedDest ? (d ? '#FFFFFF' : '#0F172A') : tk.ih,
+            color:      selectedDest ? (d ? '#0F172A' : '#FFFFFF') : tk.tt,
+          }}
+          onClick={selectedDest ? handleStartTrip : undefined}
+          whileTap={selectedDest ? { scale: 0.98 } : {}}
+        >
+          <Navigation size={14} strokeWidth={2} />
+          {selectedDest && routeDurationLabel
+            ? `Demarrer · ${routeDurationLabel}`
+            : 'Demarrer le trajet'}
+        </motion.button>
+      </motion.div>
+    )
+  }
 
   // ── VIEW : TRIP ACTIVE ─────────────────────────
   const renderTripActive = () => {
@@ -1163,7 +1611,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
       </AnimatePresence>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, scrollbarWidth: 'none' }}>
         <AnimatePresence mode="wait">
           {escorte.view === 'hub'              && renderHub()}
           {escorte.view === 'escorte-intro'    && renderEscorteIntro()}
@@ -1181,6 +1629,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
             userId={userId}
             isDark={d}
             onClose={() => setShowFavoris(false)}
+            onSelect={(f) => { setShowFavoris(false); handleFavoriSelect(f) }}
           />
         )}
       </AnimatePresence>

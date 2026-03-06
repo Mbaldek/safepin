@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  X, Plus, Search, Home, Briefcase, Coffee, Star, MapPin, Trash2,
+  ChevronLeft, Plus, Search, Home, Briefcase, Coffee, Star, MapPin, Trash2,
 } from 'lucide-react'
 import { T, tok, springConfig } from '@/lib/tokens'
 import { useFavoris } from '@/hooks/useFavoris'
@@ -21,9 +21,10 @@ interface Props {
   userId: string
   isDark: boolean
   onClose: () => void
+  onSelect?: (f: import('@/types').FavoriTrajet) => void
 }
 
-export default function FavorisManager({ userId, isDark, onClose }: Props) {
+export default function FavorisManager({ userId, isDark, onClose, onSelect }: Props) {
   const d  = isDark
   const tk = tok(isDark)
 
@@ -93,10 +94,22 @@ export default function FavorisManager({ userId, isDark, onClose }: Props) {
         padding: '16px 20px 12px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: 10,
         borderBottom: `1px solid ${tk.bd}`,
         flexShrink: 0,
       }}>
+        <button
+          onClick={onClose}
+          style={{
+            width: 30, height: 30, borderRadius: '50%',
+            background: d ? '#334155' : '#F1F5F9',
+            border: `1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <ChevronLeft size={14} strokeWidth={2} color={d ? '#94A3B8' : '#64748B'} />
+        </button>
         <h2 style={{
           margin: 0,
           fontSize: 18,
@@ -105,17 +118,6 @@ export default function FavorisManager({ userId, isDark, onClose }: Props) {
         }}>
           Mes favoris
         </h2>
-        <button
-          onClick={onClose}
-          style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: d ? T.surfaceCard : T.surfaceCardL,
-            border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <X size={16} strokeWidth={1.5} color={d ? T.textSecondary : T.textSecondaryL} />
-        </button>
       </div>
 
       {/* List */}
@@ -153,7 +155,9 @@ export default function FavorisManager({ userId, isDark, onClose }: Props) {
                       background: d ? T.surfaceCard : T.surfaceCardL,
                       border: `1px solid ${tk.bd}`,
                       borderRadius: T.radiusMd,
+                      cursor: onSelect ? 'pointer' : undefined,
                     }}
+                    onClick={() => onSelect?.(f)}
                   >
                     {/* Icon */}
                     <div style={{
@@ -184,7 +188,7 @@ export default function FavorisManager({ userId, isDark, onClose }: Props) {
 
                     {/* Delete */}
                     <button
-                      onClick={() => deleteFavori(f.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteFavori(f.id) }}
                       style={{
                         width: 30, height: 30, borderRadius: '50%',
                         background: T.semanticDangerSoft,
