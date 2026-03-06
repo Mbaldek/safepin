@@ -21,7 +21,6 @@ const counters = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMITS: Record<string, { max: number; windowMs: number }> = {
   'POST:/api/notify-nearby':    { max: 5,  windowMs: 3_600_000 },
   'POST:/api/push-notify':      { max: 10, windowMs: 3_600_000 },
-  'POST:/api/invite/validate':  { max: 20, windowMs: 3_600_000 },
 };
 
 const DEFAULT_LIMIT = { max: 30, windowMs: 3_600_000 };

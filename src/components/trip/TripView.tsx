@@ -76,11 +76,11 @@ const noScrollbar: React.CSSProperties = {
 type AppState = "idle" | "walk" | "planifier" | "active" | "arrived" | "favoris" | "history";
 type WalkSubState = "intro" | "notifying" | "responding" | "active";
 
-interface TripViewV2Props {
+interface TripViewProps {
   onClose: () => void;
 }
 
-export default function TripViewV2({ onClose }: TripViewV2Props) {
+export default function TripView({ onClose }: TripViewProps) {
   const isDark = useTheme((s) => s.theme) === "dark";
   const userId = useStore((s) => s.userId);
   const isSharingLocation = useStore((s) => s.isSharingLocation);

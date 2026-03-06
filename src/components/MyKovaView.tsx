@@ -153,7 +153,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const {
     pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet, setPins, updatePin,
     setTripPrefill, setActiveTab,
-    myKovaInitialTab, setMyKovaInitialTab,
+    myBreveilInitialTab, setMyBreveilInitialTab,
   } = useStore();
 
   const t = useTranslations('mykova');
@@ -167,9 +167,9 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
   // Consume deep-link on mount
   useEffect(() => {
-    if (myKovaInitialTab && ['activity', 'saved', 'stats'].includes(myKovaInitialTab)) {
-      setActiveSubTab(myKovaInitialTab as MyKovaTab);
-      setMyKovaInitialTab(null);
+    if (myBreveilInitialTab && ['activity', 'saved', 'stats'].includes(myBreveilInitialTab)) {
+      setActiveSubTab(myBreveilInitialTab as MyKovaTab);
+      setMyBreveilInitialTab(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

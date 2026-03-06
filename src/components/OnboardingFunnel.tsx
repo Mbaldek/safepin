@@ -57,7 +57,7 @@ export function consumeOnboardingState(): { step: number; goals: string[] } | nu
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface OnboardingFunnelV2Props {
+interface OnboardingFunnelProps {
   userId?: string | null;
   onComplete?: () => void;
   onAuthComplete?: (userId: string) => void;
@@ -209,13 +209,13 @@ const btnOAuthStyle: React.CSSProperties = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function OnboardingFunnelV2({
+export function OnboardingFunnel({
   userId,
   onComplete,
   onAuthComplete,
   initialStep = 0,
   initialGoals,
-}: OnboardingFunnelV2Props) {
+}: OnboardingFunnelProps) {
   const [step, setStep] = useState(initialStep);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals ?? []);
 
@@ -323,7 +323,7 @@ export function OnboardingFunnelV2({
       localStorage.setItem('brume_onboarding_done', '1');
       onComplete?.();
     } catch (e) {
-      console.error('Complete error:', e);
+      console.error('[Onboarding] Erreur etape:', e);
     } finally {
       setIsSubmitting(false);
     }
@@ -1321,4 +1321,4 @@ export function OnboardingFunnelV2({
   );
 }
 
-export default OnboardingFunnelV2;
+export default OnboardingFunnel;

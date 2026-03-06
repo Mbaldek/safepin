@@ -30,7 +30,7 @@ import NearbySheet from '@/components/nearby/NearbySheet';
 import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
-import { useOnboardingDone } from '@/components/OnboardingFunnelV2';
+import { useOnboardingDone } from '@/components/OnboardingFunnel';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
@@ -103,7 +103,6 @@ export default function MapPage() {
     setStreakInfo, longestStreak,
     activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
-    tripNudge,
     showWalkWithMe, setShowWalkWithMe,
     mapFilters,
     showSafeSpaces, setShowSafeSpaces,

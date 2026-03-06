@@ -115,7 +115,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
     toast.info("Invitation envoyee !");
     // Fire-and-forget email invite for non-users
     try {
-      await fetch("/api/circle/invite-external", {
+      await fetch("/api/circle/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),

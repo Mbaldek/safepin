@@ -1,11 +1,5 @@
 import { create } from 'zustand';
-import { Pin, AppNotification, LiveSession, SafeSpace, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
-
-export type ReportTransport = {
-  isTransport: boolean | null;
-  type: string | null;
-  line: string;
-};
+import { Pin, AppNotification, LiveSession, SafeSpace } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
@@ -76,32 +70,6 @@ function saveLS(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
 }
 
-// One-time migration: copy kova_* localStorage keys to brume_* so existing users keep their data
-if (typeof window !== 'undefined' && !localStorage.getItem('brume_keys_migrated')) {
-  const renames: [string, string][] = [
-    ['kova_active_trip', 'brume_active_trip'],
-    ['kova_fav_routes', 'brume_fav_routes'],
-    ['brume_fav_places', 'brume_fav_places'],
-    ['brume_followed_pins', 'brume_followed_pins'],
-    ['brume_notif_settings', 'brume_notif_settings'],
-    ['brume_milestones', 'brume_milestones'],
-    ['kova-theme', 'brume-theme'],
-    ['kova_install_dismissed', 'brume_install_dismissed'],
-    ['kova_session_count', 'brume_session_count'],
-    ['kova_is_pro', 'brume_is_pro'],
-    ['kova_onboarding_done', 'brume_onboarding_done'],
-    ['kova_push_dismissed', 'brume_push_dismissed'],
-    ['kova_last_session_ts', 'brume_last_session_ts'],
-  ];
-  for (const [oldKey, newKey] of renames) {
-    const val = localStorage.getItem(oldKey);
-    if (val !== null && localStorage.getItem(newKey) === null) {
-      localStorage.setItem(newKey, val);
-    }
-  }
-  localStorage.setItem('brume_keys_migrated', '1');
-}
-
 type Store = {
   // Auth
   userId: string | null;
@@ -130,8 +98,6 @@ type Store = {
   setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
   departDragPin: [number, number] | null;
   setDepartDragPin: (coords: [number, number] | null) => void;
-  escorteView: string | null;
-  setEscorteView: (v: string | null) => void;
   userLocation: { lat: number; lng: number } | null;
   setUserLocation: (loc: { lat: number; lng: number } | null) => void;
 
@@ -194,20 +160,12 @@ type Store = {
   tripPrefill: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null;
   setTripPrefill: (p: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null) => void;
 
-  // Followed pins (Sprint 14)
-  followedPinIds: string[];
-  toggleFollowPin: (id: string) => void;
-
   // Live sessions (Sprint 20)
   liveSessions: LiveSession[];
   setLiveSessions: (sessions: LiveSession[]) => void;
   addLiveSession: (session: LiveSession) => void;
   removeLiveSession: (sessionId: string) => void;
   updateLiveSession: (session: LiveSession) => void;
-
-  // Notification settings (Sprint 14)
-  notifSettings: NotifSettings;
-  setNotifSettings: (s: NotifSettings) => void;
 
   // Achieved milestones (Sprint 16) — locally cached to avoid re-notifying
   achievedMilestones: string[];
@@ -244,14 +202,12 @@ type Store = {
   bumpPinsVersion: () => void;
 
   // Deep-link into My Breveil sub-tab (e.g. from Settings → Profile)
-  myKovaInitialTab: string | null;
-  setMyKovaInitialTab: (tab: string | null) => void;
+  myBreveilInitialTab: string | null;
+  setMyBreveilInitialTab: (tab: string | null) => void;
 
   // Active trip session (Live Safety Escort)
   activeTrip: TripSession | null;
   setActiveTrip: (t: TripSession | null) => void;
-  tripNudge: string | null;
-  setTripNudge: (msg: string | null) => void;
 
   // Streaks
   currentStreak: number;
@@ -266,18 +222,6 @@ type Store = {
   mapBottomPadding: number;
   setMapBottomPadding: (px: number) => void;
 
-  // Detail sheet expand
-  isDetailExpanded: boolean;
-  setDetailExpanded: (expanded: boolean) => void;
-
-  // Report flow
-  reportStep: number;
-  setReportStep: (step: number) => void;
-  reportCategory: string | null;
-  setReportCategory: (cat: string | null) => void;
-  reportTransport: ReportTransport;
-  setReportTransport: (transport: Partial<ReportTransport>) => void;
-  resetReport: () => void;
 };
 
 export const useStore = create<Store>((set) => ({
@@ -308,8 +252,6 @@ export const useStore = create<Store>((set) => ({
   setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
   departDragPin: null,
   setDepartDragPin: (coords) => set({ departDragPin: coords }),
-  escorteView: null,
-  setEscorteView: (v) => set({ escorteView: v }),
   userLocation: null,
   setUserLocation: (loc) => set({ userLocation: loc }),
 
@@ -377,16 +319,6 @@ export const useStore = create<Store>((set) => ({
   tripPrefill: null,
   setTripPrefill: (p) => set({ tripPrefill: p }),
 
-  // Followed pins
-  followedPinIds: loadLS<string[]>('brume_followed_pins', []),
-  toggleFollowPin: (id) =>
-    set((state) => {
-      const has = state.followedPinIds.includes(id);
-      const next = has ? state.followedPinIds.filter((x) => x !== id) : [...state.followedPinIds, id];
-      saveLS('brume_followed_pins', next);
-      return { followedPinIds: next };
-    }),
-
   // Live sessions
   liveSessions: [],
   setLiveSessions: (sessions) => set({ liveSessions: sessions }),
@@ -395,13 +327,6 @@ export const useStore = create<Store>((set) => ({
     set((state) => ({ liveSessions: state.liveSessions.filter((s) => s.id !== sessionId) })),
   updateLiveSession: (session) =>
     set((state) => ({ liveSessions: state.liveSessions.map((s) => s.id === session.id ? session : s) })),
-
-  // Notification settings
-  notifSettings: loadLS<NotifSettings>('brume_notif_settings', DEFAULT_NOTIF_SETTINGS),
-  setNotifSettings: (s) => {
-    saveLS('brume_notif_settings', s);
-    set({ notifSettings: s });
-  },
 
   // Achieved milestones
   achievedMilestones: loadLS<string[]>('brume_milestones', []),
@@ -444,8 +369,8 @@ export const useStore = create<Store>((set) => ({
   bumpPinsVersion: () => set((state) => ({ pinsVersion: state.pinsVersion + 1 })),
 
   // My Breveil deep-link
-  myKovaInitialTab: null,
-  setMyKovaInitialTab: (tab) => set({ myKovaInitialTab: tab }),
+  myBreveilInitialTab: null,
+  setMyBreveilInitialTab: (tab) => set({ myBreveilInitialTab: tab }),
 
   // Active trip session (Live Safety Escort)
   activeTrip: loadLS<TripSession | null>('brume_active_trip', null),
@@ -454,9 +379,6 @@ export const useStore = create<Store>((set) => ({
     else { try { localStorage.removeItem('brume_active_trip'); } catch { /* */ } }
     set({ activeTrip: t });
   },
-  tripNudge: null,
-  setTripNudge: (msg) => set({ tripNudge: msg }),
-
   // Streaks
   currentStreak: 0,
   longestStreak: 0,
@@ -470,31 +392,4 @@ export const useStore = create<Store>((set) => ({
   mapBottomPadding: 0,
   setMapBottomPadding: (px) => set({ mapBottomPadding: px }),
 
-  // Detail sheet expand
-  isDetailExpanded: false,
-  setDetailExpanded: (expanded) => set({ isDetailExpanded: expanded }),
-
-  // Report flow
-  reportStep: 1,
-  setReportStep: (step) => set({ reportStep: step }),
-  reportCategory: null,
-  setReportCategory: (cat) => set({ reportCategory: cat }),
-  reportTransport: { isTransport: null, type: null, line: '' },
-  setReportTransport: (transport) => set((state) => ({
-    reportTransport: { ...state.reportTransport, ...transport },
-  })),
-  resetReport: () => set({
-    reportStep: 1,
-    reportCategory: null,
-    reportTransport: { isTransport: null, type: null, line: '' },
-  }),
 }));
-
-// Shallow selectors for performance — prevent unnecessary re-renders
-export const useUserId = () => useStore((s) => s.userId);
-export const usePins = () => useStore((s) => s.pins);
-export const useActiveTab = () => useStore((s) => s.activeTab);
-export const useActiveSheet = () => useStore((s) => s.activeSheet);
-export const useMapFilters = () => useStore((s) => s.mapFilters);
-export const useStreak = () => useStore((s) => ({ current: s.currentStreak, longest: s.longestStreak }));
-export const useActiveTrip = () => useStore((s) => s.activeTrip);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import OnboardingFunnelV2, { consumeOnboardingState } from '@/components/OnboardingFunnelV2';
+import OnboardingFunnel, { consumeOnboardingState } from '@/components/OnboardingFunnel';
 
 export default function OnboardingGatePage() {
   const router = useRouter();
@@ -93,7 +93,7 @@ export default function OnboardingGatePage() {
   }
 
   return (
-    <OnboardingFunnelV2
+    <OnboardingFunnel
       userId={userId}
       initialStep={initialStep}
       initialGoals={initialGoals}

@@ -191,7 +191,7 @@ export function ReportSheet() {
       setStep(4);
       setTimeout(handleClose, 1500);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('[ReportSheet] Erreur envoi:', error);
     } finally {
       setIsSubmitting(false);
     }
