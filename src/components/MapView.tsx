@@ -482,10 +482,16 @@ function addClusterLayers(m: mapboxgl.Map) {
       'circle-radius': [
         'step', ['get', 'point_count'],
         18,
-        10, 21,
-        30, 24,
+        10, 22,
+        30, 26,
       ],
-      'circle-color': '#EF4444',
+      'circle-color': [
+        'case',
+        ['>', ['get', 'urgent'],   0], '#F87171',
+        ['>', ['get', 'warning'],  0], '#FBBF24',
+        ['>', ['get', 'positive'], 0], '#34D399',
+        '#94A3B8',
+      ],
       'circle-opacity': 0.92,
       'circle-stroke-width': 2,
       'circle-stroke-color': '#ffffff',
@@ -504,10 +510,16 @@ function addClusterLayers(m: mapboxgl.Map) {
       'circle-radius': [
         'step', ['get', 'point_count'],
         24,
-        10, 27,
-        30, 30,
+        10, 28,
+        30, 32,
       ],
-      'circle-color': '#EF4444',
+      'circle-color': [
+        'case',
+        ['>', ['get', 'urgent'],   0], '#F87171',
+        ['>', ['get', 'warning'],  0], '#FBBF24',
+        ['>', ['get', 'positive'], 0], '#34D399',
+        '#94A3B8',
+      ],
       'circle-opacity': 0.15,
       'circle-stroke-width': 0,
     },
@@ -694,6 +706,7 @@ function MapView({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const departDragMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const reportPinRef = useRef<mapboxgl.Marker | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
@@ -733,6 +746,8 @@ function MapView({
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
+  const sosClusterMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const sosPulseThrottleRef = useRef(0);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
   const LABEL_ZOOM_THRESHOLD = 13;
   const effectiveLabels = showPinLabels && labelsVisible;
@@ -907,6 +922,31 @@ function MapView({
     return () => { m.off('moveend', onMoveEnd); unsub(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady]);
+
+  // Report pin marker — follows newPinCoords in real time
+  useEffect(() => {
+    if (!map.current) return;
+    if (activeSheet === 'report' && newPinCoords) {
+      if (!reportPinRef.current) {
+        const el = document.createElement('div');
+        el.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;animation:report-pin-pulse 1.5s ease-in-out infinite">
+              <div style="width:14px;height:14px;border-radius:50%;background:#EF4444;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
+            </div>
+            <div style="width:2px;height:8px;background:#EF4444;border-radius:1px;margin-top:-2px"></div>
+          </div>`;
+        reportPinRef.current = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([newPinCoords.lng, newPinCoords.lat])
+          .addTo(map.current);
+      } else {
+        reportPinRef.current.setLngLat([newPinCoords.lng, newPinCoords.lat]);
+      }
+    } else {
+      reportPinRef.current?.remove();
+      reportPinRef.current = null;
+    }
+  }, [activeSheet, newPinCoords]);
 
   // Draw / clear trip route
   useEffect(() => {
@@ -1320,6 +1360,70 @@ function MapView({
     ghostTrailRef.current = [];
   }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet]);
 
+  // SOS pulse markers on clusters containing emergency pins
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !mapReady || !layersReady) return;
+
+    const updateSosPulse = () => {
+      const now = Date.now();
+      if (now - sosPulseThrottleRef.current < 500) return;
+      sosPulseThrottleRef.current = now;
+
+      const sosPins = new Set(
+        pins.filter((p) => p.is_emergency && !p.resolved_at).map((p) => p.id),
+      );
+      if (sosPins.size === 0) {
+        sosClusterMarkersRef.current.forEach((mk) => mk.remove());
+        sosClusterMarkersRef.current.clear();
+        return;
+      }
+
+      const clusterFeatures = m.queryRenderedFeatures({ layers: ['clusters'] });
+      const activeClusterIds = new Set<string>();
+      const src = m.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+      if (!src) return;
+
+      for (const feat of clusterFeatures) {
+        const clusterId = feat.properties?.cluster_id;
+        if (clusterId == null) continue;
+        const key = String(clusterId);
+        const coords = (feat.geometry as GeoJSON.Point).coordinates as [number, number];
+
+        src.getClusterLeaves(clusterId, 999, 0, (_err, leaves) => {
+          if (!leaves) return;
+          const hasEmergency = leaves.some(
+            (l) => l.properties?.categoryGroup === 'urgent' && sosPins.has(l.properties?.id),
+          );
+          if (!hasEmergency) return;
+          activeClusterIds.add(key);
+
+          if (!sosClusterMarkersRef.current.has(key)) {
+            const el = document.createElement('div');
+            el.style.cssText = 'width:52px;height:52px;border-radius:50%;border:2.5px solid #EF4444;animation:sosPulse 1.4s ease-out infinite;pointer-events:none;';
+            const mk = new mapboxgl.Marker({ element: el, anchor: 'center' })
+              .setLngLat(coords)
+              .addTo(m);
+            sosClusterMarkersRef.current.set(key, mk);
+          } else {
+            sosClusterMarkersRef.current.get(key)!.setLngLat(coords);
+          }
+        });
+      }
+
+      // Cleanup stale markers
+      setTimeout(() => {
+        sosClusterMarkersRef.current.forEach((mk, key) => {
+          if (!activeClusterIds.has(key)) { mk.remove(); sosClusterMarkersRef.current.delete(key); }
+        });
+      }, 100);
+    };
+
+    m.on('render', updateSosPulse);
+    updateSosPulse();
+    return () => { m.off('render', updateSosPulse); };
+  }, [pins, mapReady, layersReady]);
+
   // Show / hide Paris transit station dots (Bus / Metro-RER split)
   useEffect(() => {
     const m = map.current;
@@ -1637,64 +1741,29 @@ function MapView({
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Report-mode center pin preview — always at map center, coords follow via moveend */}
-      {activeSheet === 'report' && newPinCoords && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -100%)',
-            zIndex: 10,
-            pointerEvents: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: 'rgba(239,68,68,0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'report-pin-pulse 1.5s ease-in-out infinite',
-            }}
-          >
-            <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-          </div>
-          <div style={{ width: 2, height: 8, background: '#EF4444', borderRadius: 1, marginTop: -2 }} />
-        </div>
-      )}
-
-      {/* Compass button — visible when map is rotated */}
-      {Math.abs(bearing) > 1 && (
+      {/* Compass button — visible when map is rotated, below GPS control */}
+      {Math.abs(bearing) > 2 && (
         <button
           onClick={() => map.current?.easeTo({ bearing: 0, duration: 400 })}
           style={{
             position: 'absolute',
             top: 160,
             right: 10,
-            width: 30,
-            height: 30,
-            borderRadius: 4,
+            width: 40,
+            height: 40,
+            borderRadius: 8,
             backgroundColor: '#fff',
             border: 'none',
-            boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            zIndex: 2,
-            transform: `rotate(${-bearing}deg)`,
-            transition: 'transform 0.1s ease',
+            zIndex: 10,
           }}
           aria-label="Reset north"
         >
-          <Navigation size={16} strokeWidth={2} color="#333" fill="#e74c3c" />
+          <Navigation size={18} strokeWidth={2} color="#333" fill="#e74c3c" style={{ transform: `rotate(${-bearing}deg)`, transition: 'transform 0.2s ease' }} />
         </button>
       )}
 
