@@ -93,6 +93,41 @@ export default function MessagesTab({ isDark, userId }: MessagesTabProps) {
     })();
   }, [userId]);
 
+  // Realtime: refresh conversation list on new messages
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("dm_list_updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "dm_conversations",
+        },
+        (payload) => {
+          const row = payload.new as any;
+          if (row.user1_id !== userId && row.user2_id !== userId) return;
+          setConversations((prev) => {
+            const updated = prev.map((c) => {
+              if (c.id !== row.id) return c;
+              const readAt = row.user1_id === userId ? row.user1_last_read_at : row.user2_last_read_at;
+              return {
+                ...c,
+                last_message: row.last_message ?? null,
+                last_message_at: row.last_message_at || row.created_at,
+                is_unread: !readAt || new Date(row.last_message_at) > new Date(readAt),
+              };
+            });
+            return updated.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
   // If a conversation is selected, show ChatView
   if (selectedConvo && userId) {
     return (

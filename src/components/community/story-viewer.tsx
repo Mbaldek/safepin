@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { X, Heart, Send, Share2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export interface DBStory {
   id: string;
@@ -69,7 +70,8 @@ export default function StoryViewer({
       .from("story_likes")
       .select("id, user_id", { count: "exact" })
       .eq("story_id", story.id)
-      .then(({ count, data }) => {
+      .then(({ count, data, error }) => {
+        if (error) { console.error("[story-likes]", error.message); return; }
         setLikeCount(count ?? 0);
         if (userId && data) {
           setLiked(data.some((r) => r.user_id === userId));
@@ -82,24 +84,30 @@ export default function StoryViewer({
     if (liked) {
       setLiked(false);
       setLikeCount((c) => Math.max(0, c - 1));
-      await supabase.from("story_likes").delete().eq("story_id", story.id).eq("user_id", userId);
+      const { error } = await supabase.from("story_likes").delete().eq("story_id", story.id).eq("user_id", userId);
+      if (error) { setLiked(true); setLikeCount((c) => c + 1); }
     } else {
       setLiked(true);
       setLikeCount((c) => c + 1);
-      await supabase.from("story_likes").insert({ story_id: story.id, user_id: userId });
+      const { error } = await supabase.from("story_likes").insert({ story_id: story.id, user_id: userId });
+      if (error) { setLiked(false); setLikeCount((c) => Math.max(0, c - 1)); }
     }
   }, [story, userId, liked]);
 
   const sendMessage = useCallback(async () => {
     if (!message.trim() || !story || !userId || sending) return;
     setSending(true);
-    await supabase.from("story_messages").insert({
+    const { error } = await supabase.from("story_messages").insert({
       story_id: story.id,
       sender_id: userId,
       content: message.trim(),
     });
-    setMessage("");
     setSending(false);
+    if (error) {
+      toast.error("Erreur d\u2019envoi");
+      return;
+    }
+    setMessage("");
     setSent(true);
     setTimeout(() => setSent(false), 2000);
   }, [message, story, userId, sending]);

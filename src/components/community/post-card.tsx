@@ -83,6 +83,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
   const [confirmCount, setConfirmCount] = useState(post.confirmations || 0);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [likeLoading, setLikeLoading] = useState(false);
   const [participating, setParticipating] = useState(false);
   const [participantCount, setParticipantCount] = useState(post.participants || 0);
   const [bookmarked, setBookmarked] = useState(false);
@@ -146,6 +147,20 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
     setSubmitting(false);
   };
 
+  // Load like state from DB
+  useEffect(() => {
+    if (!currentUserId) return;
+    supabase
+      .from("post_likes")
+      .select("id, user_id", { count: "exact" })
+      .eq("post_id", post.id)
+      .then(({ count, data }) => {
+        setLikeCount(count ?? 0);
+        if (data) setLiked(data.some((r) => r.user_id === currentUserId));
+      })
+      .catch(() => {});
+  }, [post.id, currentUserId]);
+
   const isOwn = !!(currentUserId && post.userId === currentUserId);
 
   // Close menu on outside click
@@ -167,9 +182,21 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
     }
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount((c) => (liked ? c - 1 : c + 1));
+  const handleLike = async () => {
+    if (!currentUserId || likeLoading) return;
+    setLikeLoading(true);
+    if (liked) {
+      setLiked(false);
+      setLikeCount((c) => Math.max(0, c - 1));
+      const { error } = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
+      if (error) { setLiked(true); setLikeCount((c) => c + 1); }
+    } else {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+      const { error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId });
+      if (error) { setLiked(false); setLikeCount((c) => Math.max(0, c - 1)); }
+    }
+    setLikeLoading(false);
   };
 
   const handleParticipate = () => {
