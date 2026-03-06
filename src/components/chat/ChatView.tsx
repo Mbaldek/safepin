@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Send } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { sendSupportMessage, markConversationRead } from '@/lib/support';
+import EmojiPickerButton from '@/components/ui/EmojiPickerButton';
+import { sendSupportMessage, markConversationRead, notifyDmRecipient } from '@/lib/support';
 import ChatBubble, { type ChatColors } from './ChatBubble';
 import type { DirectMessage } from '@/types';
 
@@ -19,6 +20,7 @@ export interface ChatViewProps {
   inputBorder: string;
   inputText: string;
   buttonBg: string;
+  isDark?: boolean;
   onBack?: () => void;
 }
 
@@ -32,6 +34,7 @@ export default function ChatView({
   inputBorder,
   inputText,
   buttonBg,
+  isDark = false,
 }: ChatViewProps) {
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [text, setText] = useState('');
@@ -123,6 +126,8 @@ export default function ChatView({
     setSending(true);
     try {
       await sendSupportMessage(conversationId, sendAsUserId, trimmed);
+      // Push notification to recipient (fire-and-forget)
+      notifyDmRecipient(conversationId, sendAsUserId, trimmed);
       setText('');
       inputRef.current?.focus();
     } finally {
@@ -181,6 +186,7 @@ export default function ChatView({
           background: inputBg,
         }}
       >
+        <EmojiPickerButton onSelect={e => setText(p => p + e)} isDark={isDark} />
         <input
           ref={inputRef}
           type="text"

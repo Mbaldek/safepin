@@ -322,7 +322,29 @@ export default function MapPage() {
     }
     fetchUnread();
     const iv = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(iv);
+
+    // Realtime: instant badge update when a DM conversation is updated
+    const channel = supabase
+      .channel('dm_badge_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'dm_conversations' },
+        (payload) => {
+          const row = payload.new as any;
+          if (row.user1_id !== userId && row.user2_id !== userId) return;
+          if (row.last_message_sender_id === userId) return; // I sent it
+          const readAt = row.user1_id === userId ? row.user1_last_read_at : row.user2_last_read_at;
+          if (!readAt || new Date(row.last_message_at) > new Date(readAt)) {
+            fetchUnread();
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(iv);
+      supabase.removeChannel(channel);
+    };
   }, [userId, setUnreadDmCount]);
 
   // Load pins (exclude hidden pins unless the user owns them; filter simulated client-side)

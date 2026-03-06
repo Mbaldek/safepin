@@ -5,6 +5,7 @@ import { X, MapPin, Users, Lock, Image, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
 import { HashtagComposer } from "@/components/hashtags";
 import { attachHashtags } from "@/hooks/useHashtags";
 import type { Hashtag } from "@/types";
@@ -273,24 +274,29 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
 
         {/* Content area */}
         <div style={{ padding: "0 20px", flex: 1 }}>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={placeholders[selectedType]}
-            style={{
-              width: "100%",
-              minHeight: 120,
-              padding: 16,
-              borderRadius: 12,
-              border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-              color: isDark ? "#FFFFFF" : "#0F172A",
-              fontSize: 15,
-              lineHeight: 1.6,
-              resize: "none",
-              outline: "none",
-            }}
-          />
+          <div style={{ position: 'relative' }}>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={placeholders[selectedType]}
+              style={{
+                width: "100%",
+                minHeight: 120,
+                padding: 16,
+                borderRadius: 12,
+                border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                color: isDark ? "#FFFFFF" : "#0F172A",
+                fontSize: 15,
+                lineHeight: 1.6,
+                resize: "none",
+                outline: "none",
+              }}
+            />
+            <div style={{ position: 'absolute', bottom: 8, right: 8 }}>
+              <EmojiPickerButton onSelect={e => setContent(p => p + e)} isDark={isDark} />
+            </div>
+          </div>
 
           <div style={{ marginTop: 12 }}>
             <HashtagComposer

@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin, Sh
 import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
 
 type PostComment = {
   id: string;
@@ -636,7 +637,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
               style={{
                 borderTop: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
                 background: isDark ? "rgba(15,23,42,0.4)" : "#F8FAFC",
-                padding: "8px 14px 6px",
+                padding: "8px 14px 10px",
                 borderRadius: "0 0 16px 16px",
                 marginTop: 8,
                 marginLeft: -16,
@@ -696,7 +697,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
 
               {/* Comment input */}
               {currentUserId && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px 2px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px 8px" }}>
                   <div
                     style={{
                       width: 24,
@@ -714,6 +715,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
                   >
                     ✦
                   </div>
+                  <EmojiPickerButton onSelect={e => setNewComment(p => p + e)} isDark={isDark} size="sm" />
                   <input
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}

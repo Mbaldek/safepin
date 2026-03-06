@@ -114,6 +114,7 @@ export default function SupportChatScreen({ onBack }: SupportChatScreenProps) {
             inputBorder={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}
             inputText={isDark ? '#FFFFFF' : '#0F172A'}
             buttonBg="#3BB4C1"
+            isDark={isDark}
           />
         ) : (
           <div

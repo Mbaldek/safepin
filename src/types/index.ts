@@ -198,6 +198,7 @@ export type NotifSettings = {
   quiet_end: string;
   notify_followed_pins: boolean;
   notify_milestones: boolean;
+  notify_dm: boolean;
 };
 
 export const DEFAULT_NOTIF_SETTINGS: NotifSettings = {
@@ -209,6 +210,7 @@ export const DEFAULT_NOTIF_SETTINGS: NotifSettings = {
   quiet_end: '07:00',
   notify_followed_pins: true,
   notify_milestones: true,
+  notify_dm: true,
 };
 
 export type UserReport = {

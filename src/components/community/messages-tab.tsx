@@ -231,6 +231,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
             inputBorder={isDark ? "#1E293B" : "#E2E8F0"}
             inputText={isDark ? "#FFFFFF" : "#0F172A"}
             buttonBg="#3BB4C1"
+            isDark={isDark}
           />
         </div>
       </div>

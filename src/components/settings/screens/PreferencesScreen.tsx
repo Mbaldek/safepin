@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '@/stores/useTheme';
+import { supabase } from '@/lib/supabase';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 import SettingsToggle from '../components/SettingsToggle';
@@ -22,6 +23,32 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
 
   const [currentLocale, setCurrentLocale] = useState(getCurrentLocale);
   const [showLangPicker, setShowLangPicker] = useState(false);
+  const [notifyDm, setNotifyDm] = useState(true);
+  const [notifySettingsLoaded, setNotifySettingsLoaded] = useState(false);
+
+  // Load notification settings
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('notification_settings')
+        .select('notify_dm')
+        .eq('user_id', user.id)
+        .single();
+      if (data) setNotifyDm(data.notify_dm ?? true);
+      setNotifySettingsLoaded(true);
+    })();
+  }, []);
+
+  const handleToggleDm = async (value: boolean) => {
+    setNotifyDm(value);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from('notification_settings')
+      .upsert({ user_id: user.id, notify_dm: value }, { onConflict: 'user_id' });
+  };
   const handleLocaleChange = (locale: string) => {
     document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`;
     setCurrentLocale(locale);
@@ -132,6 +159,22 @@ export default function PreferencesScreen({ onBack }: PreferencesScreenProps) {
               onPress={() => setShowLangPicker(true)}
             />
           )}
+        </SettingsSection>
+
+        {/* Notifications */}
+        <SettingsSection label="Notifications">
+          <SettingsRow
+            icon="MessageCircle"
+            iconColor="#3BB4C1"
+            label="Messages directs"
+            subtitle="Recevoir une notification push"
+            rightEl={
+              <SettingsToggle
+                value={notifyDm}
+                onChange={handleToggleDm}
+              />
+            }
+          />
         </SettingsSection>
 
       </div>

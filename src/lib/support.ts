@@ -60,6 +60,41 @@ export async function sendSupportMessage(
     .eq('id', conversationId);
 }
 
+/** Notify DM recipient via push (fire-and-forget from client) */
+export async function notifyDmRecipient(
+  conversationId: string,
+  senderId: string,
+  messagePreview: string,
+) {
+  // Fetch conversation to find recipient + sender name
+  const { data: convo } = await supabase
+    .from('dm_conversations')
+    .select('user1_id, user2_id')
+    .eq('id', conversationId)
+    .single();
+  if (!convo) return;
+
+  const recipientId = convo.user1_id === senderId ? convo.user2_id : convo.user1_id;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', senderId)
+    .single();
+  const senderName = profile?.display_name ?? 'Quelqu\u2019un';
+
+  // Call targeted push endpoint (fire-and-forget, best-effort)
+  fetch('/api/push-notify-dm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      recipientId,
+      title: senderName,
+      body: messagePreview.length > 80 ? messagePreview.slice(0, 80) + '...' : messagePreview,
+    }),
+  }).catch(() => {});
+}
+
 /** Mark conversation as read */
 export async function markConversationRead(
   conversationId: string,

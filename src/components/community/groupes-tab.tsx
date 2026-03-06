@@ -1,11 +1,12 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Users, Plus, ArrowLeft, Send, MoreHorizontal } from "lucide-react";
+import { Search, Users, Plus, ArrowLeft, Send, MoreHorizontal, Phone } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Community } from "@/types";
+import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
 
 interface GroupesTabProps {
   isDark: boolean;
@@ -239,6 +240,15 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
               {activeGroupData?.member_count || 0} membres
             </p>
           </div>
+          <button
+            onClick={() => toast("Appel de groupe — bientôt disponible")}
+            style={{
+              background: 'none', border: 'none', cursor: 'default',
+              color: isDark ? '#475569' : '#CBD5E1', padding: 4, opacity: 0.5,
+            }}
+          >
+            <Phone size={18} />
+          </button>
           <button style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: isDark ? '#64748B' : '#94A3B8', padding: 4,
@@ -329,35 +339,13 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
           )}
         </div>
 
-        {/* SOS alert card */}
-        <div style={{
-          margin: '0 14px 4px',
-          padding: '8px 12px',
-          borderRadius: 12,
-          border: '1px dashed rgba(240,64,96,0.35)',
-          background: 'rgba(240,64,96,0.06)',
-          display: 'flex', alignItems: 'center', gap: 8,
-          cursor: 'pointer',
-        }}
-          onClick={() => toast("\uD83D\uDEA8 D\u00e9clenche un SOS depuis la carte")}
-        >
-          <span style={{ fontSize: 16 }}>{'\uD83D\uDEA8'}</span>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--semantic-danger, #F04060)', margin: 0 }}>
-              Partager une alerte SOS dans ce groupe
-            </p>
-            <p style={{ fontSize: 9, color: 'var(--text-tertiary, #64748B)', margin: 0 }}>
-              Notifie tous les membres
-            </p>
-          </div>
-        </div>
-
         {/* Input bar */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 14px 12px',
           borderTop: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
         }}>
+          <EmojiPickerButton onSelect={e => setMsgInput(p => p + e)} isDark={isDark} />
           <input
             value={msgInput}
             onChange={(e) => setMsgInput(e.target.value)}
