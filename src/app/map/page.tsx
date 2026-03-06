@@ -31,7 +31,6 @@ import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
 import { useOnboardingDone } from '@/components/OnboardingFunnelV2';
-import PlaceNotePopup from '@/components/PlaceNotePopup';
 import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
 import OfflineBanner from '@/components/OfflineBanner';
 import SessionBriefingCard from '@/components/SessionBriefingCard';
@@ -98,7 +97,6 @@ export default function MapPage() {
     setPendingRoutes,
     isSharingLocation, setIsSharingLocation, setWatchedLocation,
     userLocation, userProfile, setNewPinCoords,
-    selectedPlaceNote, setSelectedPlaceNote,
     setLiveSessions, addLiveSession, updateLiveSession,
     showIncidentsList, setShowIncidentsList,
     achievedMilestones, addAchievedMilestone,
@@ -485,11 +483,10 @@ export default function MapPage() {
       const alerts = myPins.filter((p) => p.is_emergency).length;
       const pinsCount = myPins.filter((p) => !p.is_emergency).length;
 
-      const [{ count: votesCount }, { count: commentsCount }, { count: routesCount }, { count: placeNotesCount }, { count: communitiesCount }] = await Promise.all([
+      const [{ count: votesCount }, { count: commentsCount }, { count: routesCount }, { count: communitiesCount }] = await Promise.all([
         supabase.from('pin_votes').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('vote_type', 'confirm'),
         supabase.from('pin_comments').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('saved_routes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('place_notes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('community_members').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
 
@@ -500,7 +497,6 @@ export default function MapPage() {
         votes: votesCount ?? 0,
         comments: commentsCount ?? 0,
         routes: routesCount ?? 0,
-        placeNotes: placeNotesCount ?? 0,
         communities: communitiesCount ?? 0,
         score,
       };
@@ -1001,16 +997,6 @@ export default function MapPage() {
         <ReportSheet />
       </AnimatePresence>
 
-      {/* ── Place Note popup — tap a note marker on the map ────────── */}
-      <AnimatePresence>
-        {selectedPlaceNote && (
-          <PlaceNotePopup
-            key="place-note-popup"
-            note={selectedPlaceNote}
-            onClose={() => setSelectedPlaceNote(null)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── Walk With Me panel ─────────────────────────────────────── */}
       <AnimatePresence>

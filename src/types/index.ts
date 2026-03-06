@@ -325,17 +325,6 @@ export type SavedPlace = {
   distance_km?: number; // computed client-side
 };
 
-export type PlaceNote = {
-  id: string;
-  user_id: string;
-  lat: number;
-  lng: number;
-  name: string | null;
-  note: string;
-  emoji: string;
-  created_at: string;
-};
-
 export type TripLog = {
   id: string;
   user_id: string;

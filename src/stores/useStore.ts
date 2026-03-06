@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Pin, AppNotification, PlaceNote, LiveSession, SafeSpace, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
+import { Pin, AppNotification, LiveSession, SafeSpace, NotifSettings, DEFAULT_NOTIF_SETTINGS } from '@/types';
 
 export type ReportTransport = {
   isTransport: boolean | null;
@@ -190,20 +190,6 @@ type Store = {
   watchedLocations: Record<string, WatchedLocation>;
   setWatchedLocation: (contactId: string, data: WatchedLocation | null) => void;
 
-  // Place Notes
-  newPlaceNoteCoords: { lat: number; lng: number } | null;
-  setNewPlaceNoteCoords: (c: { lat: number; lng: number } | null) => void;
-  placeNotes: PlaceNote[];
-  setPlaceNotes: (notes: PlaceNote[]) => void;
-  addPlaceNote: (note: PlaceNote) => void;
-  selectedPlaceNote: PlaceNote | null;
-  setSelectedPlaceNote: (note: PlaceNote | null) => void;
-
-  // Place note favorites
-  favPlaceIds: string[];
-  toggleFavPlace: (id: string) => void;
-  deletePlaceNote: (id: string) => void;
-
   // Trip prefill
   tripPrefill: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null;
   setTripPrefill: (p: { departure?: string; departureCoords?: [number, number]; destination?: string; destCoords?: [number, number] } | null) => void;
@@ -385,31 +371,6 @@ export const useStore = create<Store>((set) => ({
       if (data === null) delete next[contactId];
       else next[contactId] = data;
       return { watchedLocations: next };
-    }),
-
-  // Place Notes
-  newPlaceNoteCoords: null,
-  setNewPlaceNoteCoords: (c) => set({ newPlaceNoteCoords: c }),
-  placeNotes: [],
-  setPlaceNotes: (notes) => set({ placeNotes: notes }),
-  addPlaceNote: (note) => set((state) => ({ placeNotes: [note, ...state.placeNotes] })),
-  selectedPlaceNote: null,
-  setSelectedPlaceNote: (note) => set({ selectedPlaceNote: note }),
-
-  // Place note favorites
-  favPlaceIds: loadLS<string[]>('brume_fav_places', []),
-  toggleFavPlace: (id) =>
-    set((state) => {
-      const has = state.favPlaceIds.includes(id);
-      const next = has ? state.favPlaceIds.filter((x) => x !== id) : [...state.favPlaceIds, id];
-      saveLS('brume_fav_places', next);
-      return { favPlaceIds: next };
-    }),
-  deletePlaceNote: (id) =>
-    set((state) => {
-      const next = state.favPlaceIds.filter((x) => x !== id);
-      saveLS('brume_fav_places', next);
-      return { placeNotes: state.placeNotes.filter((n) => n.id !== id), favPlaceIds: next };
     }),
 
   // Trip prefill

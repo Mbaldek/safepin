@@ -13,7 +13,6 @@ import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { T } from '@/lib/tokens';
 import { Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { PlaceNote } from '@/types';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
 import { MapPin } from './MapPin';
 
@@ -32,8 +31,6 @@ const PENDING_LYRS = ['pending-line-0', 'pending-line-1', 'pending-line-2'];
 const WATCH_SRC    = 'watch-contacts-src';
 const WATCH_CIRCLE = 'watch-contacts-circle';
 const WATCH_LABEL  = 'watch-contacts-label';
-const NOTES_SRC    = 'place-notes-src';
-const NOTES_LYR    = 'place-notes-layer';
 const TRANSIT_SRC    = 'paris-transit-src';
 const TRANSIT_CIRCLE = 'paris-transit-circle';
 const TRANSIT_LABEL  = 'paris-transit-label';
@@ -707,14 +704,12 @@ function MapView({
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const noteMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const departDragMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     pins, mapFilters, setSelectedPin, activeSheet, setActiveSheet, mapFlyTo, setMapFlyTo,
-    setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations,
-    userId, placeNotes, setPlaceNotes, setSelectedPlaceNote, favPlaceIds,
+    setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
     setTripPrefill, setActiveTab, departDragPin, setDepartDragPin,
   } = useStore(useShallow((s) => ({
@@ -724,8 +719,6 @@ function MapView({
     setUserLocation: s.setUserLocation, activeRoute: s.activeRoute,
     pendingRoutes: s.pendingRoutes, transitSegments: s.transitSegments,
     watchedLocations: s.watchedLocations, userId: s.userId,
-    placeNotes: s.placeNotes, setPlaceNotes: s.setPlaceNotes,
-    setSelectedPlaceNote: s.setSelectedPlaceNote, favPlaceIds: s.favPlaceIds,
     safeSpaces: s.safeSpaces, setSafeSpaces: s.setSafeSpaces,
     showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
     setTripPrefill: s.setTripPrefill, setActiveTab: s.setActiveTab,
@@ -1116,48 +1109,6 @@ function MapView({
       paint: { 'text-color': '#fff' },
     });
   }, [watchedLocations, mapReady, layersReady]);
-
-  // Load user's place notes into store
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from('place_notes')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => setPlaceNotes((data as PlaceNote[]) ?? []));
-  }, [userId, setPlaceNotes]);
-
-  // Render place note markers
-  useEffect(() => {
-    if (!map.current || !mapReady) return;
-
-    // Remove old note markers
-    noteMarkersRef.current.forEach((m) => m.remove());
-    noteMarkersRef.current = [];
-
-    for (const note of placeNotes) {
-      const el = document.createElement('div');
-      const isFavorite = favPlaceIds.includes(note.id);
-      if (isFavorite) {
-        el.style.cssText = `width:32px;height:32px;border-radius:50%;background:rgba(245,195,65,0.15);border:2px solid rgba(245,195,65,0.5);box-shadow:0 0 0 5px rgba(245,195,65,0.1),0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
-        el.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-      } else {
-        el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${PIN_COLORS.surface};border:2px solid rgba(255,255,255,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
-        el.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>';
-      }
-      el.title = note.name || note.note;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setSelectedPlaceNote(note);
-      });
-
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([note.lng, note.lat])
-        .addTo(map.current!);
-      noteMarkersRef.current.push(marker);
-    }
-  }, [placeNotes, favPlaceIds, mapReady]);
 
   // Load and render personal location heatmap
   useEffect(() => {

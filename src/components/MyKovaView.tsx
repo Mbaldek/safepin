@@ -13,7 +13,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import {
-  Pin, PlaceNote, SavedRoute, TripLog,
+  Pin, SavedRoute, TripLog,
   CATEGORIES, SEVERITY,
 } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -152,7 +152,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const router = useRouter();
   const {
     pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet, setPins, updatePin,
-    favPlaceIds, placeNotes,
     setTripPrefill, setActiveTab,
     myKovaInitialTab, setMyKovaInitialTab,
   } = useStore();
@@ -180,15 +179,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   // ─── Favorites data ─────────────────────────────────────────────────────
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
   const [routesLoading, setRoutesLoading] = useState(false);
-  const favPlaces = useMemo(
-    () => placeNotes.filter((n) => favPlaceIds.includes(n.id)),
-    [placeNotes, favPlaceIds],
-  );
 
   // ─── Stats / Profile data ──────────────────────────────────────────────
   const [confirmedVotes, setConfirmedVotes] = useState(0);
   const [commentsMade, setCommentsMade] = useState(0);
-  const [placeNotesCount, setPlaceNotesCount] = useState(0);
   const [impactLoaded, setImpactLoaded] = useState(false);
   const [tripHistory, setTripHistory] = useState<TripLog[]>([]);
   const [tripsLoaded, setTripsLoaded] = useState(false);
@@ -254,16 +248,14 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     if (impactLoaded || !userId) return;
     async function loadImpact() {
       const myPinIds = pins.filter((p) => p.user_id === userId).map((p) => p.id);
-      const [votesRes, commentsRes, notesRes] = await Promise.all([
+      const [votesRes, commentsRes] = await Promise.all([
         myPinIds.length > 0
           ? supabase.from('pin_votes').select('*', { count: 'exact', head: true }).in('pin_id', myPinIds).eq('vote_type', 'confirm')
           : Promise.resolve({ count: 0 }),
         supabase.from('pin_comments').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('place_notes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       ]);
       setConfirmedVotes((votesRes as { count: number | null }).count ?? 0);
       setCommentsMade((commentsRes as { count: number | null }).count ?? 0);
-      setPlaceNotesCount((notesRes as { count: number | null }).count ?? 0);
       setImpactLoaded(true);
     }
     loadImpact();
@@ -445,12 +437,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
     updatePin({ ...pin, severity: editSeverity as Pin['severity'], description: editDesc.trim() });
     setEditingPinId(null);
     toast.success(t('pinUpdated'));
-  }
-
-  function openTripToPlace(place: PlaceNote) {
-    setTripPrefill({ destination: place.name ?? place.note.slice(0, 30), destCoords: [place.lng, place.lat] });
-    setActiveTab('trip');
-    onClose();
   }
 
   function openTripForRoute(route: SavedRoute) {
@@ -719,27 +705,10 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {/* ═══ SAVED TAB ═══ */}
             {activeSubTab === 'saved' && (
               <motion.div key="saved" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                {favPlaces.length === 0 && savedRoutes.length === 0 && !routesLoading ? (
-                  <EmptyState emoji="⭐" title="No favorites yet" body="Star places on the map or save routes from the Trip planner" ctaLabel={t('explorePlaces')} onCta={() => setActiveTab('map')} />
+                {savedRoutes.length === 0 && !routesLoading ? (
+                  <EmptyState emoji="⭐" title="No favorites yet" body="Save routes from the Trip planner" ctaLabel={t('explorePlaces')} onCta={() => setActiveTab('map')} />
                 ) : (
                   <>
-                    {favPlaces.length > 0 && (
-                      <div className="space-y-2">
-                        <SectionLabel text="Places" />
-                        {favPlaces.map((place) => (
-                          <button key={place.id} onClick={() => openTripToPlace(place)}
-                            className="w-full text-left flex items-center gap-3 p-3 rounded-2xl transition active:scale-[0.98]"
-                            style={{ backgroundColor: c.bgCard, border: `1.5px solid ${c.border}` }}>
-                            <span className="text-xl leading-none">{place.emoji}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate" style={{ color: c.textPrimary }}>{place.name || 'Unnamed place'}</p>
-                              {place.note && <p className="text-xs mt-0.5 truncate" style={{ color: c.textMuted }}>{place.note}</p>}
-                            </div>
-                            <Navigation size={15} style={{ color: c.accent, flexShrink: 0 }} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
                     {(routesLoading || savedRoutes.length > 0) && (
                       <div className="space-y-2">
                         <SectionLabel text="Saved routes" />
@@ -807,7 +776,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       { label: 'Confirmed by others', value: confirmedVotes,    emoji: '👍', color: '#22c55e' },
                       { label: 'Active right now',    value: activePins.length, emoji: '🔴', color: '#ef4444' },
                       { label: 'Comments written',    value: commentsMade,      emoji: '💬', color: '#f59e0b' },
-                      { label: 'Place notes',         value: placeNotesCount,   emoji: '📌', color: '#8b5cf6' },
                     ].map(({ label, value, emoji, color }) => (
                       <div key={label} className="rounded-2xl p-3.5 flex flex-col gap-1" style={card}>
                         <span className="text-xl">{emoji}</span>

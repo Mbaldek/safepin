@@ -8,7 +8,6 @@ export type MilestoneStats = {
   votes: number;
   comments: number;
   routes: number;
-  placeNotes: number;
   communities: number;
   score: number;
 };
@@ -29,7 +28,6 @@ export const MILESTONES: Milestone[] = [
   { key: '10_votes',        label: 'Trusted Verifier',   emoji: '✅', description: 'Confirmed 10 reports',                       check: (s) => s.votes >= 10 },
   { key: 'first_comment',   label: 'First Comment',      emoji: '💬', description: 'Left your first comment on a report',        check: (s) => s.comments >= 1 },
   { key: 'first_route',     label: 'Path Finder',        emoji: '🗺️', description: 'Saved your first safe route',                check: (s) => s.routes >= 1 },
-  { key: 'first_place_note',label: 'Place Marker',       emoji: '📌', description: 'Created your first place note',              check: (s) => s.placeNotes >= 1 },
   { key: 'first_community', label: 'Community Builder',  emoji: '👥', description: 'Joined or created your first community',     check: (s) => s.communities >= 1 },
   { key: 'guardian_level',  label: 'Guardian',            emoji: '⚔️', description: 'Reached Guardian trust level',               check: (s) => s.score >= 200 },
   { key: 'sentinel_level',  label: 'Sentinel',           emoji: '🛡️', description: 'Reached Sentinel trust level',               check: (s) => s.score >= 500 },

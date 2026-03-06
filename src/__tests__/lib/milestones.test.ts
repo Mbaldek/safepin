@@ -5,7 +5,7 @@ import { MILESTONES, checkMilestones, type MilestoneStats } from '@/lib/mileston
 
 const emptyStats: MilestoneStats = {
   pins: 0, alerts: 0, votes: 0, comments: 0,
-  routes: 0, placeNotes: 0, communities: 0, score: 0,
+  routes: 0, communities: 0, score: 0,
 };
 
 describe('MILESTONES', () => {
@@ -48,7 +48,7 @@ describe('checkMilestones', () => {
   it('detects multiple milestones at once', () => {
     const stats: MilestoneStats = {
       pins: 10, alerts: 1, votes: 10, comments: 1,
-      routes: 1, placeNotes: 1, communities: 1, score: 200,
+      routes: 1, communities: 1, score: 200,
     };
     const result = checkMilestones(stats, []);
     expect(result.length).toBeGreaterThanOrEqual(8);

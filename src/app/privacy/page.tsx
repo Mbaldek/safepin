@@ -25,7 +25,7 @@ export default function PrivacyPage() {
             <ul className="list-disc ml-5 space-y-1">
               <li><strong>Account data:</strong> Email address, display name, authentication provider (Google, Apple, or email).</li>
               <li><strong>Location data:</strong> GPS coordinates when you use the map, create reports, trigger SOS alerts, or use trip navigation. Location is only accessed with your explicit permission.</li>
-              <li><strong>User-generated content:</strong> Safety reports (pins), photos, chat messages, place notes, saved routes.</li>
+              <li><strong>User-generated content:</strong> Safety reports (pins), photos, chat messages, saved routes.</li>
               <li><strong>Device information:</strong> Push notification tokens, browser type, and language preference.</li>
               <li><strong>Verification data:</strong> If you choose identity verification, this is processed by our third-party provider Veriff. We store only the verification status (approved/declined), not your identity documents.</li>
               <li><strong>Payment data:</strong> If you subscribe to Breveil Pro, payments are processed by Stripe. We store your Stripe customer ID and subscription status, but never your card details.</li>
