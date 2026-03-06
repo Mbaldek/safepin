@@ -41,6 +41,19 @@ interface Props {
 export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte, onClose }: Props) {
   const d  = isDark
   const tk = tok(isDark)
+  const C = {
+    t1:      isDark ? '#FFFFFF'                : '#0F172A',
+    t2:      isDark ? '#94A3B8'               : '#475569',
+    t3:      isDark ? '#64748B'               : '#94A3B8',
+    bg:      isDark ? 'rgba(15,23,42,0.93)'   : 'rgba(255,255,255,0.96)',
+    card:    isDark ? '#1E293B'               : '#FFFFFF',
+    el:      isDark ? '#243050'               : '#F1F5F9',
+    border:  isDark ? 'rgba(255,255,255,0.08)': 'rgba(15,23,42,0.08)',
+    borderS: isDark ? 'rgba(255,255,255,0.15)': 'rgba(15,23,42,0.16)',
+    handle:  isDark ? 'rgba(255,255,255,0.13)': 'rgba(15,23,42,0.13)',
+    btn:     isDark ? '#FFFFFF'               : '#0F172A',
+    btnTxt:  isDark ? '#0F172A'               : '#FFFFFF',
+  }
 
   // ── Hooks ──────────────────────────────────────
   const { favoris } = useFavoris(userId)
@@ -345,8 +358,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const btnPrimary = {
     width:          '100%',
     padding:        '15px 20px',
-    background:     d ? '#FFFFFF' : '#0F172A',
-    color:          d ? '#0F172A' : '#FFFFFF',
+    background:     C.btn,
+    color:          C.btnTxt,
     fontFamily:     'inherit',
     fontSize:       '15px',
     fontWeight:     600,
@@ -679,7 +692,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         {/* Handle */}
         <div style={{
           width:28, height:4, borderRadius:2, margin:'8px auto 0', flexShrink:0,
-          background: d ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.13)',
+          background: C.handle,
         }} />
 
         {/* Julia banner */}
@@ -713,12 +726,12 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             <Users size={22} strokeWidth={1.5} color="#3BB4C1" />
           </div>
           <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:15, fontWeight:700, color: d ? '#FFFFFF' : '#0F172A', marginBottom:3 }}>
+            <div style={{ fontSize:15, fontWeight:700, color: C.btn, marginBottom:3 }}>
               {hasResponded
                 ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`
                 : 'Notification envoyée'}
             </div>
-            <div style={{ fontSize:12, color: d ? '#94A3B8' : '#475569' }}>
+            <div style={{ fontSize:12, color: C.t2 }}>
               {hasResponded ? "Ton cercle t'accompagne" : 'En attente de réponse'}
             </div>
           </div>
@@ -753,8 +766,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             onClick={() => escorte.setView('escorte-live')}
             style={{
               width:'100%', padding:'12px', borderRadius:28,
-              background: d ? '#FFFFFF' : '#0F172A',
-              color: d ? '#0F172A' : '#FFFFFF',
+              background: C.btn,
+              color: C.btnTxt,
               fontFamily:'inherit', fontSize:13, fontWeight:800,
               border:'none', cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center', gap:7,
@@ -767,7 +780,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             onClick={() => escorte.endEscorte()}
             style={{
               background:'none', border:'none', cursor:'pointer', padding:'4px',
-              fontSize:12, color: d ? '#64748B' : '#94A3B8', fontFamily:'inherit',
+              fontSize:12, color: C.t3, fontFamily:'inherit',
             }}
           >
             Annuler
@@ -963,7 +976,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         {/* Handle */}
         <div style={{
           width:28, height:4, borderRadius:2, margin:'8px auto 0', flexShrink:0,
-          background: d ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.13)',
+          background: C.handle,
         }} />
 
         <div style={{
@@ -977,14 +990,14 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               onClick={handleBackToHub}
               style={{
                 width:26, height:26, borderRadius:'50%', flexShrink:0,
-                background: d ? '#243050' : '#F1F5F9',
-                border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                background: C.el,
+                border:`1px solid ${C.border}`,
                 display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
               }}
             >
-              <ChevronLeft size={10} strokeWidth={2.5} color={d ? '#94A3B8' : '#475569'} />
+              <ChevronLeft size={10} strokeWidth={2.5} color={C.t2} />
             </button>
-            <span style={{ fontSize:13, fontWeight:700, color: d ? '#FFFFFF' : '#0F172A' }}>
+            <span style={{ fontSize:13, fontWeight:700, color: C.btn }}>
               Trajet avec destination
             </span>
           </div>
@@ -992,21 +1005,21 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           {/* Card départ → destination */}
           <div style={{
             display:'flex', alignItems:'center', gap:8,
-            background: d ? '#243050' : '#F1F5F9',
-            border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+            background: C.el,
+            border:`1px solid ${C.border}`,
             borderRadius:12, padding:'9px 11px',
           }}>
             {/* Connecteur */}
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flexShrink:0 }}>
               <div style={{ width:7, height:7, borderRadius:'50%', background:'#34D399' }} />
-              <div style={{ width:1, height:14, background: d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }} />
+              <div style={{ width:1, height:14, background: C.border }} />
               <div style={{ width:7, height:7, borderRadius:'50%', background:'#EF4444' }} />
             </div>
             {/* Adresses */}
             <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:5 }}>
               <div
                 onClick={handleOpenDepartPicker}
-                style={{ fontSize:11, fontWeight:500, color: d ? '#94A3B8' : '#475569', cursor:'pointer',
+                style={{ fontSize:11, fontWeight:500, color: C.t2, cursor:'pointer',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
               >
                 {departAddress ?? 'Ma position actuelle'}
@@ -1014,7 +1027,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               <div
                 onClick={() => document.getElementById('dest-input')?.focus()}
                 style={{ fontSize:12, fontWeight:600, cursor:'pointer',
-                  color: selectedDest ? (d ? '#FFFFFF' : '#0F172A') : (d ? '#64748B' : '#94A3B8'),
+                  color: selectedDest ? (C.btn) : (C.t3),
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
               >
                 {selectedDest?.text ?? 'Rechercher une destination…'}
@@ -1026,12 +1039,12 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 onClick={handleSwapDepartDest}
                 style={{
                   width:24, height:24, borderRadius:'50%', flexShrink:0, cursor:'pointer',
-                  background: d ? '#1E293B' : '#FFFFFF',
-                  border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                  background: C.card,
+                  border:`1px solid ${C.border}`,
                   display:'flex', alignItems:'center', justifyContent:'center',
                 }}
               >
-                <ArrowUpDown size={10} strokeWidth={2} color={d ? '#94A3B8' : '#475569'} />
+                <ArrowUpDown size={10} strokeWidth={2} color={C.t2} />
               </div>
             )}
           </div>
@@ -1039,7 +1052,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           {/* Input recherche — seulement si pas de destination */}
           {!selectedDest && (
             <div style={{ position:'relative' }}>
-              <Search size={13} strokeWidth={1.5} color={d ? '#64748B' : '#94A3B8'}
+              <Search size={13} strokeWidth={1.5} color={C.t3}
                 style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
               <input
                 id="dest-input"
@@ -1048,19 +1061,19 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 onChange={e => handleSearch(e.target.value)}
                 placeholder="Restaurant, adresse, lieu…"
                 style={{
-                  width:'100%', background: d ? '#1E293B' : '#FFFFFF',
+                  width:'100%', background: C.card,
                   border:'1px solid rgba(59,180,193,0.35)',
                   boxShadow:'0 0 0 3px rgba(59,180,193,0.08)',
                   borderRadius:10, padding:'9px 12px 9px 34px',
-                  fontSize:12, fontFamily:'inherit', color: d ? '#FFFFFF' : '#0F172A', outline:'none',
+                  fontSize:12, fontFamily:'inherit', color: C.btn, outline:'none',
                 }}
               />
               {/* Résultats */}
               {destSearch.results.length > 0 && (
                 <div style={{
                   position:'absolute', top:'100%', left:0, right:0, zIndex:50, marginTop:4,
-                  background: d ? '#1E293B' : '#FFFFFF',
-                  border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                  background: C.card,
+                  border:`1px solid ${C.border}`,
                   borderRadius:12, overflow:'hidden', boxShadow:'0 8px 24px rgba(0,0,0,0.2)',
                 }}>
                   {destSearch.results.slice(0,5).map((r, i) => (
@@ -1071,22 +1084,22 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                         display:'flex', alignItems:'center', gap:9, padding:'9px 12px',
                         cursor:'pointer',
                         borderBottom: i < Math.min(destSearch.results.length,5)-1
-                          ? `1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}` : 'none',
+                          ? `1px solid ${C.border}` : 'none',
                       }}
                     >
                       <div style={{
                         width:30, height:30, borderRadius:9, flexShrink:0, fontSize:14,
-                        background: r.type === 'poi' ? 'rgba(59,180,193,0.10)' : (d ? '#243050' : '#F1F5F9'),
+                        background: r.type === 'poi' ? 'rgba(59,180,193,0.10)' : (C.el),
                         display:'flex', alignItems:'center', justifyContent:'center',
                       }}>
                         {r.icon}
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color: d ? '#FFFFFF' : '#0F172A',
+                        <div style={{ fontSize:12, fontWeight:600, color: C.btn,
                           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                           {r.name}
                         </div>
-                        <div style={{ fontSize:10, color: d ? '#64748B' : '#94A3B8',
+                        <div style={{ fontSize:10, color: C.t3,
                           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                           {r.address}
                         </div>
@@ -1102,7 +1115,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           {!selectedDest && favoris.length > 0 && (
             <div>
               <div style={{ fontSize:8, fontWeight:800, textTransform:'uppercase',
-                letterSpacing:'0.08em', color: d ? '#64748B' : '#94A3B8', marginBottom:6 }}>Accès rapide</div>
+                letterSpacing:'0.08em', color: C.t3, marginBottom:6 }}>Accès rapide</div>
               <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none' }}>
                 {favoris.slice(0,4).map(f => (
                   <FavoriButton key={f.id} favori={f} isDark={d} onClick={handleFavoriSelect} />
@@ -1130,15 +1143,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                       style={{
                         flex:1, padding:'7px 4px', borderRadius:9, cursor:'pointer',
                         fontFamily:'inherit', border:`1.5px solid ${on ? mode.color : 'transparent'}`,
-                        background: on ? `${mode.color}18` : (d ? '#243050' : '#F1F5F9'),
+                        background: on ? `${mode.color}18` : (C.el),
                         display:'flex', flexDirection:'column', alignItems:'center', gap:3,
                         transition:'all 150ms',
                       }}
                     >
                       <span style={{ fontSize:9, fontWeight:700,
-                        color: on ? mode.color : (d ? '#94A3B8' : '#475569') }}>{mode.label}</span>
+                        color: on ? mode.color : (C.t2) }}>{mode.label}</span>
                       {on && routeDurationLabel && (
-                        <span style={{ fontSize:7, color: d ? '#64748B' : '#94A3B8' }}>
+                        <span style={{ fontSize:7, color: C.t3 }}>
                           ~{routeDurationLabel}
                         </span>
                       )}
@@ -1160,8 +1173,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                     onClick={() => setWithCircle(!withCircle)}
                     style={{
                       width:34, height:20, borderRadius:100, cursor:'pointer',
-                      background: withCircle ? '#3BB4C1' : (d ? '#243050' : '#F1F5F9'),
-                      border:`1px solid ${withCircle ? '#3BB4C1' : (d ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.16)')}`,
+                      background: withCircle ? '#3BB4C1' : (C.el),
+                      border:`1px solid ${withCircle ? '#3BB4C1' : C.borderS}`,
                       display:'flex', alignItems:'center',
                       padding:2, transition:'all 200ms',
                     }}
@@ -1182,8 +1195,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 disabled={escorte.isStarting}
                 style={{
                   width:'100%', padding:'11px', borderRadius:28,
-                  background: d ? '#FFFFFF' : '#0F172A',
-                  color: d ? '#0F172A' : '#FFFFFF',
+                  background: C.btn,
+                  color: C.btnTxt,
                   fontFamily:'inherit', fontSize:13, fontWeight:800,
                   border:'none', cursor: escorte.isStarting ? 'default' : 'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:6,
