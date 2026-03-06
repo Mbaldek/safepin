@@ -108,6 +108,44 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Admin route protection — require authenticated admin
+  if (pathname.startsWith('/admin')) {
+    let adminRes = NextResponse.next({ request: req });
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return req.cookies.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+            adminRes = NextResponse.next({ request: req });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              adminRes.cookies.set(name, value, options));
+          },
+        },
+      },
+    );
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+    if (!profile?.is_admin) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/';
+      url.searchParams.set('error', 'unauthorized');
+      return NextResponse.redirect(url);
+    }
+    return adminRes;
+  }
+
   // Handle /<locale>/* routes — redirect to / and set locale cookie
   const pathLocale = pathname.split('/')[1];
   if (pathLocale && pathLocale !== 'en' && (LOCALES as readonly string[]).includes(pathLocale)) {
