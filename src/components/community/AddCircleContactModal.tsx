@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, UserPlus, Send, Mail, Phone, User, BadgeCheck } from "lucide-react";
+import { X, Search, UserPlus, Send, Mail, Phone, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useNotificationStore } from "@/stores/notificationStore";
@@ -21,7 +21,7 @@ interface FoundProfile {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
-  is_verified: boolean;
+  first_name: string | null;
 }
 
 const COUNTRY_CODES = [
@@ -80,8 +80,8 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
       const clean = query.startsWith("@") ? query.slice(1) : query;
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, is_verified")
-        .or(`username.ilike.${clean}%,display_name.ilike.%${clean}%`)
+        .select("id, username, display_name, avatar_url, first_name")
+        .or(`username.ilike.${clean}%,display_name.ilike.%${clean}%,first_name.ilike.%${clean}%`)
         .limit(20);
       setPseudoResults(
         (data || []).map((p) => ({
@@ -89,7 +89,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
           display_name: p.display_name,
           username: p.username,
           avatar_url: p.avatar_url,
-          is_verified: p.is_verified ?? false,
+          first_name: p.first_name ?? null,
         }))
       );
     } catch {
@@ -132,7 +132,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
       const data = await res.json();
       setSearched(true);
       if (data.found) {
-        setFound({ ...data.profile, username: null, is_verified: false });
+        setFound({ ...data.profile, username: null, first_name: null });
       }
     } catch {
       toast.error("Erreur de recherche");
@@ -183,7 +183,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
       pushToast({
         type: "circle_invitation",
         message: "Invitation envoyée",
-        subMessage: `${target.display_name ?? target.username ?? "Utilisateur"} recevra ta demande`,
+        subMessage: `${target.display_name ?? target.first_name ?? target.username ?? "Utilisateur"} recevra ta demande`,
         variant: "success",
       });
     } catch {
@@ -486,18 +486,15 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                                 />
                               ) : (
                                 <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
-                                  {(user.display_name ?? user.username ?? "?").charAt(0).toUpperCase()}
+                                  {(user.display_name ?? user.first_name ?? user.username ?? "?").charAt(0).toUpperCase()}
                                 </span>
                               )}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                 <span style={{ fontSize: 14, fontWeight: 600, color: textPrimary }}>
-                                  {user.display_name ?? user.username ?? "Utilisateur"}
+                                  {user.display_name ?? user.first_name ?? user.username ?? "Utilisateur"}
                                 </span>
-                                {user.is_verified && (
-                                  <BadgeCheck size={14} style={{ color: "#3BB4C1" }} />
-                                )}
                               </div>
                               {user.username && (
                                 <span style={{ fontSize: 12, color: textSecondary }}>
