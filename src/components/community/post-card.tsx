@@ -1,10 +1,28 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin, Share2, Flag, EyeOff, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin, Share2, Flag, EyeOff, Trash2, Send } from "lucide-react";
 import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+
+type PostComment = {
+  id: string;
+  author_id: string;
+  content: string;
+  is_anonymous: boolean;
+  created_at: string;
+  _profile?: { display_name: string | null; avatar_emoji: string | null } | null;
+};
+
+function commentTimeAgo(d: string) {
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  if (s < 60) return "à l'instant";
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}j`;
+}
 
 interface Post {
   id: number;
@@ -70,6 +88,61 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
   const [bookmarked, setBookmarked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Comments state
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadComments = useCallback(async () => {
+    const { data } = await supabase
+      .from("post_comments")
+      .select("id, author_id, content, is_anonymous, created_at")
+      .eq("post_id", post.id)
+      .order("created_at", { ascending: true });
+    if (!data) return;
+    // Enrich with profiles
+    const authorIds = [...new Set(data.map((c) => c.author_id))];
+    const { data: profiles } = authorIds.length
+      ? await supabase.from("profiles").select("id, display_name, avatar_emoji").in("id", authorIds)
+      : { data: [] };
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    setComments(
+      data.map((c) => ({
+        ...c,
+        _profile: profileMap.get(c.author_id) ?? null,
+      }))
+    );
+    setCommentsLoaded(true);
+  }, [post.id]);
+
+  const submitComment = async () => {
+    if (!newComment.trim() || submitting || !currentUserId) return;
+    setSubmitting(true);
+    const { data, error } = await supabase
+      .from("post_comments")
+      .insert({
+        post_id: post.id,
+        author_id: currentUserId,
+        content: newComment.trim(),
+        is_anonymous: false,
+      })
+      .select("id, author_id, content, is_anonymous, created_at")
+      .single();
+    if (!error && data) {
+      // Fetch own profile for display
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_emoji")
+        .eq("id", currentUserId)
+        .maybeSingle();
+      setComments((prev) => [...prev, { ...data, _profile: prof ?? null }]);
+      setNewComment("");
+    }
+    setSubmitting(false);
+  };
 
   const isOwn = !!(currentUserId && post.userId === currentUserId);
 
@@ -481,19 +554,21 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
               </span>
             </motion.button>
             <button
-              onClick={() => toast("Commentaires bientôt disponibles")}
+              onClick={() => { setCommentsOpen(!commentsOpen); if (!commentsLoaded) loadComments(); }}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                background: "none",
-                border: "none",
+                background: commentsOpen ? "rgba(59,180,193,0.10)" : "none",
+                border: commentsOpen ? "1px solid rgba(59,180,193,0.22)" : "1px solid transparent",
+                borderRadius: 8,
+                padding: "4px 8px",
                 cursor: "pointer",
               }}
             >
-              <MessageCircle size={18} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-              <span style={{ fontSize: 13, color: isDark ? "#64748B" : "#94A3B8" }}>
-                {post.comments || 0} commentaires
+              <MessageCircle size={18} style={{ color: commentsOpen ? "#3BB4C1" : isDark ? "#64748B" : "#94A3B8" }} />
+              <span style={{ fontSize: 13, color: commentsOpen ? "#3BB4C1" : isDark ? "#94A3B8" : "#64748B" }}>
+                {commentsLoaded ? comments.length : (post.comments || 0)}
               </span>
             </button>
           </div>
@@ -518,6 +593,145 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
           />
         </motion.button>
       </div>
+
+      {/* Inline comments */}
+      <AnimatePresence>
+        {commentsOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div
+              style={{
+                borderTop: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                background: isDark ? "rgba(15,23,42,0.4)" : "#F8FAFC",
+                padding: "8px 14px 12px",
+                borderRadius: "0 0 16px 16px",
+                marginTop: 12,
+                marginLeft: -16,
+                marginRight: -16,
+                marginBottom: -16,
+              }}
+            >
+              {/* Comments list */}
+              {!commentsLoaded ? (
+                <div style={{ textAlign: "center", padding: "12px 0", fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                  Chargement…
+                </div>
+              ) : comments.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "12px 0", fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                  Aucun commentaire — sois le premier !
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+                  {comments.map((c) => {
+                    const name = c.is_anonymous ? "Anonyme" : (c._profile?.display_name || "Membre");
+                    const emoji = c.is_anonymous ? "🌺" : (c._profile?.avatar_emoji || name.charAt(0).toUpperCase());
+                    return (
+                      <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            background: isDark ? "rgba(255,255,255,0.08)" : "#E2E8F0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {emoji}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#E2E8F0" : "#334155" }}>
+                              {name}
+                            </span>
+                            <span style={{ fontSize: 10, color: isDark ? "#64748B" : "#94A3B8" }}>
+                              {commentTimeAgo(c.created_at)}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#475569", lineHeight: 1.4, margin: "2px 0 0" }}>
+                            {c.content}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Comment input */}
+              {currentUserId && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #3BB4C1, #0E7490)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      color: "#fff",
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    ✦
+                  </div>
+                  <input
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                    placeholder="Commenter…"
+                    disabled={submitting}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      borderRadius: 20,
+                      border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                      background: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF",
+                      color: isDark ? "#E2E8F0" : "#0F172A",
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      outline: "none",
+                    }}
+                  />
+                  {newComment.trim().length > 0 && (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={submitComment}
+                      disabled={submitting}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "#3BB4C1",
+                        border: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        opacity: submitting ? 0.5 : 1,
+                      }}
+                    >
+                      <Send size={13} color="#FFFFFF" />
+                    </motion.button>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

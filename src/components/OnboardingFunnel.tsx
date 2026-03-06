@@ -194,9 +194,10 @@ const closeBtn: React.CSSProperties = {
 };
 
 const stepContainer: React.CSSProperties = {
-  background: gradient, minHeight: '100%',
+  background: gradient, height: '100%',
   display: 'flex', flexDirection: 'column',
-  padding: 24, paddingTop: 80,
+  padding: 24, paddingTop: 80, paddingBottom: 48,
+  overflow: 'hidden',
 };
 
 const btnOAuthStyle: React.CSSProperties = {
@@ -516,7 +517,7 @@ export function OnboardingFunnel({
           );
         })}
       </div>
-      <button onClick={nextStep} style={{ ...btnMainStyle, marginTop: 20, opacity: selectedGoals.length > 0 ? 1 : 0.5 }}>Continuer &rarr;</button>
+      <button onClick={nextStep} style={{ ...btnMainStyle, marginTop: 20, flexShrink: 0, opacity: selectedGoals.length > 0 ? 1 : 0.5 }}>Continuer &rarr;</button>
     </div>
   );
 

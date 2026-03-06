@@ -266,26 +266,48 @@ export default function NearbySheet({ onClose }: Props) {
         >
           {/* Tabs */}
           <div style={{ display: 'flex', padding: '0 20px', borderBottom: `1px solid ${C.border}` }}>
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  flex: 1,
-                  padding: '12px 0',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: activeTab === tab ? F.cyan : C.t3,
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  borderBottom: activeTab === tab ? `2px solid ${F.cyan}` : '2px solid transparent',
-                  cursor: 'pointer',
-                  transition: 'color 0.2s',
-                }}
-              >
-                {tab}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const disabled = tab === 'Sécurité' || tab === 'Alertes';
+              return (
+                <button
+                  key={tab}
+                  onClick={() => { if (!disabled) setActiveTab(tab); }}
+                  style={{
+                    flex: 1,
+                    padding: '12px 0',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: disabled ? C.t3 : activeTab === tab ? F.cyan : C.t3,
+                    opacity: disabled ? 0.5 : 1,
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    borderBottom: !disabled && activeTab === tab ? `2px solid ${F.cyan}` : '2px solid transparent',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    pointerEvents: disabled ? 'none' : 'auto',
+                    transition: 'color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  {tab}
+                  {disabled && (
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      background: C.elevated,
+                      color: C.t3,
+                      borderRadius: 99,
+                      padding: '1px 6px',
+                      border: `1px solid ${C.border}`,
+                    }}>
+                      Bientôt
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Filters */}

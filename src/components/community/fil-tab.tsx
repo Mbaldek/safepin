@@ -220,7 +220,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
               { key: 'notifs' as const,    icon: '\uD83D\uDD14', label: 'Re\u00e7ues', color: '#3BB4C1',                               softBg: 'rgba(59,180,193,0.10)',   softBorder: 'rgba(59,180,193,0.22)' },
             ]).map((tab) => {
               const active = sosTab === tab.key;
-              const circleNotifs = tab.key === 'notifs' ? sosPosts.filter(p => p.visibility === 'circle').length : 0;
+              const circleNotifs = tab.key === 'notifs' ? sosPosts.filter(p => p.visibility === 'circle' && p.author_id !== userId).length : 0;
               return (
                 <button
                   key={tab.key}
@@ -275,12 +275,21 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
                 if (sosTab === 'resolved') {
                   return p._isSos && p.status === 'resolved';
                 }
-                // 'notifs' — circle posts only
-                return p._isSos && p.visibility === 'circle';
+                // 'notifs' — circle posts where user is NOT the author
+                return p._isSos && p.visibility === 'circle' && p.author_id !== userId;
               })
             : allPosts;
 
-          const visible = filtered.filter((p) => !hiddenIds.has(p.id));
+          // Deduplicate SOS posts by sos_id (keep first = most recent)
+          const seenSosIds = new Set<string>();
+          const deduped = filtered.filter(p => {
+            if (!p._isSos || !p.sos_id) return true;
+            if (seenSosIds.has(p.sos_id)) return false;
+            seenSosIds.add(p.sos_id);
+            return true;
+          });
+
+          const visible = deduped.filter((p) => !hiddenIds.has(p.id));
 
           if (visible.length === 0) {
             return (
