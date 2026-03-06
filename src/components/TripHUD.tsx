@@ -6,21 +6,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Radio, Shield, Check, AlertTriangle } from 'lucide-react';
+import { MapPin, Share2, AlertTriangle, Check } from 'lucide-react';
 import { useStore, TripSession } from '@/stores/useStore';
 import { geocodeReverse } from '@/lib/geocode';
 import { useTheme } from '@/stores/useTheme';
-
-function getColors(isDark: boolean) {
-  return isDark ? {
-    bg: '#0F172A', card: '#1E293B', textPrimary: '#FFFFFF', textSecondary: '#94A3B8',
-    border: 'rgba(255,255,255,0.08)',
-  } : {
-    bg: '#F8FAFC', card: '#FFFFFF', textPrimary: '#0F172A', textSecondary: '#475569',
-    border: 'rgba(15,23,42,0.06)',
-  };
-}
-const FIXED = { accentCyan: '#3BB4C1' };
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return '0:00';
@@ -41,11 +30,20 @@ type Props = {
 
 export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const C = getColors(isDark);
-  const { isSharingLocation, setIsSharingLocation, userLocation } = useStore();
+  const { userLocation } = useStore();
   const [now, setNow] = useState(Date.now());
   const [streetName, setStreetName] = useState<string | null>(null);
   const lastGeocodedRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  const C = {
+    t1:      isDark ? '#FFFFFF'                : '#0F172A',
+    t2:      isDark ? '#94A3B8'                : '#475569',
+    t3:      isDark ? '#64748B'                : '#94A3B8',
+    bg:      isDark ? 'rgba(15,23,42,0.92)'    : 'rgba(255,255,255,0.95)',
+    el:      isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
+    border:  isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
+    divider: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.08)',
+  };
 
   useEffect(() => {
     if (!userLocation) return;
@@ -72,105 +70,122 @@ export default function TripHUD({ trip, onImSafe, onOpenTrip, nudge }: Props) {
   const remaining = Math.max(0, etaMs - now);
   const progress = totalMs > 0 ? Math.min(1, elapsed / totalMs) : 0;
   const critical = remaining < 5 * 60_000 && remaining > 0;
+  const etaMin = Math.max(0, Math.ceil(remaining / 60_000));
 
-  const etaStr = new Date(trip.estimatedArrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: 'Ma position Breveil', url: window.location.href });
+    } else {
+      navigator.clipboard?.writeText(window.location.href);
+    }
+  };
 
   return (
     <motion.div
-      initial={{ y: 60, opacity: 0 }}
+      initial={{ y: 80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 60, opacity: 0 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="absolute bottom-20 left-3 right-3 z-100 rounded-2xl overflow-hidden"
+      exit={{ y: 80, opacity: 0 }}
+      transition={{ type:'spring', stiffness:300, damping:30 }}
       style={{
-        backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(248,250,252,0.92)',
-        border: `1px solid ${C.border}`,
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        position: 'absolute',
+        bottom: 64,
+        left: 0, right: 0,
+        zIndex: 150,
+        background: C.bg,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: `1px solid ${C.divider}`,
+        padding: '10px 14px 12px',
       }}
       onClick={onOpenTrip}
     >
       {/* Nudge banner */}
       {nudge && (
-        <div className="flex items-center gap-2 px-3 py-2 text-xs font-bold"
-          style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
-          <AlertTriangle size={13} strokeWidth={2.5} />
-          {nudge}
+        <div style={{
+          display:'flex', alignItems:'center', gap:6, marginBottom:8,
+          padding:'4px 10px', borderRadius:100,
+          background:'rgba(245,158,11,0.15)', border:'1px solid rgba(245,158,11,0.20)',
+        }}>
+          <AlertTriangle size={10} strokeWidth={2.5} color="#f59e0b" />
+          <span style={{ fontSize:10, fontWeight:600, color:'#f59e0b', flex:1 }}>
+            {nudge}
+          </span>
         </div>
       )}
 
-      <div className="px-4 pt-3 pb-2">
-        {/* Top row: destination + ETA */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm">🛡️</span>
-            <span className="text-xs font-black truncate" style={{ color: C.textPrimary }}>
-              En route to {trip.destination.label}
-            </span>
+      {/* Progress bar */}
+      <div style={{
+        height:3, borderRadius:2, marginBottom:9, overflow:'hidden',
+        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
+      }}>
+        <motion.div
+          animate={{ width:`${progress * 100}%` }}
+          transition={{ duration:1.5, ease:'easeOut' }}
+          style={{ height:'100%', background: critical ? '#EF4444' : '#3BB4C1', borderRadius:2 }}
+        />
+      </div>
+
+      {/* Destination */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+        <div style={{
+          width:32, height:32, borderRadius:10, flexShrink:0,
+          background:'rgba(239,68,68,0.10)', border:'1px solid rgba(239,68,68,0.18)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+        }}>
+          <MapPin size={13} strokeWidth={1.5} color="#EF4444" />
+        </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{
+            fontSize:13, fontWeight:700, color:C.t1,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+          }}>{trip.destination.label}</div>
+          <div style={{ fontSize:9, color:C.t2, marginTop:1 }}>
+            {critical
+              ? `${formatCountdown(remaining)} restantes`
+              : `~${etaMin} min restantes`}
+            {streetName && ` · ${streetName}`}
           </div>
-          <span className="text-xs font-bold shrink-0 ml-2" style={{ color: critical ? '#ef4444' : C.textSecondary }}>
-            ETA {etaStr}
-          </span>
         </div>
+      </div>
 
-        {/* Current street */}
-        {streetName && (
-          <p className="text-[0.6rem] truncate mb-1.5" style={{ color: C.textSecondary }}>
-            📍 {streetName}
-          </p>
-        )}
+      {/* Partager + SOS */}
+      <div style={{ display:'flex', gap:7, marginBottom:7 }} onClick={(e) => e.stopPropagation()}>
+        <button onClick={handleShare} style={{
+          flex:1, padding:'8px', borderRadius:11,
+          background:C.el, border:`1px solid ${C.border}`,
+          fontFamily:'inherit', fontSize:11, fontWeight:600, color:C.t2,
+          cursor:'pointer', display:'flex', alignItems:'center',
+          justifyContent:'center', gap:5,
+        }}>
+          <Share2 size={11} strokeWidth={1.5} /> Partager
+        </button>
+        <button onClick={() => {
+          const store = useStore.getState();
+          store.setShowSafeSpaces(true);
+        }} style={{
+          flex:1, padding:'8px', borderRadius:11,
+          background:'rgba(239,68,68,0.08)',
+          border:'1px solid rgba(239,68,68,0.20)',
+          fontFamily:'inherit', fontSize:11, fontWeight:700, color:'#EF4444',
+          cursor:'pointer', display:'flex', alignItems:'center',
+          justifyContent:'center', gap:5,
+        }}>
+          <AlertTriangle size={11} strokeWidth={2} /> SOS
+        </button>
+      </div>
 
-        {/* Progress bar */}
-        <div className="flex items-center gap-2 mb-2.5">
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
-            <div
-              className="h-full rounded-full transition-all duration-1000"
-              style={{
-                width: `${progress * 100}%`,
-                backgroundColor: critical ? '#ef4444' : FIXED.accentCyan,
-              }}
-            />
-          </div>
-          <span className="text-[0.6rem] font-bold tabular-nums shrink-0" style={{ color: C.textSecondary }}>
-            {formatCountdown(remaining)}
-          </span>
-        </div>
-
-        {/* Quick action buttons */}
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setIsSharingLocation(!isSharingLocation)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[0.65rem] font-bold transition active:scale-95"
-            style={{
-              backgroundColor: isSharingLocation ? 'rgba(99,102,241,0.12)' : C.card,
-              color: isSharingLocation ? '#6366f1' : C.textSecondary,
-              border: isSharingLocation ? '1px solid rgba(99,102,241,0.3)' : `1px solid ${C.border}`,
-            }}
-          >
-            <Radio size={11} strokeWidth={2.5} />
-            Share
-          </button>
-          <button
-            onClick={() => {
-              const store = useStore.getState();
-              store.setShowSafeSpaces(true);
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[0.65rem] font-bold transition active:scale-95"
-            style={{ backgroundColor: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}
-          >
-            <Shield size={11} strokeWidth={2.5} />
-            Safe spot
-          </button>
-          <button
-            onClick={onImSafe}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[0.65rem] font-black transition active:scale-95"
-            style={{ backgroundColor: '#22c55e', color: '#fff' }}
-          >
-            <Check size={11} strokeWidth={3} />
-            I'm Safe
-          </button>
-        </div>
+      {/* Je suis arrivée */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <button onClick={onImSafe} style={{
+          width:'100%', padding:'11px', borderRadius:28,
+          background: isDark ? '#FFFFFF' : '#0F172A',
+          color: isDark ? '#0F172A' : '#FFFFFF',
+          fontFamily:'inherit', fontSize:13, fontWeight:800,
+          border:'none', cursor:'pointer',
+          display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+        }}>
+          <Check size={13} strokeWidth={2.5} /> Je suis arrivée
+        </button>
       </div>
     </motion.div>
   );

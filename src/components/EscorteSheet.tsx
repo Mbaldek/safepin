@@ -169,7 +169,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
     'escorte-live':      '72vh',
     'trip-form':         '46vh',
     'trip-active':       '0px',
-    'arrived':           '72vh',
+    'arrived':           '68vh',
   }
 
   const sheetH = SHEET_HEIGHTS[escorte.view] ?? '60vh'
@@ -673,74 +673,68 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
     const activeCount = escorte.circleMembers.filter(
       m => m.status === 'following' || m.status === 'vocal'
     ).length
-    const juliaSoon = escorte.juliaCd < 30
 
     return (
-      <motion.div
-        key="notifying"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={springConfig}
-        style={{ padding: '0 18px 14px', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarWidth: 'none' }}
-      >
+      <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+        {/* Handle */}
+        <div style={{
+          width:28, height:4, borderRadius:2, margin:'8px auto 0', flexShrink:0,
+          background: d ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.13)',
+        }} />
+
         {/* Julia banner */}
         <div style={{
-          background: juliaSoon ? 'rgba(167,139,250,0.12)' : 'rgba(245,195,65,0.10)',
-          border: `1px solid ${juliaSoon ? T.accentPurple : T.accentGold}35`,
-          borderRadius: 12, padding: '8px 12px', marginBottom: 10,
-          display: 'flex', alignItems: 'center', gap: 8,
+          margin:'10px 14px 0', padding:'7px 12px', borderRadius:12, flexShrink:0,
+          background:'rgba(167,139,250,0.08)', border:'1px solid rgba(167,139,250,0.20)',
+          display:'flex', alignItems:'center', gap:7,
         }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: juliaSoon ? 'rgba(167,139,250,0.2)' : 'rgba(245,195,65,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            fontSize: 14,
-          }}>
-            🤖
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: juliaSoon ? T.accentPurple : T.accentGold }}>
-              {escorte.juliaCd > 0
-                ? `Julia rejoint dans ${formatCountdown(escorte.juliaCd)}`
-                : 'Julia est dans le canal'}
-            </div>
-          </div>
+          <Sparkles size={11} strokeWidth={1.5} color="#A78BFA" />
+          <span style={{ fontSize:12, fontWeight:600, color:'#A78BFA', flex:1 }}>
+            {escorte.juliaActive
+              ? 'Julia vous accompagne · canal actif'
+              : `Julia rejoint dans ${formatCountdown(escorte.juliaCd)}`}
+          </span>
+          <span style={{
+            fontSize:8, fontWeight:800, color:'#A78BFA',
+            background:'rgba(167,139,250,0.15)', padding:'1px 5px', borderRadius:3,
+          }}>IA</span>
         </div>
 
-        {/* Centered pulsing icon + title */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'relative', width: 52, height: 52, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-            {[1,2].map(i => (
-              <motion.div
-                key={i}
-                animate={{ scale: [1, 1.5+i*0.3, 1], opacity: [0.25, 0, 0.25] }}
-                transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
-                style={{
-                  position: 'absolute', width: 48, height: 48, borderRadius: '50%',
-                  background: T.gradientStart, opacity: 0.15,
-                }}
-              />
-            ))}
-            <div style={{
-              width: 48, height: 48, borderRadius: '50%', position: 'relative', zIndex: 1,
-              background: 'rgba(59,180,193,0.12)', border: `1px solid ${T.gradientStart}35`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Users size={22} strokeWidth={1.5} color={T.gradientStart} />
+        {/* Centre */}
+        <div style={{
+          flex:1, display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center', gap:8, padding:'0 20px',
+        }}>
+          <div style={{
+            width:56, height:56, borderRadius:'50%',
+            background:'rgba(59,180,193,0.10)', border:'1px solid rgba(59,180,193,0.20)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}>
+            <Users size={22} strokeWidth={1.5} color="#3BB4C1" />
+          </div>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:15, fontWeight:700, color: d ? '#FFFFFF' : '#0F172A', marginBottom:3 }}>
+              {hasResponded
+                ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`
+                : 'Notification envoyée'}
+            </div>
+            <div style={{ fontSize:12, color: d ? '#94A3B8' : '#475569' }}>
+              {hasResponded ? "Ton cercle t'accompagne" : 'En attente de réponse'}
             </div>
           </div>
+          {!escorte.juliaActive && escorte.juliaCd > 0 && (
+            <div style={{
+              padding:'4px 14px', borderRadius:100,
+              background:'rgba(245,195,65,0.10)', border:'1px solid rgba(245,195,65,0.25)',
+              fontSize:12, fontWeight:600, color:'#F5C341',
+            }}>
+              Julia rejoint dans {formatCountdown(escorte.juliaCd)}
+            </div>
+          )}
 
-          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp, marginBottom: 2, textAlign: 'center' }}>
-            {hasResponded ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}` : 'Notification envoyee'}
-          </div>
-          <div style={{ fontSize: 11, color: tk.ts, textAlign: 'center' }}>
-            {hasResponded ? "Ton cercle t'accompagne" : 'En attente de reponse'}
-          </div>
-
-          {/* Inline contacts */}
+          {/* Contact list */}
           {escorte.circleMembers.length > 0 && (
-            <div style={{ ...cardSt, borderRadius: T.radiusLg, overflow: 'hidden', marginTop: 10, width: '100%' }}>
+            <div style={{ ...cardSt, borderRadius: T.radiusLg, overflow: 'hidden', width: '100%' }}>
               {escorte.circleMembers.map((m, i) => (
                 <ContactRow
                   key={m.id}
@@ -753,20 +747,33 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
           )}
         </div>
 
-        {/* Bottom actions */}
-        <div style={{ flexShrink: 0, marginTop: 8 }}>
-          <button style={btnPrimary} onClick={() => escorte.setView('escorte-live')}>
-            <Check size={15} strokeWidth={2.5} />
-            {hasResponded ? 'Continuer' : 'Demarrer sans attendre'}
+        {/* Actions */}
+        <div style={{ padding:'12px 14px 14px', display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+          <button
+            onClick={() => escorte.setView('escorte-live')}
+            style={{
+              width:'100%', padding:'12px', borderRadius:28,
+              background: d ? '#FFFFFF' : '#0F172A',
+              color: d ? '#0F172A' : '#FFFFFF',
+              fontFamily:'inherit', fontSize:13, fontWeight:800,
+              border:'none', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+            }}
+          >
+            <Check size={12} strokeWidth={2.5} />
+            {hasResponded ? 'Continuer' : 'Démarrer sans attendre'}
           </button>
           <button
-            onClick={() => { escorte.endEscorte(); }}
-            style={{ width: '100%', padding: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: tk.tt, marginTop: 2 }}
+            onClick={() => escorte.endEscorte()}
+            style={{
+              background:'none', border:'none', cursor:'pointer', padding:'4px',
+              fontSize:12, color: d ? '#64748B' : '#94A3B8', fontFamily:'inherit',
+            }}
           >
             Annuler
           </button>
         </div>
-      </motion.div>
+      </div>
     )
   }
 
@@ -951,220 +958,253 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -32 }}
         transition={springConfig}
-        style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
+        style={{ display:'flex', flexDirection:'column', height:'100%' }}
       >
-        {/* Header — compact */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <button onClick={handleBackToHub} style={{
-            width: 28, height: 28, borderRadius: '50%', background: tk.ih,
-            border: `1px solid ${tk.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          }}>
-            <ChevronLeft size={13} strokeWidth={2} color={tk.ts} />
-          </button>
-          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp }}>Mon trajet</div>
-        </div>
+        {/* Handle */}
+        <div style={{
+          width:28, height:4, borderRadius:2, margin:'8px auto 0', flexShrink:0,
+          background: d ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.13)',
+        }} />
 
-        {/* ── Departure + Connector + Destination ── */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-          {/* Left rail: dots + connector + swap */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 14, width: 20 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.semanticSuccess, flexShrink: 0 }} />
-            <div style={{ width: 2, flex: 1, background: `${T.gradientStart}30`, minHeight: 8 }} />
+        <div style={{
+          flex:1, overflowY:'auto', padding:'9px 14px 12px',
+          display:'flex', flexDirection:'column', gap:8,
+          scrollbarWidth:'none',
+        }}>
+          {/* Header */}
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <button
-              onClick={handleSwapDepartDest}
-              disabled={!selectedDest}
+              onClick={handleBackToHub}
               style={{
-                width: 22, height: 22, borderRadius: '50%',
-                background: selectedDest ? `${T.gradientStart}12` : tk.ih,
-                border: `1px solid ${selectedDest ? `${T.gradientStart}30` : tk.bd}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: selectedDest ? 'pointer' : 'default', padding: 0, flexShrink: 0,
+                width:26, height:26, borderRadius:'50%', flexShrink:0,
+                background: d ? '#243050' : '#F1F5F9',
+                border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
               }}
             >
-              <ArrowUpDown size={10} strokeWidth={2} color={selectedDest ? T.gradientStart : tk.tt} />
+              <ChevronLeft size={10} strokeWidth={2.5} color={d ? '#94A3B8' : '#475569'} />
             </button>
-            <div style={{ width: 2, flex: 1, background: `${T.gradientStart}30`, minHeight: 8 }} />
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.gradientStart, flexShrink: 0 }} />
+            <span style={{ fontSize:13, fontWeight:700, color: d ? '#FFFFFF' : '#0F172A' }}>
+              Trajet avec destination
+            </span>
           </div>
 
-          {/* Right side: departure card + destination card */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {/* Departure card */}
-            <button onClick={handleOpenDepartPicker} style={{
-              ...cardSt, padding: '10px 13px', width: '100%',
-              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-              textAlign: 'left', fontFamily: 'inherit',
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, color: tk.tt, marginBottom: 1 }}>Depart</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {departAddress || 'Ma position actuelle'}
-                </div>
+          {/* Card départ → destination */}
+          <div style={{
+            display:'flex', alignItems:'center', gap:8,
+            background: d ? '#243050' : '#F1F5F9',
+            border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+            borderRadius:12, padding:'9px 11px',
+          }}>
+            {/* Connecteur */}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flexShrink:0 }}>
+              <div style={{ width:7, height:7, borderRadius:'50%', background:'#34D399' }} />
+              <div style={{ width:1, height:14, background: d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }} />
+              <div style={{ width:7, height:7, borderRadius:'50%', background:'#EF4444' }} />
+            </div>
+            {/* Adresses */}
+            <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:5 }}>
+              <div
+                onClick={handleOpenDepartPicker}
+                style={{ fontSize:11, fontWeight:500, color: d ? '#94A3B8' : '#475569', cursor:'pointer',
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
+              >
+                {departAddress ?? 'Ma position actuelle'}
               </div>
-              <Edit3 size={12} strokeWidth={1.5} color={tk.tt} />
-            </button>
+              <div
+                onClick={() => document.getElementById('dest-input')?.focus()}
+                style={{ fontSize:12, fontWeight:600, cursor:'pointer',
+                  color: selectedDest ? (d ? '#FFFFFF' : '#0F172A') : (d ? '#64748B' : '#94A3B8'),
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
+              >
+                {selectedDest?.text ?? 'Rechercher une destination…'}
+              </div>
+            </div>
+            {/* Swap */}
+            {selectedDest && (
+              <div
+                onClick={handleSwapDepartDest}
+                style={{
+                  width:24, height:24, borderRadius:'50%', flexShrink:0, cursor:'pointer',
+                  background: d ? '#1E293B' : '#FFFFFF',
+                  border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }}
+              >
+                <ArrowUpDown size={10} strokeWidth={2} color={d ? '#94A3B8' : '#475569'} />
+              </div>
+            )}
+          </div>
 
-            {/* Destination search */}
-            <div style={{
-              ...cardSt, padding: '10px 12px',
-              display: 'flex', alignItems: 'center', gap: 8, position: 'relative',
-              border: selectedDest ? `1px solid ${T.gradientStart}45` : `1px solid ${tk.bd}`,
-              boxShadow: selectedDest ? `0 0 0 3px ${T.gradientStart}12` : 'none',
-            }}>
-              <Search size={15} strokeWidth={1.5} color={selectedDest ? T.gradientStart : tk.tt} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <input
-                  id="dest-input"
-                  type="text"
-                  placeholder="Adresse, lieu, gare..."
-                  value={query}
-                  onChange={e => handleSearch(e.target.value)}
-                  style={{
-                    width: '100%', background: 'none', border: 'none', outline: 'none',
-                    fontSize: 13, fontWeight: selectedDest ? 500 : 400,
-                    color: selectedDest ? T.gradientStart : tk.ts, fontFamily: 'inherit',
-                  }}
-                />
-                {selectedDest && !query.includes(selectedDest.text) && (
-                  <div style={{ fontSize: 10, color: tk.tt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
-                    {selectedDest.place_name}
-                  </div>
-                )}
-              </div>
-              {query && (
-                <button onClick={() => { setQuery(''); setSelectedDest(null); destSearch.clear() }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                  <X size={13} strokeWidth={2} color={tk.tt} />
-                </button>
+          {/* Input recherche — seulement si pas de destination */}
+          {!selectedDest && (
+            <div style={{ position:'relative' }}>
+              <Search size={13} strokeWidth={1.5} color={d ? '#64748B' : '#94A3B8'}
+                style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
+              <input
+                id="dest-input"
+                autoFocus
+                value={query}
+                onChange={e => handleSearch(e.target.value)}
+                placeholder="Restaurant, adresse, lieu…"
+                style={{
+                  width:'100%', background: d ? '#1E293B' : '#FFFFFF',
+                  border:'1px solid rgba(59,180,193,0.35)',
+                  boxShadow:'0 0 0 3px rgba(59,180,193,0.08)',
+                  borderRadius:10, padding:'9px 12px 9px 34px',
+                  fontSize:12, fontFamily:'inherit', color: d ? '#FFFFFF' : '#0F172A', outline:'none',
+                }}
+              />
+              {/* Résultats */}
+              {destSearch.results.length > 0 && (
+                <div style={{
+                  position:'absolute', top:'100%', left:0, right:0, zIndex:50, marginTop:4,
+                  background: d ? '#1E293B' : '#FFFFFF',
+                  border:`1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
+                  borderRadius:12, overflow:'hidden', boxShadow:'0 8px 24px rgba(0,0,0,0.2)',
+                }}>
+                  {destSearch.results.slice(0,5).map((r, i) => (
+                    <div
+                      key={r.id}
+                      onClick={() => handleResultSelect(r)}
+                      style={{
+                        display:'flex', alignItems:'center', gap:9, padding:'9px 12px',
+                        cursor:'pointer',
+                        borderBottom: i < Math.min(destSearch.results.length,5)-1
+                          ? `1px solid ${d ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}` : 'none',
+                      }}
+                    >
+                      <div style={{
+                        width:30, height:30, borderRadius:9, flexShrink:0, fontSize:14,
+                        background: r.type === 'poi' ? 'rgba(59,180,193,0.10)' : (d ? '#243050' : '#F1F5F9'),
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>
+                        {r.icon}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:12, fontWeight:600, color: d ? '#FFFFFF' : '#0F172A',
+                          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {r.name}
+                        </div>
+                        <div style={{ fontSize:10, color: d ? '#64748B' : '#94A3B8',
+                          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {r.address}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Suggestions dropdown */}
-        {destSearch.loading && destSearch.results.length === 0 && (
-          <div style={{ padding: '10px 13px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Loader2 size={12} strokeWidth={1.5} color={T.gradientStart} style={{ animation: 'spin 0.6s linear infinite' }} />
-            <span style={{ fontSize: 12, color: tk.tt }}>Recherche en cours...</span>
-          </div>
-        )}
-        {destSearch.results.length > 0 && renderResultList(destSearch.results, handleResultSelect)}
-
-        {/* Favoris grid — hidden once destination is selected */}
-        {favoris.length > 0 && !selectedDest && (
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 8 }}>
-              Acces rapide
-            </div>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
-              {favoris.map(f => (
-                <FavoriButton key={f.id} favori={f} isDark={d} onClick={handleFavoriSelect} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Below only visible once destination is selected ── */}
-        {selectedDest && (
-          <>
-            {/* Transport mode */}
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt, marginBottom: 7 }}>
-                Mode de transport
+          {/* Favoris accès rapide */}
+          {!selectedDest && favoris.length > 0 && (
+            <div>
+              <div style={{ fontSize:8, fontWeight:800, textTransform:'uppercase',
+                letterSpacing:'0.08em', color: d ? '#64748B' : '#94A3B8', marginBottom:6 }}>Accès rapide</div>
+              <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none' }}>
+                {favoris.slice(0,4).map(f => (
+                  <FavoriButton key={f.id} favori={f} isDark={d} onClick={handleFavoriSelect} />
+                ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6 }}>
+            </div>
+          )}
+
+          {/* Transport + CTA — seulement si destination choisie */}
+          {selectedDest && (
+            <>
+              {/* Modes de transport */}
+              <div style={{ display:'flex', gap:5 }}>
                 {([
-                  { key: 'walk',    Icon: Footprints, label: 'A pied',   color: T.gradientStart   },
-                  { key: 'transit', Icon: Train,      label: 'Transport', color: T.accentPurple    },
-                  { key: 'bike',    Icon: Bike,       label: 'Velo',      color: T.semanticSuccess },
-                  { key: 'car',     Icon: Car,        label: 'Voiture',   color: T.accentGold      },
+                  { key: 'walk',    label: 'À pied',      color: '#34D399' },
+                  { key: 'transit', label: 'Transports',   color: '#3BB4C1' },
+                  { key: 'bike',    label: 'Vélo',         color: '#F5C341' },
+                  { key: 'car',     label: 'Voiture',      color: '#94A3B8' },
                 ] as const).map(mode => {
-                  const active = routeMode === mode.key
+                  const on = routeMode === mode.key
                   return (
                     <button
                       key={mode.key}
                       onClick={() => setRouteMode(mode.key as RouteMode)}
                       style={{
-                        padding: '10px 6px', borderRadius: 10,
-                        background: active ? `${mode.color}12` : tk.ih,
-                        border: `1px solid ${active ? `${mode.color}40` : tk.bd}`,
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                        cursor: 'pointer', fontFamily: 'inherit',
+                        flex:1, padding:'7px 4px', borderRadius:9, cursor:'pointer',
+                        fontFamily:'inherit', border:`1.5px solid ${on ? mode.color : 'transparent'}`,
+                        background: on ? `${mode.color}18` : (d ? '#243050' : '#F1F5F9'),
+                        display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                        transition:'all 150ms',
                       }}
                     >
-                      <mode.Icon size={16} strokeWidth={1.5} color={active ? mode.color : tk.tt} />
-                      <span style={{ fontSize: 10, fontWeight: 500, color: active ? mode.color : tk.ts }}>{mode.label}</span>
+                      <span style={{ fontSize:9, fontWeight:700,
+                        color: on ? mode.color : (d ? '#94A3B8' : '#475569') }}>{mode.label}</span>
+                      {on && routeDurationLabel && (
+                        <span style={{ fontSize:7, color: d ? '#64748B' : '#94A3B8' }}>
+                          ~{routeDurationLabel}
+                        </span>
+                      )}
                     </button>
                   )
                 })}
               </div>
-            </div>
 
-            {/* Route estimation */}
-            {(loadingRoute || routeInfo) && (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                marginBottom: 10, padding: '6px 0',
-              }}>
-                {loadingRoute ? (
-                  <Loader2 size={13} strokeWidth={1.5} color={T.gradientStart} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : routeInfo ? (
-                  <>
-                    <Clock size={12} strokeWidth={1.5} color={T.gradientStart} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: T.gradientStart }}>
-                      ~{routeDurationLabel}
+              {/* Escorte toggle — walk et transit uniquement */}
+              {(routeMode === 'walk' || routeMode === 'transit') && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <Users size={12} strokeWidth={1.5} color="#3BB4C1" />
+                    <span style={{ fontSize:11, fontWeight:600, color:'#3BB4C1' }}>
+                      Escorte cercle
                     </span>
-                    {routeInfo.distance > 0 && (
-                      <span style={{ fontSize: 12, color: tk.tt }}>
-                        · {formatDistance(routeInfo.distance)}
-                      </span>
-                    )}
+                  </div>
+                  <div
+                    onClick={() => setWithCircle(!withCircle)}
+                    style={{
+                      width:34, height:20, borderRadius:100, cursor:'pointer',
+                      background: withCircle ? '#3BB4C1' : (d ? '#243050' : '#F1F5F9'),
+                      border:`1px solid ${withCircle ? '#3BB4C1' : (d ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.16)')}`,
+                      display:'flex', alignItems:'center',
+                      padding:2, transition:'all 200ms',
+                    }}
+                  >
+                    <div style={{
+                      width:16, height:16, borderRadius:'50%', background:'#fff',
+                      marginLeft: withCircle ? 'auto' : 0,
+                      boxShadow:'0 1px 3px rgba(0,0,0,0.2)',
+                      transition:'margin 200ms',
+                    }} />
+                  </div>
+                </div>
+              )}
+
+              {/* CTA */}
+              <button
+                onClick={handleStartTrip}
+                disabled={escorte.isStarting}
+                style={{
+                  width:'100%', padding:'11px', borderRadius:28,
+                  background: d ? '#FFFFFF' : '#0F172A',
+                  color: d ? '#0F172A' : '#FFFFFF',
+                  fontFamily:'inherit', fontSize:13, fontWeight:800,
+                  border:'none', cursor: escorte.isStarting ? 'default' : 'pointer',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                  opacity: escorte.isStarting ? 0.7 : 1,
+                }}
+              >
+                {escorte.isStarting ? (
+                  <>
+                    <Loader2 size={12} strokeWidth={2} style={{ animation:'spin 0.6s linear infinite' }} />
+                    Démarrage…
                   </>
-                ) : null}
-              </div>
-            )}
-
-            {/* Escorte toggle — hidden for bike/car */}
-            {(routeMode === 'walk' || routeMode === 'transit') && (
-              <div style={{
-                background: `rgba(59,180,193,${withCircle ? '0.07' : '0.03'})`,
-                border: `1px solid ${T.gradientStart}${withCircle ? '28' : '15'}`,
-                borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
-              }}>
-                <Users size={14} strokeWidth={1.5} color={withCircle ? T.gradientStart : tk.tt} />
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: withCircle ? T.gradientStart : tk.ts }}>
-                  Activer l'escorte cercle
-                </span>
-                <button
-                  onClick={() => setWithCircle(!withCircle)}
-                  style={{
-                    width: 38, height: 21, borderRadius: 100,
-                    background: withCircle ? T.gradientStart : tk.ih,
-                    border: `1px solid ${withCircle ? 'transparent' : tk.bdd}`,
-                    padding: '0 2px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                    flexShrink: 0, transition: 'background 200ms',
-                  }}
-                >
-                  <motion.div
-                    animate={{ x: withCircle ? 17 : 0 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    style={{ width: 17, height: 17, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
-                  />
-                </button>
-              </div>
-            )}
-
-            <motion.button
-              style={btnPrimary}
-              onClick={handleStartTrip}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Navigation size={14} strokeWidth={2} />
-              {routeDurationLabel
-                ? `Demarrer · ${routeDurationLabel}`
-                : 'Demarrer le trajet'}
-            </motion.button>
-          </>
-        )}
+                ) : (
+                  <>
+                    <Navigation size={12} strokeWidth={2.5} />
+                    Démarrer · {routeDurationLabel ?? '—'}
+                  </>
+                )}
+              </button>
+            </>
+          )}
+        </div>
       </motion.div>
     )
   }
