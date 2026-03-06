@@ -9,6 +9,8 @@ export function useEscorte(userId: string) {
   const [elapsed, setElapsed] = useState(0)
   const [juliaCd, setJuliaCd] = useState(120) // 2min countdown
   const [juliaActive, setJuliaActive] = useState(false)
+  const [escorteError, setEscorteError] = useState<string | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
   const watchRef = useRef<number | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const juliaCdRef = useRef<NodeJS.Timeout | null>(null)
@@ -18,30 +20,44 @@ export function useEscorte(userId: string) {
   const startEscorteImmediate = useCallback(async () => {
     if (!userId || loadingRef.current) return
     loadingRef.current = true
+    setIsStarting(true)
+    setEscorteError(null)
     try {
-    const { data: escorte, error } = await supabase
-      .from('escortes')
-      .insert({
-        user_id: userId,
-        mode: 'immediate',
-        status: 'active',
-        circle_notified: false,
-      })
-      .select()
-      .single()
+      // 1. INSERT escorte
+      const { data: escorte, error: insertError } = await supabase
+        .from('escortes')
+        .insert({
+          user_id: userId,
+          mode: 'immediate',
+          status: 'active',
+          circle_notified: false,
+        })
+        .select()
+        .single()
 
-    if (error || !escorte) {
-      console.error('startEscorteImmediate:', error)
-      return
-    }
+      if (insertError || !escorte) {
+        const msg = insertError?.message ?? 'INSERT escorte failed'
+        console.error('[startEscorteImmediate] INSERT error:', insertError)
+        setEscorteError(msg)
+        return
+      }
 
-    setActiveEscorte(escorte)
-    await notifyCircle(escorte.id)
-    setView('escorte-notifying')
-    startGPSTracking(escorte.id)
-    startElapsedTimer()
+      setActiveEscorte(escorte)
+
+      // 2. notifyCircle — separate try/catch so escorte proceeds even if notify fails
+      try {
+        await notifyCircle(escorte.id)
+      } catch (notifyErr) {
+        console.error('[startEscorteImmediate] notifyCircle error:', notifyErr)
+      }
+
+      // 3. Transition — always happens even if notifyCircle failed
+      setView('escorte-notifying')
+      startGPSTracking(escorte.id)
+      startElapsedTimer()
     } finally {
       loadingRef.current = false
+      setIsStarting(false)
     }
   }, [userId])
 
@@ -75,10 +91,16 @@ export function useEscorte(userId: string) {
       .select()
       .single()
 
-    if (error || !escorte) { console.error('startTrip:', error); return }
+    if (error || !escorte) { console.error('[startTrip] INSERT error:', error); return }
 
     setActiveEscorte(escorte)
-    if (params.withCircle) await notifyCircle(escorte.id)
+    if (params.withCircle) {
+      try {
+        await notifyCircle(escorte.id)
+      } catch (notifyErr) {
+        console.error('[startTrip] notifyCircle error:', notifyErr)
+      }
+    }
     setView('trip-active')
     startGPSTracking(escorte.id)
     startElapsedTimer()
@@ -89,15 +111,20 @@ export function useEscorte(userId: string) {
 
   // ── NOTIFY CIRCLE ────────────────────────────────
   const notifyCircle = useCallback(async (escorteId: string) => {
+    console.log('[notifyCircle] called — escorteId:', escorteId, 'userId:', userId)
+
     // 1. Fetch trusted_contacts
-    const { data: contacts } = await supabase
+    const { data: contacts, error: fetchError } = await supabase
       .from('trusted_contacts')
       .select('contact_id')
       .eq('user_id', userId)
       .eq('status', 'accepted')
 
+    console.log('[notifyCircle] contacts found:', contacts?.length ?? 0, fetchError ? `error: ${fetchError.message}` : 'ok')
+
     if (!contacts?.length) {
       // No contacts — activate Julia immediately for demo
+      console.warn('[notifyCircle] no contacts — activating Julia fallback')
       setJuliaActive(true)
       return
     }
@@ -272,6 +299,8 @@ export function useEscorte(userId: string) {
     elapsed,
     juliaCd,
     juliaActive,
+    escorteError,
+    isStarting,
     startEscorteImmediate,
     startTrip,
     endEscorte,

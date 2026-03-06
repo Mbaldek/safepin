@@ -656,9 +656,29 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         <span style={{ fontSize: 12, color: tk.ts }}>4 personnes</span>
       </div>
 
-      <button style={btnPrimary} onClick={escorte.startEscorteImmediate}>
+      {escorte.escorteError && (
+        <div style={{
+          marginBottom: 10, padding: '10px 14px',
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.20)',
+          borderRadius: 12, fontSize: 12,
+          color: '#EF4444',
+        }}>
+          {escorte.escorteError}
+        </div>
+      )}
+
+      <button
+        style={{
+          ...btnPrimary,
+          opacity: escorte.isStarting ? 0.7 : 1,
+          cursor: escorte.isStarting ? 'default' : 'pointer',
+        }}
+        onClick={escorte.startEscorteImmediate}
+        disabled={escorte.isStarting}
+      >
         <Users size={15} strokeWidth={2} />
-        Notifier mon cercle
+        {escorte.isStarting ? 'Connexion...' : 'Notifier mon cercle'}
       </button>
     </motion.div>
   )
@@ -1537,7 +1557,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
       transition={springConfig}
       style={{
         position:            'absolute',
-        bottom:              64,
+        bottom:              0,
         left:                0,
         right:               0,
         background:          d ? T.surfaceElevated : '#FFFFFF',
@@ -1556,62 +1576,63 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, onClose
         <div style={{ width: 36, height: 4, borderRadius: 2, background: d ? T.borderStrong : 'rgba(15,23,42,0.16)' }} />
       </div>
 
-      {/* Julia banner */}
-      <AnimatePresence>
-        {escorte.juliaActive &&
-         (escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') && (
-          <motion.div
-            key="julia-banner"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            style={{
-              margin: '8px 16px 0',
-              background: 'rgba(167,139,250,0.10)',
-              border: '1px solid rgba(167,139,250,0.25)',
-              borderRadius: 14,
-              padding: '10px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flexShrink: 0,
-            }}
-          >
-            <Sparkles size={16} color="#A78BFA" />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#A78BFA', flex: 1 }}>
-              Julia vous accompagne · canal actif
-            </span>
-            <span style={{
-              fontSize: 8, fontWeight: 700,
-              background: 'rgba(167,139,250,0.15)', color: '#A78BFA',
-              padding: '2px 6px', borderRadius: 4,
-            }}>
-              IA
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Audio channel banner */}
-      <AnimatePresence>
-        {(escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') &&
-         escorte.activeEscorte &&
-         escorte.circleMembers.some(m => m.status === 'vocal') && (
-          <div style={{ margin: '6px 16px 0', flexShrink: 0 }}>
-            <AudioChannel
-              escorteId={escorte.activeEscorte.id}
-              userId={userId}
-              isDark={d}
-              circleMembers={escorte.circleMembers}
-              onEnd={() => escorte.endEscorte(false)}
-            />
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, scrollbarWidth: 'none' }}>
+        {/* Julia banner — in scroll flow so it never steals fixed space */}
+        <AnimatePresence>
+          {escorte.juliaActive &&
+           (escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') && (
+            <motion.div
+              key="julia-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{
+                margin: '8px 16px 0',
+                background: 'rgba(167,139,250,0.10)',
+                border: '1px solid rgba(167,139,250,0.25)',
+                borderRadius: 14,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <Sparkles size={16} color="#A78BFA" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#A78BFA', flex: 1 }}>
+                  Julia vous accompagne · canal actif
+                </span>
+                <span style={{
+                  fontSize: 8, fontWeight: 700,
+                  background: 'rgba(167,139,250,0.15)', color: '#A78BFA',
+                  padding: '2px 6px', borderRadius: 4,
+                }}>
+                  IA
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Audio channel banner — in scroll flow */}
+        <AnimatePresence>
+          {(escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') &&
+           escorte.activeEscorte &&
+           escorte.circleMembers.some(m => m.status === 'vocal') && (
+            <div style={{ margin: '6px 16px 0' }}>
+              <AudioChannel
+                escorteId={escorte.activeEscorte.id}
+                userId={userId}
+                isDark={d}
+                circleMembers={escorte.circleMembers}
+                onEnd={() => escorte.endEscorte(false)}
+              />
+            </div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           {escorte.view === 'hub'              && renderHub()}
           {escorte.view === 'escorte-intro'    && renderEscorteIntro()}
