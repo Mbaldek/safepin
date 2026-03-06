@@ -10,9 +10,10 @@ import SettingsRow from '../components/SettingsRow';
 
 export interface SecuriteScreenProps {
   onBack: () => void;
+  onClose: () => void;
 }
 
-export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
+export default function SecuriteScreen({ onBack, onClose }: SecuriteScreenProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const [circleCount, setCircleCount] = useState<number | null>(null);
 
@@ -81,7 +82,7 @@ export default function SecuriteScreen({ onBack }: SecuriteScreenProps) {
             onPress={() => {
               useStore.getState().setCommunityDefaultTab(1);
               useStore.getState().setActiveTab('community');
-              onBack();
+              onClose();
             }}
           />
           <div style={divider} />

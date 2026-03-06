@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Check, X, Users, Plus } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, X, Users, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -45,10 +45,30 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedContact, setSelectedContact] = useState<ContactRow | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   const handleAdded = useCallback(() => {
     setRefreshKey((k) => k + 1);
   }, []);
+
+  const handleRemoveContact = async () => {
+    if (!selectedContact || removing) return;
+    setRemoving(true);
+    const { error } = await supabase
+      .from("trusted_contacts")
+      .delete()
+      .eq("id", selectedContact.id)
+      .eq("user_id", userId);
+    if (error) {
+      toast.error("Erreur lors de la suppression");
+    } else {
+      setContacts((prev) => prev.filter((c) => c.id !== selectedContact.id));
+      toast.success("Contact supprimé du cercle");
+    }
+    setSelectedContact(null);
+    setRemoving(false);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -296,12 +316,14 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
+                onClick={() => setSelectedContact(contact)}
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 8,
                   minWidth: 70,
+                  cursor: "pointer",
                 }}
               >
                 <div
@@ -516,6 +538,93 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
         onClose={() => setShowAddModal(false)}
         onAdded={handleAdded}
       />
+
+      {/* Remove contact confirmation */}
+      <AnimatePresence>
+        {selectedContact && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedContact(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.5)",
+              zIndex: 1000,
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: 360,
+                background: isDark ? "#1E293B" : "#FFFFFF",
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                  {selectedContact.name}
+                </div>
+                <div style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748B", marginTop: 4 }}>
+                  Supprimer ce contact de ton cercle de confiance ?
+                </div>
+              </div>
+              <button
+                onClick={handleRemoveContact}
+                disabled={removing}
+                style={{
+                  width: "100%",
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  background: "#EF4444",
+                  border: "none",
+                  color: "#FFFFFF",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: removing ? 0.6 : 1,
+                  marginBottom: 8,
+                }}
+              >
+                <Trash2 size={15} />
+                {removing ? "Suppression…" : "Supprimer du cercle"}
+              </button>
+              <button
+                onClick={() => setSelectedContact(null)}
+                style={{
+                  width: "100%",
+                  padding: "10px 0",
+                  borderRadius: 12,
+                  background: "transparent",
+                  border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
+                  color: isDark ? "#94A3B8" : "#64748B",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Annuler
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

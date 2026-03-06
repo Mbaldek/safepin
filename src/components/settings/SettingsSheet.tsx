@@ -77,7 +77,7 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       case 'compte':
         return <MonCompteScreen onBack={goBack} />;
       case 'securite':
-        return <SecuriteScreen onBack={goBack} />;
+        return <SecuriteScreen onBack={goBack} onClose={onClose} />;
       case 'preferences':
         return <PreferencesScreen onBack={goBack} />;
       case 'aide':

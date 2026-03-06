@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion";
 import { X, Heart, Send, Share2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 export interface DBStory {
   id: string;
@@ -23,6 +24,7 @@ interface StoryViewerProps {
   stories: DBStory[];
   onClose: () => void;
   onNavigate: (index: number) => void;
+  userId?: string | null;
 }
 
 function timeAgo(d: string) {
@@ -38,9 +40,15 @@ export default function StoryViewer({
   stories,
   onClose,
   onNavigate,
+  userId,
 }: StoryViewerProps) {
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [message, setMessage] = useState("");
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   // Guard: no stories
   useEffect(() => {
@@ -48,6 +56,62 @@ export default function StoryViewer({
   }, [stories.length, onClose]);
 
   const story = stories[storyIndex] || stories[0];
+
+  // Load like state when story changes
+  useEffect(() => {
+    if (!story) return;
+    setLiked(false);
+    setLikeCount(0);
+    setSent(false);
+    setMessage("");
+    // Fetch like count
+    supabase
+      .from("story_likes")
+      .select("id, user_id", { count: "exact" })
+      .eq("story_id", story.id)
+      .then(({ count, data }) => {
+        setLikeCount(count ?? 0);
+        if (userId && data) {
+          setLiked(data.some((r) => r.user_id === userId));
+        }
+      });
+  }, [story?.id, userId]);
+
+  const toggleLike = useCallback(async () => {
+    if (!story || !userId) return;
+    if (liked) {
+      setLiked(false);
+      setLikeCount((c) => Math.max(0, c - 1));
+      await supabase.from("story_likes").delete().eq("story_id", story.id).eq("user_id", userId);
+    } else {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+      await supabase.from("story_likes").insert({ story_id: story.id, user_id: userId });
+    }
+  }, [story, userId, liked]);
+
+  const sendMessage = useCallback(async () => {
+    if (!message.trim() || !story || !userId || sending) return;
+    setSending(true);
+    await supabase.from("story_messages").insert({
+      story_id: story.id,
+      sender_id: userId,
+      content: message.trim(),
+    });
+    setMessage("");
+    setSending(false);
+    setSent(true);
+    setTimeout(() => setSent(false), 2000);
+  }, [message, story, userId, sending]);
+
+  const handleShare = useCallback(async () => {
+    const url = window.location.origin;
+    if (navigator.share) {
+      try { await navigator.share({ title: "Breveil Story", url }); } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+    }
+  }, []);
 
   // Reset progress on navigate
   useEffect(() => {
@@ -297,7 +361,11 @@ export default function StoryViewer({
       >
         <input
           type="text"
-          placeholder="Envoyer un message..."
+          placeholder={sent ? "Envoyé !" : "Envoyer un message..."}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendMessage(); } }}
+          disabled={sending}
           style={{
             flex: 1,
             padding: "12px 16px",
@@ -311,6 +379,7 @@ export default function StoryViewer({
         />
         <motion.button
           whileTap={{ scale: 0.95 }}
+          onClick={toggleLike}
           style={{
             width: 40,
             height: 40,
@@ -323,10 +392,21 @@ export default function StoryViewer({
             cursor: "pointer",
           }}
         >
-          <Heart size={24} strokeWidth={1.5} color="#FFFFFF" />
+          <Heart
+            size={24}
+            strokeWidth={1.5}
+            color={liked ? "#EF4444" : "#FFFFFF"}
+            fill={liked ? "#EF4444" : "none"}
+          />
+          {likeCount > 0 && (
+            <span style={{ position: "absolute", marginTop: 32, fontSize: 10, color: "#fff", fontWeight: 600 }}>
+              {likeCount}
+            </span>
+          )}
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.95 }}
+          onClick={handleShare}
           style={{
             width: 40,
             height: 40,
@@ -341,22 +421,27 @@ export default function StoryViewer({
         >
           <Share2 size={22} strokeWidth={1.5} color="#FFFFFF" />
         </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            backgroundColor: "#3BB4C1",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-        >
-          <Send size={18} strokeWidth={1.5} color="#FFFFFF" />
-        </motion.button>
+        {message.trim().length > 0 && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={sendMessage}
+            disabled={sending}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              backgroundColor: "#3BB4C1",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              opacity: sending ? 0.5 : 1,
+            }}
+          >
+            <Send size={18} strokeWidth={1.5} color="#FFFFFF" />
+          </motion.button>
+        )}
       </div>
     </motion.div>
   );

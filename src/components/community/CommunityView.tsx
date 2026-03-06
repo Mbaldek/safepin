@@ -197,6 +197,7 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
           stories={dbStories}
           onClose={() => setShowStoryViewer(false)}
           onNavigate={setStoryIndex}
+          userId={userId}
         />
       )}
 
