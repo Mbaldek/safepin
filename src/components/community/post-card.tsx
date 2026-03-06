@@ -157,8 +157,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
       .then(({ count, data }) => {
         setLikeCount(count ?? 0);
         if (data) setLiked(data.some((r) => r.user_id === currentUserId));
-      })
-      .catch(() => {});
+      });
   }, [post.id, currentUserId]);
 
   const isOwn = !!(currentUserId && post.userId === currentUserId);
