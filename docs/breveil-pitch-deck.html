@@ -117,6 +117,68 @@
     }
     .theme-toggle:hover { background: var(--interactive-active); color: var(--text-primary); }
 
+    .hamburger {
+      position: fixed; top: 16px; right: 56px; z-index: 100;
+      width: 36px; height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--surface-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); cursor: pointer;
+      transition: all var(--duration-fast) ease;
+    }
+    .hamburger:hover { background: var(--interactive-active); color: var(--text-primary); }
+
+    .menu-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.5);
+      opacity: 0; pointer-events: none;
+      transition: opacity var(--duration-normal) ease;
+    }
+    .menu-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .menu-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 280px; z-index: 1000;
+      background: var(--surface-card);
+      border-left: 1px solid var(--border-subtle);
+      transform: translateX(100%);
+      transition: transform var(--duration-normal) var(--ease-out);
+      display: flex; flex-direction: column;
+    }
+    .menu-drawer.open { transform: translateX(0); }
+
+    .menu-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .menu-drawer-header span { font-size: 15px; font-weight: 700; }
+    .menu-close {
+      width: 32px; height: 32px; border-radius: var(--radius-full);
+      background: var(--interactive-hover); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+    }
+    .menu-close:hover { background: var(--interactive-active); color: var(--text-primary); }
+
+    .menu-links { flex: 1; padding: 12px 0; display: flex; flex-direction: column; }
+    .menu-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; font-size: 15px; font-weight: 500;
+      color: var(--text-secondary); text-decoration: none;
+      transition: all var(--duration-fast) ease;
+      border-left: 3px solid transparent;
+    }
+    .menu-link:hover { background: var(--interactive-hover); color: var(--text-primary); }
+    .menu-link.active {
+      color: var(--accent-teal); border-left-color: var(--accent-teal);
+      background: rgba(59,180,193,0.06); font-weight: 600;
+    }
+    .menu-link-icon { font-size: 18px; width: 24px; text-align: center; }
+    .menu-divider { height: 1px; background: var(--border-subtle); margin: 8px 20px; }
+
     /* ── Slide ──────────────────────────── */
     .slide {
       min-height: 100vh;
@@ -493,6 +555,26 @@
     </svg>
   </button>
 
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+
+  <div class="menu-overlay" id="menu-overlay"></div>
+  <div class="menu-drawer" id="menu-drawer">
+    <div class="menu-drawer-header">
+      <span>Navigation</span>
+      <button class="menu-close" id="menu-close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="menu-links">
+      <a href="breveil-landing.html" class="menu-link"><span class="menu-link-icon">🏠</span> Accueil</a>
+      <a href="breveil-onboarding.html" class="menu-link"><span class="menu-link-icon">👋</span> Onboarding</a>
+      <a href="breveil-pitch-deck.html" class="menu-link active"><span class="menu-link-icon">📊</span> Pitch Deck</a>
+      <a href="breveil-feature-showcase.html" class="menu-link"><span class="menu-link-icon">✨</span> Fonctionnalités</a>
+      <div class="menu-divider"></div>
+      <a href="https://safepin-omega.vercel.app" class="menu-link"><span class="menu-link-icon">🚀</span> Ouvrir l'app</a>
+    </div>
+  </div>
+
   <!-- SLIDE 1 — Cover -->
   <section class="slide">
     <span class="slide-number">01 / 10</span>
@@ -817,6 +899,20 @@
         entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
       }, { threshold: 0.15 });
       els.forEach(function(el) { obs.observe(el); });
+    })();
+
+    // Hamburger menu
+    (function() {
+      var btn = document.getElementById('hamburger');
+      var overlay = document.getElementById('menu-overlay');
+      var drawer = document.getElementById('menu-drawer');
+      var close = document.getElementById('menu-close');
+      function open() { overlay.classList.add('open'); drawer.classList.add('open'); }
+      function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); }
+      btn.addEventListener('click', open);
+      overlay.addEventListener('click', shut);
+      close.addEventListener('click', shut);
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') shut(); });
     })();
   </script>
 

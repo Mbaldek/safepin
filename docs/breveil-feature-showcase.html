@@ -137,6 +137,32 @@
     }
     .theme-toggle:hover { color: var(--text-primary); background: var(--interactive-active); }
 
+    /* ── Hamburger menu ───────────────── */
+    .hamburger {
+      width: 36px; height: 36px; border-radius: var(--radius-full);
+      background: var(--interactive-hover); border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all var(--duration-fast) ease;
+    }
+    .hamburger:hover { background: var(--interactive-active); }
+    .hamburger span { display: flex; flex-direction: column; gap: 4px; }
+    .hamburger span i { display: block; width: 16px; height: 1.5px; background: var(--text-secondary); border-radius: 1px; transition: background var(--duration-fast) ease; }
+    .hamburger:hover span i { background: var(--text-primary); }
+    .menu-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 250ms ease; }
+    .menu-overlay.open { opacity: 1; pointer-events: auto; }
+    .menu-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 280px; z-index: 1000; background: var(--bg-card); border-left: 1px solid var(--border-default); transform: translateX(100%); transition: transform 250ms ease-out; display: flex; flex-direction: column; }
+    .menu-drawer.open { transform: translateX(0); }
+    .menu-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-default); }
+    .menu-drawer-header h3 { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--text-primary); margin: 0; }
+    .menu-close { width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--interactive-hover); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); font-size: 18px; transition: all var(--duration-fast) ease; }
+    .menu-close:hover { background: var(--interactive-active); color: var(--text-primary); }
+    .menu-links { padding: 12px 0; flex: 1; }
+    .menu-link { display: flex; align-items: center; gap: 12px; padding: 14px 20px; color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 500; border-left: 3px solid transparent; transition: all var(--duration-fast) ease; }
+    .menu-link:hover { color: var(--text-primary); background: var(--interactive-hover); }
+    .menu-link.active { color: var(--accent-teal); border-left-color: var(--accent-teal); background: rgba(59,180,193,0.06); }
+    .menu-link-icon { font-size: 18px; width: 24px; text-align: center; }
+    .menu-divider { height: 1px; background: var(--border-default); margin: 8px 20px; }
+
     /* ── Filter tabs ───────────────────── */
     .filter-bar {
       position: sticky;
@@ -515,9 +541,29 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-dark" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-light"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
+        <button class="hamburger" id="hamburger" aria-label="Menu">
+          <span><i></i><i></i><i></i></span>
+        </button>
       </div>
     </div>
   </nav>
+
+  <!-- Menu overlay + drawer -->
+  <div class="menu-overlay" id="menu-overlay"></div>
+  <div class="menu-drawer" id="menu-drawer">
+    <div class="menu-drawer-header">
+      <h3>Navigation</h3>
+      <button class="menu-close" id="menu-close">&times;</button>
+    </div>
+    <div class="menu-links">
+      <a href="breveil-landing.html" class="menu-link"><span class="menu-link-icon">🏠</span> Accueil</a>
+      <a href="breveil-onboarding.html" class="menu-link"><span class="menu-link-icon">👋</span> Onboarding</a>
+      <a href="breveil-pitch-deck.html" class="menu-link"><span class="menu-link-icon">📊</span> Pitch Deck</a>
+      <a href="breveil-feature-showcase.html" class="menu-link active"><span class="menu-link-icon">✨</span> Fonctionnalités</a>
+      <div class="menu-divider"></div>
+      <a href="https://safepin-omega.vercel.app" class="menu-link"><span class="menu-link-icon">🚀</span> Ouvrir l'app</a>
+    </div>
+  </div>
 
   <!-- FILTER BAR -->
   <div class="filter-bar">
@@ -885,6 +931,20 @@
           });
         });
       });
+    })();
+
+    // Hamburger menu
+    (function() {
+      var btn = document.getElementById('hamburger');
+      var overlay = document.getElementById('menu-overlay');
+      var drawer = document.getElementById('menu-drawer');
+      var close = document.getElementById('menu-close');
+      function open() { overlay.classList.add('open'); drawer.classList.add('open'); }
+      function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); }
+      btn.addEventListener('click', open);
+      overlay.addEventListener('click', shut);
+      close.addEventListener('click', shut);
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') shut(); });
     })();
   </script>
 
