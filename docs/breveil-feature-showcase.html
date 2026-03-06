@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breveil — Toutes les fonctionnalités</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --gradient-start: #3BB4C1;
+      --gradient-text: linear-gradient(135deg, #3BB4C1 0%, #A78BFA 50%, #F5C341 100%);
+      --gradient-primary: linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%);
+      --surface-base: #0F172A;
+      --surface-card: #1E293B;
+      --surface-elevated: #334155;
+      --surface-glass: rgba(30, 41, 59, 0.8);
+      --text-primary: #FFFFFF;
+      --text-secondary: #94A3B8;
+      --text-tertiary: #64748B;
+      --text-inverse: #0F172A;
+      --semantic-success: #34D399;
+      --semantic-success-soft: rgba(52, 211, 153, 0.15);
+      --semantic-warning: #FBBF24;
+      --semantic-warning-soft: rgba(251, 191, 36, 0.15);
+      --semantic-danger: #EF4444;
+      --semantic-danger-soft: rgba(239, 68, 68, 0.15);
+      --accent-gold: #F5C341;
+      --accent-teal: #3BB4C1;
+      --accent-purple: #A78BFA;
+      --accent-coral: #F87171;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-default: rgba(255, 255, 255, 0.12);
+      --border-strong: rgba(255, 255, 255, 0.20);
+      --interactive-hover: rgba(255, 255, 255, 0.05);
+      --interactive-active: rgba(255, 255, 255, 0.10);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 20px rgba(59, 180, 193, 0.3);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-2xl: 32px;
+      --radius-full: 9999px;
+      --duration-fast: 150ms;
+      --duration-normal: 250ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --surface-base: #F8FAFC;
+      --surface-card: #FFFFFF;
+      --surface-elevated: #FFFFFF;
+      --surface-glass: rgba(255, 255, 255, 0.9);
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-tertiary: #94A3B8;
+      --text-inverse: #FFFFFF;
+      --border-subtle: rgba(15, 23, 42, 0.06);
+      --border-default: rgba(15, 23, 42, 0.10);
+      --border-strong: rgba(15, 23, 42, 0.20);
+      --interactive-hover: rgba(0, 0, 0, 0.03);
+      --interactive-active: rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    .gradient-text {
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Nav ────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 17px; font-weight: 700;
+    }
+
+    .nav-logo-icon {
+      width: 28px; height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .nav-right {
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .theme-toggle {
+      width: 32px; height: 32px;
+      border-radius: var(--radius-full);
+      background: var(--interactive-hover);
+      border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      transition: all var(--duration-fast) ease;
+    }
+    .theme-toggle:hover { color: var(--text-primary); background: var(--interactive-active); }
+
+    /* ── Filter tabs ───────────────────── */
+    .filter-bar {
+      position: sticky;
+      top: 56px;
+      z-index: 90;
+      background: var(--surface-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 0;
+      overflow-x: auto;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 24px;
+      white-space: nowrap;
+    }
+
+    .filter-tab {
+      padding: 7px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1.5px solid var(--border-default);
+      transition: all var(--duration-fast) ease;
+      flex-shrink: 0;
+    }
+
+    .filter-tab:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .filter-tab.active {
+      background: var(--accent-teal);
+      border-color: var(--accent-teal);
+      color: #FFFFFF;
+    }
+
+    /* ── Hero ───────────────────────────── */
+    .hero {
+      padding: 120px 24px 60px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(59,180,193,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 400;
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .hero .stat-row {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    .hero .stat-pill {
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .hero .stat-pill strong {
+      color: var(--accent-teal);
+    }
+
+    /* ── Feature sections ──────────────── */
+    .section {
+      padding: 80px 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .section-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-meta h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .section-meta p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .section-tag {
+      margin-left: auto;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    /* ── Feature detail grid ───────────── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .detail-card {
+      padding: 20px;
+      border-radius: var(--radius-md);
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      transition: all var(--duration-normal) var(--ease-out);
+    }
+
+    .detail-card:hover {
+      border-color: var(--border-default);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .detail-card h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .detail-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ── Showcase card (larger) ─────────── */
+    .showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .showcase-visual {
+      height: 320px;
+      border-radius: var(--radius-xl);
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .showcase-content h3 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 28px;
+      font-weight: 400;
+      margin-bottom: 12px;
+    }
+
+    .showcase-content p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .showcase-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .showcase-bullets li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .showcase-bullets li svg {
+      flex-shrink: 0;
+      color: var(--semantic-success);
+    }
+
+    @media (max-width: 768px) {
+      .showcase { grid-template-columns: 1fr; }
+      .showcase-visual { height: 220px; }
+    }
+
+    /* ── Visual elements inside showcase ── */
+    .mock-pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .mock-pin-icon {
+      width: 32px; height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .mock-pin-label {
+      font-size: 9px;
+      font-weight: 600;
+      background: var(--surface-elevated);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      white-space: nowrap;
+      color: var(--text-secondary);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .mock-hud {
+      width: 80%;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      background: var(--surface-base);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .mock-progress {
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border-subtle);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .mock-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent-teal);
+      width: 65%;
+      animation: progress-grow 3s ease-in-out infinite;
+    }
+
+    @keyframes progress-grow {
+      0% { width: 30%; }
+      50% { width: 75%; }
+      100% { width: 30%; }
+    }
+
+    /* ── CTA bottom ────────────────────── */
+    .cta-bottom {
+      padding: 80px 0;
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      position: relative;
+    }
+
+    .cta-bottom::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(59,180,193,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-bottom h2 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 400;
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .cta-bottom p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      position: relative;
+    }
+
+    .btn-teal {
+      display: inline-flex;
+      align-items: center; justify-content: center; gap: 8px;
+      padding: 14px 32px;
+      border-radius: var(--radius-2xl);
+      background: var(--accent-teal);
+      color: #FFFFFF;
+      font-size: 15px; font-weight: 700;
+      box-shadow: var(--shadow-glow);
+      transition: all var(--duration-fast) ease;
+      position: relative;
+    }
+
+    .btn-teal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(59, 180, 193, 0.4);
+    }
+
+    /* ── Fade-in ───────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+    }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { opacity: 1; transform: none; transition: none; }
+      * { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="breveil-landing.html" class="nav-logo">
+        <div class="nav-logo-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
+        </div>
+        Breveil
+      </a>
+      <div class="nav-right">
+        <button class="theme-toggle" id="theme-toggle" aria-label="Thème">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-dark" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-light"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all">Tout</button>
+      <button class="filter-tab" data-filter="safety">Sécurité</button>
+      <button class="filter-tab" data-filter="community">Communauté</button>
+      <button class="filter-tab" data-filter="navigation">Navigation</button>
+      <button class="filter-tab" data-filter="gamification">Gamification</button>
+      <button class="filter-tab" data-filter="pro">Pro</button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>32+ fonctionnalités<br><span class="gradient-text">pour votre sécurité</span></h1>
+    <p>Découvrez tout ce que Breveil met à votre disposition. Gratuitement.</p>
+    <div class="stat-row">
+      <span class="stat-pill"><strong>32+</strong> fonctionnalités</span>
+      <span class="stat-pill"><strong>30</strong> langues</span>
+      <span class="stat-pill"><strong>100 %</strong> gratuit</span>
+    </div>
+  </section>
+
+  <main class="container">
+
+    <!-- ═══════════════════════════════════════
+         SECTION 1 — Carte & Signalement
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="safety">
+      <div class="showcase">
+        <div class="showcase-visual">
+          <div class="mock-pin" style="top: 20%; left: 20%; animation-delay: 0s;">
+            <div class="mock-pin-icon" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            </div>
+            <span class="mock-pin-label">Harcèlement · 3min</span>
+          </div>
+          <div class="mock-pin" style="top: 50%; left: 55%; animation-delay: 1s;">
+            <div class="mock-pin-icon" style="background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+            </div>
+            <span class="mock-pin-label">Éclairage faible</span>
+          </div>
+          <div class="mock-pin" style="top: 70%; left: 30%; animation-delay: 2s;">
+            <div class="mock-pin-icon" style="background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <span class="mock-pin-label">Pharmacie 24h</span>
+          </div>
+        </div>
+        <div class="showcase-content">
+          <h3>Carte de sécurité <span class="gradient-text">en temps réel</span></h3>
+          <p>Visualisez les incidents signalés par la communauté. Filtrez par catégorie, horaire et distance. Zoomez sur votre quartier.</p>
+          <ul class="showcase-bullets">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Incidents visibles en temps réel</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Filtres par catégorie et temporalité</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Votes communautaires pour la validation</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Signalement en moins de 30 secondes</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 2 — SOS & Urgence
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="safety">
+      <div class="section-header">
+        <div class="section-icon" style="background: var(--semantic-danger-soft);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="section-meta">
+          <h2>SOS & Urgence</h2>
+          <p>Alertez instantanément vos contacts et les autorités en un geste.</p>
+        </div>
+        <span class="section-tag" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">Gratuit</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+            Bouton SOS
+          </h4>
+          <p>Maintenez le bouton 3 secondes. Alerte envoyée à votre cercle de confiance avec votre position GPS.</p>
+        </div>
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>
+            Diffusion SOS
+          </h4>
+          <p>Alerte envoyée aux utilisatrices à proximité. Réseau d'entraide activé en quelques secondes.</p>
+        </div>
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
+            Partage de position
+          </h4>
+          <p>Localisation partagée automatiquement lors d'un SOS. Coordonnées GPS en temps réel.</p>
+        </div>
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            Diffusion en direct
+          </h4>
+          <p>Vidéo en temps réel via LiveKit. Vos contacts voient ce qui se passe. Enregistrement automatique.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 3 — Navigation & Trajets
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="navigation">
+      <div class="showcase" style="direction: rtl;">
+        <div class="showcase-content" style="direction: ltr;">
+          <h3>Trajet <span class="gradient-text">protégé</span></h3>
+          <p>Planifiez un itinéraire qui évite les zones signalées. Vos proches suivent votre progression en temps réel.</p>
+          <ul class="showcase-bullets">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 4 modes : marche, vélo, transports, voiture</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Évitement automatique des zones à risque</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Transports en commun parisiens (API IDFM)</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suivi en direct par votre cercle</li>
+          </ul>
+        </div>
+        <div class="showcase-visual" style="direction: ltr;">
+          <div class="mock-hud">
+            <div class="mock-progress"><div class="mock-progress-fill"></div></div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.12); display: flex; align-items: center; justify-content: center;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 12px; font-weight: 700;">Gare du Nord</div>
+                <div style="font-size: 9px; color: var(--text-tertiary);">~12 min restantes</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 10px;">
+              <div style="flex: 1; padding: 6px; border-radius: var(--radius-sm); background: var(--interactive-active); text-align: center; font-size: 10px; font-weight: 600; color: var(--text-secondary);">Partager</div>
+              <div style="flex: 1; padding: 6px; border-radius: var(--radius-sm); background: var(--semantic-danger-soft); text-align: center; font-size: 10px; font-weight: 700; color: var(--semantic-danger);">SOS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 4 — Marche avec moi
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="safety">
+      <div class="section-header">
+        <div class="section-icon" style="background: rgba(167,139,250,0.12);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="section-meta">
+          <h2>Marche avec moi</h2>
+          <p>Un accompagnement virtuel pour ne jamais être seule. Vos proches vous suivent en temps réel.</p>
+        </div>
+        <span class="section-tag" style="background: rgba(167,139,250,0.12); color: #A78BFA;">Gratuit</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Suivi en temps réel
+          </h4>
+          <p>Votre cercle de confiance voit votre position sur la carte, en direct, jusqu'à votre arrivée.</p>
+        </div>
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2"/><circle cx="12" cy="12" r="10"/></svg>
+            Check-in audio
+          </h4>
+          <p>Confirmations de sécurité périodiques. Un simple tap pour dire « je vais bien ».</p>
+        </div>
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Confirmation d'arrivée
+          </h4>
+          <p>Notification automatique envoyée à vos contacts quand vous arrivez à destination.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 5 — Communauté
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="community">
+      <div class="section-header">
+        <div class="section-icon" style="background: rgba(59,180,193,0.12);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="section-meta">
+          <h2>Communauté</h2>
+          <p>Groupes de quartier, cercle de confiance, amis et messages directs.</p>
+        </div>
+        <span class="section-tag" style="background: rgba(59,180,193,0.12); color: #3BB4C1;">Gratuit</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>👥 Groupes de quartier</h4>
+          <p>Rejoignez les communautés de votre zone. Partagez des alertes et des conseils locaux.</p>
+        </div>
+        <div class="detail-card">
+          <h4>🛡️ Cercle de confiance</h4>
+          <p>Vos contacts de confiance vérifiés. Premiers alertés en cas d'urgence.</p>
+        </div>
+        <div class="detail-card">
+          <h4>💬 Messages directs</h4>
+          <p>Échangez en privé avec vos amis et contacts de confiance.</p>
+        </div>
+        <div class="detail-card">
+          <h4>📍 Notes de lieux</h4>
+          <p>Ajoutez des notes personnelles à des emplacements. Partagez-les avec votre communauté.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 6 — Gamification
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="gamification">
+      <div class="section-header">
+        <div class="section-icon" style="background: rgba(245,195,65,0.12);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="section-meta">
+          <h2>Gamification</h2>
+          <p>Progressez, collectez des badges, relevez des défis. Plus vous contribuez, plus vous gagnez.</p>
+        </div>
+        <span class="section-tag" style="background: rgba(245,195,65,0.12); color: #F5C341;">Gratuit</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Niveaux de confiance
+          </h4>
+          <p>Watcher → Reporter → Guardian → Sentinel. Progressez en contribuant à la communauté.</p>
+        </div>
+        <div class="detail-card">
+          <h4>🎯 Défis hebdomadaires</h4>
+          <p>Missions renouvelées chaque semaine. Signaler, voter, vérifier — chaque action compte.</p>
+        </div>
+        <div class="detail-card">
+          <h4>🏅 Jalons</h4>
+          <p>Débloquez des accomplissements en atteignant des objectifs : 10 signalements, 50 votes, etc.</p>
+        </div>
+        <div class="detail-card">
+          <h4>🏷️ Badges d'expertise</h4>
+          <p>Spécialisez-vous : Transport, Éclairage, Harcèlement. Vos contributions ciblées vous distinguent.</p>
+        </div>
+        <div class="detail-card">
+          <h4>🔥 Séries quotidiennes</h4>
+          <p>Maintenez votre série d'activité. Récompenses aux jalons 3, 7, 14, 30, 60 et 100 jours.</p>
+        </div>
+        <div class="detail-card">
+          <h4>🎁 Parrainage</h4>
+          <p>Code unique Brume-XXXXX. Invitez vos amies et gagnez des points bonus.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         SECTION 7 — Pro
+         ═══════════════════════════════════════ -->
+    <section class="section fade-in" data-category="pro">
+      <div class="section-header">
+        <div class="section-icon" style="background: rgba(59,180,193,0.12);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="section-meta">
+          <h2>Breveil Pro</h2>
+          <p>Pour celles qui veulent le maximum de protection. 4,99 €/mois.</p>
+        </div>
+        <span class="section-tag" style="background: rgba(59,180,193,0.12); color: #3BB4C1;">4,99 €/mois</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Historique de localisation
+          </h4>
+          <p>Consultez vos trajets passés. Identifiez les zones fréquentes et les patterns.</p>
+        </div>
+        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Safety Buddy
+          </h4>
+          <p>Accompagnement virtuel dédié avec fonctionnalités enrichies et priorité d'alerte.</p>
+        </div>
+        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+            Scores de sécurité
+          </h4>
+          <p>Score de sécurité par quartier basé sur les données communautaires et historiques.</p>
+        </div>
+        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Alertes prioritaires
+          </h4>
+          <p>Recevez les alertes de sécurité en priorité. Notifications enrichies avec contexte.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CTA -->
+  <section class="cta-bottom">
+    <div class="container">
+      <h2>Prête à rejoindre<br><span class="gradient-text">Breveil ?</span></h2>
+      <p>Gratuit, maintenant, pour toujours. 32+ fonctionnalités pour votre sécurité.</p>
+      <a href="https://safepin-omega.vercel.app" class="btn-teal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Rejoindre Breveil
+      </a>
+    </div>
+  </section>
+
+  <script>
+    // Theme
+    (function() {
+      var html = document.documentElement;
+      var toggle = document.getElementById('theme-toggle');
+      var iD = document.getElementById('theme-icon-dark');
+      var iL = document.getElementById('theme-icon-light');
+      var s = localStorage.getItem('breveil-theme');
+      if (s) html.setAttribute('data-theme', s);
+      function u() { var d = html.getAttribute('data-theme') !== 'light'; iD.style.display = d ? 'none' : 'block'; iL.style.display = d ? 'block' : 'none'; }
+      u();
+      toggle.addEventListener('click', function() { var n = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; html.setAttribute('data-theme', n); localStorage.setItem('breveil-theme', n); u(); });
+    })();
+
+    // Scroll fade-in
+    (function() {
+      var els = document.querySelectorAll('.fade-in');
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+      }, { threshold: 0.1 });
+      els.forEach(function(el) { obs.observe(el); });
+    })();
+
+    // Filter tabs
+    (function() {
+      var tabs = document.querySelectorAll('.filter-tab');
+      var sections = document.querySelectorAll('.section[data-category]');
+
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+
+          var filter = tab.getAttribute('data-filter');
+          sections.forEach(function(sec) {
+            if (filter === 'all' || sec.getAttribute('data-category') === filter) {
+              sec.style.display = '';
+            } else {
+              sec.style.display = 'none';
+            }
+          });
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>
