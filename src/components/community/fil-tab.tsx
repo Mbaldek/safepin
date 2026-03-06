@@ -42,6 +42,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
   const [communityIds, setCommunityIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [hiddenIds, setHiddenIds] = useState<Set<number>>(new Set());
+  const [sosTab, setSosTab] = useState<'active' | 'resolved' | 'notifs'>('active');
 
   const handleHide = useCallback((postId: number) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
@@ -210,27 +211,92 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
       <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} />
 
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* SOS filter tabs — only shown when SOS posts exist */}
+        {sosPosts.length > 0 && (
+          <div style={{ display: 'flex', gap: 5 }}>
+            {([
+              { key: 'active' as const,   icon: '\uD83D\uDEA8', label: 'SOS actif',  color: 'var(--semantic-danger, #F04060)',       softBg: 'rgba(240,64,96,0.10)',    softBorder: 'rgba(240,64,96,0.22)' },
+              { key: 'resolved' as const, icon: '\u2713',        label: 'R\u00e9solu', color: 'var(--semantic-success, #34D399)',      softBg: 'rgba(52,211,153,0.10)',   softBorder: 'rgba(52,211,153,0.22)' },
+              { key: 'notifs' as const,    icon: '\uD83D\uDD14', label: 'Re\u00e7ues', color: '#3BB4C1',                               softBg: 'rgba(59,180,193,0.10)',   softBorder: 'rgba(59,180,193,0.22)' },
+            ]).map((tab) => {
+              const active = sosTab === tab.key;
+              const circleNotifs = tab.key === 'notifs' ? sosPosts.filter(p => p.visibility === 'circle').length : 0;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setSosTab(tab.key)}
+                  style={{
+                    flex: 1,
+                    padding: '7px 4px',
+                    borderRadius: 10,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    transition: 'all 0.15s ease',
+                    background: active ? tab.softBg : (isDark ? 'var(--surface-elevated, #273449)' : '#F1F5F9'),
+                    border: `1px solid ${active ? tab.softBorder : (isDark ? 'var(--border-default, rgba(255,255,255,0.08))' : '#E2E8F0')}`,
+                    color: active ? tab.color : (isDark ? 'var(--text-tertiary, #64748B)' : '#94A3B8'),
+                  }}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                  {tab.key === 'notifs' && circleNotifs > 0 && (
+                    <span style={{
+                      minWidth: 14, height: 14, borderRadius: 7,
+                      backgroundColor: '#EF4444', color: '#fff',
+                      fontSize: 9, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: '0 3px',
+                    }}>{circleNotifs}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {(() => {
           const allPosts = [
             ...posts.map(p => ({ ...p, _isSos: false })),
             ...sosPosts,
           ].sort((a, b) => new Date(b._createdAt).getTime() - new Date(a._createdAt).getTime());
 
-          if (allPosts.length === 0) {
+          // Apply SOS tab filter when SOS posts exist
+          const filtered = sosPosts.length > 0
+            ? allPosts.filter(p => {
+                if (sosTab === 'active') {
+                  return !p._isSos || p.status === 'active';
+                }
+                if (sosTab === 'resolved') {
+                  return p._isSos && p.status === 'resolved';
+                }
+                // 'notifs' — circle posts only
+                return p._isSos && p.visibility === 'circle';
+              })
+            : allPosts;
+
+          const visible = filtered.filter((p) => !hiddenIds.has(p.id));
+
+          if (visible.length === 0) {
             return (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
-                <span style={{ fontSize: 32 }}>📝</span>
+                <span style={{ fontSize: 32 }}>{sosPosts.length > 0 ? '\uD83D\uDD0D' : '\uD83D\uDCDD'}</span>
                 <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
-                  Aucun post pour l&apos;instant
+                  {sosPosts.length > 0 ? 'Aucun post dans ce filtre' : 'Aucun post pour l\u0027instant'}
                 </p>
                 <p style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
-                  Rejoignez un groupe et publiez !
+                  {sosPosts.length > 0 ? 'Changez d\u0027onglet pour voir d\u0027autres posts' : 'Rejoignez un groupe et publiez !'}
                 </p>
               </div>
             );
           }
 
-          return allPosts.filter((p) => !hiddenIds.has(p.id)).map((post, index) => (
+          return visible.map((post, index) => (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}

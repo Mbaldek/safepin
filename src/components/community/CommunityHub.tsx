@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase"
 import { useStore } from "@/stores/useStore"
 import { useTheme } from "@/stores/useTheme"
 import { toast } from "sonner"
+import SoutienSheet from "./SoutienSheet"
 
 function getColors(isDark: boolean) {
   return isDark ? {
@@ -457,6 +458,7 @@ interface SOSPost {
 
 export function SOSPostCard({ post, currentUserId }: { post: SOSPost; currentUserId: string | null }) {
   const isDark = useTheme((s) => s.theme) === 'dark'
+  const [showSoutien, setShowSoutien] = useState(false)
   const resolved = post.status === 'resolved'
   const isCircle = post.visibility === 'circle'
 
@@ -601,14 +603,14 @@ export function SOSPostCard({ post, currentUserId }: { post: SOSPost; currentUse
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
-              onClick={() => toast("Commentaires bient\u00F4t disponibles")}
+              onClick={() => setShowSoutien(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontFamily: 'inherit', fontSize: 12, color: 'var(--text-tertiary)',
               }}
             >
-              <MessageCircle size={14} /> Soutien
+              {'\uD83E\uDEC2'} Soutien
             </button>
           </div>
 
@@ -636,6 +638,10 @@ export function SOSPostCard({ post, currentUserId }: { post: SOSPost; currentUse
           )}
         </div>
       </div>
+
+      {showSoutien && (
+        <SoutienSheet postId={post.id} onClose={() => setShowSoutien(false)} />
+      )}
     </div>
   )
 }

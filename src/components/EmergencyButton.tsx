@@ -59,6 +59,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
 
   const [resolving, setResolving] = useState(false);
   const [showEmergency, setShowEmergency] = useState(false);
+  const [scrimVisible, setScrimVisible] = useState(false);
 
   // FAB hold refs (3-second hold to activate countdown)
   const fabHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -357,6 +358,15 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
 
   // ─── Derived values ──────────────────────────────────────────────────────
   const isOverlay = phase === 'count' || phase === 'sending' || phase === 'sent';
+
+  // Fade-in scrim to avoid abrupt red flash on mount
+  useEffect(() => {
+    if (isOverlay) {
+      const t = setTimeout(() => setScrimVisible(true), 50);
+      return () => clearTimeout(t);
+    }
+    setScrimVisible(false);
+  }, [isOverlay]);
   const ringOffset = phase === 'count'
     ? RING_CIRCUMFERENCE - ((5 - count) / 5) * RING_CIRCUMFERENCE
     : 0;
@@ -383,6 +393,10 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         @keyframes sos-slideUp {
           from { transform: translateX(-50%) translateY(24px); opacity: 0; }
           to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+        }
+        @keyframes flash-fade {
+          0%   { opacity: 0.6; }
+          100% { opacity: 0;   }
         }
       `}</style>
 
@@ -426,31 +440,13 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
             zIndex: 399,
+            opacity: scrimVisible ? 1 : 0,
+            transition: 'opacity 0.35s ease',
           }} />
 
-          {/* Emergency numbers overlay */}
+          {/* Emergency numbers card overlay */}
           {showEmergency && (
-            <div style={{
-              position: 'fixed', inset: 0, zIndex: 401,
-              background: 'var(--surface-base)',
-              display: 'flex', flexDirection: 'column',
-            }}>
-              <button
-                onClick={() => setShowEmergency(false)}
-                style={{
-                  position: 'absolute', top: 12, left: 12, zIndex: 1,
-                  background: 'var(--surface-card)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 12, padding: '6px 12px',
-                  fontSize: 13, fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                ← Retour
-              </button>
-              <EmergencyNumbers />
-            </div>
+            <EmergencyNumbers onBack={() => setShowEmergency(false)} />
           )}
 
           {/* Modal card */}
