@@ -334,7 +334,7 @@ export default function Home() {
         <div className="hero-tag"><span /> Disponible a Paris &middot; Lancement 2026</div>
         <h1>La securite urbaine,<br /><em>ensemble.</em></h1>
         <p className="hero-sub">
-          Breveil cartographie les zones a risque en temps reel, vous escorte
+          Breveil cartographie les zones a risque en temps reel, vous accompagne
           jusqu&apos;a destination, et connecte votre cercle de confiance autour de vous.
         </p>
         <div className="hero-actions">
@@ -421,7 +421,7 @@ export default function Home() {
           </div>
           <div className="feature-card fc-trajet reveal">
             <div className="feature-icon fi-cyan">&#x1F5FA;&#xFE0F;</div>
-            <h3 className="feature-title">Trajet escorte</h3>
+            <h3 className="feature-title">Trajet protege</h3>
             <p className="feature-desc">Planifiez votre itineraire et laissez TripMonitor surveiller en arriere-plan. Detection d&apos;anomalie, checkpoints transit, arrivee auto-confirmee.</p>
             <span className="feature-tag tag-pro">Pro</span>
           </div>

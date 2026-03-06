@@ -1,16 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Search, PenSquare, Sun, Moon, X } from "lucide-react";
+import { Search, PenSquare, X } from "lucide-react";
 
 interface HeaderProps {
   isDark: boolean;
-  setIsDark: (value: boolean) => void;
   onCompose: () => void;
   onClose: () => void;
 }
 
-export default function Header({ isDark, setIsDark, onCompose, onClose }: HeaderProps) {
+export default function Header({ isDark, onCompose, onClose }: HeaderProps) {
   return (
     <div
       style={{
@@ -57,27 +56,6 @@ export default function Header({ isDark, setIsDark, onCompose, onClose }: Header
 
       {/* Right side */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsDark(!isDark)}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            backgroundColor: isDark ? "#243050" : "#F1F5F9",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-        >
-          {isDark ? (
-            <Sun size={18} style={{ color: "#F5C341" }} />
-          ) : (
-            <Moon size={18} style={{ color: "#64748B" }} />
-          )}
-        </motion.button>
         <motion.button
           whileTap={{ scale: 0.95 }}
           style={{

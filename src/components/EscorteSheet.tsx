@@ -14,10 +14,9 @@ import { useFavoris }       from '@/hooks/useFavoris'
 import { useRecents }       from '@/hooks/useRecents'
 import { useDestinationSearch, formatSearchDistance } from '@/hooks/useDestinationSearch'
 import type { SearchResult } from '@/hooks/useDestinationSearch'
-import { ContactRow }       from './escorte/ContactRow'
 import { FavoriButton }     from './escorte/FavoriButton'
 import {
-  formatElapsed, formatCountdown, calcETA, calcDist, avatarColor
+  formatElapsed, calcETA, calcDist, avatarColor
 } from '@/lib/escorteHelpers'
 import { fetchDirections, formatDuration, formatDistance } from '@/lib/directions'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
@@ -390,7 +389,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 19, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
-            Mon escorte
+            Mon trajet
           </div>
           <div style={{ fontSize: 12, color: tk.tt, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Clock size={10} strokeWidth={1.5} color={tk.tt} />
@@ -406,7 +405,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </button>
       </div>
 
-      {/* CTA 1 — Escorte immediate */}
+      {/* CTA 1 — Marche avec moi */}
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={() => escorte.setView('escorte-intro')}
@@ -433,7 +432,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
-            Escorte immediate
+            Marche avec moi
           </div>
           <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte · sans destination</div>
         </div>
@@ -469,7 +468,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
             Trajet avec destination
           </div>
-          <div style={{ fontSize: 11, color: tk.tt }}>Itineraire escorte · arrivee tracee</div>
+          <div style={{ fontSize: 11, color: tk.tt }}>Itineraire protege · arrivee tracee</div>
         </div>
         <ChevronRight size={16} strokeWidth={1.5} color={tk.tt} />
       </motion.button>
@@ -575,7 +574,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Escorte immediate</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Marche avec moi</div>
           <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte instantanement</div>
         </div>
       </div>
@@ -697,105 +696,119 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     ).length
 
     return (
-      <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-        {/* Handle */}
-        <div style={{
-          width:28, height:4, borderRadius:2, margin:'8px auto 0', flexShrink:0,
-          background: C.handle,
-        }} />
+      <>
+        {/* Scrim */}
+        <motion.div
+          key="notifying-scrim"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            zIndex: 299,
+          }}
+        />
 
-        {/* Julia banner */}
-        <div style={{
-          margin:'10px 14px 0', padding:'7px 12px', borderRadius:12, flexShrink:0,
-          background:'rgba(167,139,250,0.08)', border:'1px solid rgba(167,139,250,0.20)',
-          display:'flex', alignItems:'center', gap:7,
-        }}>
-          <Sparkles size={11} strokeWidth={1.5} color="#A78BFA" />
-          <span style={{ fontSize:12, fontWeight:600, color:'#A78BFA', flex:1 }}>
-            {escorte.juliaActive
-              ? 'Julia vous accompagne · canal actif'
-              : `Julia rejoint dans ${formatCountdown(escorte.juliaCd)}`}
-          </span>
-          <span style={{
-            fontSize:8, fontWeight:800, color:'#A78BFA',
-            background:'rgba(167,139,250,0.15)', padding:'1px 5px', borderRadius:3,
-          }}>IA</span>
-        </div>
-
-        {/* Centre */}
-        <div style={{
-          flex:1, display:'flex', flexDirection:'column',
-          alignItems:'center', justifyContent:'center', gap:8, padding:'0 20px',
-        }}>
-          <div style={{
-            width:56, height:56, borderRadius:'50%',
-            background:'rgba(59,180,193,0.10)', border:'1px solid rgba(59,180,193,0.20)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-          }}>
-            <Users size={22} strokeWidth={1.5} color="#3BB4C1" />
-          </div>
-          <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:15, fontWeight:700, color: C.btn, marginBottom:3 }}>
+        {/* Modal card */}
+        <motion.div
+          key="notifying-card"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 40 }}
+          transition={springConfig}
+          style={{
+            position: 'fixed',
+            bottom: 100,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '88%',
+            maxWidth: 340,
+            background: 'var(--surface-card)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 20,
+            boxShadow: T.shadowLg,
+            padding: '16px 16px 12px',
+            zIndex: 300,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          {/* Row 1 — Icon + status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+              background: 'rgba(59,180,193,0.10)', border: '1px solid rgba(59,180,193,0.20)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Users size={15} strokeWidth={1.5} color="#3BB4C1" />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
               {hasResponded
                 ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`
-                : 'Notification envoyée'}
-            </div>
-            <div style={{ fontSize:12, color: C.t2 }}>
-              {hasResponded ? "Ton cercle t'accompagne" : 'En attente de réponse'}
-            </div>
+                : 'Notification envoyée · En attente…'}
+            </span>
           </div>
-          {!escorte.juliaActive && escorte.juliaCd > 0 && (
-            <div style={{
-              padding:'4px 14px', borderRadius:100,
-              background:'rgba(245,195,65,0.10)', border:'1px solid rgba(245,195,65,0.25)',
-              fontSize:12, fontWeight:600, color:'#F5C341',
-            }}>
-              Julia rejoint dans {formatCountdown(escorte.juliaCd)}
-            </div>
-          )}
 
-          {/* Contact list */}
+          {/* Row 2 — Circle member avatars */}
           {escorte.circleMembers.length > 0 && (
-            <div style={{ ...cardSt, borderRadius: T.radiusLg, overflow: 'hidden', width: '100%' }}>
-              {escorte.circleMembers.map((m, i) => (
-                <ContactRow
-                  key={m.id}
-                  member={m}
-                  isDark={d}
-                  showBorder={i < escorte.circleMembers.length - 1}
-                />
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {escorte.circleMembers.slice(0, 5).map((m, i) => {
+                const name = m.profiles?.name ?? '?'
+                const col = avatarColor(name)
+                return (
+                  <div key={m.id} style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: `${col}25`,
+                    border: '2px solid var(--surface-card)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 700, color: col,
+                    marginLeft: i > 0 ? -6 : 0,
+                    flexShrink: 0,
+                  }}>
+                    {name[0]}
+                  </div>
+                )
+              })}
             </div>
           )}
-        </div>
 
-        {/* Actions */}
-        <div style={{ padding:'12px 14px 14px', display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
-          <button
-            onClick={() => escorte.setView('escorte-live')}
-            style={{
-              width:'100%', padding:'12px', borderRadius:28,
-              background: C.btn,
-              color: C.btnTxt,
-              fontFamily:'inherit', fontSize:13, fontWeight:800,
-              border:'none', cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-            }}
-          >
-            <Check size={12} strokeWidth={2.5} />
-            {hasResponded ? 'Continuer' : 'Démarrer sans attendre'}
-          </button>
-          <button
-            onClick={() => escorte.endEscorte()}
-            style={{
-              background:'none', border:'none', cursor:'pointer', padding:'4px',
-              fontSize:12, color: C.t3, fontFamily:'inherit',
-            }}
-          >
-            Annuler
-          </button>
-        </div>
-      </div>
+          {/* Row 3 — Actions */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => escorte.endEscorte()}
+              style={{
+                flex: 1, padding: '10px',
+                background: 'transparent',
+                border: '1px solid var(--border-default)',
+                color: 'var(--text-secondary)',
+                borderRadius: 99,
+                fontFamily: 'inherit', fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => escorte.setView('escorte-live')}
+              style={{
+                flex: 2, padding: '10px 16px',
+                background: 'var(--text-primary)',
+                color: 'var(--text-inverse)',
+                border: 'none',
+                borderRadius: 99,
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {hasResponded ? 'Continuer →' : 'Démarrer →'}
+            </button>
+          </div>
+        </motion.div>
+      </>
     )
   }
 
@@ -1191,7 +1204,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <Users size={12} strokeWidth={1.5} color="#3BB4C1" />
                     <span style={{ fontSize:11, fontWeight:600, color:'#3BB4C1' }}>
-                      Escorte cercle
+                      Veille cercle
                     </span>
                   </div>
                   <div
@@ -1431,7 +1444,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
               style={{ width: 7, height: 7, borderRadius: '50%', background: T.gradientStart }}
             />
-            <span style={{ fontSize: 13, fontWeight: 600, color: tk.tp, flex: 1 }}>Escorte active</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: tk.tp, flex: 1 }}>Trajet en cours</span>
             <span style={{ fontSize: 10, color: tk.tt, fontVariantNumeric: 'tabular-nums' }}>
               {formatElapsed(escorte.elapsed)}
             </span>
@@ -1476,7 +1489,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            Arreter l'escorte
+            Arreter
           </button>
         </motion.div>
       </div>

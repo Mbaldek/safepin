@@ -102,6 +102,7 @@ const PIN_COLORS = {
   safeSpace:   '#34D399',
   safePartner: '#F5C341',
   emergency:   '#EF4444',
+  emergencyResolved: '#9CA3AF',
   destination: '#34D399',
   transport:   '#22D3EE',
   watchContact: '#3BB4C1',
@@ -1202,9 +1203,9 @@ function MapView({
     const now = Date.now();
 
     const filteredEmergency = pins.filter((pin) => {
-      if (!pin.is_emergency || pin.resolved_at) return false;
+      if (!pin.is_emergency) return false;
       const ageH = (now - new Date(pin.created_at).getTime()) / 3_600_000;
-      return ageH < 2;
+      return ageH < 24;
     });
 
     // Trail groups: userId → pins sorted newest-first
@@ -1229,23 +1230,27 @@ function MapView({
     filteredEmergency.forEach((pin) => {
       const group = trailGroups.get(pin.user_id) ?? [];
       const idx = group.findIndex((p) => p.id === pin.id);
+      const isResolved = !!pin.resolved_at;
       const level = TRAIL_LEVELS[idx];
       if (!level) return;
+      if (isResolved && idx !== 0) return; // resolved: single dot, no trail
       const [trailOpacity, dotPx, wrapperPx, showRing] = level;
 
       const wrapper = document.createElement('div');
       wrapper.style.cssText = `width:${wrapperPx}px;height:${wrapperPx}px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;opacity:${trailOpacity}`;
 
-      if (showRing) {
+      if (showRing && !isResolved) {
         const ring = document.createElement('div');
         ring.className = 'emergency-ring';
         wrapper.appendChild(ring);
       }
 
+      const bgColor = isResolved ? PIN_COLORS.emergencyResolved : PIN_COLORS.emergency;
+      const shadowColor = isResolved ? '#9CA3AF88' : '#ef444488';
       const dot = document.createElement('div');
-      dot.style.cssText = `width:${dotPx}px;height:${dotPx}px;border-radius:50%;background-color:${PIN_COLORS.emergency};border:3px solid ${theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)'};box-shadow:0 2px 8px #ef444488;z-index:1;position:relative;display:flex;align-items:center;justify-content:center`;
-      const iconSz = idx === 0 ? 16 : 12;
-      dot.innerHTML = `<svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" stroke="${PIN_COLORS.stroke}" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+      dot.style.cssText = `width:${dotPx}px;height:${dotPx}px;border-radius:50%;background-color:${bgColor};border:3px solid ${theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.15)'};box-shadow:0 2px 8px ${shadowColor};z-index:1;position:relative;display:flex;align-items:center;justify-content:center`;
+      const fontSize = idx === 0 ? 13 : 10;
+      dot.innerHTML = `<span style="font-size:${fontSize}px;font-weight:800;color:${PIN_COLORS.stroke};letter-spacing:0.5px;line-height:1;user-select:none">SOS</span>`;
 
       wrapper.addEventListener('click', (e) => {
         e.stopPropagation();

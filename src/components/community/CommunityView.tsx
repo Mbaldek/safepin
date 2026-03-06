@@ -40,7 +40,7 @@ interface CommunityViewProps {
 
 export default function CommunityView({ onClose }: CommunityViewProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const toggleTheme = useTheme((s) => s.toggleTheme);
+
   const userId = useStore((s) => s.userId);
 
   const [activeTab, setActiveTab] = useState(0);
@@ -136,7 +136,6 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
     >
       <Header
         isDark={isDark}
-        setIsDark={(v) => { if (v !== isDark) toggleTheme(); }}
         onCompose={() => setShowCompose(true)}
         onClose={onClose}
       />

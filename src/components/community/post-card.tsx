@@ -1,9 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useState } from "react";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin, Share2, Flag, EyeOff, Trash2 } from "lucide-react";
 import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
+import { toast } from "sonner";
 
 interface Post {
   id: number;
@@ -11,9 +12,11 @@ interface Post {
   user: {
     name: string;
     avatar: string;
+    avatarUrl?: string | null;
     gradientColors: string[];
     verified?: boolean;
   };
+  userId?: string;
   time: string;
   location?: string;
   title: string;
@@ -30,6 +33,8 @@ interface Post {
 interface PostCardProps {
   post: Post;
   isDark: boolean;
+  currentUserId?: string | null;
+  onHide?: (postId: number) => void;
 }
 
 const typeStyles = {
@@ -55,13 +60,28 @@ const typeStyles = {
   },
 };
 
-export default function PostCard({ post, isDark }: PostCardProps) {
+export default function PostCard({ post, isDark, currentUserId, onHide }: PostCardProps) {
   const [confirmed, setConfirmed] = useState(false);
   const [confirmCount, setConfirmCount] = useState(post.confirmations || 0);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [participating, setParticipating] = useState(false);
   const [participantCount, setParticipantCount] = useState(post.participants || 0);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const isOwn = !!(currentUserId && post.userId === currentUserId);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   const styles = typeStyles[post.type];
 
@@ -105,9 +125,14 @@ export default function PostCard({ post, isDark }: PostCardProps) {
             fontSize: 14,
             fontWeight: 600,
             color: "#FFFFFF",
+            overflow: "hidden",
           }}
         >
-          {post.user.avatar}
+          {post.user.avatarUrl ? (
+            <img src={post.user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            post.user.avatar
+          )}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -145,16 +170,79 @@ export default function PostCard({ post, isDark }: PostCardProps) {
             </span>
           </div>
         )}
-        <button
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 4,
-          }}
-        >
-          <MoreHorizontal size={18} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-        </button>
+        <div ref={menuRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+            }}
+          >
+            <MoreHorizontal size={18} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
+          </button>
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  zIndex: 50,
+                  minWidth: 180,
+                  backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                  border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                  borderRadius: 12,
+                  padding: 4,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+                }}
+              >
+                {[
+                  { icon: Share2, label: "Partager", action: () => {
+                    if (navigator.share) navigator.share({ text: post.content }).catch(() => {});
+                    else { navigator.clipboard.writeText(post.content); toast.success("Copié !"); }
+                    setMenuOpen(false);
+                  }},
+                  ...(!isOwn ? [
+                    { icon: Flag, label: "Signaler", action: () => { toast("Signalement envoyé"); setMenuOpen(false); } },
+                    { icon: EyeOff, label: "Masquer", action: () => { onHide?.(post.id); setMenuOpen(false); } },
+                  ] : []),
+                  ...(isOwn ? [
+                    { icon: Trash2, label: "Supprimer", action: () => { toast("Post supprimé"); onHide?.(post.id); setMenuOpen(false); }, danger: true },
+                  ] : []),
+                ].map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={item.action}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: "none",
+                      border: "none",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: (item as any).danger ? "#EF4444" : isDark ? "#E2E8F0" : "#334155",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <item.icon size={16} style={{ opacity: 0.7 }} />
+                    {item.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Content */}
@@ -393,6 +481,7 @@ export default function PostCard({ post, isDark }: PostCardProps) {
               </span>
             </motion.button>
             <button
+              onClick={() => toast("Commentaires bientôt disponibles")}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -409,7 +498,12 @@ export default function PostCard({ post, isDark }: PostCardProps) {
             </button>
           </div>
         )}
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={() => {
+            setBookmarked(!bookmarked);
+            toast(bookmarked ? "Retiré des favoris" : "Ajouté aux favoris");
+          }}
           style={{
             background: "none",
             border: "none",
@@ -417,8 +511,12 @@ export default function PostCard({ post, isDark }: PostCardProps) {
             padding: 4,
           }}
         >
-          <Bookmark size={18} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-        </button>
+          <Bookmark
+            size={18}
+            style={{ color: bookmarked ? "#F5C341" : isDark ? "#64748B" : "#94A3B8" }}
+            fill={bookmarked ? "#F5C341" : "transparent"}
+          />
+        </motion.button>
       </div>
     </div>
   );

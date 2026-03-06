@@ -63,18 +63,18 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
       const userIds = [...new Set(data.map((s) => s.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url")
+        .select("id, display_name, first_name, username, avatar_emoji, avatar_url")
         .in("id", userIds);
       const pMap = new Map((profiles || []).map((p) => [p.id, p]));
 
       setStories(
         data.map((s) => {
           const p = pMap.get(s.user_id);
-          const name = p?.display_name || s.display_name || "?";
+          const name = p?.display_name || p?.first_name || p?.username || s.display_name || "Membre";
           return {
             id: s.id,
             name,
-            avatar: name.charAt(0).toUpperCase(),
+            avatar: p?.avatar_emoji || name.charAt(0).toUpperCase(),
             avatarUrl: p?.avatar_url || null,
             gradientColors: pickGradient(s.user_id),
           };
