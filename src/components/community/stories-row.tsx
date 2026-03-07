@@ -40,17 +40,16 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
   const [stories, setStories] = useState<StoryItem[]>([]);
 
   useEffect(() => {
-    if (!communityIds.length) {
-      setStories([]);
-      return;
-    }
     (async () => {
-      // Fetch recent stories from user's communities (last 24h)
+      // Fetch recent stories (last 24h) — global + user's communities
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const filter = communityIds.length
+        ? `community_id.is.null,community_id.in.(${communityIds.join(",")})`
+        : "community_id.is.null";
       const { data } = await supabase
         .from("community_stories")
         .select("id, user_id, display_name, media_url, created_at")
-        .in("community_id", communityIds)
+        .or(filter)
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(10);

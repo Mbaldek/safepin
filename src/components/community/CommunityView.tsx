@@ -230,7 +230,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
     const { data } = await supabase
       .from('community_stories')
       .select('id, user_id, display_name, media_url, media_type, caption, created_at')
-      .in('community_id', ids)
+      .or(`community_id.is.null${ids.length ? `,community_id.in.(${ids.join(",")})` : ""}`)
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(20);
