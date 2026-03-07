@@ -38,9 +38,11 @@ function pickGradient(id: string): string[] {
 interface CommunityViewProps {
   onClose: () => void;
   onSafetyFilter?: (tag: string) => void;
+  dmTarget?: { userId: string; userName: string } | null;
+  onDMOpened?: () => void;
 }
 
-export default function CommunityView({ onClose, onSafetyFilter }: CommunityViewProps) {
+export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMOpened }: CommunityViewProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
 
   const userId = useStore((s) => s.userId);
@@ -179,6 +181,14 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
     partner_avatar: string | null;
     is_unread: boolean;
   } | null>(null);
+
+  // When dmTarget is set from CercleSheet, open the DM conversation
+  useEffect(() => {
+    if (!dmTarget || !userId) return;
+    handleOpenConversation(dmTarget.userId, dmTarget.userName, null);
+    onDMOpened?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dmTarget]);
 
   const handleOpenConversation = useCallback(async (partnerId: string, partnerName: string, partnerAvatar: string | null) => {
     if (!userId) return;

@@ -1,885 +1,691 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" data-theme="dark" data-lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Breveil — Onboarding</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     :root {
-      --gradient-start: #3BB4C1;
-      --gradient-mid: #1E3A5F;
-      --gradient-transition: #4A2C5A;
-      --gradient-end: #5C3D5E;
       --gradient-primary: linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%);
       --gradient-text: linear-gradient(135deg, #3BB4C1 0%, #A78BFA 50%, #F5C341 100%);
-      --surface-base: #0F172A;
-      --surface-card: #1E293B;
-      --surface-elevated: #334155;
-      --surface-glass: rgba(30, 41, 59, 0.8);
-      --text-primary: #FFFFFF;
-      --text-secondary: #94A3B8;
-      --text-tertiary: #64748B;
-      --text-inverse: #0F172A;
-      --semantic-success: #34D399;
-      --semantic-success-soft: rgba(52, 211, 153, 0.15);
-      --semantic-danger: #EF4444;
-      --semantic-danger-soft: rgba(239, 68, 68, 0.15);
-      --accent-gold: #F5C341;
-      --accent-teal: #3BB4C1;
-      --accent-purple: #A78BFA;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-default: rgba(255, 255, 255, 0.12);
-      --border-strong: rgba(255, 255, 255, 0.20);
-      --interactive-hover: rgba(255, 255, 255, 0.05);
-      --interactive-active: rgba(255, 255, 255, 0.10);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
-      --shadow-glow: 0 0 20px rgba(59, 180, 193, 0.3);
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-      --radius-2xl: 32px;
-      --radius-full: 9999px;
-      --duration-fast: 150ms;
-      --duration-normal: 250ms;
-      --duration-slow: 400ms;
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --surface-base:#0A0F1E; --surface-card:#111827; --surface-elevated:#1E293B;
+      --surface-glass:rgba(17,24,39,0.88);
+      --text-primary:#FFFFFF; --text-secondary:#94A3B8; --text-tertiary:#475569; --text-inverse:#0A0F1E;
+      --success:#34D399; --warning:#FBBF24; --danger:#EF4444;
+      --gold:#F5C341; --teal:#3BB4C1; --purple:#A78BFA; --coral:#F87171;
+      --border-subtle:rgba(255,255,255,0.06); --border-default:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.18);
+      --shadow-md:0 4px 16px rgba(0,0,0,0.4); --shadow-lg:0 12px 40px rgba(0,0,0,0.5); --shadow-xl:0 24px 64px rgba(0,0,0,0.6);
+      --glow-teal:0 0 40px rgba(59,180,193,0.2);
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --radius-2xl:32px; --radius-full:9999px;
+      --ease-out:cubic-bezier(0.16,1,0.3,1); --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
     }
-
     [data-theme="light"] {
-      --surface-base: #F8FAFC;
-      --surface-card: #FFFFFF;
-      --surface-elevated: #FFFFFF;
-      --surface-glass: rgba(255, 255, 255, 0.9);
-      --text-primary: #0F172A;
-      --text-secondary: #475569;
-      --text-tertiary: #94A3B8;
-      --text-inverse: #FFFFFF;
-      --border-subtle: rgba(15, 23, 42, 0.06);
-      --border-default: rgba(15, 23, 42, 0.10);
-      --border-strong: rgba(15, 23, 42, 0.20);
-      --interactive-hover: rgba(0, 0, 0, 0.03);
-      --interactive-active: rgba(0, 0, 0, 0.06);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+      --surface-base:#F0F4F8; --surface-card:#FFFFFF; --surface-elevated:#FFFFFF; --surface-glass:rgba(255,255,255,0.92);
+      --text-primary:#0A0F1E; --text-secondary:#475569; --text-tertiary:#94A3B8; --text-inverse:#FFFFFF;
+      --border-subtle:rgba(10,15,30,0.06); --border-default:rgba(10,15,30,0.10); --border-strong:rgba(10,15,30,0.18);
+      --shadow-md:0 4px 16px rgba(0,0,0,0.08); --shadow-lg:0 12px 40px rgba(0,0,0,0.10);
+    }
+    [data-lang="en"] .fr-only { display: none !important; }
+    [data-lang="fr"] .en-only { display: none !important; }
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{font-family:'DM Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;scroll-behavior:smooth;}
+    body{background:var(--surface-base);color:var(--text-primary);overflow-x:hidden;}
+    a{color:inherit;text-decoration:none;}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;}
+    .gradient-text{background:var(--gradient-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+    /* NAV */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--surface-glass);backdrop-filter:blur(24px);border-bottom:1px solid var(--border-subtle);}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:1200px;margin:0 auto;padding:0 28px;}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-0.03em;}
+    .nav-logo-mark{width:32px;height:32px;border-radius:9px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;}
+    .nav-actions{display:flex;align-items:center;gap:8px;}
+    .theme-btn{width:34px;height:34px;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all .15s ease;}
+    .theme-btn:hover{color:var(--text-primary);background:var(--border-default);}
+    .lang-toggle{display:flex;align-items:center;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);overflow:hidden;padding:2px;gap:2px;}
+    .lang-btn{padding:5px 10px;border-radius:var(--radius-full);font-size:12px;font-weight:700;color:var(--text-tertiary);transition:all .15s ease;cursor:pointer;background:transparent;border:none;}
+    .lang-btn.active{background:var(--surface-elevated);color:var(--text-primary);}
+    .btn-app{padding:9px 20px;border-radius:var(--radius-full);background:var(--teal);color:#fff;font-size:13px;font-weight:700;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--glow-teal);}
+    .btn-app:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(59,180,193,0.4);}
+    .hamburger{width:34px;height:34px;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);display:none;align-items:center;justify-content:center;color:var(--text-secondary);}
+    @media(max-width:680px){.hamburger{display:flex;}}
+    .menu-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);opacity:0;pointer-events:none;transition:opacity .25s ease;}
+    .menu-overlay.open{opacity:1;pointer-events:auto;}
+    .menu-drawer{position:fixed;top:0;right:0;bottom:0;width:280px;z-index:1000;background:var(--surface-elevated);border-left:1px solid var(--border-subtle);transform:translateX(100%);transition:transform .25s var(--ease-out);display:flex;flex-direction:column;}
+    .menu-drawer.open{transform:translateX(0);}
+    .menu-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border-subtle);}
+    .menu-drawer-header strong{font-size:15px;font-weight:700;}
+    .menu-close{width:30px;height:30px;border-radius:var(--radius-full);background:var(--border-subtle);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);cursor:pointer;border:none;}
+    .menu-links{flex:1;padding:10px 0;}
+    .menu-link-item{display:flex;align-items:center;gap:12px;padding:13px 20px;font-size:15px;font-weight:500;color:var(--text-secondary);border-left:2px solid transparent;transition:all .15s ease;}
+    .menu-link-item:hover{color:var(--text-primary);background:rgba(255,255,255,0.03);}
+    .menu-link-item.active{color:var(--teal);border-left-color:var(--teal);background:rgba(59,180,193,0.05);}
+    .menu-sep{height:1px;background:var(--border-subtle);margin:6px 20px;}
+
+    /* LAYOUT */
+    .page{padding:88px 28px 80px;max-width:1100px;margin:0 auto;}
+    .page-header{text-align:center;margin-bottom:64px;}
+    .page-label{font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--teal);margin-bottom:14px;}
+    .page-title{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(28px,4vw,46px);font-weight:400;margin-bottom:12px;}
+    .page-sub{font-size:17px;color:var(--text-secondary);max-width:480px;margin:0 auto;line-height:1.6;}
+
+    /* DEMO */
+    .demo-layout{display:grid;grid-template-columns:1fr 320px;gap:56px;align-items:start;}
+    @media(max-width:900px){.demo-layout{grid-template-columns:1fr;}}
+
+    /* Step nav */
+    .steps-nav{display:flex;flex-direction:column;gap:8px;position:sticky;top:88px;}
+    .step-nav-item{
+      display:flex;align-items:center;gap:14px;
+      padding:14px 16px;border-radius:var(--radius-lg);
+      border:1px solid transparent;
+      cursor:pointer;transition:all .2s var(--ease-out);
+    }
+    .step-nav-item:hover{background:var(--surface-card);border-color:var(--border-subtle);}
+    .step-nav-item.active{background:var(--surface-card);border-color:var(--border-default);box-shadow:var(--shadow-md);}
+    .step-num{
+      width:32px;height:32px;border-radius:50%;
+      background:var(--surface-elevated);border:1.5px solid var(--border-default);
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:700;color:var(--text-tertiary);
+      flex-shrink:0;transition:all .2s ease;
+    }
+    .step-nav-item.active .step-num{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 0 10px rgba(59,180,193,0.4);}
+    .step-nav-item.done .step-num{background:rgba(52,211,153,0.15);border-color:var(--success);color:var(--success);}
+    .step-nav-label{font-size:14px;font-weight:600;}
+    .step-nav-sub{font-size:12px;color:var(--text-tertiary);}
+
+    /* Phone mockup */
+    .phone-demo{
+      display:flex;justify-content:center;
+    }
+    .phone-shell{
+      width:280px;border-radius:40px;
+      background:#070C18;
+      border:2px solid rgba(255,255,255,0.12);
+      box-shadow:var(--shadow-xl),var(--glow-teal);
+      overflow:hidden;position:relative;
+    }
+    .phone-inner{padding-bottom:216%;position:relative;}
+    .phone-screen{position:absolute;inset:0;overflow:hidden;}
+
+    .phone-island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:88px;height:28px;background:#000;border-radius:14px;z-index:10;}
+
+    /* Progress */
+    .phone-progress{position:absolute;top:48px;left:16px;right:16px;height:2px;border-radius:1px;background:rgba(255,255,255,0.08);z-index:9;overflow:hidden;}
+    .phone-progress-fill{height:100%;border-radius:1px;background:var(--gradient-text);transition:width .4s var(--ease-out);}
+
+    /* Step screens */
+    .screen{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;
+      padding:58px 20px 80px;
+      opacity:0;transform:translateX(20px);
+      transition:opacity .35s var(--ease-out),transform .35s var(--ease-out);
+      pointer-events:none;
+    }
+    .screen.active{opacity:1;transform:translateX(0);pointer-events:auto;}
+    .screen.prev{opacity:0;transform:translateX(-20px);}
+
+    /* Screen 1 — Welcome */
+    .s1{background:var(--gradient-primary);}
+    .s1-icon{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:24px;border:1px solid rgba(255,255,255,0.2);}
+    .s1-title{font-family:'DM Serif Display',Georgia,serif;font-size:26px;font-weight:400;color:#fff;line-height:1.2;margin-bottom:12px;}
+    .s1-sub{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:auto;}
+
+    /* Screen 2 — Profile */
+    .s2{background:#0A0F1E;}
+    .screen-title{font-family:'DM Serif Display',Georgia,serif;font-size:20px;font-weight:400;color:#fff;margin-bottom:6px;}
+    .screen-sub{font-size:11px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5;}
+    .sel-grid{display:flex;flex-direction:column;gap:8px;}
+    .sel-card{
+      display:flex;align-items:center;gap:10px;
+      padding:11px 12px;border-radius:10px;
+      border:1px solid var(--border-default);
+      background:rgba(255,255,255,0.03);
+      cursor:pointer;transition:all .15s ease;
+    }
+    .sel-card:hover,.sel-card.selected{background:rgba(59,180,193,0.08);border-color:rgba(59,180,193,0.3);}
+    .sel-card.selected .sel-check{opacity:1;color:var(--teal);}
+    .sel-icon{font-size:18px;flex-shrink:0;}
+    .sel-label{font-size:12px;font-weight:600;color:#fff;}
+    .sel-desc{font-size:10px;color:var(--text-tertiary);}
+    .sel-check{margin-left:auto;color:var(--teal);opacity:0;transition:opacity .15s ease;}
+
+    /* Screen 3 — Goals */
+    .s3{background:#0A0F1E;}
+    .goals-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+    .goal-card{
+      padding:10px;border-radius:10px;
+      border:1px solid var(--border-default);
+      background:rgba(255,255,255,0.03);
+      cursor:pointer;transition:all .15s ease;
+      display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;
+    }
+    .goal-card:hover,.goal-card.selected{background:rgba(59,180,193,0.08);border-color:rgba(59,180,193,0.3);}
+    .goal-emoji{font-size:20px;}
+    .goal-label{font-size:10px;font-weight:600;color:#fff;line-height:1.3;}
+
+    /* Screen 4 — Julia */
+    .s4{background:#070C18;}
+    .julia-preview{
+      margin-bottom:14px;
+      background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(74,44,90,0.12));
+      border:1px solid rgba(167,139,250,0.2);
+      border-radius:14px;padding:14px;
+    }
+    .julia-avatar-sm{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#A78BFA,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:10px;box-shadow:0 0 12px rgba(167,139,250,0.4);}
+    .julia-bubble{background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.2);border-radius:4px 12px 12px 12px;padding:10px 12px;font-size:10px;color:#E2E8F0;line-height:1.5;margin-bottom:8px;}
+    .julia-wave{display:flex;align-items:center;gap:2px;padding:4px 0;}
+    .julia-wave span{width:2px;border-radius:1px;background:var(--purple);animation:wave .9s ease-in-out infinite;}
+    .julia-wave span:nth-child(1){height:4px;animation-delay:0s;}
+    .julia-wave span:nth-child(2){height:8px;animation-delay:.1s;}
+    .julia-wave span:nth-child(3){height:12px;animation-delay:.2s;}
+    .julia-wave span:nth-child(4){height:8px;animation-delay:.3s;}
+    .julia-wave span:nth-child(5){height:5px;animation-delay:.4s;}
+    @keyframes wave{0%,100%{transform:scaleY(1);opacity:.5;}50%{transform:scaleY(1.6);opacity:1;}}
+    .julia-info{display:flex;flex-direction:column;gap:7px;}
+    .julia-feat{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border-subtle);}
+    .julia-feat-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+    .julia-feat-text{font-size:10px;color:var(--text-secondary);line-height:1.4;}
+
+    /* Screen 5 — SOS circle */
+    .s5{background:#0A0F1E;}
+    .circle-preview{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+    .circle-person{
+      display:flex;align-items:center;gap:10px;padding:10px 12px;
+      border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);
+    }
+    .circle-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+    .circle-name{font-size:11px;font-weight:600;color:#fff;}
+    .circle-role{font-size:9px;color:var(--text-tertiary);}
+    .circle-status{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--success);}
+    .circle-add{
+      display:flex;align-items:center;gap:10px;padding:10px 12px;
+      border-radius:10px;border:1.5px dashed var(--border-default);
+      cursor:pointer;transition:all .15s ease;
+    }
+    .circle-add:hover{border-color:var(--teal);background:rgba(59,180,193,0.05);}
+    .circle-add-icon{width:30px;height:30px;border-radius:50%;background:rgba(59,180,193,0.1);border:1px solid rgba(59,180,193,0.2);display:flex;align-items:center;justify-content:center;}
+    .circle-add-text{font-size:11px;color:var(--teal);font-weight:600;}
+
+    /* Screen 6 — Permission / Location */
+    .s6{background:#0A0F1E;}
+    .permission-box{
+      padding:20px;border-radius:14px;
+      background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);
+      text-align:center;margin-bottom:16px;
+    }
+    .perm-icon{font-size:36px;margin-bottom:12px;}
+    .perm-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;}
+    .perm-desc{font-size:11px;color:var(--text-secondary);line-height:1.5;}
+    .perm-btn{
+      width:100%;padding:12px;border-radius:var(--radius-full);
+      background:var(--teal);color:#fff;font-size:12px;font-weight:700;
+      margin-top:12px;cursor:pointer;transition:all .15s ease;border:none;
+    }
+    .perm-btn:hover{box-shadow:var(--glow-teal);}
+
+    /* Screen 7 — Home splash */
+    .s7{background:#0A0F1E;}
+    .home-splash{
+      flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      text-align:center;gap:16px;
+    }
+    .home-check{
+      width:64px;height:64px;border-radius:50%;
+      background:rgba(52,211,153,0.12);border:2px solid var(--success);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 30px rgba(52,211,153,0.3);
+    }
+    .home-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;font-weight:400;color:#fff;}
+    .home-sub{font-size:11px;color:var(--text-secondary);line-height:1.5;max-width:200px;margin:0 auto;}
+    .home-streak{
+      padding:10px 16px;border-radius:var(--radius-full);
+      background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);
+      font-size:12px;font-weight:700;color:var(--gold);
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased;
+    /* Bottom button */
+    .screen-btn{
+      position:absolute;bottom:16px;left:16px;right:16px;
+      padding:13px;border-radius:var(--radius-2xl);
+      background:#fff;color:#0A0F1E;
+      font-size:12px;font-weight:700;text-align:center;
+      cursor:pointer;transition:all .15s ease;border:none;
+      box-shadow:var(--shadow-md);
     }
+    .screen-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);}
+    .screen-btn.purple{background:linear-gradient(135deg,#A78BFA,#7C3AED);color:#fff;}
+    .screen-btn.skip{background:transparent;color:var(--text-secondary);box-shadow:none;font-weight:500;bottom:-4px;}
 
-    body {
-      background: var(--surface-base);
-      color: var(--text-primary);
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
+    /* Nav indicators */
+    .screen-dots{
+      position:absolute;bottom:72px;left:0;right:0;
+      display:flex;justify-content:center;gap:5px;z-index:5;
     }
+    .screen-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.2);transition:all .2s ease;}
+    .screen-dot.active{width:16px;border-radius:3px;background:#fff;}
 
-    .serif { font-family: 'DM Serif Display', Georgia, serif; }
+    /* Bottom app nav */
+    .app-nav{position:absolute;bottom:0;left:0;right:0;height:60px;background:rgba(7,12,24,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-around;padding:0 4px 6px;z-index:8;}
+    .app-nav-tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 10px;border-radius:9px;font-size:8px;font-weight:600;color:rgba(255,255,255,0.3);}
+    .app-nav-tab.active{color:var(--teal);background:rgba(59,180,193,0.08);}
 
-    .gradient-text {
-      background: var(--gradient-text);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+    /* Detail section */
+    .step-detail{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:32px;margin-bottom:20px;transition:all .3s var(--ease-out);}
+    .step-detail-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
+    .step-detail-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;font-weight:400;margin-bottom:10px;}
+    .step-detail-body{font-size:14px;color:var(--text-secondary);line-height:1.65;}
+    .step-detail-points{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+    .step-point{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-secondary);}
+    .step-point-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:5px;}
 
-    /* ── Theme toggle (top-right) ───────────── */
-    .theme-toggle {
-      position: fixed;
-      top: 16px; right: 16px;
-      z-index: 100;
-      width: 36px; height: 36px;
-      border-radius: var(--radius-full);
-      background: var(--surface-glass);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-default);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all var(--duration-fast) ease;
-    }
-
-    .theme-toggle:hover {
-      background: var(--interactive-active);
-      color: var(--text-primary);
-    }
-
-    .hamburger {
-      position: fixed; top: 16px; right: 56px; z-index: 100;
-      width: 36px; height: 36px;
-      border-radius: var(--radius-full);
-      background: var(--surface-glass);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-default);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary); cursor: pointer;
-      transition: all var(--duration-fast) ease;
-    }
-    .hamburger:hover { background: var(--interactive-active); color: var(--text-primary); }
-
-    .menu-overlay {
-      position: fixed; inset: 0; z-index: 999;
-      background: rgba(0,0,0,0.5);
-      opacity: 0; pointer-events: none;
-      transition: opacity var(--duration-normal) ease;
-    }
-    .menu-overlay.open { opacity: 1; pointer-events: auto; }
-
-    .menu-drawer {
-      position: fixed; top: 0; right: 0; bottom: 0;
-      width: 280px; z-index: 1000;
-      background: var(--surface-card);
-      border-left: 1px solid var(--border-subtle);
-      transform: translateX(100%);
-      transition: transform var(--duration-normal) var(--ease-out);
-      display: flex; flex-direction: column;
-    }
-    .menu-drawer.open { transform: translateX(0); }
-
-    .menu-drawer-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .menu-drawer-header span { font-size: 15px; font-weight: 700; }
-    .menu-close {
-      width: 32px; height: 32px; border-radius: var(--radius-full);
-      background: var(--interactive-hover); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary);
-    }
-    .menu-close:hover { background: var(--interactive-active); color: var(--text-primary); }
-
-    .menu-links { flex: 1; padding: 12px 0; display: flex; flex-direction: column; }
-    .menu-link {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 20px; font-size: 15px; font-weight: 500;
-      color: var(--text-secondary); text-decoration: none;
-      transition: all var(--duration-fast) ease;
-      border-left: 3px solid transparent;
-    }
-    .menu-link:hover { background: var(--interactive-hover); color: var(--text-primary); }
-    .menu-link.active {
-      color: var(--accent-teal); border-left-color: var(--accent-teal);
-      background: rgba(59,180,193,0.06); font-weight: 600;
-    }
-    .menu-link-icon { font-size: 18px; width: 24px; text-align: center; }
-    .menu-divider { height: 1px; background: var(--border-subtle); margin: 8px 20px; }
-
-    /* ── Phone shell ────────────────────────── */
-    .phone-shell {
-      width: 100%;
-      max-width: 390px;
-      margin: 0 auto;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* ── Step container ──────────────────────── */
-    .steps-viewport {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .step {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      opacity: 0;
-      transform: translateX(60px);
-      transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
-      pointer-events: none;
-      padding: 48px 24px 24px;
-    }
-
-    .step.active {
-      opacity: 1;
-      transform: translateX(0);
-      pointer-events: auto;
-    }
-
-    .step.exiting {
-      opacity: 0;
-      transform: translateX(-60px);
-    }
-
-    /* ── Progress bar ───────────────────────── */
-    .progress-bar {
-      height: 3px;
-      background: var(--border-subtle);
-      margin: 0 24px;
-      border-radius: 2px;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--accent-teal);
-      border-radius: 2px;
-      transition: width 0.4s var(--ease-out);
-    }
-
-    /* ── Step content ───────────────────────── */
-    .step-visual {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      padding: 20px 0;
-    }
-
-    .step-icon {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: breathe 3.5s ease-in-out infinite;
-    }
-
-    @keyframes breathe {
-      0%, 100% { transform: scale(1); opacity: 0.85; }
-      50% { transform: scale(1.05); opacity: 1; }
-    }
-
-    .step-title {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: 26px;
-      font-weight: 400;
-      text-align: center;
-      line-height: 1.2;
-    }
-
-    .step-desc {
-      font-size: 15px;
-      color: var(--text-secondary);
-      text-align: center;
-      line-height: 1.6;
-      max-width: 320px;
-    }
-
-    /* ── Selection cards ────────────────────── */
-    .selection-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-      margin-top: 16px;
-    }
-
-    .selection-card {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 16px;
-      border-radius: var(--radius-md);
-      background: var(--surface-card);
-      border: 1.5px solid var(--border-default);
-      cursor: pointer;
-      transition: all var(--duration-fast) ease;
-      user-select: none;
-    }
-
-    .selection-card:hover {
-      background: var(--interactive-hover);
-      border-color: var(--border-strong);
-    }
-
-    .selection-card.selected {
-      border-color: var(--accent-teal);
-      background: rgba(59, 180, 193, 0.08);
-    }
-
-    .selection-card-icon {
-      font-size: 22px;
-      flex-shrink: 0;
-      width: 36px;
-      text-align: center;
-    }
-
-    .selection-card-text {
-      flex: 1;
-    }
-
-    .selection-card-label {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .selection-card-desc {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .selection-card-check {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border-default);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: all var(--duration-fast) ease;
-    }
-
-    .selection-card.selected .selection-card-check {
-      background: var(--accent-teal);
-      border-color: var(--accent-teal);
-    }
-
-    /* ── City chips ─────────────────────────── */
-    .city-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      margin-top: 16px;
-    }
-
-    .city-chip {
-      padding: 8px 16px;
-      border-radius: var(--radius-full);
-      background: var(--surface-card);
-      border: 1.5px solid var(--border-default);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all var(--duration-fast) ease;
-      user-select: none;
-    }
-
-    .city-chip:hover {
-      border-color: var(--border-strong);
-    }
-
-    .city-chip.selected {
-      border-color: var(--accent-teal);
-      background: rgba(59, 180, 193, 0.08);
-      color: var(--accent-teal);
-      font-weight: 600;
-    }
-
-    /* ── Avatar upload ──────────────────────── */
-    .avatar-upload {
-      width: 96px; height: 96px;
-      border-radius: 50%;
-      background: var(--surface-card);
-      border: 2px dashed var(--border-default);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      transition: all var(--duration-fast) ease;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .avatar-upload:hover {
-      border-color: var(--accent-teal);
-      background: rgba(59, 180, 193, 0.05);
-    }
-
-    .avatar-upload img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      position: absolute;
-      inset: 0;
-    }
-
-    .avatar-upload svg {
-      color: var(--text-tertiary);
-    }
-
-    .avatar-upload span {
-      font-size: 10px;
-      color: var(--text-tertiary);
-      font-weight: 500;
-    }
-
-    /* ── Text input ─────────────────────────── */
-    .input-field {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: var(--radius-md);
-      background: var(--surface-card);
-      border: 1.5px solid var(--border-default);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 15px;
-      outline: none;
-      transition: all var(--duration-fast) ease;
-      margin-top: 12px;
-    }
-
-    .input-field::placeholder {
-      color: var(--text-tertiary);
-    }
-
-    .input-field:focus {
-      border-color: var(--accent-teal);
-      box-shadow: 0 0 0 3px rgba(59, 180, 193, 0.12);
-    }
-
-    /* ── Bottom actions ─────────────────────── */
-    .step-actions {
-      padding: 16px 24px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    .btn-next {
-      width: 100%;
-      padding: 14px;
-      border-radius: var(--radius-2xl);
-      background: var(--text-primary);
-      color: var(--text-inverse);
-      font-size: 15px;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all var(--duration-fast) ease;
-    }
-
-    .btn-next:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn-next:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .btn-next.teal {
-      background: var(--accent-teal);
-      color: #FFFFFF;
-      box-shadow: var(--shadow-glow);
-    }
-
-    .btn-skip {
-      width: 100%;
-      padding: 10px;
-      background: none;
-      border: none;
-      color: var(--text-tertiary);
-      font-family: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      transition: color var(--duration-fast) ease;
-    }
-
-    .btn-skip:hover { color: var(--text-secondary); }
-
-    /* ── Completion ──────────────────────────── */
-    .completion-circle {
-      width: 88px; height: 88px;
-      border-radius: 50%;
-      background: var(--semantic-success-soft);
-      border: 2px solid var(--semantic-success);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: pop 0.5s var(--ease-spring) forwards;
-    }
-
-    @keyframes pop {
-      0% { transform: scale(0.5); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    .confetti-container {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    .confetti {
-      position: absolute;
-      width: 8px; height: 8px;
-      border-radius: 2px;
-      animation: confetti-fall 2s ease-out forwards;
-    }
-
-    @keyframes confetti-fall {
-      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; }
-      .step { transform: none !important; }
-      .step.active { opacity: 1; }
-    }
+    .fade-in{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease-out),transform .6s var(--ease-out);}
+    .fade-in.visible{opacity:1;transform:translateY(0);}
   </style>
 </head>
 <body>
 
-  <!-- Theme toggle -->
-  <button class="theme-toggle" id="theme-toggle" aria-label="Changer de thème">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-dark" style="display:none">
-      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-    </svg>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-light">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-    </svg>
-  </button>
-
-  <button class="hamburger" id="hamburger" aria-label="Menu">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-  </button>
-
-  <div class="menu-overlay" id="menu-overlay"></div>
-  <div class="menu-drawer" id="menu-drawer">
-    <div class="menu-drawer-header">
-      <span>Navigation</span>
-      <button class="menu-close" id="menu-close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div class="menu-links">
-      <a href="breveil-landing.html" class="menu-link"><span class="menu-link-icon">🏠</span> Accueil</a>
-      <a href="breveil-onboarding.html" class="menu-link active"><span class="menu-link-icon">👋</span> Onboarding</a>
-      <a href="breveil-pitch-deck.html" class="menu-link"><span class="menu-link-icon">📊</span> Pitch Deck</a>
-      <a href="breveil-feature-showcase.html" class="menu-link"><span class="menu-link-icon">✨</span> Fonctionnalités</a>
-      <div class="menu-divider"></div>
-      <a href="https://safepin-omega.vercel.app" class="menu-link"><span class="menu-link-icon">🚀</span> Ouvrir l'app</a>
-    </div>
-  </div>
-
-  <div class="phone-shell">
-
-    <!-- Progress -->
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress" style="width: 20%"></div>
-    </div>
-
-    <!-- Steps viewport -->
-    <div class="steps-viewport">
-
-      <!-- STEP 1 — Welcome -->
-      <div class="step active" data-step="1">
-        <div class="step-visual">
-          <div class="step-icon" style="background: rgba(59,180,193,0.12); border: 1px solid rgba(59,180,193,0.25);">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="1.5">
-              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-          </div>
-          <h2 class="step-title">Bienvenue sur<br><span class="gradient-text">Breveil</span></h2>
-          <p class="step-desc">La carte de sécurité communautaire. Ensemble, on construit un monde plus sûr.</p>
-        </div>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="breveil-landing-v3.html" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
       </div>
-
-      <!-- STEP 2 — Qui êtes-vous -->
-      <div class="step" data-step="2">
-        <div class="step-visual" style="justify-content: flex-start; padding-top: 32px;">
-          <h2 class="step-title" style="font-size: 22px;">Qui êtes-vous ?</h2>
-          <p class="step-desc">Aidez-nous à personnaliser votre expérience.</p>
-          <div class="selection-grid">
-            <div class="selection-card" data-group="profile" data-value="commuter">
-              <span class="selection-card-icon">🚶‍♀️</span>
-              <div class="selection-card-text">
-                <div class="selection-card-label">Navettrice</div>
-                <div class="selection-card-desc">Je me déplace quotidiennement en ville</div>
-              </div>
-              <div class="selection-card-check">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-            </div>
-            <div class="selection-card" data-group="profile" data-value="student">
-              <span class="selection-card-icon">🎓</span>
-              <div class="selection-card-text">
-                <div class="selection-card-label">Étudiante</div>
-                <div class="selection-card-desc">Campus, soirées, trajets tardifs</div>
-              </div>
-              <div class="selection-card-check">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-            </div>
-            <div class="selection-card" data-group="profile" data-value="runner">
-              <span class="selection-card-icon">🏃‍♀️</span>
-              <div class="selection-card-text">
-                <div class="selection-card-label">Sportive</div>
-                <div class="selection-card-desc">Course à pied, vélo, activités en extérieur</div>
-              </div>
-              <div class="selection-card-check">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-            </div>
-            <div class="selection-card" data-group="profile" data-value="parent">
-              <span class="selection-card-icon">👩‍👧</span>
-              <div class="selection-card-text">
-                <div class="selection-card-label">Parent</div>
-                <div class="selection-card-desc">Je veux protéger mes proches</div>
-              </div>
-              <div class="selection-card-check">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 3 — Ville -->
-      <div class="step" data-step="3">
-        <div class="step-visual" style="justify-content: flex-start; padding-top: 32px;">
-          <div class="step-icon" style="background: rgba(245,195,65,0.12); border: 1px solid rgba(245,195,65,0.25); width: 64px; height: 64px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="1.5">
-              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
-              <line x1="8" y1="2" x2="8" y2="18"/>
-              <line x1="16" y1="6" x2="16" y2="22"/>
-            </svg>
-          </div>
-          <h2 class="step-title" style="font-size: 22px;">Votre ville</h2>
-          <p class="step-desc">On commence par les grandes villes. D'autres arrivent bientôt.</p>
-          <div class="city-chips">
-            <button class="city-chip" data-city="paris">Paris</button>
-            <button class="city-chip" data-city="lyon">Lyon</button>
-            <button class="city-chip" data-city="marseille">Marseille</button>
-            <button class="city-chip" data-city="bordeaux">Bordeaux</button>
-            <button class="city-chip" data-city="toulouse">Toulouse</button>
-            <button class="city-chip" data-city="lille">Lille</button>
-            <button class="city-chip" data-city="nantes">Nantes</button>
-            <button class="city-chip" data-city="strasbourg">Strasbourg</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 4 — Profil -->
-      <div class="step" data-step="4">
-        <div class="step-visual" style="justify-content: flex-start; padding-top: 32px;">
-          <div class="avatar-upload" id="avatar-upload">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            <span>Photo</span>
-          </div>
-          <h2 class="step-title" style="font-size: 22px;">Votre profil</h2>
-          <p class="step-desc">Comment souhaitez-vous apparaître dans la communauté ?</p>
-          <input class="input-field" id="display-name" type="text" placeholder="Prénom ou pseudo" maxlength="24">
-        </div>
-      </div>
-
-      <!-- STEP 5 — Ready -->
-      <div class="step" data-step="5">
-        <div class="step-visual">
-          <div class="confetti-container" id="confetti"></div>
-          <div class="completion-circle">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <h2 class="step-title">Vous êtes <span class="gradient-text">prête</span></h2>
-          <p class="step-desc">
-            Bienvenue dans la communauté Breveil. Explorez la carte, signalez, protégez — ensemble.
-          </p>
-          <div style="display: flex; gap: 12px; margin-top: 8px;">
-            <div style="padding: 8px 16px; border-radius: var(--radius-full); background: var(--semantic-success-soft); border: 1px solid rgba(52,211,153,0.25); font-size: 13px; font-weight: 600; color: var(--semantic-success);">
-              Niveau : Watcher
-            </div>
-            <div style="padding: 8px 16px; border-radius: var(--radius-full); background: rgba(59,180,193,0.10); border: 1px solid rgba(59,180,193,0.25); font-size: 13px; font-weight: 600; color: var(--accent-teal);">
-              0 points
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Actions -->
-    <div class="step-actions">
-      <button class="btn-next" id="btn-next">
-        Continuer
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      Breveil
+    </a>
+    <div class="nav-actions">
+      <button class="theme-btn" id="theme-toggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="icon-sun" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-      <button class="btn-skip" id="btn-skip">Passer cette étape</button>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="lang-fr">FR</button>
+        <button class="lang-btn" id="lang-en">EN</button>
+      </div>
+      <a href="https://safepin-omega.vercel.app" class="btn-app" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <span class="fr-only">Ouvrir l'app</span><span class="en-only">Open app</span>
+      </a>
+      <button class="hamburger" id="hamburger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </div>
+  </div>
+</nav>
 
+<div class="menu-overlay" id="menu-overlay"></div>
+<div class="menu-drawer" id="menu-drawer">
+  <div class="menu-drawer-header"><strong>Breveil</strong><button class="menu-close" id="menu-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="menu-links">
+    <a href="breveil-landing-v3.html" class="menu-link-item"><span>🏠</span><span class="fr-only">Accueil</span><span class="en-only">Home</span></a>
+    <a href="breveil-onboarding.html" class="menu-link-item active"><span>👋</span>Onboarding</a>
+    <a href="breveil-pitch-deck.html" class="menu-link-item"><span>📊</span>Pitch Deck</a>
+    <a href="breveil-feature-showcase.html" class="menu-link-item"><span>✨</span><span class="fr-only">Fonctionnalités</span><span class="en-only">Features</span></a>
+    <div class="menu-sep"></div>
+    <a href="https://safepin-omega.vercel.app" class="menu-link-item" target="_blank"><span>🚀</span><span class="fr-only">Ouvrir l'app</span><span class="en-only">Open app</span></a>
+  </div>
+</div>
+
+<main class="page">
+  <div class="page-header fade-in">
+    <p class="page-label fr-only">Expérience utilisateur</p>
+    <p class="page-label en-only">User experience</p>
+    <h1 class="page-title">
+      <span class="fr-only"><span class="gradient-text">7 étapes</span> pour démarrer</span>
+      <span class="en-only"><span class="gradient-text">7 steps</span> to get started</span>
+    </h1>
+    <p class="page-sub">
+      <span class="fr-only">Un onboarding pensé pour créer de la confiance et de l'engagement dès la première ouverture.</span>
+      <span class="en-only">An onboarding designed to build trust and engagement from the very first open.</span>
+    </p>
   </div>
 
-  <script>
-    // ── Theme ──────────────────────────────────
-    (function() {
-      const html = document.documentElement;
-      const toggle = document.getElementById('theme-toggle');
-      const iconD = document.getElementById('theme-icon-dark');
-      const iconL = document.getElementById('theme-icon-light');
-      const saved = localStorage.getItem('breveil-theme');
-      if (saved) html.setAttribute('data-theme', saved);
-      function up() {
-        const d = html.getAttribute('data-theme') !== 'light';
-        iconD.style.display = d ? 'none' : 'block';
-        iconL.style.display = d ? 'block' : 'none';
-      }
-      up();
-      toggle.addEventListener('click', function() {
-        const n = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        html.setAttribute('data-theme', n);
-        localStorage.setItem('breveil-theme', n);
-        up();
-      });
-    })();
+  <div class="demo-layout fade-in">
 
-    // ── Hamburger menu ───────────────────────
-    (function() {
-      var btn = document.getElementById('hamburger');
-      var overlay = document.getElementById('menu-overlay');
-      var drawer = document.getElementById('menu-drawer');
-      var close = document.getElementById('menu-close');
-      function open() { overlay.classList.add('open'); drawer.classList.add('open'); }
-      function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); }
-      btn.addEventListener('click', open);
-      overlay.addEventListener('click', shut);
-      close.addEventListener('click', shut);
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') shut(); });
-    })();
+    <!-- LEFT: Step navigation + detail -->
+    <div>
+      <div class="steps-nav" id="steps-nav">
+        <div class="step-nav-item active" data-step="0">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-nav-label fr-only">Bienvenue</div>
+            <div class="step-nav-label en-only">Welcome</div>
+            <div class="step-nav-sub fr-only">Accroche émotionnelle</div>
+            <div class="step-nav-sub en-only">Emotional hook</div>
+          </div>
+        </div>
+        <div class="step-nav-item" data-step="1">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-nav-label fr-only">Profil</div>
+            <div class="step-nav-label en-only">Profile</div>
+            <div class="step-nav-sub fr-only">Qui êtes-vous ?</div>
+            <div class="step-nav-sub en-only">Who are you?</div>
+          </div>
+        </div>
+        <div class="step-nav-item" data-step="2">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-nav-label fr-only">Objectifs</div>
+            <div class="step-nav-label en-only">Goals</div>
+            <div class="step-nav-sub fr-only">Personnalisation</div>
+            <div class="step-nav-sub en-only">Personalization</div>
+          </div>
+        </div>
+        <div class="step-nav-item" data-step="3">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-nav-label" style="color:var(--purple);">Julia IA ✦</div>
+            <div class="step-nav-sub fr-only">Compagnon de trajet</div>
+            <div class="step-nav-sub en-only">Journey companion</div>
+          </div>
+        </div>
+        <div class="step-nav-item" data-step="4">
+          <div class="step-num">5</div>
+          <div>
+            <div class="step-nav-label fr-only">Cercle de confiance</div>
+            <div class="step-nav-label en-only">Trusted circle</div>
+            <div class="step-nav-sub fr-only">Vos contacts sûrs</div>
+            <div class="step-nav-sub en-only">Your safe contacts</div>
+          </div>
+        </div>
+        <div class="step-nav-item" data-step="5">
+          <div class="step-num">6</div>
+          <div>
+            <div class="step-nav-label fr-only">Localisation</div>
+            <div class="step-nav-label en-only">Location</div>
+            <div class="step-nav-sub fr-only">Permission requise</div>
+            <div class="step-nav-sub en-only">Permission required</div>
+          </div>
+        </div>
+        <div class="step-nav-item" data-step="6">
+          <div class="step-num" style="color:var(--success);">✓</div>
+          <div>
+            <div class="step-nav-label fr-only">C'est parti !</div>
+            <div class="step-nav-label en-only">You're in!</div>
+            <div class="step-nav-sub fr-only">Accueil Breveil</div>
+            <div class="step-nav-sub en-only">Breveil home</div>
+          </div>
+        </div>
+      </div>
 
-    // ── Onboarding logic ───────────────────────
-    (function() {
-      var current = 1;
-      var total = 5;
-      var selections = { profile: null, city: null };
+      <!-- Step detail card -->
+      <div class="step-detail" id="step-detail" style="margin-top:24px;">
+        <div class="step-detail-label" id="detail-label">Étape 1</div>
+        <div class="step-detail-title" id="detail-title"></div>
+        <div class="step-detail-body" id="detail-body"></div>
+        <div class="step-detail-points" id="detail-points"></div>
+      </div>
 
-      var progress = document.getElementById('progress');
-      var btnNext = document.getElementById('btn-next');
-      var btnSkip = document.getElementById('btn-skip');
+      <a href="https://safepin-omega.vercel.app" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border-radius:var(--radius-full);background:var(--teal);color:#fff;font-size:14px;font-weight:700;box-shadow:var(--glow-teal);transition:all .15s ease;margin-top:8px;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <span class="fr-only">Vivre l'expérience dans l'app</span>
+        <span class="en-only">Experience it in the app</span>
+      </a>
+    </div>
 
-      function updateProgress() {
-        progress.style.width = (current / total * 100) + '%';
-      }
+    <!-- RIGHT: Phone mockup -->
+    <div class="phone-demo">
+      <div class="phone-shell">
+        <div class="phone-inner">
+          <div class="phone-island"></div>
+          <div class="phone-progress"><div class="phone-progress-fill" id="progress-fill" style="width:14%;"></div></div>
 
-      function goTo(n) {
-        var oldStep = document.querySelector('.step[data-step="' + current + '"]');
-        var newStep = document.querySelector('.step[data-step="' + n + '"]');
-        if (!oldStep || !newStep) return;
+          <!-- Screen 1 — Welcome -->
+          <div class="screen s1 active" id="screen-0">
+            <div class="s1-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="s1-title fr-only">Bienvenue sur<br>Breveil 🤍</div>
+            <div class="s1-title en-only">Welcome to<br>Breveil 🤍</div>
+            <div class="s1-sub" style="color:rgba(255,255,255,0.65);font-size:12px;line-height:1.6;margin-top:10px;">
+              <span class="fr-only">La carte de sécurité communautaire. Faite par les femmes, pour les femmes.</span>
+              <span class="en-only">The community safety map. Built by women, for women.</span>
+            </div>
+            <button class="screen-btn" onclick="nextStep()">
+              <span class="fr-only">Commencer</span><span class="en-only">Get started</span>
+            </button>
+          </div>
 
-        oldStep.classList.add('exiting');
-        oldStep.classList.remove('active');
-        setTimeout(function() { oldStep.classList.remove('exiting'); }, 400);
+          <!-- Screen 2 — Profile -->
+          <div class="screen s2" id="screen-1">
+            <div class="screen-title fr-only">Qui êtes-vous ?</div>
+            <div class="screen-title en-only">Who are you?</div>
+            <div class="screen-sub fr-only">Personnalisez votre expérience Breveil.</div>
+            <div class="screen-sub en-only">Personalize your Breveil experience.</div>
+            <div class="sel-grid">
+              <div class="sel-card" onclick="toggleSel(this)">
+                <span class="sel-icon">🚶‍♀️</span>
+                <div><div class="sel-label fr-only">Navettrice</div><div class="sel-label en-only">Commuter</div><div class="sel-desc fr-only">Trajets quotidiens en ville</div><div class="sel-desc en-only">Daily urban commutes</div></div>
+                <svg class="sel-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="sel-card selected" onclick="toggleSel(this)">
+                <span class="sel-icon">🎓</span>
+                <div><div class="sel-label fr-only">Étudiante</div><div class="sel-label en-only">Student</div><div class="sel-desc fr-only">Campus, soirées, nuits tardives</div><div class="sel-desc en-only">Campus, parties, late nights</div></div>
+                <svg class="sel-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:1;"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="sel-card" onclick="toggleSel(this)">
+                <span class="sel-icon">🏃‍♀️</span>
+                <div><div class="sel-label fr-only">Sportive</div><div class="sel-label en-only">Athlete</div><div class="sel-desc fr-only">Course, vélo, extérieur</div><div class="sel-desc en-only">Running, cycling, outdoors</div></div>
+                <svg class="sel-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="sel-card" onclick="toggleSel(this)">
+                <span class="sel-icon">👩‍👧</span>
+                <div><div class="sel-label fr-only">Parent</div><div class="sel-label en-only">Parent</div><div class="sel-desc fr-only">Protéger mes proches</div><div class="sel-desc en-only">Protect my loved ones</div></div>
+                <svg class="sel-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <button class="screen-btn" onclick="nextStep()" style="bottom:16px;">
+              <span class="fr-only">Continuer</span><span class="en-only">Continue</span>
+            </button>
+          </div>
 
-        newStep.classList.add('active');
-        current = n;
-        updateProgress();
+          <!-- Screen 3 — Goals -->
+          <div class="screen s3" id="screen-2">
+            <div class="screen-title fr-only">Ce qui compte pour vous</div>
+            <div class="screen-title en-only">What matters to you</div>
+            <div class="screen-sub fr-only">Sélectionnez tout ce qui s'applique.</div>
+            <div class="screen-sub en-only">Select all that apply.</div>
+            <div class="goals-grid">
+              <div class="goal-card selected" onclick="toggleGoal(this)"><span class="goal-emoji">🌙</span><span class="goal-label fr-only">Rentrer seule la nuit</span><span class="goal-label en-only">Walk home at night</span></div>
+              <div class="goal-card" onclick="toggleGoal(this)"><span class="goal-emoji">🗺️</span><span class="goal-label fr-only">Connaître mon quartier</span><span class="goal-label en-only">Know my area</span></div>
+              <div class="goal-card selected" onclick="toggleGoal(this)"><span class="goal-emoji">👥</span><span class="goal-label fr-only">Créer du lien</span><span class="goal-label en-only">Connect with others</span></div>
+              <div class="goal-card" onclick="toggleGoal(this)"><span class="goal-emoji">❤️</span><span class="goal-label fr-only">Protéger mes proches</span><span class="goal-label en-only">Protect loved ones</span></div>
+              <div class="goal-card" onclick="toggleGoal(this)"><span class="goal-emoji">📍</span><span class="goal-label fr-only">Signaler des incidents</span><span class="goal-label en-only">Report incidents</span></div>
+              <div class="goal-card" onclick="toggleGoal(this)"><span class="goal-emoji">🏪</span><span class="goal-label fr-only">Trouver lieux sûrs</span><span class="goal-label en-only">Find safe spaces</span></div>
+            </div>
+            <button class="screen-btn" onclick="nextStep()">
+              <span class="fr-only">Continuer</span><span class="en-only">Continue</span>
+            </button>
+          </div>
 
-        // Update button states
-        if (current === 5) {
-          btnNext.textContent = 'Ouvrir Breveil';
-          btnNext.classList.add('teal');
-          btnNext.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Ouvrir Breveil';
-          btnSkip.style.display = 'none';
-          spawnConfetti();
-        } else {
-          btnNext.classList.remove('teal');
-          btnNext.innerHTML = 'Continuer <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>';
-          btnSkip.style.display = '';
-        }
+          <!-- Screen 4 — Julia -->
+          <div class="screen s4" id="screen-3">
+            <div class="screen-title" style="color:var(--purple);">✦ Julia</div>
+            <div class="screen-sub fr-only">Votre compagnon IA pour les trajets seule.</div>
+            <div class="screen-sub en-only">Your AI companion for solo journeys.</div>
+            <div class="julia-preview">
+              <div class="julia-avatar-sm">🤍</div>
+              <div class="julia-bubble fr-only">Bonsoir 🌙 Je suis Julia, votre compagnon de trajet. Si votre cercle est indisponible, je serai là pour vous accompagner et vous tenir en sécurité.</div>
+              <div class="julia-bubble en-only">Good evening 🌙 I'm Julia, your journey companion. When your circle is unavailable, I'll be here to walk with you and keep you safe.</div>
+              <div class="julia-wave"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="julia-info">
+              <div class="julia-feat"><span class="julia-feat-icon">🎙️</span><span class="julia-feat-text fr-only">Voix naturelle — parlez librement sans regarder votre écran</span><span class="julia-feat-text en-only">Natural voice — speak freely without looking at your screen</span></div>
+              <div class="julia-feat"><span class="julia-feat-icon">🔴</span><span class="julia-feat-text fr-only">Si vous arrêtez de répondre, Julia alerte automatiquement votre cercle</span><span class="julia-feat-text en-only">If you stop responding, Julia automatically alerts your circle</span></div>
+              <div class="julia-feat"><span class="julia-feat-icon">✦</span><span class="julia-feat-text" style="color:var(--gold);font-weight:600;"><span class="fr-only">Pro — sessions illimitées · Gratuit — 3 sessions/mois</span><span class="en-only">Pro — unlimited sessions · Free — 3 sessions/month</span></span></div>
+            </div>
+            <button class="screen-btn purple" onclick="nextStep()">
+              <span class="fr-only">Activer Julia</span><span class="en-only">Activate Julia</span>
+            </button>
+          </div>
 
-        updateNextEnabled();
-      }
+          <!-- Screen 5 — Circle -->
+          <div class="screen s5" id="screen-4">
+            <div class="screen-title fr-only">Votre cercle de confiance</div>
+            <div class="screen-title en-only">Your trusted circle</div>
+            <div class="screen-sub fr-only">Ces personnes suivront vos trajets et recevront vos alertes SOS.</div>
+            <div class="screen-sub en-only">These people will follow your journeys and receive your SOS alerts.</div>
+            <div class="circle-preview">
+              <div class="circle-person">
+                <div class="circle-avatar" style="background:#A78BFA;">M</div>
+                <div><div class="circle-name">Marie Dupont</div><div class="circle-role fr-only">Sœur · Notifiée</div><div class="circle-role en-only">Sister · Notified</div></div>
+                <div class="circle-status"></div>
+              </div>
+              <div class="circle-person">
+                <div class="circle-avatar" style="background:#34D399;">S</div>
+                <div><div class="circle-name">Sarah K.</div><div class="circle-role fr-only">Amie · Notifiée</div><div class="circle-role en-only">Friend · Notified</div></div>
+                <div class="circle-status"></div>
+              </div>
+              <div class="circle-add" onclick="this.style.borderColor='var(--teal)'">
+                <div class="circle-add-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                <span class="circle-add-text fr-only">Ajouter un contact</span>
+                <span class="circle-add-text en-only">Add a contact</span>
+              </div>
+            </div>
+            <button class="screen-btn" onclick="nextStep()">
+              <span class="fr-only">Mon cercle est prêt</span><span class="en-only">My circle is ready</span>
+            </button>
+            <button class="screen-btn skip" onclick="nextStep()" style="position:absolute;bottom:4px;left:16px;right:16px;">
+              <span class="fr-only">Plus tard</span><span class="en-only">Later</span>
+            </button>
+          </div>
 
-      function updateNextEnabled() {
-        if (current === 2) {
-          btnNext.disabled = !selections.profile;
-        } else if (current === 3) {
-          btnNext.disabled = !selections.city;
-        } else {
-          btnNext.disabled = false;
-        }
-      }
+          <!-- Screen 6 — Location -->
+          <div class="screen s6" id="screen-5">
+            <div class="permission-box">
+              <div class="perm-icon">📍</div>
+              <div class="perm-title fr-only">"Breveil" veut accéder à votre localisation</div>
+              <div class="perm-title en-only">"Breveil" wants your location</div>
+              <div class="perm-desc fr-only">Nécessaire pour la carte, les signalements et les trajets protégés. Jamais partagée sans votre accord.</div>
+              <div class="perm-desc en-only">Required for the map, reports, and safe journeys. Never shared without your consent.</div>
+              <button class="perm-btn" onclick="nextStep()">
+                <span class="fr-only">Autoriser pendant l'utilisation</span><span class="en-only">Allow while using</span>
+              </button>
+            </div>
+            <div style="padding:12px;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.15);border-radius:10px;font-size:10px;color:var(--text-secondary);line-height:1.5;">
+              🔒 <span class="fr-only">Vos données restent privées. Aucune revente. RGPD conforme.</span>
+              <span class="en-only">Your data stays private. Never sold. GDPR compliant.</span>
+            </div>
+          </div>
 
-      // Selection cards
-      document.querySelectorAll('.selection-card').forEach(function(card) {
-        card.addEventListener('click', function() {
-          var group = card.getAttribute('data-group');
-          var value = card.getAttribute('data-value');
-          document.querySelectorAll('.selection-card[data-group="' + group + '"]').forEach(function(c) {
-            c.classList.remove('selected');
-            c.querySelector('svg').style.display = 'none';
-          });
-          card.classList.add('selected');
-          card.querySelector('svg').style.display = '';
-          selections[group] = value;
-          updateNextEnabled();
-        });
-      });
+          <!-- Screen 7 — Done -->
+          <div class="screen s7" id="screen-6">
+            <div class="home-splash">
+              <div class="home-check">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="home-title fr-only">Vous êtes prête 🤍</div>
+              <div class="home-title en-only">You're all set 🤍</div>
+              <div class="home-sub fr-only">Bienvenue dans la communauté Breveil. Vous n'êtes plus seule.</div>
+              <div class="home-sub en-only">Welcome to the Breveil community. You're no longer alone.</div>
+              <div class="home-streak">🔥 <span class="fr-only">Jour 1 — Streak démarré !</span><span class="en-only">Day 1 — Streak started!</span></div>
+            </div>
+            <button class="screen-btn" onclick="window.open('https://safepin-omega.vercel.app','_blank')">
+              <span class="fr-only">Ouvrir Breveil →</span><span class="en-only">Open Breveil →</span>
+            </button>
+          </div>
 
-      // City chips
-      document.querySelectorAll('.city-chip').forEach(function(chip) {
-        chip.addEventListener('click', function() {
-          document.querySelectorAll('.city-chip').forEach(function(c) { c.classList.remove('selected'); });
-          chip.classList.add('selected');
-          selections.city = chip.getAttribute('data-city');
-          updateNextEnabled();
-        });
-      });
+          <!-- Dots -->
+          <div class="screen-dots">
+            <div class="screen-dot active" id="dot-0"></div>
+            <div class="screen-dot" id="dot-1"></div>
+            <div class="screen-dot" id="dot-2"></div>
+            <div class="screen-dot" id="dot-3"></div>
+            <div class="screen-dot" id="dot-4"></div>
+            <div class="screen-dot" id="dot-5"></div>
+            <div class="screen-dot" id="dot-6"></div>
+          </div>
 
-      // Next button
-      btnNext.addEventListener('click', function() {
-        if (current === 5) {
-          window.location.href = 'https://safepin-omega.vercel.app';
-          return;
-        }
-        if (current < total) goTo(current + 1);
-      });
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
 
-      // Skip button
-      btnSkip.addEventListener('click', function() {
-        if (current < total) goTo(current + 1);
-      });
+<script>
+  var currentStep = 0;
+  var totalSteps = 7;
+  var stepData = {
+    fr: [
+      { label:'Étape 1 — Accueil', title:'Accroche émotionnelle', body:'Le premier écran ne demande rien. Il installe une émotion : "Bienvenue". Fond gradient Breveil, logo, message chaleureux.', points:['Chargement immédiat — pas de splash screen','Gradient de marque pour créer de la confiance','CTA unique : Commencer'] },
+      { label:'Étape 2 — Profil', title:'Qui êtes-vous ?', body:'Personnalisation de l\'expérience par profil. Multi-select, pas de bonne réponse. Le but est de calibrer les alertes et les recommandations.', points:['Navettrice, Étudiante, Sportive, Parent','Sélection multiple autorisée','Données utilisées pour filtrer les alertes pertinentes'] },
+      { label:'Étape 3 — Objectifs', title:'Ce qui compte pour vous', body:'Sélection des cas d\'usage prioritaires. Permet d\'adapter l\'ordre des features dans l\'app et les notifications envoyées.', points:['6 objectifs : rentrer seule, lieux sûrs, signaler, cercle…','Grille 2 colonnes pour rapidité','Influence l\'ordre des fonctionnalités dans l\'app'] },
+      { label:'Étape 4 — Julia IA ✦', title:'Présentation de Julia', body:'Introduire Julia avant toute friction (cercle, permissions) crée de l\'intérêt pour le Pro avant même de demander un paiement. Différenciateur unique de Breveil.', points:['Conversation preview pour rendre Julia concrète','Mention de la machine d\'état silence → SOS','Freemium clair : 3 sessions gratuites, illimité en Pro'] },
+      { label:'Étape 5 — Cercle', title:'Cercle de confiance', body:'Optionnel mais fortement encouragé. Le cercle est le cœur de la valeur de Breveil : des personnes réelles qui suivent vos trajets.', points:['2 contacts pré-remplis (simulation) pour montrer la valeur','Option "Plus tard" pour ne pas bloquer','Notification automatique aux contacts lors de l\'ajout'] },
+      { label:'Étape 6 — Localisation', title:'Permission de localisation', body:'La permission la plus critique. Présentée après que la valeur est établie (Julia, cercle) pour maximiser le taux d\'acceptation.', points:['Texte de réassurance RGPD visible','"Pendant l\'utilisation" uniquement — pas de tracking permanent','Refus possible sans bloquer l\'accès à l\'app'] },
+      { label:'Étape 7 — Arrivée', title:'Accueil + Streak Jour 1', body:'Célébration de l\'arrivée. Le streak démarre immédiatement pour créer l\'habitude d\'utilisation quotidienne. CTA direct vers l\'app réelle.', points:['Check animé — sentiment d\'accomplissement','Streak Jour 1 activé (gamification légère)','CTA direct vers safepin-omega.vercel.app'] }
+    ],
+    en: [
+      { label:'Step 1 — Welcome', title:'Emotional hook', body:'The first screen asks nothing. It sets an emotion: "Welcome". Breveil gradient background, logo, warm message.', points:['Immediate load — no splash screen','Brand gradient to build trust','Single CTA: Get started'] },
+      { label:'Step 2 — Profile', title:'Who are you?', body:'Experience personalization by profile. Multi-select, no right answer. The goal is to calibrate alerts and recommendations.', points:['Commuter, Student, Athlete, Parent','Multiple selection allowed','Data used to filter relevant alerts'] },
+      { label:'Step 3 — Goals', title:'What matters to you', body:'Selection of priority use cases. Allows adapting the order of features in the app and notifications sent.', points:['6 goals: walk home, safe spaces, report, circle…','2-column grid for speed','Influences feature order in the app'] },
+      { label:'Step 4 — Julia AI ✦', title:'Meet Julia', body:'Introducing Julia before any friction (circle, permissions) creates interest in Pro before even asking for payment. Breveil\'s unique differentiator.', points:['Conversation preview to make Julia concrete','Mention of the silence → SOS state machine','Clear freemium: 3 free sessions, unlimited in Pro'] },
+      { label:'Step 5 — Circle', title:'Trusted circle', body:'Optional but strongly encouraged. The circle is the heart of Breveil\'s value: real people who follow your journeys.', points:['2 pre-filled contacts (simulation) to show value','Skip option to not block progress','Automatic notification to contacts when added'] },
+      { label:'Step 6 — Location', title:'Location permission', body:'The most critical permission. Presented after value is established (Julia, circle) to maximize acceptance rate.', points:['Visible GDPR reassurance text','While using only — no permanent tracking','Denial possible without blocking app access'] },
+      { label:'Step 7 — Arrival', title:'Home + Streak Day 1', body:'Arrival celebration. The streak starts immediately to create the habit of daily use. Direct CTA to the real app.', points:['Animated check — sense of accomplishment','Day 1 streak activated (light gamification)','Direct CTA to safepin-omega.vercel.app'] }
+    ]
+  };
 
-      // Confetti
-      function spawnConfetti() {
-        var container = document.getElementById('confetti');
-        var colors = ['#3BB4C1', '#A78BFA', '#F5C341', '#34D399', '#EF4444', '#60A5FA'];
-        for (var i = 0; i < 30; i++) {
-          var el = document.createElement('div');
-          el.className = 'confetti';
-          el.style.left = Math.random() * 100 + '%';
-          el.style.background = colors[Math.floor(Math.random() * colors.length)];
-          el.style.animationDelay = Math.random() * 0.8 + 's';
-          el.style.width = (4 + Math.random() * 6) + 'px';
-          el.style.height = (4 + Math.random() * 6) + 'px';
-          container.appendChild(el);
-        }
-      }
+  function getLang() { return document.documentElement.getAttribute('data-lang') || 'fr'; }
 
-      updateNextEnabled();
-    })();
-  </script>
+  function updateDetail(step) {
+    var lang = getLang();
+    var d = stepData[lang][step];
+    document.getElementById('detail-label').textContent = d.label;
+    document.getElementById('detail-title').textContent = d.title;
+    document.getElementById('detail-body').textContent = d.body;
+    var pts = document.getElementById('detail-points');
+    pts.innerHTML = d.points.map(function(p){return '<div class="step-point"><div class="step-point-dot"></div><span>'+p+'</span></div>';}).join('');
+  }
 
+  function goToStep(step) {
+    var prev = currentStep;
+    currentStep = step;
+    // Screens
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active','prev'); });
+    var el = document.getElementById('screen-'+step);
+    if(el) el.classList.add('active');
+    // Nav items
+    document.querySelectorAll('.step-nav-item').forEach(function(n,i){
+      n.classList.remove('active','done');
+      if(i < step) n.classList.add('done');
+      if(i === step) n.classList.add('active');
+    });
+    // Dots
+    document.querySelectorAll('.screen-dot').forEach(function(d,i){
+      d.classList.toggle('active', i === step);
+    });
+    // Progress
+    var pct = ((step+1)/totalSteps)*100;
+    document.getElementById('progress-fill').style.width = pct+'%';
+    // Detail
+    updateDetail(step);
+  }
+
+  function nextStep() {
+    if(currentStep < totalSteps-1) goToStep(currentStep+1);
+  }
+
+  function toggleSel(el) { el.classList.toggle('selected'); var c=el.querySelector('.sel-check'); if(c) c.style.opacity=el.classList.contains('selected')?'1':'0'; }
+  function toggleGoal(el) { el.classList.toggle('selected'); }
+
+  // Init
+  updateDetail(0);
+  document.querySelectorAll('.step-nav-item').forEach(function(n,i){ n.addEventListener('click', function(){ goToStep(i); }); });
+
+  // Theme
+  (function(){var h=document.documentElement,b=document.getElementById('theme-toggle'),s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon'),sv=localStorage.getItem('breveil-theme');if(sv)h.setAttribute('data-theme',sv);function sync(){var d=h.getAttribute('data-theme')!=='light';s.style.display=d?'none':'block';m.style.display=d?'block':'none';}sync();b.addEventListener('click',function(){var c=h.getAttribute('data-theme'),n=c==='light'?'dark':'light';h.setAttribute('data-theme',n);localStorage.setItem('breveil-theme',n);sync();});})();
+  // Lang
+  (function(){var h=document.documentElement,fr=document.getElementById('lang-fr'),en=document.getElementById('lang-en'),sv=localStorage.getItem('breveil-lang')||'fr';h.setAttribute('data-lang',sv);function sync(){var l=h.getAttribute('data-lang');fr.classList.toggle('active',l==='fr');en.classList.toggle('active',l==='en');updateDetail(currentStep);}sync();fr.addEventListener('click',function(){h.setAttribute('data-lang','fr');localStorage.setItem('breveil-lang','fr');sync();});en.addEventListener('click',function(){h.setAttribute('data-lang','en');localStorage.setItem('breveil-lang','en');sync();});})();
+  // Fade
+  (function(){var els=document.querySelectorAll('.fade-in'),obs=new IntersectionObserver(function(e){e.forEach(function(i){if(i.isIntersecting){i.target.classList.add('visible');obs.unobserve(i.target);}});},{threshold:0.08});els.forEach(function(el){obs.observe(el);});})();
+  // Menu
+  (function(){var btn=document.getElementById('hamburger'),ov=document.getElementById('menu-overlay'),dr=document.getElementById('menu-drawer'),cl=document.getElementById('menu-close');function o(){ov.classList.add('open');dr.classList.add('open');document.body.style.overflow='hidden';}function s(){ov.classList.remove('open');dr.classList.remove('open');document.body.style.overflow='';}btn.addEventListener('click',o);ov.addEventListener('click',s);cl.addEventListener('click',s);document.addEventListener('keydown',function(e){if(e.key==='Escape')s();});})();
+</script>
 </body>
 </html>

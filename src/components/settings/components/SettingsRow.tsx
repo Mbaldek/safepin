@@ -28,9 +28,11 @@ export default function SettingsRow({
   const Icon = icons[icon as keyof typeof icons];
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={onPress ? 0 : undefined}
       onClick={onPress}
-      disabled={!onPress}
+      onKeyDown={onPress ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPress(); } } : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -102,6 +104,6 @@ export default function SettingsRow({
       {rightEl ?? (
         onPress && <ChevronRight size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ flexShrink: 0 }} />
       )}
-    </button>
+    </div>
   );
 }

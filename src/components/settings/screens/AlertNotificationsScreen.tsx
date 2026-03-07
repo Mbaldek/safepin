@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
+import type { NotifChannel } from '@/types';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 import SettingsToggle from '../components/SettingsToggle';
+import SegmentedControl from '../components/SegmentedControl';
 
 interface Props {
   onBack: () => void;
@@ -13,8 +15,20 @@ interface Props {
 
 interface AlertSettings {
   proximity_radius_m: number;
-  notify_nearby_pins: boolean;
+  // SOS
   notify_sos_nearby: boolean;
+  sos_notif_channel: NotifChannel;
+  // Lifecycle
+  notify_new_pins: boolean;
+  notify_confirmed_pins: boolean;
+  notify_resolved_pins: boolean;
+  // Categories
+  notify_cat_urgent: boolean;
+  notify_cat_warning: boolean;
+  notify_cat_infra: boolean;
+  // Channel
+  pin_notif_channel: NotifChannel;
+  // Quiet hours
   quiet_hours_enabled: boolean;
   quiet_start: string;
   quiet_end: string;
@@ -22,12 +36,28 @@ interface AlertSettings {
 
 const DEFAULTS: AlertSettings = {
   proximity_radius_m: 1000,
-  notify_nearby_pins: true,
   notify_sos_nearby: true,
+  sos_notif_channel: 'both',
+  notify_new_pins: true,
+  notify_confirmed_pins: true,
+  notify_resolved_pins: false,
+  notify_cat_urgent: true,
+  notify_cat_warning: true,
+  notify_cat_infra: false,
+  pin_notif_channel: 'both',
   quiet_hours_enabled: false,
   quiet_start: '22:00',
   quiet_end: '07:00',
 };
+
+const ALL_COLS = [
+  'proximity_radius_m',
+  'notify_sos_nearby', 'sos_notif_channel',
+  'notify_new_pins', 'notify_confirmed_pins', 'notify_resolved_pins',
+  'notify_cat_urgent', 'notify_cat_warning', 'notify_cat_infra',
+  'pin_notif_channel',
+  'quiet_hours_enabled', 'quiet_start', 'quiet_end',
+] as const;
 
 export default function AlertNotificationsScreen({ onBack }: Props) {
   const isDark = useTheme((s) => s.theme) === 'dark';
@@ -47,18 +77,16 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
       userIdRef.current = user.id;
       const { data } = await supabase
         .from('notification_settings')
-        .select('proximity_radius_m, notify_nearby_pins, notify_sos_nearby, quiet_hours_enabled, quiet_start, quiet_end')
+        .select(ALL_COLS.join(', '))
         .eq('user_id', user.id)
         .single();
       if (data) {
-        setSettings({
-          proximity_radius_m: data.proximity_radius_m ?? DEFAULTS.proximity_radius_m,
-          notify_nearby_pins: data.notify_nearby_pins ?? DEFAULTS.notify_nearby_pins,
-          notify_sos_nearby: data.notify_sos_nearby ?? DEFAULTS.notify_sos_nearby,
-          quiet_hours_enabled: data.quiet_hours_enabled ?? DEFAULTS.quiet_hours_enabled,
-          quiet_start: data.quiet_start ?? DEFAULTS.quiet_start,
-          quiet_end: data.quiet_end ?? DEFAULTS.quiet_end,
-        });
+        const d = data as unknown as Record<string, unknown>;
+        const merged = { ...DEFAULTS } as Record<string, unknown>;
+        for (const col of ALL_COLS) {
+          if (d[col] != null) merged[col] = d[col];
+        }
+        setSettings(merged as unknown as AlertSettings);
       }
       setLoaded(true);
     })();
@@ -70,15 +98,7 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
     if (!userIdRef.current) return;
     await supabase
       .from('notification_settings')
-      .upsert({
-        user_id: userIdRef.current,
-        proximity_radius_m: next.proximity_radius_m,
-        notify_nearby_pins: next.notify_nearby_pins,
-        notify_sos_nearby: next.notify_sos_nearby,
-        quiet_hours_enabled: next.quiet_hours_enabled,
-        quiet_start: next.quiet_start,
-        quiet_end: next.quiet_end,
-      }, { onConflict: 'user_id' });
+      .upsert({ user_id: userIdRef.current, ...next }, { onConflict: 'user_id' });
   };
 
   const formatRadius = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
@@ -105,7 +125,8 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', opacity: loaded ? 1 : 0.5, transition: 'opacity 0.3s' }}>
-        {/* Rayon d'alerte */}
+
+        {/* ── Section 1: Rayon d'alerte ── */}
         <SettingsSection label="Rayon d'alerte">
           <div style={{ padding: '12px 20px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -138,21 +159,8 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
           </div>
         </SettingsSection>
 
-        {/* Types d'alertes */}
-        <SettingsSection label="Types d'alertes">
-          <SettingsRow
-            icon="MapPin"
-            iconColor="#3BB4C1"
-            label="Pins a proximite"
-            subtitle="Signalements dans votre rayon"
-            rightEl={
-              <SettingsToggle
-                value={settings.notify_nearby_pins}
-                onChange={(v) => save({ notify_nearby_pins: v })}
-              />
-            }
-          />
-          <div style={divider} />
+        {/* ── Section 2: Alertes SOS ── */}
+        <SettingsSection label="Alertes SOS">
           <SettingsRow
             icon="AlertTriangle"
             iconColor="#EF4444"
@@ -173,9 +181,122 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
               </div>
             }
           />
+          {settings.notify_sos_nearby && (
+            <>
+              <div style={divider} />
+              <div style={{ padding: '10px 20px 14px' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: txt2, marginBottom: 8, display: 'block' }}>
+                  Canal de notification
+                </span>
+                <SegmentedControl
+                  value={settings.sos_notif_channel}
+                  onChange={(v) => save({ sos_notif_channel: v })}
+                  isDark={isDark}
+                />
+              </div>
+            </>
+          )}
         </SettingsSection>
 
-        {/* Heures calmes */}
+        {/* ── Section 3: Cycle de vie des pins ── */}
+        <SettingsSection label="Cycle de vie">
+          <SettingsRow
+            icon="Plus"
+            iconColor="#3BB4C1"
+            label="Nouveau signalement"
+            subtitle="Un pin est cree dans votre rayon"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_new_pins}
+                onChange={(v) => save({ notify_new_pins: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="CheckCircle"
+            iconColor="#22C55E"
+            label="Pin confirme"
+            subtitle="Confirme par la communaute (5+)"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_confirmed_pins}
+                onChange={(v) => save({ notify_confirmed_pins: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="XCircle"
+            iconColor="#64748B"
+            label="Pin resolu"
+            subtitle="L'incident a ete resolu"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_resolved_pins}
+                onChange={(v) => save({ notify_resolved_pins: v })}
+              />
+            }
+          />
+        </SettingsSection>
+
+        {/* ── Section 4: Categories ── */}
+        <SettingsSection label="Categories">
+          <SettingsRow
+            icon="AlertTriangle"
+            iconColor="#EF4444"
+            label="Urgent"
+            subtitle="Agression, vol, harcelement, filature"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_cat_urgent}
+                onChange={(v) => save({ notify_cat_urgent: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="Eye"
+            iconColor="#F59E0B"
+            label="Attention"
+            subtitle="Suspect, attroupement, zone a eviter"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_cat_warning}
+                onChange={(v) => save({ notify_cat_warning: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="Settings"
+            iconColor="#64748B"
+            label="Infrastructure"
+            subtitle="Eclairage, passage, fermeture"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_cat_infra}
+                onChange={(v) => save({ notify_cat_infra: v })}
+              />
+            }
+          />
+        </SettingsSection>
+
+        {/* ── Section 5: Canal de notification (pins) ── */}
+        <SettingsSection label="Canal (pins)">
+          <div style={{ padding: '10px 20px 14px' }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: txt2, marginBottom: 8, display: 'block' }}>
+              Comment recevoir les alertes de pins
+            </span>
+            <SegmentedControl
+              value={settings.pin_notif_channel}
+              onChange={(v) => save({ pin_notif_channel: v })}
+              isDark={isDark}
+            />
+          </div>
+        </SettingsSection>
+
+        {/* ── Section 6: Heures calmes ── */}
         <SettingsSection label="Heures calmes">
           <SettingsRow
             icon="Moon"
@@ -236,6 +357,9 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
             </>
           )}
         </SettingsSection>
+
+        {/* Bottom spacing */}
+        <div style={{ height: 40 }} />
       </div>
     </div>
   );

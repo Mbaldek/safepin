@@ -1,6 +1,6 @@
 // src/app/api/notify-nearby/route.ts
-// Called when a new pin is created — notifies users within their configured radius.
-// Triggered by the client immediately after pin insert.
+// Called when a pin is created, confirmed, or resolved — notifies users within their configured radius.
+// event_type: 'new' (default) | 'confirmed' | 'resolved'
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
@@ -9,6 +9,34 @@ import { createAdminClient } from '@/lib/supabase-admin';
 import { haversineMetersRaw } from '@/lib/utils';
 import { Resend } from 'resend';
 import { sosCircleAlertEmail } from '@/lib/email-templates';
+import { CATEGORY_DETAILS } from '@/types';
+
+type EventType = 'new' | 'confirmed' | 'resolved';
+
+// Map category → group for filtering
+function categoryGroup(category: string): 'urgent' | 'warning' | 'infra' | 'positive' | null {
+  const detail = CATEGORY_DETAILS[category];
+  return detail?.group ?? null;
+}
+
+// Notification message templates
+function notifMessage(eventType: EventType, category: string, isEmergency: boolean) {
+  if (isEmergency) {
+    return { title: 'SOS a proximite', body: "Quelqu'un a proximite a declenche une alerte de securite" };
+  }
+  const label = CATEGORY_DETAILS[category]?.label ?? category;
+  const group = categoryGroup(category);
+  switch (eventType) {
+    case 'confirmed':
+      return { title: 'Incident confirme', body: `${label} confirme par la communaute` };
+    case 'resolved':
+      return { title: 'Incident resolu', body: `${label} pres de vous a ete resolu` };
+    default: {
+      const prefix = group === 'urgent' ? 'Signalement urgent' : group === 'infra' ? 'Signalement infrastructure' : 'Nouveau signalement';
+      return { title: prefix, body: `${label} signale pres de vous` };
+    }
+  }
+}
 
 export async function POST(req: NextRequest) {
   // Auth check
@@ -32,9 +60,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { pin } = await req.json() as {
+  const body = await req.json() as {
     pin: { id: string; lat: number; lng: number; is_emergency: boolean; category: string; severity: string; user_id: string };
+    event_type?: EventType;
   };
+
+  const { pin } = body;
+  const eventType: EventType = body.event_type ?? 'new';
 
   if (!pin) return NextResponse.json({ sent: 0 });
 
@@ -51,11 +83,11 @@ export async function POST(req: NextRequest) {
 
   if (!subs?.length) return NextResponse.json({ sent: 0 });
 
-  // Load notif settings for those users (default 1000m if not set)
+  // Load notif settings for those users
   const userIds = subs.map((s) => s.user_id);
   const { data: settingsRows } = await admin
     .from('notification_settings')
-    .select('user_id, proximity_radius_m, notify_sos_nearby, notify_nearby_pins, quiet_hours_enabled, quiet_start, quiet_end')
+    .select('user_id, proximity_radius_m, notify_sos_nearby, notify_nearby_pins, notify_new_pins, notify_confirmed_pins, notify_resolved_pins, notify_cat_urgent, notify_cat_warning, notify_cat_infra, pin_notif_channel, sos_notif_channel, quiet_hours_enabled, quiet_start, quiet_end')
     .in('user_id', userIds);
 
   const settingsMap = Object.fromEntries((settingsRows ?? []).map((r) => [r.user_id, r]));
@@ -69,8 +101,8 @@ export async function POST(req: NextRequest) {
     (locationRows ?? []).map((r) => [r.id, { lat: r.last_known_lat, lng: r.last_known_lng }])
   );
 
-  const title = pin.is_emergency ? '🆘 SOS nearby' : `⚠️ New ${pin.category.replace('_', ' ')} nearby`;
-  const body  = pin.is_emergency ? 'Someone nearby triggered a safety alert' : `A new ${pin.severity} severity report was added near you`;
+  const { title, body: notifBody } = notifMessage(eventType, pin.category, pin.is_emergency);
+  const group = categoryGroup(pin.category);
 
   const vapidDetails = {
     subject: 'mailto:brumeapp@pm.me',
@@ -79,58 +111,97 @@ export async function POST(req: NextRequest) {
   };
 
   let sent = 0;
+  const inAppInserts: { user_id: string; type: string; title: string; body: string; pin_id: string }[] = [];
 
   for (const sub of subs) {
     const s = settingsMap[sub.user_id];
     const radiusM = s?.proximity_radius_m ?? 1000;
-    const notifyPins = s?.notify_nearby_pins ?? true;
-    const notifySOS  = s?.notify_sos_nearby  ?? true;
 
-    if (pin.is_emergency && !notifySOS)  continue;
-    if (!pin.is_emergency && !notifyPins) continue;
+    // ── SOS filtering ──
+    if (pin.is_emergency) {
+      const notifySOS = s?.notify_sos_nearby ?? true;
+      if (!notifySOS) continue;
+    } else {
+      // ── Lifecycle filtering ──
+      if (eventType === 'new' && !(s?.notify_new_pins ?? true)) continue;
+      if (eventType === 'confirmed' && !(s?.notify_confirmed_pins ?? true)) continue;
+      if (eventType === 'resolved' && !(s?.notify_resolved_pins ?? false)) continue;
 
-    // Quiet hours check (simple string compare, good enough for HH:MM)
-    if (s?.quiet_hours_enabled) {
-      const now  = new Date().toTimeString().slice(0, 5);
-      const start = s.quiet_start ?? '22:00';
-      const end   = s.quiet_end   ?? '07:00';
-      const inQuiet = start > end
-        ? now >= start || now < end
-        : now >= start && now < end;
-      if (inQuiet && !pin.is_emergency) continue;
+      // ── Category filtering ──
+      if (group === 'urgent' && !(s?.notify_cat_urgent ?? true)) continue;
+      if (group === 'warning' && !(s?.notify_cat_warning ?? true)) continue;
+      if (group === 'infra' && !(s?.notify_cat_infra ?? false)) continue;
+      if (group === 'positive') continue; // no notifications for positive pins
     }
 
-    // Geo-filter: only send if subscriber is within their configured radius
+    // ── Geo-filter ──
     const loc = locationMap[sub.user_id];
     if (loc?.lat != null && loc?.lng != null) {
       const dist = haversineMetersRaw(loc.lat, loc.lng, pin.lat, pin.lng);
       if (dist > radiusM) continue;
     }
-    // If no location data, send to them anyway (better to over-notify than miss SOS)
 
-    // Send push via web-push
-    try {
-      const { default: webpush } = await import('web-push');
-      webpush.setVapidDetails(vapidDetails.subject, vapidDetails.publicKey, vapidDetails.privateKey);
-      await webpush.sendNotification(
-        sub.subscription as Parameters<typeof webpush.sendNotification>[0],
-        JSON.stringify({ title, body, pinId: pin.id }),
-      );
-      sent++;
-    } catch {
-      // Subscription expired — clean up
-      await admin.from('push_subscriptions').delete().eq('user_id', sub.user_id);
+    // ── Quiet hours check ──
+    let inQuiet = false;
+    if (s?.quiet_hours_enabled) {
+      const now = new Date().toTimeString().slice(0, 5);
+      const start = s.quiet_start ?? '22:00';
+      const end = s.quiet_end ?? '07:00';
+      inQuiet = start > end
+        ? now >= start || now < end
+        : now >= start && now < end;
+    }
+
+    // ── Channel routing ──
+    const channel: string = pin.is_emergency
+      ? (s?.sos_notif_channel ?? 'both')
+      : (s?.pin_notif_channel ?? 'both');
+
+    const shouldPush = channel === 'push' || channel === 'both';
+    const shouldInApp = channel === 'in_app' || channel === 'both';
+
+    // In-app: always insert (even during quiet hours — user sees it later)
+    if (shouldInApp) {
+      const notifType = pin.is_emergency ? 'emergency' : `pin_${eventType}`;
+      inAppInserts.push({
+        user_id: sub.user_id,
+        type: notifType,
+        title,
+        body: notifBody,
+        pin_id: pin.id,
+      });
+    }
+
+    // Push: skip during quiet hours (except SOS)
+    if (shouldPush && (pin.is_emergency || !inQuiet)) {
+      try {
+        const { default: webpush } = await import('web-push');
+        webpush.setVapidDetails(vapidDetails.subject, vapidDetails.publicKey, vapidDetails.privateKey);
+        await webpush.sendNotification(
+          sub.subscription as Parameters<typeof webpush.sendNotification>[0],
+          JSON.stringify({ title, body: notifBody, pinId: pin.id }),
+        );
+        sent++;
+      } catch {
+        // Subscription expired — clean up
+        await admin.from('push_subscriptions').delete().eq('user_id', sub.user_id);
+      }
     }
   }
 
-  // ── SOS: email trusted circle members (fire-and-forget) ──────────────────
+  // ── Batch insert in-app notifications ──
+  if (inAppInserts.length > 0) {
+    await admin.from('notifications').insert(inAppInserts);
+  }
+
+  // ── SOS: email trusted circle members (fire-and-forget) ──
   if (pin.is_emergency && process.env.RESEND_API_KEY) {
     sendSosEmails(admin, pin).catch((err) => {
       console.error('[Email] SOS circle alert failed:', err instanceof Error ? err.message : err);
     });
   }
 
-  return NextResponse.json({ sent });
+  return NextResponse.json({ sent, in_app: inAppInserts.length });
 }
 
 async function sendSosEmails(

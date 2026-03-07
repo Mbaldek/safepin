@@ -1,920 +1,749 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" data-theme="dark" data-lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Breveil — Pitch Deck</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     :root {
-      --gradient-start: #3BB4C1;
-      --gradient-mid: #1E3A5F;
-      --gradient-transition: #4A2C5A;
-      --gradient-end: #5C3D5E;
       --gradient-primary: linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%);
       --gradient-text: linear-gradient(135deg, #3BB4C1 0%, #A78BFA 50%, #F5C341 100%);
-      --surface-base: #0F172A;
-      --surface-card: #1E293B;
-      --surface-elevated: #334155;
-      --surface-glass: rgba(30, 41, 59, 0.8);
-      --text-primary: #FFFFFF;
-      --text-secondary: #94A3B8;
-      --text-tertiary: #64748B;
-      --text-inverse: #0F172A;
-      --semantic-success: #34D399;
-      --semantic-success-soft: rgba(52, 211, 153, 0.15);
-      --semantic-warning: #FBBF24;
-      --semantic-warning-soft: rgba(251, 191, 36, 0.15);
-      --semantic-danger: #EF4444;
-      --semantic-danger-soft: rgba(239, 68, 68, 0.15);
-      --accent-gold: #F5C341;
-      --accent-teal: #3BB4C1;
-      --accent-purple: #A78BFA;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-default: rgba(255, 255, 255, 0.12);
-      --border-strong: rgba(255, 255, 255, 0.20);
-      --interactive-hover: rgba(255, 255, 255, 0.05);
-      --interactive-active: rgba(255, 255, 255, 0.10);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
-      --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
-      --shadow-glow: 0 0 20px rgba(59, 180, 193, 0.3);
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-      --radius-2xl: 32px;
-      --radius-full: 9999px;
-      --duration-fast: 150ms;
-      --duration-normal: 250ms;
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --surface-base: #0A0F1E; --surface-card: #111827; --surface-elevated: #1E293B;
+      --surface-glass: rgba(17,24,39,0.88);
+      --text-primary: #FFFFFF; --text-secondary: #94A3B8; --text-tertiary: #475569; --text-inverse: #0A0F1E;
+      --success: #34D399; --warning: #FBBF24; --danger: #EF4444;
+      --gold: #F5C341; --teal: #3BB4C1; --purple: #A78BFA; --coral: #F87171;
+      --border-subtle: rgba(255,255,255,0.06); --border-default: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4); --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+      --glow-teal: 0 0 40px rgba(59,180,193,0.2);
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --radius-2xl:32px; --radius-full:9999px;
+      --ease-out: cubic-bezier(0.16,1,0.3,1);
     }
-
     [data-theme="light"] {
-      --surface-base: #F8FAFC;
-      --surface-card: #FFFFFF;
-      --surface-elevated: #FFFFFF;
-      --surface-glass: rgba(255, 255, 255, 0.9);
-      --text-primary: #0F172A;
-      --text-secondary: #475569;
-      --text-tertiary: #94A3B8;
-      --text-inverse: #FFFFFF;
-      --border-subtle: rgba(15, 23, 42, 0.06);
-      --border-default: rgba(15, 23, 42, 0.10);
-      --border-strong: rgba(15, 23, 42, 0.20);
-      --interactive-hover: rgba(0, 0, 0, 0.03);
-      --interactive-active: rgba(0, 0, 0, 0.06);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
-      --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
+      --surface-base:#F0F4F8; --surface-card:#FFFFFF; --surface-elevated:#FFFFFF; --surface-glass:rgba(255,255,255,0.92);
+      --text-primary:#0A0F1E; --text-secondary:#475569; --text-tertiary:#94A3B8; --text-inverse:#FFFFFF;
+      --border-subtle:rgba(10,15,30,0.06); --border-default:rgba(10,15,30,0.10); --border-strong:rgba(10,15,30,0.18);
+      --shadow-md:0 4px 16px rgba(0,0,0,0.08); --shadow-lg:0 12px 40px rgba(0,0,0,0.10);
+    }
+    [data-lang="en"] .fr-only { display: none !important; }
+    [data-lang="fr"] .en-only { display: none !important; }
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{font-family:'DM Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+    body{background:var(--surface-base);color:var(--text-primary);overflow-x:hidden;}
+    a{color:inherit;text-decoration:none;}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;}
+    .gradient-text{background:var(--gradient-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+    /* NAV */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--surface-glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border-subtle);}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:1200px;margin:0 auto;padding:0 28px;}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-0.03em;}
+    .nav-logo-mark{width:32px;height:32px;border-radius:9px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;box-shadow:var(--glow-teal);}
+    .nav-actions{display:flex;align-items:center;gap:8px;}
+    .theme-btn{width:34px;height:34px;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all .15s ease;}
+    .theme-btn:hover{color:var(--text-primary);background:var(--border-default);}
+    .lang-toggle{display:flex;align-items:center;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);overflow:hidden;padding:2px;gap:2px;}
+    .lang-btn{padding:5px 10px;border-radius:var(--radius-full);font-size:12px;font-weight:700;color:var(--text-tertiary);transition:all .15s ease;cursor:pointer;background:transparent;border:none;}
+    .lang-btn.active{background:var(--surface-elevated);color:var(--text-primary);}
+    .btn-app{padding:9px 20px;border-radius:var(--radius-full);background:var(--teal);color:#fff;font-size:13px;font-weight:700;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--glow-teal);}
+    .btn-app:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(59,180,193,0.4);}
+    .hamburger{width:34px;height:34px;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);display:none;align-items:center;justify-content:center;color:var(--text-secondary);}
+    .hamburger:hover{color:var(--text-primary);}
+    @media(max-width:680px){.hamburger{display:flex;}.btn-app .btn-label{display:none;}}
+
+    /* Mobile menu */
+    .menu-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);opacity:0;pointer-events:none;transition:opacity .25s ease;}
+    .menu-overlay.open{opacity:1;pointer-events:auto;}
+    .menu-drawer{position:fixed;top:0;right:0;bottom:0;width:280px;z-index:1000;background:var(--surface-elevated);border-left:1px solid var(--border-subtle);transform:translateX(100%);transition:transform .25s var(--ease-out);display:flex;flex-direction:column;}
+    .menu-drawer.open{transform:translateX(0);}
+    .menu-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border-subtle);}
+    .menu-drawer-header strong{font-size:15px;font-weight:700;}
+    .menu-close{width:30px;height:30px;border-radius:var(--radius-full);background:var(--border-subtle);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);cursor:pointer;border:none;}
+    .menu-links{flex:1;padding:10px 0;}
+    .menu-link-item{display:flex;align-items:center;gap:12px;padding:13px 20px;font-size:15px;font-weight:500;color:var(--text-secondary);border-left:2px solid transparent;transition:all .15s ease;}
+    .menu-link-item:hover{color:var(--text-primary);background:rgba(255,255,255,0.03);}
+    .menu-link-item.active{color:var(--teal);border-left-color:var(--teal);background:rgba(59,180,193,0.05);}
+    .menu-sep{height:1px;background:var(--border-subtle);margin:6px 20px;}
+
+    /* SLIDES */
+    .deck{max-width:1100px;margin:0 auto;padding:88px 28px 80px;}
+    
+    .slide{
+      min-height:85vh;padding:56px;
+      background:var(--surface-card);
+      border:1px solid var(--border-subtle);
+      border-radius:var(--radius-xl);
+      margin-bottom:24px;
+      position:relative;overflow:hidden;
+      display:flex;flex-direction:column;justify-content:center;
+      transition:border-color .2s ease;
+    }
+    .slide:hover{border-color:var(--border-default);}
+
+    .slide::before{
+      content:'';position:absolute;top:0;left:0;right:0;height:2px;
+      background:var(--gradient-text);opacity:0.4;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      scroll-behavior: smooth;
+    .slide-n{
+      position:absolute;top:24px;right:28px;
+      font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+      color:var(--text-tertiary);
     }
 
-    body {
-      background: var(--surface-base);
-      color: var(--text-primary);
-      line-height: 1.6;
-      overflow-x: hidden;
+    .slide h1{
+      font-family:'DM Serif Display',Georgia,serif;
+      font-size:clamp(36px,5vw,56px);font-weight:400;
+      line-height:1.1;letter-spacing:-0.02em;margin-bottom:20px;
     }
-
-    a { color: inherit; text-decoration: none; }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; }
-
-    .serif { font-family: 'DM Serif Display', Georgia, serif; }
-    .gradient-text {
-      background: var(--gradient-text);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .slide h2{
+      font-family:'DM Serif Display',Georgia,serif;
+      font-size:clamp(28px,4vw,42px);font-weight:400;
+      line-height:1.15;letter-spacing:-0.02em;margin-bottom:16px;
     }
-
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-
-    /* ── Theme toggle ──────────────────── */
-    .theme-toggle {
-      position: fixed;
-      top: 16px; right: 16px;
-      z-index: 100;
-      width: 36px; height: 36px;
-      border-radius: var(--radius-full);
-      background: var(--surface-glass);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-default);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary);
-      transition: all var(--duration-fast) ease;
+    .slide-tag{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:5px 14px;border-radius:var(--radius-full);
+      font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+      margin-bottom:20px;
     }
-    .theme-toggle:hover { background: var(--interactive-active); color: var(--text-primary); }
+    .slide-body{font-size:17px;color:var(--text-secondary);line-height:1.7;max-width:680px;margin-bottom:32px;}
 
-    .hamburger {
-      position: fixed; top: 16px; right: 56px; z-index: 100;
-      width: 36px; height: 36px;
-      border-radius: var(--radius-full);
-      background: var(--surface-glass);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-default);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary); cursor: pointer;
-      transition: all var(--duration-fast) ease;
+    /* Grid layouts */
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+    .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;}
+    .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+    @media(max-width:760px){.g3,.g2,.g4{grid-template-columns:1fr;}}
+
+    .card{
+      padding:24px;background:var(--surface-elevated);
+      border:1px solid var(--border-subtle);border-radius:var(--radius-lg);
     }
-    .hamburger:hover { background: var(--interactive-active); color: var(--text-primary); }
+    .card-icon{width:44px;height:44px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:20px;}
+    .card h3{font-size:16px;font-weight:700;margin-bottom:8px;}
+    .card p{font-size:13px;color:var(--text-secondary);line-height:1.6;}
 
-    .menu-overlay {
-      position: fixed; inset: 0; z-index: 999;
-      background: rgba(0,0,0,0.5);
-      opacity: 0; pointer-events: none;
-      transition: opacity var(--duration-normal) ease;
+    /* Stats big */
+    .stat-big{text-align:center;padding:28px 20px;}
+    .stat-big-val{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(40px,5vw,60px);font-weight:400;line-height:1;margin-bottom:8px;}
+    .stat-big-lbl{font-size:13px;font-weight:500;color:var(--text-secondary);}
+    .stat-big-sub{font-size:12px;color:var(--text-tertiary);margin-top:4px;}
+
+    /* Problem stats */
+    .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px;}
+    @media(max-width:760px){.problem-grid{grid-template-columns:1fr;}}
+    .prob-card{
+      padding:24px;border-radius:var(--radius-lg);
+      border-left:3px solid var(--danger);
+      background:rgba(239,68,68,0.05);
     }
-    .menu-overlay.open { opacity: 1; pointer-events: auto; }
+    .prob-val{font-family:'DM Serif Display',Georgia,serif;font-size:40px;font-weight:400;color:var(--danger);line-height:1;margin-bottom:8px;}
+    .prob-lbl{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+    .prob-src{font-size:11px;color:var(--text-tertiary);}
 
-    .menu-drawer {
-      position: fixed; top: 0; right: 0; bottom: 0;
-      width: 280px; z-index: 1000;
-      background: var(--surface-card);
-      border-left: 1px solid var(--border-subtle);
-      transform: translateX(100%);
-      transition: transform var(--duration-normal) var(--ease-out);
-      display: flex; flex-direction: column;
+    /* Market */
+    .market-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px;}
+    @media(max-width:760px){.market-row{grid-template-columns:1fr;}}
+    .market-card{
+      padding:24px;border-radius:var(--radius-lg);
+      background:var(--surface-elevated);border:1px solid var(--border-subtle);
+      text-align:center;
     }
-    .menu-drawer.open { transform: translateX(0); }
+    .market-card h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:10px;}
+    .market-card .val{font-family:'DM Serif Display',Georgia,serif;font-size:36px;font-weight:400;line-height:1;margin-bottom:6px;}
+    .market-card .desc{font-size:12px;color:var(--text-secondary);}
 
-    .menu-drawer-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-subtle);
+    /* Timeline */
+    .timeline{position:relative;padding-left:28px;}
+    .timeline::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:var(--border-default);}
+    .tl-item{position:relative;margin-bottom:28px;}
+    .tl-item::before{content:'';position:absolute;left:-24px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--teal);border:2px solid var(--surface-card);box-shadow:0 0 8px rgba(59,180,193,0.5);}
+    .tl-period{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--teal);margin-bottom:4px;}
+    .tl-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+    .tl-desc{font-size:13px;color:var(--text-secondary);line-height:1.5;}
+
+    /* Team */
+    .team-card{padding:24px;background:var(--surface-elevated);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);text-align:center;}
+    .team-avatar{width:64px;height:64px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+    .team-name{font-size:16px;font-weight:700;margin-bottom:4px;}
+    .team-role{font-size:13px;color:var(--teal);font-weight:600;margin-bottom:8px;}
+    .team-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;}
+
+    /* Funnel */
+    .funnel{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+    .funnel-row{
+      display:flex;align-items:center;gap:16px;
+      padding:14px 20px;border-radius:var(--radius-lg);
+      background:var(--surface-elevated);border:1px solid var(--border-subtle);
     }
-    .menu-drawer-header span { font-size: 15px; font-weight: 700; }
-    .menu-close {
-      width: 32px; height: 32px; border-radius: var(--radius-full);
-      background: var(--interactive-hover); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary);
+    .funnel-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .funnel-label{font-size:14px;font-weight:600;}
+    .funnel-pct{margin-left:auto;font-family:'DM Serif Display',Georgia,serif;font-size:22px;font-weight:400;}
+
+    /* Julia slide */
+    .julia-slide-visual{
+      background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(74,44,90,0.15));
+      border:1px solid rgba(167,139,250,0.2);
+      border-radius:var(--radius-xl);padding:32px;
+      display:flex;flex-direction:column;gap:14px;
     }
-    .menu-close:hover { background: var(--interactive-active); color: var(--text-primary); }
-
-    .menu-links { flex: 1; padding: 12px 0; display: flex; flex-direction: column; }
-    .menu-link {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 20px; font-size: 15px; font-weight: 500;
-      color: var(--text-secondary); text-decoration: none;
-      transition: all var(--duration-fast) ease;
-      border-left: 3px solid transparent;
+    .julia-msg-preview{
+      padding:14px 16px;border-radius:12px;
+      font-size:13px;line-height:1.6;
     }
-    .menu-link:hover { background: var(--interactive-hover); color: var(--text-primary); }
-    .menu-link.active {
-      color: var(--accent-teal); border-left-color: var(--accent-teal);
-      background: rgba(59,180,193,0.06); font-weight: 600;
-    }
-    .menu-link-icon { font-size: 18px; width: 24px; text-align: center; }
-    .menu-divider { height: 1px; background: var(--border-subtle); margin: 8px 20px; }
+    .julia-msg-preview.bot{background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.2);color:#E2E8F0;border-radius:4px 12px 12px 12px;}
+    .julia-msg-preview.user{background:rgba(59,180,193,0.12);border:1px solid rgba(59,180,193,0.2);color:#E2E8F0;align-self:flex-end;border-radius:12px 4px 12px 12px;}
+    .julia-tech-stack{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .tech-chip{padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);color:var(--purple);}
 
-    /* ── Slide ──────────────────────────── */
-    .slide {
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 80px 24px;
-      position: relative;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .slide:last-child { border-bottom: none; }
-
-    .slide-number {
-      position: absolute;
-      top: 24px; left: 24px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-tertiary);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .slide-content {
-      max-width: 900px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .slide h1 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(32px, 5vw, 56px);
-      font-weight: 400;
-      line-height: 1.1;
-      margin-bottom: 20px;
-    }
-
-    .slide h2 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(26px, 4vw, 42px);
-      font-weight: 400;
-      line-height: 1.2;
-      margin-bottom: 16px;
-    }
-
-    .slide-sub {
-      font-size: clamp(16px, 2vw, 19px);
-      color: var(--text-secondary);
-      max-width: 600px;
-      margin: 0 auto 32px;
-      line-height: 1.6;
-    }
-
-    /* ── Cards grid ────────────────────── */
-    .cards-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      text-align: left;
-    }
-
-    .cards-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-      text-align: left;
-    }
-
-    @media (max-width: 768px) {
-      .cards-3 { grid-template-columns: 1fr; }
-      .cards-2 { grid-template-columns: 1fr; }
-    }
-
-    .card {
-      padding: 28px;
-      border-radius: var(--radius-lg);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .card-icon {
-      width: 44px; height: 44px;
-      border-radius: var(--radius-md);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px;
-      font-size: 20px;
-    }
-
-    .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .card p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
-
-    /* ── Problem stats ─────────────────── */
-    .problem-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      margin-top: 40px;
-    }
-
-    .problem-stat {
-      padding: 24px;
-      border-radius: var(--radius-lg);
-      text-align: center;
-    }
-
-    .problem-stat-value {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 400;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .problem-stat-label {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    @media (max-width: 640px) {
-      .problem-stats { grid-template-columns: 1fr; }
-    }
-
-    /* ── Market row ────────────────────── */
-    .market-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-top: 32px;
-    }
-
-    .market-card {
-      padding: 24px;
-      border-radius: var(--radius-lg);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      text-align: center;
-    }
-
-    .market-card h4 {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 8px;
-    }
-
-    .market-card .value {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: 32px;
-      font-weight: 400;
-      margin-bottom: 6px;
-    }
-
-    .market-card p { font-size: 13px; color: var(--text-secondary); }
-
-    @media (max-width: 640px) {
-      .market-row { grid-template-columns: 1fr; }
-    }
-
-    /* ── Competitive table ─────────────── */
-    .comp-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 32px;
-      text-align: left;
-    }
-
-    .comp-table th {
-      padding: 12px 16px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-tertiary);
-      border-bottom: 1px solid var(--border-default);
-    }
-
-    .comp-table td {
-      padding: 14px 16px;
-      font-size: 14px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .comp-table tr:last-child td { border-bottom: none; }
-
-    .comp-table .highlight {
-      background: var(--surface-card);
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .comp-check {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      display: inline-flex; align-items: center; justify-content: center;
-    }
-
-    /* ── Timeline ──────────────────────── */
-    .timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      margin-top: 32px;
-      text-align: left;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .timeline-item {
-      display: flex;
-      gap: 20px;
-      position: relative;
-      padding-bottom: 32px;
-    }
-
-    .timeline-item:last-child { padding-bottom: 0; }
-
-    .timeline-line {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .timeline-dot {
-      width: 14px; height: 14px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      z-index: 1;
-    }
-
-    .timeline-connector {
-      width: 2px;
-      flex: 1;
-      background: var(--border-default);
-    }
-
-    .timeline-content {
-      padding-top: 0;
-    }
-
-    .timeline-content h4 {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .timeline-content p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-    }
-
-    /* ── Pricing slide ─────────────────── */
-    .pricing-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
-      max-width: 680px;
-      margin: 32px auto 0;
-      text-align: left;
-    }
-
-    .pricing-card {
-      padding: 28px;
-      border-radius: var(--radius-xl);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .pricing-card.pro {
-      border-color: var(--accent-teal);
-      box-shadow: var(--shadow-glow);
-    }
-
-    .pricing-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-    .pricing-card .price {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: 36px;
-      margin: 8px 0;
-    }
-
-    .pricing-card ul {
-      list-style: none;
-      display: flex; flex-direction: column; gap: 8px;
-      margin-top: 16px;
-    }
-
-    .pricing-card li {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--text-secondary);
-    }
-
-    .pricing-card li svg { flex-shrink: 0; color: var(--semantic-success); }
-
-    @media (max-width: 640px) {
-      .pricing-row { grid-template-columns: 1fr; }
-    }
-
-    /* ── Tech stack ────────────────────── */
-    .tech-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 32px;
-    }
-
-    .tech-chip {
-      padding: 10px 18px;
-      border-radius: var(--radius-full);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      font-size: 14px;
-      font-weight: 500;
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    /* ── CTA slide ─────────────────────── */
-    .cta-slide::before {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(59, 180, 193, 0.10) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .btn-teal {
-      display: inline-flex;
-      align-items: center; justify-content: center; gap: 8px;
-      padding: 14px 32px;
-      border-radius: var(--radius-2xl);
-      background: var(--accent-teal);
-      color: #FFFFFF;
-      font-size: 16px; font-weight: 700;
-      box-shadow: var(--shadow-glow);
-      transition: all var(--duration-fast) ease;
-    }
-
-    .btn-teal:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 30px rgba(59, 180, 193, 0.4);
-    }
-
-    /* ── Animations ────────────────────── */
-    .fade-in {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
-    }
-
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
-
-    @media (prefers-reduced-motion: reduce) {
-      .fade-in { opacity: 1; transform: none; transition: none; }
-    }
+    /* Fade in */
+    .fade-in{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease-out),transform .6s var(--ease-out);}
+    .fade-in.visible{opacity:1;transform:translateY(0);}
   </style>
 </head>
 <body>
 
-  <button class="theme-toggle" id="theme-toggle" aria-label="Changer de thème">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-dark" style="display:none">
-      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-    </svg>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-light">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-    </svg>
-  </button>
-
-  <button class="hamburger" id="hamburger" aria-label="Menu">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-  </button>
-
-  <div class="menu-overlay" id="menu-overlay"></div>
-  <div class="menu-drawer" id="menu-drawer">
-    <div class="menu-drawer-header">
-      <span>Navigation</span>
-      <button class="menu-close" id="menu-close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="breveil-landing-v3.html" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      Breveil
+    </a>
+    <div class="nav-actions">
+      <button class="theme-btn" id="theme-toggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="icon-sun" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="lang-fr">FR</button>
+        <button class="lang-btn" id="lang-en">EN</button>
+      </div>
+      <a href="https://safepin-omega.vercel.app" class="btn-app" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <span class="btn-label fr-only">Ouvrir l'app</span>
+        <span class="btn-label en-only">Open app</span>
+      </a>
+      <button class="hamburger" id="hamburger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </div>
-    <div class="menu-links">
-      <a href="breveil-landing.html" class="menu-link"><span class="menu-link-icon">🏠</span> Accueil</a>
-      <a href="breveil-onboarding.html" class="menu-link"><span class="menu-link-icon">👋</span> Onboarding</a>
-      <a href="breveil-pitch-deck.html" class="menu-link active"><span class="menu-link-icon">📊</span> Pitch Deck</a>
-      <a href="breveil-feature-showcase.html" class="menu-link"><span class="menu-link-icon">✨</span> Fonctionnalités</a>
-      <div class="menu-divider"></div>
-      <a href="https://safepin-omega.vercel.app" class="menu-link"><span class="menu-link-icon">🚀</span> Ouvrir l'app</a>
+  </div>
+</nav>
+
+<div class="menu-overlay" id="menu-overlay"></div>
+<div class="menu-drawer" id="menu-drawer">
+  <div class="menu-drawer-header"><strong>Breveil</strong><button class="menu-close" id="menu-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="menu-links">
+    <a href="breveil-landing-v3.html" class="menu-link-item"><span>🏠</span> <span class="fr-only">Accueil</span><span class="en-only">Home</span></a>
+    <a href="breveil-onboarding.html" class="menu-link-item"><span>👋</span> Onboarding</a>
+    <a href="breveil-pitch-deck.html" class="menu-link-item active"><span>📊</span> Pitch Deck</a>
+    <a href="breveil-feature-showcase.html" class="menu-link-item"><span>✨</span> <span class="fr-only">Fonctionnalités</span><span class="en-only">Features</span></a>
+    <div class="menu-sep"></div>
+    <a href="https://safepin-omega.vercel.app" class="menu-link-item" target="_blank"><span>🚀</span> <span class="fr-only">Ouvrir l'app</span><span class="en-only">Open app</span></a>
+  </div>
+</div>
+
+<main class="deck">
+
+  <!-- SLIDE 1 — Cover -->
+  <div class="slide fade-in" style="background:linear-gradient(135deg,rgba(59,180,193,0.08),rgba(74,44,90,0.12));min-height:70vh;justify-content:center;align-items:flex-start;">
+    <div class="slide-n">01 / 10</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;">
+      <div style="width:48px;height:48px;border-radius:14px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;box-shadow:var(--glow-teal);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <span style="font-size:22px;font-weight:700;letter-spacing:-0.03em;">Breveil</span>
+    </div>
+    <h1>
+      <span class="fr-only">Un monde plus sûr,<br><span class="gradient-text">cartographié par les femmes</span></span>
+      <span class="en-only">A safer world,<br><span class="gradient-text">mapped by women</span></span>
+    </h1>
+    <p class="slide-body">
+      <span class="fr-only">Plateforme communautaire de sécurité urbaine — Seed Round 2026</span>
+      <span class="en-only">Urban safety community platform — Seed Round 2026</span>
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <a href="https://safepin-omega.vercel.app" class="btn-app" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <span class="fr-only">Voir la démo live</span><span class="en-only">See live demo</span>
+      </a>
     </div>
   </div>
 
-  <!-- SLIDE 1 — Cover -->
-  <section class="slide">
-    <span class="slide-number">01 / 10</span>
-    <div class="slide-content fade-in">
-      <div style="width: 64px; height: 64px; border-radius: var(--radius-lg); background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 28px;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
-      </div>
-      <h1><span class="gradient-text">Breveil</span></h1>
-      <p class="slide-sub">Un monde plus sûr, cartographié par les femmes — pour les femmes.</p>
-      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-        <span style="padding: 6px 16px; border-radius: var(--radius-full); background: var(--surface-card); border: 1px solid var(--border-subtle); font-size: 13px; font-weight: 500; color: var(--text-secondary);">PWA — Sécurité communautaire</span>
-        <span style="padding: 6px 16px; border-radius: var(--radius-full); background: var(--surface-card); border: 1px solid var(--border-subtle); font-size: 13px; font-weight: 500; color: var(--text-secondary);">DBEK — Paris, France</span>
-      </div>
-    </div>
-  </section>
-
   <!-- SLIDE 2 — Problem -->
-  <section class="slide">
-    <span class="slide-number">02 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>Le <span class="gradient-text">problème</span></h2>
-      <p class="slide-sub">Les femmes se déplacent en ville sans information fiable sur leur sécurité. Les outils existants sont soit réactifs, soit obsolètes, soit fragmentés.</p>
-      <div class="problem-stats">
-        <div class="problem-stat" style="background: var(--semantic-danger-soft);">
-          <div class="problem-stat-value" style="color: var(--semantic-danger);">1/3</div>
-          <div class="problem-stat-label">des femmes victimes de violences (OMS)</div>
-        </div>
-        <div class="problem-stat" style="background: var(--semantic-warning-soft);">
-          <div class="problem-stat-value" style="color: var(--semantic-warning);">80 %</div>
-          <div class="problem-stat-label">du harcèlement de rue jamais signalé</div>
-        </div>
-        <div class="problem-stat" style="background: rgba(59,180,193,0.10);">
-          <div class="problem-stat-value" style="color: var(--accent-teal);">0</div>
-          <div class="problem-stat-label">plateforme de données sécurité en temps réel</div>
-        </div>
+  <div class="slide fade-in">
+    <div class="slide-n">02 / 10</div>
+    <span class="slide-tag" style="background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2);">
+      <span class="fr-only">Le problème</span><span class="en-only">The problem</span>
+    </span>
+    <h2>
+      <span class="fr-only">Les femmes évitent des espaces entiers <span class="gradient-text">par peur</span></span>
+      <span class="en-only">Women avoid entire spaces <span class="gradient-text">out of fear</span></span>
+    </h2>
+    <div class="problem-grid">
+      <div class="prob-card">
+        <div class="prob-val">80%</div>
+        <div class="prob-lbl fr-only">des femmes ont subi du harcèlement en espace public</div>
+        <div class="prob-lbl en-only">of women have experienced street harassment</div>
+        <div class="prob-src">Source : Stop FHIP, 2023</div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-val">1/3</div>
+        <div class="prob-lbl fr-only">modifie son trajet quotidiennement par sentiment d'insécurité</div>
+        <div class="prob-lbl en-only">changes their daily route due to feeling unsafe</div>
+        <div class="prob-src">Source : UN Women, 2022</div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-val">2x</div>
+        <div class="prob-lbl fr-only">plus susceptibles de ne pas sortir le soir que les hommes</div>
+        <div class="prob-lbl en-only">more likely than men to avoid going out at night</div>
+        <div class="prob-src">Source : Eurostat, 2022</div>
       </div>
     </div>
-  </section>
+    <p class="slide-body">
+      <span class="fr-only">Les solutions actuelles (groupes WhatsApp, apps généralistes) ne sont pas conçues pour la sécurité féminine. Il n'existe pas de carte de sécurité communautaire, pensée par et pour les femmes.</span>
+      <span class="en-only">Current solutions (WhatsApp groups, generic apps) aren't designed for women's safety. There is no community safety map built by and for women.</span>
+    </p>
+  </div>
 
   <!-- SLIDE 3 — Solution -->
-  <section class="slide">
-    <span class="slide-number">03 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>La <span class="gradient-text">solution</span></h2>
-      <p class="slide-sub">Breveil est une carte de sécurité vivante, alimentée par sa communauté. Chaque signalement enrichit la carte. Chaque vote affine la précision.</p>
-      <div class="cards-3">
-        <div class="card">
-          <div class="card-icon" style="background: rgba(59,180,193,0.12);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="1.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
-          </div>
-          <h3>Carte communautaire</h3>
-          <p>Incidents signalés par la communauté, visibles en temps réel sur la carte.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon" style="background: rgba(167,139,250,0.12);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <h3>Marche avec moi</h3>
-          <p>Accompagnement virtuel : vos proches suivent votre trajet jusqu'à l'arrivée.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon" style="background: rgba(52,211,153,0.12);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <h3>Trajet protégé</h3>
-          <p>Itinéraires qui évitent les zones à risque. Marche, vélo, transports, voiture.</p>
-        </div>
+  <div class="slide fade-in">
+    <div class="slide-n">03 / 10</div>
+    <span class="slide-tag" style="background:rgba(59,180,193,0.1);color:var(--teal);border:1px solid rgba(59,180,193,0.2);">
+      <span class="fr-only">La solution</span><span class="en-only">The solution</span>
+    </span>
+    <h2>
+      <span class="fr-only">L'intelligence collective <span class="gradient-text">au service de la sécurité</span></span>
+      <span class="en-only">Collective intelligence <span class="gradient-text">in service of safety</span></span>
+    </h2>
+    <p class="slide-body">
+      <span class="fr-only">Breveil combine carte communautaire temps réel, protection active lors des trajets, et IA vocale — dans une app pensée pour la vie quotidienne des femmes en ville.</span>
+      <span class="en-only">Breveil combines real-time community mapping, active journey protection, and voice AI — in an app built for women's everyday urban life.</span>
+    </p>
+    <div class="g3">
+      <div class="card">
+        <div class="card-icon" style="background:rgba(59,180,193,0.12);">🗺️</div>
+        <h3 class="fr-only">Carte communautaire</h3>
+        <h3 class="en-only">Community map</h3>
+        <p class="fr-only">Signalements validés par la communauté. Itinéraires sécurisés. Temps réel.</p>
+        <p class="en-only">Community-validated reports. Safe routes. Real time.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(167,139,250,0.12);">🤍</div>
+        <h3 class="fr-only">Julia — IA vocale</h3>
+        <h3 class="en-only">Julia — Voice AI</h3>
+        <p class="fr-only">Compagnon de trajet IA. Vous parle quand votre cercle est indisponible. Déclenche SOS si vous ne répondez plus.</p>
+        <p class="en-only">AI journey companion. Talks to you when your circle is unavailable. Triggers SOS if you stop responding.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(245,195,65,0.12);">👥</div>
+        <h3 class="fr-only">Communautés de quartier</h3>
+        <h3 class="en-only">Neighborhood communities</h3>
+        <p class="fr-only">Groupes locaux, fil d'alertes, entraide. Réseau de confiance hyperlocal.</p>
+        <p class="en-only">Local groups, alert feeds, mutual aid. Hyper-local trust network.</p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- SLIDE 4 — How it works -->
-  <section class="slide">
-    <span class="slide-number">04 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>Comment ça <span class="gradient-text">marche</span></h2>
-      <div style="background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 32px; margin-top: 32px; text-align: center;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
-          <div style="padding: 12px 20px; border-radius: var(--radius-md); background: rgba(59,180,193,0.10); border: 1px solid rgba(59,180,193,0.25);">
-            <div style="font-size: 20px; margin-bottom: 4px;">👁️</div>
-            <div style="font-size: 13px; font-weight: 600;">Vous voyez</div>
+  <!-- SLIDE 4 — Julia deep dive -->
+  <div class="slide fade-in">
+    <div class="slide-n">04 / 10</div>
+    <span class="slide-tag" style="background:rgba(167,139,250,0.1);color:var(--purple);border:1px solid rgba(167,139,250,0.2);">
+      ✦ Julia AI — <span class="fr-only">différenciateur clé</span><span class="en-only">key differentiator</span>
+    </span>
+    <h2>
+      <span class="fr-only">Plus qu'une app. <span class="gradient-text">Une présence.</span></span>
+      <span class="en-only">More than an app. <span class="gradient-text">A presence.</span></span>
+    </h2>
+    <div class="g2" style="gap:40px;align-items:start;">
+      <div>
+        <p class="slide-body" style="margin-bottom:24px;">
+          <span class="fr-only">Quand personne dans votre cercle de confiance n'est disponible à 23h, Julia est là. Elle vous parle avec une voix naturelle, connaît votre itinéraire en temps réel, et peut déclencher une alerte d'urgence si vous arrêtez de répondre.</span>
+          <span class="en-only">When nobody in your trusted circle is available at 11pm, Julia is there. She speaks to you in a natural voice, knows your real-time route, and can trigger an emergency alert if you stop responding.</span>
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+            <span style="font-size:20px;">🎙️</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;" class="fr-only">LiveKit Agents + ElevenLabs TTS</div>
+              <div style="font-size:14px;font-weight:700;" class="en-only">LiveKit Agents + ElevenLabs TTS</div>
+              <div style="font-size:12px;color:var(--text-secondary);" class="fr-only">Voix naturelle, latence < 300ms</div>
+              <div style="font-size:12px;color:var(--text-secondary);" class="en-only">Natural voice, < 300ms latency</div>
+            </div>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
-          <div style="padding: 12px 20px; border-radius: var(--radius-md); background: rgba(245,195,65,0.10); border: 1px solid rgba(245,195,65,0.25);">
-            <div style="font-size: 20px; margin-bottom: 4px;">📝</div>
-            <div style="font-size: 13px; font-weight: 600;">Signalez</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+            <span style="font-size:20px;">🧠</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;">Claude API + Deepgram STT</div>
+              <div style="font-size:12px;color:var(--text-secondary);" class="fr-only">Contexte carte + profil + état d'urgence</div>
+              <div style="font-size:12px;color:var(--text-secondary);" class="en-only">Map context + profile + emergency state</div>
+            </div>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
-          <div style="padding: 12px 20px; border-radius: var(--radius-md); background: rgba(167,139,250,0.10); border: 1px solid rgba(167,139,250,0.25);">
-            <div style="font-size: 20px; margin-bottom: 4px;">👥</div>
-            <div style="font-size: 13px; font-weight: 600;">La communauté vote</div>
-          </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
-          <div style="padding: 12px 20px; border-radius: var(--radius-md); background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.25);">
-            <div style="font-size: 20px; margin-bottom: 4px;">🗺️</div>
-            <div style="font-size: 13px; font-weight: 600;">La carte s'améliore</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+            <span style="font-size:20px;">🔴</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;" class="fr-only">Machine d'état silence → SOS</div>
+              <div style="font-size:14px;font-weight:700;" class="en-only">Silence → SOS state machine</div>
+              <div style="font-size:12px;color:var(--text-secondary);" class="fr-only">Silence détecté → alerte cercle → services d'urgence</div>
+              <div style="font-size:12px;color:var(--text-secondary);" class="en-only">Silence detected → circle alert → emergency services</div>
+            </div>
           </div>
         </div>
-        <p style="margin-top: 20px; font-size: 14px; color: var(--text-secondary);">Signalement en 30 secondes · Votes communautaires · Itinéraires ajustés automatiquement</p>
+        <div style="margin-top:16px;padding:12px 16px;background:rgba(245,195,65,0.08);border:1px solid rgba(245,195,65,0.2);border-radius:var(--radius-md);">
+          <div style="font-size:13px;font-weight:700;color:var(--gold);" class="fr-only">💰 Modèle freemium — sessions limitées en gratuit, illimitées en Pro (6,99€/mois)</div>
+          <div style="font-size:13px;font-weight:700;color:var(--gold);" class="en-only">💰 Freemium model — limited sessions free, unlimited in Pro (€6.99/month)</div>
+        </div>
+      </div>
+      <div class="julia-slide-visual">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#A78BFA,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 12px rgba(167,139,250,0.4);">🤍</div>
+          <div><div style="font-size:12px;font-weight:700;color:#fff;">Julia</div><div style="font-size:10px;color:var(--purple);">● <span class="fr-only">Trajet actif</span><span class="en-only">Journey active</span></div></div>
+        </div>
+        <div class="julia-msg-preview bot fr-only">Je suis là avec toi 🤍 Il te reste 8 minutes. La rue est bien éclairée. Tu veux que je reste avec toi jusqu'à l'arrivée ?</div>
+        <div class="julia-msg-preview bot en-only">I'm with you 🤍 8 minutes left. The street is well lit. Want me to stay with you until you arrive?</div>
+        <div class="julia-msg-preview user fr-only">Oui reste avec moi s'il te plaît</div>
+        <div class="julia-msg-preview user en-only">Yes please stay with me</div>
+        <div class="julia-msg-preview bot fr-only">Bien sûr. J'ai aussi informé Marie que tu es en route. Tu n'es pas seule 💜</div>
+        <div class="julia-msg-preview bot en-only">Of course. I've also let Marie know you're on your way. You're not alone 💜</div>
+        <div class="julia-tech-stack">
+          <span class="tech-chip">LiveKit</span>
+          <span class="tech-chip">Claude API</span>
+          <span class="tech-chip">Deepgram</span>
+          <span class="tech-chip">ElevenLabs</span>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
 
   <!-- SLIDE 5 — Market -->
-  <section class="slide">
-    <span class="slide-number">05 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>Le <span class="gradient-text">marché</span></h2>
-      <p class="slide-sub">Un marché de la femtech et de la sécurité personnelle en forte croissance.</p>
-      <div class="market-row">
-        <div class="market-card">
-          <h4>TAM</h4>
-          <div class="value gradient-text">$50B</div>
-          <p>Marché mondial de la sécurité personnelle</p>
-        </div>
-        <div class="market-card">
-          <h4>SAM</h4>
-          <div class="value gradient-text">$4B</div>
-          <p>Apps de sécurité pour femmes — Europe</p>
-        </div>
-        <div class="market-card">
-          <h4>SOM</h4>
-          <div class="value gradient-text">$120M</div>
-          <p>Sécurité communautaire — France</p>
-        </div>
+  <div class="slide fade-in">
+    <div class="slide-n">05 / 10</div>
+    <span class="slide-tag" style="background:rgba(245,195,65,0.1);color:var(--gold);border:1px solid rgba(245,195,65,0.2);">
+      <span class="fr-only">Marché</span><span class="en-only">Market</span>
+    </span>
+    <h2>
+      <span class="fr-only">Un marché massif et <span class="gradient-text">sous-adressé</span></span>
+      <span class="en-only">A massive and <span class="gradient-text">under-served market</span></span>
+    </h2>
+    <div class="market-row">
+      <div class="market-card">
+        <h4>TAM</h4>
+        <div class="val gradient-text">$85B</div>
+        <div class="desc fr-only">Marché mondial de la sécurité personnelle</div>
+        <div class="desc en-only">Global personal safety market</div>
+      </div>
+      <div class="market-card">
+        <h4>SAM</h4>
+        <div class="val gradient-text">$12B</div>
+        <div class="desc fr-only">Apps sécurité + safety AI Europe & Amérique du Nord</div>
+        <div class="desc en-only">Safety apps + safety AI Europe & North America</div>
+      </div>
+      <div class="market-card">
+        <h4>SOM — Y3</h4>
+        <div class="val gradient-text">$180M</div>
+        <div class="desc fr-only">0,3M utilisatrices Pro à 6,99€/mois</div>
+        <div class="desc en-only">0.3M Pro users at €6.99/month</div>
       </div>
     </div>
-  </section>
+    <div class="g3">
+      <div class="card">
+        <div style="font-size:28px;margin-bottom:8px;">🇫🇷</div>
+        <h3 class="fr-only">France — Lancement</h3>
+        <h3 class="en-only">France — Launch</h3>
+        <p class="fr-only">35M de femmes. Grandes métropoles en priorité (Paris, Lyon, Marseille). Marché test validé.</p>
+        <p class="en-only">35M women. Major metro areas first. Test market validated.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:28px;margin-bottom:8px;">🌍</div>
+        <h3 class="fr-only">Europe — Y2</h3>
+        <h3 class="en-only">Europe — Y2</h3>
+        <p class="fr-only">200M de femmes en Europe de l'Ouest. RGPD en avantage structurel. 30 langues prêtes.</p>
+        <p class="en-only">200M women in Western Europe. GDPR as structural advantage. 30 languages ready.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:28px;margin-bottom:8px;">🌐</div>
+        <h3 class="fr-only">Global — Y3+</h3>
+        <h3 class="en-only">Global — Y3+</h3>
+        <p class="fr-only">Brésil, MENA, Asie du Sud-Est. Marchés à très haute tension sécurité féminine.</p>
+        <p class="en-only">Brazil, MENA, Southeast Asia. High-urgency women's safety markets.</p>
+      </div>
+    </div>
+  </div>
 
-  <!-- SLIDE 6 — Competition -->
-  <section class="slide">
-    <span class="slide-number">06 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>Paysage <span class="gradient-text">concurrentiel</span></h2>
-      <div style="overflow-x: auto;">
-        <table class="comp-table">
-          <thead>
-            <tr>
-              <th>Solution</th>
-              <th>Carte temps réel</th>
-              <th>Communauté</th>
-              <th>Accompagnement</th>
-              <th>Itinéraires</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>bSafe</td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-            </tr>
-            <tr>
-              <td>Citizen</td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-            </tr>
-            <tr>
-              <td>Life360</td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">✗</span></td>
-            </tr>
-            <tr class="highlight">
-              <td><strong style="color: var(--accent-teal);">Breveil</strong></td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-              <td><span class="comp-check" style="background: var(--semantic-success-soft); color: var(--semantic-success);">✓</span></td>
-            </tr>
-          </tbody>
-        </table>
+  <!-- SLIDE 6 — Product & Traction -->
+  <div class="slide fade-in">
+    <div class="slide-n">06 / 10</div>
+    <span class="slide-tag" style="background:rgba(52,211,153,0.1);color:var(--success);border:1px solid rgba(52,211,153,0.2);">
+      <span class="fr-only">Produit & Traction</span><span class="en-only">Product & Traction</span>
+    </span>
+    <h2>
+      <span class="fr-only">Déployé, fonctionnel, <span class="gradient-text">en croissance</span></span>
+      <span class="en-only">Deployed, functional, <span class="gradient-text">growing</span></span>
+    </h2>
+    <div class="g4" style="margin-bottom:32px;">
+      <div class="stat-big">
+        <div class="stat-big-val gradient-text">104</div>
+        <div class="stat-big-lbl fr-only">composants actifs</div>
+        <div class="stat-big-lbl en-only">active components</div>
+      </div>
+      <div class="stat-big">
+        <div class="stat-big-val gradient-text">62</div>
+        <div class="stat-big-lbl fr-only">tables Supabase</div>
+        <div class="stat-big-lbl en-only">Supabase tables</div>
+      </div>
+      <div class="stat-big">
+        <div class="stat-big-val gradient-text">22</div>
+        <div class="stat-big-lbl fr-only">endpoints API</div>
+        <div class="stat-big-lbl en-only">API endpoints</div>
+      </div>
+      <div class="stat-big">
+        <div class="stat-big-val gradient-text">30</div>
+        <div class="stat-big-lbl fr-only">langues</div>
+        <div class="stat-big-lbl en-only">languages</div>
       </div>
     </div>
-  </section>
+    <div class="g2">
+      <div>
+        <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:12px;" class="fr-only">Stack tech</p>
+        <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:12px;" class="en-only">Tech stack</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">Next.js 15</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">React 19</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">Supabase</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">Mapbox</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">LiveKit</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">Stripe</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.2);color:var(--purple);">Claude API</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.2);color:var(--purple);">ElevenLabs</span>
+          <span style="padding:5px 12px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:var(--surface-elevated);border:1px solid var(--border-default);color:var(--text-secondary);">Vercel</span>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:12px;" class="fr-only">Fonctionnalités clés live</p>
+        <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:12px;" class="en-only">Key live features</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><span style="color:var(--success);">✓</span><span class="fr-only">Carte + signalements + SOS</span><span class="en-only">Map + reports + SOS</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><span style="color:var(--success);">✓</span><span class="fr-only">Trajet protégé + route scoring</span><span class="en-only">Safe journey + route scoring</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><span style="color:var(--success);">✓</span><span class="fr-only">Communautés + messagerie</span><span class="en-only">Communities + messaging</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><span style="color:var(--success);">✓</span><span class="fr-only">Stripe + onboarding complet</span><span class="en-only">Stripe + full onboarding</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><span style="color:var(--purple);">⚡</span><span class="fr-only">Julia IA — en développement</span><span class="en-only">Julia AI — in development</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SLIDE 7 — Business model -->
-  <section class="slide">
-    <span class="slide-number">07 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>Modèle <span class="gradient-text">économique</span></h2>
-      <p class="slide-sub">Freemium SaaS — toutes les fonctionnalités essentielles gratuites.</p>
-      <div class="pricing-row">
-        <div class="pricing-card">
-          <h3>Gratuit</h3>
-          <div class="price">0 €</div>
-          <p style="font-size: 13px; color: var(--text-tertiary);">Pour toujours</p>
-          <ul>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Carte de sécurité</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Signalements</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> SOS urgence</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Marche avec moi</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Communautés</li>
-          </ul>
-        </div>
-        <div class="pricing-card pro">
-          <h3>Pro</h3>
-          <div class="price" style="color: var(--accent-teal);">4,99 €<span style="font-size: 16px; font-family: 'DM Sans'; color: var(--text-tertiary);">/mois</span></div>
-          <p style="font-size: 13px; color: var(--text-tertiary);">ou 39,99 €/an</p>
-          <ul>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Tout du plan Gratuit</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Safety Buddy</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Historique de localisation</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Scores de sécurité</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Alertes prioritaires</li>
-          </ul>
+  <div class="slide fade-in">
+    <div class="slide-n">07 / 10</div>
+    <span class="slide-tag" style="background:rgba(245,195,65,0.1);color:var(--gold);border:1px solid rgba(245,195,65,0.2);">
+      <span class="fr-only">Modèle économique</span><span class="en-only">Business model</span>
+    </span>
+    <h2>
+      <span class="fr-only">Freemium <span class="gradient-text">ancré dans la valeur</span></span>
+      <span class="en-only">Freemium <span class="gradient-text">anchored in value</span></span>
+    </h2>
+    <div class="g2" style="gap:24px;margin-bottom:32px;">
+      <div class="card" style="border-left:3px solid var(--success);">
+        <h3 class="fr-only">🆓 Gratuit — Toujours</h3>
+        <h3 class="en-only">🆓 Free — Forever</h3>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--success);">✓</span><span class="fr-only">Carte + signalements</span><span class="en-only">Map + reports</span></div>
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--success);">✓</span><span class="fr-only">SOS + Marche avec moi</span><span class="en-only">SOS + Walk with me</span></div>
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--success);">✓</span><span class="fr-only">Communautés</span><span class="en-only">Communities</span></div>
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--success);">✓</span><span class="fr-only">Julia — sessions limitées/mois</span><span class="en-only">Julia — limited sessions/month</span></div>
         </div>
       </div>
-      <p style="margin-top: 24px; font-size: 14px; color: var(--text-tertiary);">Revenue futur : tableaux de bord B2B pour municipalités · licence de données anonymisées</p>
+      <div class="card" style="border-left:3px solid var(--teal);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <h3>Pro — 6,99€/mois</h3>
+          <span style="padding:3px 10px;border-radius:var(--radius-full);background:var(--teal);color:#fff;font-size:11px;font-weight:700;" class="fr-only">Populaire</span>
+          <span style="padding:3px 10px;border-radius:var(--radius-full);background:var(--teal);color:#fff;font-size:11px;font-weight:700;" class="en-only">Popular</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--teal);">✓</span><span class="fr-only">Julia illimitée + voix premium</span><span class="en-only">Unlimited Julia + premium voice</span></div>
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--teal);">✓</span><span class="fr-only">Historique localisation</span><span class="en-only">Location history</span></div>
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--teal);">✓</span><span class="fr-only">Scores de sécurité avancés</span><span class="en-only">Advanced safety scores</span></div>
+          <div style="font-size:13px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--teal);">✓</span><span class="fr-only">Alertes prioritaires</span><span class="en-only">Priority alerts</span></div>
+        </div>
+      </div>
     </div>
-  </section>
+    <div class="g3">
+      <div style="text-align:center;padding:20px;background:var(--surface-elevated);border-radius:var(--radius-lg);border:1px solid var(--border-subtle);">
+        <div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--success);">3–5%</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" class="fr-only">conversion free → Pro cible</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" class="en-only">free → Pro conversion target</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--surface-elevated);border-radius:var(--radius-lg);border:1px solid var(--border-subtle);">
+        <div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--gold);">39,99€</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" class="fr-only">abonnement annuel (−52% vs mensuel)</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" class="en-only">annual plan (−52% vs monthly)</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--surface-elevated);border-radius:var(--radius-lg);border:1px solid var(--border-subtle);">
+        <div style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--teal);">B2B</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" class="fr-only">Mairies, universités, entreprises — Y2</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;" class="en-only">Municipalities, universities, companies — Y2</div>
+      </div>
+    </div>
+  </div>
 
   <!-- SLIDE 8 — Roadmap -->
-  <section class="slide">
-    <span class="slide-number">08 / 10</span>
-    <div class="slide-content fade-in">
-      <h2><span class="gradient-text">Roadmap</span></h2>
+  <div class="slide fade-in">
+    <div class="slide-n">08 / 10</div>
+    <span class="slide-tag" style="background:rgba(59,180,193,0.1);color:var(--teal);border:1px solid rgba(59,180,193,0.2);">Roadmap</span>
+    <h2><span class="gradient-text">2026 — 2027</span></h2>
+    <div class="g2" style="align-items:start;gap:48px;">
       <div class="timeline">
-        <div class="timeline-item">
-          <div class="timeline-line">
-            <div class="timeline-dot" style="background: var(--accent-teal);"></div>
-            <div class="timeline-connector"></div>
-          </div>
-          <div class="timeline-content">
-            <h4 style="color: var(--accent-teal);">6 mois — Paris</h4>
-            <p>10 000 utilisatrices. Lancement de la v1 complète. Partenariats locaux. Couverture médiatique.</p>
-          </div>
+        <div class="tl-item">
+          <div class="tl-period fr-only">T2 2026 — Launch</div>
+          <div class="tl-period en-only">Q2 2026 — Launch</div>
+          <div class="tl-title fr-only">Lancement public France</div>
+          <div class="tl-title en-only">France public launch</div>
+          <div class="tl-desc fr-only">Paris, Lyon, Marseille. Campagne de croissance communautaire. Objectif : 50K utilisatrices.</div>
+          <div class="tl-desc en-only">Paris, Lyon, Marseille. Community growth campaign. Target: 50K users.</div>
         </div>
-        <div class="timeline-item">
-          <div class="timeline-line">
-            <div class="timeline-dot" style="background: var(--accent-purple);"></div>
-            <div class="timeline-connector"></div>
-          </div>
-          <div class="timeline-content">
-            <h4 style="color: var(--accent-purple);">18 mois — Europe</h4>
-            <p>5 villes européennes. 100 000 utilisatrices. Lancement B2B municipalités. Série A.</p>
-          </div>
+        <div class="tl-item">
+          <div class="tl-period fr-only">T3 2026 — Julia Live</div>
+          <div class="tl-period en-only">Q3 2026 — Julia Live</div>
+          <div class="tl-title fr-only">Julia IA — disponibilité générale</div>
+          <div class="tl-title en-only">Julia AI — general availability</div>
+          <div class="tl-desc fr-only">Lancement Pro + Julia. 1er driver de conversion freemium. Objectif : 5K abonnées Pro.</div>
+          <div class="tl-desc en-only">Pro + Julia launch. First freemium conversion driver. Target: 5K Pro subscribers.</div>
         </div>
-        <div class="timeline-item">
-          <div class="timeline-line">
-            <div class="timeline-dot" style="background: var(--accent-gold);"></div>
+        <div class="tl-item">
+          <div class="tl-period fr-only">T4 2026 — Scale</div>
+          <div class="tl-period en-only">Q4 2026 — Scale</div>
+          <div class="tl-title fr-only">Expansion + partenariats B2B</div>
+          <div class="tl-title en-only">Expansion + B2B partnerships</div>
+          <div class="tl-desc fr-only">Belgique, Suisse. Pilotes mairies et universités. Objectif : 200K utilisatrices.</div>
+          <div class="tl-desc en-only">Belgium, Switzerland. Municipal and university pilots. Target: 200K users.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-period fr-only">2027 — European rollout</div>
+          <div class="tl-period en-only">2027 — European rollout</div>
+          <div class="tl-title fr-only">10 pays européens</div>
+          <div class="tl-title en-only">10 European countries</div>
+          <div class="tl-desc fr-only">UK, Espagne, Italie, Allemagne. Objectif : 1M utilisatrices, 30K Pro.</div>
+          <div class="tl-desc en-only">UK, Spain, Italy, Germany. Target: 1M users, 30K Pro.</div>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:16px;" class="fr-only">Allocation du financement seed</p>
+        <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-tertiary);margin-bottom:16px;" class="en-only">Seed funding allocation</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="funnel-row">
+            <div class="funnel-icon" style="background:rgba(59,180,193,0.12);">🏗️</div>
+            <div class="funnel-label fr-only">Produit & Infrastructure</div>
+            <div class="funnel-label en-only">Product & Infrastructure</div>
+            <div class="funnel-pct gradient-text">40%</div>
           </div>
-          <div class="timeline-content">
-            <h4 style="color: var(--accent-gold);">3 ans — International</h4>
-            <p>50+ villes. 1M+ utilisatrices. Licence de données. Partenariats stratégiques transport et assurance.</p>
+          <div class="funnel-row">
+            <div class="funnel-icon" style="background:rgba(167,139,250,0.12);">🤍</div>
+            <div class="funnel-label fr-only">Julia IA — R&D</div>
+            <div class="funnel-label en-only">Julia AI — R&D</div>
+            <div class="funnel-pct gradient-text">25%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-icon" style="background:rgba(245,195,65,0.12);">📣</div>
+            <div class="funnel-label fr-only">Growth & Marketing</div>
+            <div class="funnel-label en-only">Growth & Marketing</div>
+            <div class="funnel-pct gradient-text">25%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-icon" style="background:rgba(52,211,153,0.12);">⚖️</div>
+            <div class="funnel-label fr-only">Légal & RGPD</div>
+            <div class="funnel-label en-only">Legal & GDPR</div>
+            <div class="funnel-pct gradient-text">10%</div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- SLIDE 9 — Tech stack -->
-  <section class="slide">
-    <span class="slide-number">09 / 10</span>
-    <div class="slide-content fade-in">
-      <h2>Stack <span class="gradient-text">technique</span></h2>
-      <p class="slide-sub">Architecture moderne, performante, scalable.</p>
-      <div class="tech-grid">
-        <span class="tech-chip">⚡ Next.js 16</span>
-        <span class="tech-chip">⚛️ React 19</span>
-        <span class="tech-chip">📘 TypeScript</span>
-        <span class="tech-chip">🗄️ Supabase</span>
-        <span class="tech-chip">🗺️ Mapbox GL</span>
-        <span class="tech-chip">🎨 Tailwind v4</span>
-        <span class="tech-chip">✨ Framer Motion</span>
-        <span class="tech-chip">📊 Zustand</span>
-        <span class="tech-chip">💳 Stripe</span>
-        <span class="tech-chip">🎥 LiveKit</span>
-        <span class="tech-chip">🌐 30 langues</span>
-        <span class="tech-chip">📱 PWA</span>
-        <span class="tech-chip">🚇 API IDFM</span>
-        <span class="tech-chip">🔔 Web Push</span>
+  <!-- SLIDE 9 — Why now / Competitive -->
+  <div class="slide fade-in">
+    <div class="slide-n">09 / 10</div>
+    <span class="slide-tag" style="background:rgba(167,139,250,0.1);color:var(--purple);border:1px solid rgba(167,139,250,0.2);">
+      <span class="fr-only">Positionnement</span><span class="en-only">Positioning</span>
+    </span>
+    <h2>
+      <span class="fr-only">Pourquoi maintenant — <span class="gradient-text">pourquoi nous</span></span>
+      <span class="en-only">Why now — <span class="gradient-text">why us</span></span>
+    </h2>
+    <div class="g3" style="margin-bottom:32px;">
+      <div class="card" style="border-top:2px solid rgba(239,68,68,0.3);">
+        <h3 style="color:var(--danger);" class="fr-only">❌ Concurrents</h3>
+        <h3 style="color:var(--danger);" class="en-only">❌ Competitors</h3>
+        <p class="fr-only">Citizen, Nextdoor, Waze — génériques, non-féminins, pas de trajet actif ni de Julia.</p>
+        <p class="en-only">Citizen, Nextdoor, Waze — generic, not women-focused, no active journey or Julia.</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--teal);">
+        <h3 style="color:var(--teal);" class="fr-only">✓ Breveil</h3>
+        <h3 style="color:var(--teal);" class="en-only">✓ Breveil</h3>
+        <p class="fr-only">Conçu pour les femmes. IA vocale. Communauté. Carte temps réel. Stack tech moderne (Next.js 15, React 19).</p>
+        <p class="en-only">Built for women. Voice AI. Community. Real-time map. Modern tech stack (Next.js 15, React 19).</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--gold);">
+        <h3 style="color:var(--gold);" class="fr-only">⚡ Avantages défensifs</h3>
+        <h3 style="color:var(--gold);" class="en-only">⚡ Defensive advantages</h3>
+        <p class="fr-only">Données communautaires = moat. Réseau de confiance hyperlocal. Julia = différenciateur brevetable.</p>
+        <p class="en-only">Community data = moat. Hyper-local trust network. Julia = patentable differentiator.</p>
       </div>
     </div>
-  </section>
+    <div style="padding:24px;background:linear-gradient(135deg,rgba(59,180,193,0.06),rgba(74,44,90,0.08));border:1px solid rgba(59,180,193,0.15);border-radius:var(--radius-xl);">
+      <p style="font-size:17px;line-height:1.7;color:var(--text-secondary);">
+        <span class="fr-only"><strong style="color:var(--text-primary);">La fenêtre de lancement est maintenant.</strong> L'IA vocale vient d'atteindre la qualité nécessaire (ElevenLabs, Claude API). Les femmes Gen Z adoptent massivement les apps de sécurité post-#MeToo. Aucun acteur établi n'adresse ce segment avec la profondeur de Breveil.</span>
+        <span class="en-only"><strong style="color:var(--text-primary);">The launch window is now.</strong> Voice AI has just reached the required quality (ElevenLabs, Claude API). Gen Z women are massively adopting safety apps post-#MeToo. No established player addresses this segment with Breveil's depth.</span>
+      </p>
+    </div>
+  </div>
 
-  <!-- SLIDE 10 — CTA -->
-  <section class="slide cta-slide">
-    <span class="slide-number">10 / 10</span>
-    <div class="slide-content fade-in">
-      <div style="width: 56px; height: 56px; border-radius: var(--radius-lg); background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+  <!-- SLIDE 10 — CTA / Ask -->
+  <div class="slide fade-in" style="background:linear-gradient(135deg,rgba(59,180,193,0.06),rgba(74,44,90,0.10));text-align:center;align-items:center;">
+    <div class="slide-n">10 / 10</div>
+    <div style="max-width:680px;margin:0 auto;">
+      <div style="width:64px;height:64px;border-radius:18px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 32px;box-shadow:var(--glow-teal);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
       </div>
-      <h2>Construisons un monde<br><span class="gradient-text">plus sûr, ensemble.</span></h2>
-      <p class="slide-sub">Breveil cherche des partenaires et investisseurs pour accélérer sa mission.</p>
-      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
-        <a href="mailto:brumeapp@pm.me" class="btn-teal">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Nous contacter
+      <h1>
+        <span class="fr-only">Rejoignez la mission.<br><span class="gradient-text">Seed Round — 2026</span></span>
+        <span class="en-only">Join the mission.<br><span class="gradient-text">Seed Round — 2026</span></span>
+      </h1>
+      <p class="slide-body" style="margin:20px auto 36px;text-align:center;max-width:520px;">
+        <span class="fr-only">Nous levons pour financer le lancement France, Julia IA, et l'expansion européenne. Contactez-nous pour le mémo d'investissement complet.</span>
+        <span class="en-only">We're raising to fund the France launch, Julia AI, and European expansion. Contact us for the full investment memo.</span>
+      </p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:28px;">
+        <a href="https://safepin-omega.vercel.app" class="btn-app" target="_blank" style="padding:14px 28px;font-size:15px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          <span class="fr-only">Voir la démo live</span><span class="en-only">See live demo</span>
         </a>
-        <a href="https://safepin-pearl.vercel.app" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; border-radius: var(--radius-2xl); border: 1.5px solid var(--border-default); color: var(--text-primary); font-size: 16px; font-weight: 600; transition: all var(--duration-fast) ease;">
-          Voir la démo
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <a href="mailto:hello@breveil.app" style="padding:14px 28px;border-radius:var(--radius-full);font-size:15px;font-weight:700;border:1.5px solid var(--border-default);color:var(--text-primary);transition:all .15s ease;display:inline-flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          hello@breveil.app
         </a>
       </div>
-      <p style="margin-top: 32px; font-size: 13px; color: var(--text-tertiary);">DBEK · 75 rue de Lourmel, 75015 Paris · brumeapp@pm.me</p>
+      <div style="font-size:13px;color:var(--text-tertiary);">
+        <span class="fr-only">DBEK · Paris, France · 2026</span>
+        <span class="en-only">DBEK · Paris, France · 2026</span>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <script>
-    // Theme
-    (function() {
-      var html = document.documentElement;
-      var toggle = document.getElementById('theme-toggle');
-      var iD = document.getElementById('theme-icon-dark');
-      var iL = document.getElementById('theme-icon-light');
-      var s = localStorage.getItem('breveil-theme');
-      if (s) html.setAttribute('data-theme', s);
-      function u() { var d = html.getAttribute('data-theme') !== 'light'; iD.style.display = d ? 'none' : 'block'; iL.style.display = d ? 'block' : 'none'; }
-      u();
-      toggle.addEventListener('click', function() { var n = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; html.setAttribute('data-theme', n); localStorage.setItem('breveil-theme', n); u(); });
-    })();
+</main>
 
-    // Scroll fade-in
-    (function() {
-      var els = document.querySelectorAll('.fade-in');
-      var obs = new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
-      }, { threshold: 0.15 });
-      els.forEach(function(el) { obs.observe(el); });
-    })();
-
-    // Hamburger menu
-    (function() {
-      var btn = document.getElementById('hamburger');
-      var overlay = document.getElementById('menu-overlay');
-      var drawer = document.getElementById('menu-drawer');
-      var close = document.getElementById('menu-close');
-      function open() { overlay.classList.add('open'); drawer.classList.add('open'); }
-      function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); }
-      btn.addEventListener('click', open);
-      overlay.addEventListener('click', shut);
-      close.addEventListener('click', shut);
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') shut(); });
-    })();
-  </script>
-
+<script>
+  // Theme
+  (function(){var h=document.documentElement,b=document.getElementById('theme-toggle'),s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon'),sv=localStorage.getItem('breveil-theme');if(sv)h.setAttribute('data-theme',sv);function sync(){var d=h.getAttribute('data-theme')!=='light';s.style.display=d?'none':'block';m.style.display=d?'block':'none';}sync();b.addEventListener('click',function(){var c=h.getAttribute('data-theme'),n=c==='light'?'dark':'light';h.setAttribute('data-theme',n);localStorage.setItem('breveil-theme',n);sync();});})();
+  // Lang
+  (function(){var h=document.documentElement,fr=document.getElementById('lang-fr'),en=document.getElementById('lang-en'),sv=localStorage.getItem('breveil-lang')||'fr';h.setAttribute('data-lang',sv);function sync(){var l=h.getAttribute('data-lang');fr.classList.toggle('active',l==='fr');en.classList.toggle('active',l==='en');}sync();fr.addEventListener('click',function(){h.setAttribute('data-lang','fr');localStorage.setItem('breveil-lang','fr');sync();});en.addEventListener('click',function(){h.setAttribute('data-lang','en');localStorage.setItem('breveil-lang','en');sync();});})();
+  // Fade
+  (function(){var els=document.querySelectorAll('.fade-in'),obs=new IntersectionObserver(function(e){e.forEach(function(i){if(i.isIntersecting){i.target.classList.add('visible');obs.unobserve(i.target);}});},{threshold:0.08});els.forEach(function(el){obs.observe(el);});})();
+  // Menu
+  (function(){var btn=document.getElementById('hamburger'),ov=document.getElementById('menu-overlay'),dr=document.getElementById('menu-drawer'),cl=document.getElementById('menu-close');function o(){ov.classList.add('open');dr.classList.add('open');document.body.style.overflow='hidden';}function s(){ov.classList.remove('open');dr.classList.remove('open');document.body.style.overflow='';}btn.addEventListener('click',o);ov.addEventListener('click',s);cl.addEventListener('click',s);document.addEventListener('keydown',function(e){if(e.key==='Escape')s();});})();
+</script>
 </body>
 </html>

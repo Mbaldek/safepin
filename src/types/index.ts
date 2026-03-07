@@ -189,13 +189,28 @@ export type UserMilestone = {
   achieved_at: string;
 };
 
+export type NotifChannel = 'push' | 'in_app' | 'both';
+
 export type NotifSettings = {
   proximity_radius_m: number;
   notify_nearby_pins: boolean;
   notify_sos_nearby: boolean;
+  // Lifecycle toggles
+  notify_new_pins: boolean;
+  notify_confirmed_pins: boolean;
+  notify_resolved_pins: boolean;
+  // Category group toggles
+  notify_cat_urgent: boolean;
+  notify_cat_warning: boolean;
+  notify_cat_infra: boolean;
+  // Channel preferences
+  pin_notif_channel: NotifChannel;
+  sos_notif_channel: NotifChannel;
+  // Quiet hours
   quiet_hours_enabled: boolean;
   quiet_start: string;
   quiet_end: string;
+  // Other
   notify_followed_pins: boolean;
   notify_milestones: boolean;
   notify_dm: boolean;
@@ -205,6 +220,14 @@ export const DEFAULT_NOTIF_SETTINGS: NotifSettings = {
   proximity_radius_m: 1000,
   notify_nearby_pins: true,
   notify_sos_nearby: true,
+  notify_new_pins: true,
+  notify_confirmed_pins: true,
+  notify_resolved_pins: false,
+  notify_cat_urgent: true,
+  notify_cat_warning: true,
+  notify_cat_infra: false,
+  pin_notif_channel: 'both',
+  sos_notif_channel: 'both',
   quiet_hours_enabled: false,
   quiet_start: '22:00',
   quiet_end: '07:00',
@@ -790,4 +813,32 @@ export interface HashtagFeedItem {
   type:    ContentType
   content: Record<string, unknown>
   tags:    Hashtag[]
+}
+
+// ── Cercle Module ──────────────────────────────────────────
+export type CircleMemberStatus = 'online' | 'trip' | 'offline'
+
+export interface CircleMember {
+  id: string
+  name: string
+  avatar_url?: string | null
+  status: CircleMemberStatus
+  last_seen?: string | null
+  is_verified?: boolean
+  trip?: {
+    destination: string
+    eta_minutes: number
+    progress_pct: number
+  } | null
+}
+
+export interface CircleMessage {
+  id: string
+  sender_id: string
+  sender_name: string
+  content: string
+  type: 'text' | 'image' | 'audio' | 'location'
+  media_url?: string | null
+  created_at: string
+  is_safe_arrival?: boolean
 }

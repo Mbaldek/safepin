@@ -389,7 +389,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <div style={{ fontSize: 19, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
             Mon trajet
           </div>
           <div style={{ fontSize: 12, color: tk.tt, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -432,7 +432,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <Users size={20} strokeWidth={1.5} color={T.gradientStart} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
             Marche avec moi
           </div>
           <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte · sans destination</div>
@@ -466,7 +466,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <Navigation size={20} strokeWidth={1.5} color={tk.ts} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
             Trajet avec destination
           </div>
           <div style={{ fontSize: 11, color: tk.tt }}>Itineraire protege · arrivee tracee</div>
@@ -575,7 +575,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Marche avec moi</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: tk.tp }}>Marche avec moi</div>
           <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte instantanement</div>
         </div>
       </div>
@@ -853,7 +853,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               ? (d ? 'rgba(59,180,193,0.10)' : 'rgba(59,180,193,0.08)')
               : tk.ih,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16,
+            fontSize: 13,
           }}>
             {r.icon}
           </div>
@@ -892,7 +892,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
             </button>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 17, fontWeight: 600, color: tk.tp }}>Choisir le depart</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: tk.tp }}>Choisir le depart</div>
               <div style={{ fontSize: 11, color: tk.tt }}>Deplace le pin ou recherche</div>
             </div>
           </div>
@@ -1350,7 +1350,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <Check size={28} strokeWidth={2.5} color={T.semanticSuccess} />
         </motion.div>
 
-        <div style={{ fontSize: 24, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous etes arrivee !</div>
+        <div style={{ fontSize: 20, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous etes arrivee !</div>
         <div style={{ fontSize: 13, color: tk.ts, marginBottom: 4 }}>
           {escorte.activeEscorte?.dest_name ?? 'Destination'}
         </div>
@@ -1370,7 +1370,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               border: `1px solid ${i === 2 ? 'rgba(245,195,65,0.18)' : tk.bd}`,
               borderRadius: T.radiusLg, padding: '10px',
             }}>
-              <div style={{ fontSize: 22, fontWeight: 600, color: s.color }}>{s.val}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: s.color }}>{s.val}</div>
               <div style={{ fontSize: 10, color: tk.tt }}>{s.unit}</div>
             </div>
           ))}

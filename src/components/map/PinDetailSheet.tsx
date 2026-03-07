@@ -214,6 +214,15 @@ function PinDetailSheet({
       if (data) updatePin(data)
       setIsResolved(true)
       toast.success('Marqué comme résolu')
+      // Notify nearby users of resolution
+      fetch('/api/notify-nearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: { id: pin.id, lat: pin.lat, lng: pin.lng, category: pin.category, severity: pin.severity, user_id: pin.user_id, is_emergency: pin.is_emergency },
+          event_type: 'resolved',
+        }),
+      }).catch(() => {})
     } else {
       const { error } = await supabase
         .from('pins')

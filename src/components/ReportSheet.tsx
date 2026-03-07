@@ -206,7 +206,7 @@ export function ReportSheet() {
 
   return (
     <AnimatePresence>
-      <div style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 201, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      <div style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 301, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}

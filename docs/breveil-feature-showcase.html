@@ -1,952 +1,727 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" data-theme="dark" data-lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Breveil — Toutes les fonctionnalités</title>
-
+  <title>Breveil — Fonctionnalités</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
     :root {
-      --gradient-start: #3BB4C1;
-      --gradient-text: linear-gradient(135deg, #3BB4C1 0%, #A78BFA 50%, #F5C341 100%);
-      --gradient-primary: linear-gradient(180deg, #3BB4C1 0%, #1E3A5F 45%, #4A2C5A 75%, #5C3D5E 100%);
-      --surface-base: #0F172A;
-      --surface-card: #1E293B;
-      --surface-elevated: #334155;
-      --surface-glass: rgba(30, 41, 59, 0.8);
-      --text-primary: #FFFFFF;
-      --text-secondary: #94A3B8;
-      --text-tertiary: #64748B;
-      --text-inverse: #0F172A;
-      --semantic-success: #34D399;
-      --semantic-success-soft: rgba(52, 211, 153, 0.15);
-      --semantic-warning: #FBBF24;
-      --semantic-warning-soft: rgba(251, 191, 36, 0.15);
-      --semantic-danger: #EF4444;
-      --semantic-danger-soft: rgba(239, 68, 68, 0.15);
-      --accent-gold: #F5C341;
-      --accent-teal: #3BB4C1;
-      --accent-purple: #A78BFA;
-      --accent-coral: #F87171;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-default: rgba(255, 255, 255, 0.12);
-      --border-strong: rgba(255, 255, 255, 0.20);
-      --interactive-hover: rgba(255, 255, 255, 0.05);
-      --interactive-active: rgba(255, 255, 255, 0.10);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
-      --shadow-glow: 0 0 20px rgba(59, 180, 193, 0.3);
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-      --radius-2xl: 32px;
-      --radius-full: 9999px;
-      --duration-fast: 150ms;
-      --duration-normal: 250ms;
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --gradient-primary: linear-gradient(180deg,#3BB4C1 0%,#1E3A5F 45%,#4A2C5A 75%,#5C3D5E 100%);
+      --gradient-text: linear-gradient(135deg,#3BB4C1 0%,#A78BFA 50%,#F5C341 100%);
+      --surface-base:#0A0F1E; --surface-card:#111827; --surface-elevated:#1E293B;
+      --surface-glass:rgba(17,24,39,0.88);
+      --text-primary:#FFFFFF; --text-secondary:#94A3B8; --text-tertiary:#475569; --text-inverse:#0A0F1E;
+      --success:#34D399; --warning:#FBBF24; --danger:#EF4444;
+      --gold:#F5C341; --teal:#3BB4C1; --purple:#A78BFA; --coral:#F87171;
+      --border-subtle:rgba(255,255,255,0.06); --border-default:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.18);
+      --shadow-sm:0 1px 4px rgba(0,0,0,0.3); --shadow-md:0 4px 16px rgba(0,0,0,0.4); --shadow-lg:0 12px 40px rgba(0,0,0,0.5);
+      --glow-teal:0 0 40px rgba(59,180,193,0.2); --glow-purple:0 0 40px rgba(167,139,250,0.2);
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --radius-2xl:32px; --radius-full:9999px;
+      --ease-out:cubic-bezier(0.16,1,0.3,1);
     }
-
     [data-theme="light"] {
-      --surface-base: #F8FAFC;
-      --surface-card: #FFFFFF;
-      --surface-elevated: #FFFFFF;
-      --surface-glass: rgba(255, 255, 255, 0.9);
-      --text-primary: #0F172A;
-      --text-secondary: #475569;
-      --text-tertiary: #94A3B8;
-      --text-inverse: #FFFFFF;
-      --border-subtle: rgba(15, 23, 42, 0.06);
-      --border-default: rgba(15, 23, 42, 0.10);
-      --border-strong: rgba(15, 23, 42, 0.20);
-      --interactive-hover: rgba(0, 0, 0, 0.03);
-      --interactive-active: rgba(0, 0, 0, 0.06);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+      --surface-base:#F0F4F8; --surface-card:#FFFFFF; --surface-elevated:#FFFFFF; --surface-glass:rgba(255,255,255,0.92);
+      --text-primary:#0A0F1E; --text-secondary:#475569; --text-tertiary:#94A3B8; --text-inverse:#FFFFFF;
+      --border-subtle:rgba(10,15,30,0.06); --border-default:rgba(10,15,30,0.10); --border-strong:rgba(10,15,30,0.18);
+      --shadow-md:0 4px 16px rgba(0,0,0,0.08); --shadow-lg:0 12px 40px rgba(0,0,0,0.10);
     }
+    [data-lang="en"] .fr-only { display:none !important; }
+    [data-lang="fr"] .en-only { display:none !important; }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{font-family:'DM Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
+    body{background:var(--surface-base);color:var(--text-primary);overflow-x:hidden;}
+    a{color:inherit;text-decoration:none;}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;}
+    .gradient-text{background:var(--gradient-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
-    html {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      scroll-behavior: smooth;
+    /* NAV */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--surface-glass);backdrop-filter:blur(24px);border-bottom:1px solid var(--border-subtle);}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:1200px;margin:0 auto;padding:0 28px;}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-0.03em;}
+    .nav-logo-mark{width:32px;height:32px;border-radius:9px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;}
+    .nav-actions{display:flex;align-items:center;gap:8px;}
+    .theme-btn{width:34px;height:34px;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all .15s ease;}
+    .theme-btn:hover{color:var(--text-primary);background:var(--border-default);}
+    .lang-toggle{display:flex;align-items:center;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);overflow:hidden;padding:2px;gap:2px;}
+    .lang-btn{padding:5px 10px;border-radius:var(--radius-full);font-size:12px;font-weight:700;color:var(--text-tertiary);transition:all .15s ease;cursor:pointer;background:transparent;border:none;}
+    .lang-btn.active{background:var(--surface-elevated);color:var(--text-primary);}
+    .btn-app{padding:9px 20px;border-radius:var(--radius-full);background:var(--teal);color:#fff;font-size:13px;font-weight:700;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--glow-teal);}
+    .btn-app:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(59,180,193,0.4);}
+    .hamburger{width:34px;height:34px;border-radius:var(--radius-full);background:var(--border-subtle);border:1px solid var(--border-default);display:none;align-items:center;justify-content:center;color:var(--text-secondary);}
+    @media(max-width:680px){.hamburger{display:flex;}}
+    .menu-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);opacity:0;pointer-events:none;transition:opacity .25s ease;}
+    .menu-overlay.open{opacity:1;pointer-events:auto;}
+    .menu-drawer{position:fixed;top:0;right:0;bottom:0;width:280px;z-index:1000;background:var(--surface-elevated);border-left:1px solid var(--border-subtle);transform:translateX(100%);transition:transform .25s var(--ease-out);display:flex;flex-direction:column;}
+    .menu-drawer.open{transform:translateX(0);}
+    .menu-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border-subtle);}
+    .menu-drawer-header strong{font-size:15px;font-weight:700;}
+    .menu-close{width:30px;height:30px;border-radius:var(--radius-full);background:var(--border-subtle);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);cursor:pointer;border:none;}
+    .menu-links{flex:1;padding:10px 0;}
+    .menu-link-item{display:flex;align-items:center;gap:12px;padding:13px 20px;font-size:15px;font-weight:500;color:var(--text-secondary);border-left:2px solid transparent;transition:all .15s ease;}
+    .menu-link-item:hover{color:var(--text-primary);background:rgba(255,255,255,0.03);}
+    .menu-link-item.active{color:var(--teal);border-left-color:var(--teal);background:rgba(59,180,193,0.05);}
+    .menu-sep{height:1px;background:var(--border-subtle);margin:6px 20px;}
+
+    /* LAYOUT */
+    .container{max-width:1100px;margin:0 auto;padding:0 28px;}
+    .page-top{padding:88px 0 48px;}
+
+    /* HERO */
+    .hero{padding:32px 0 0;text-align:center;}
+    .hero-label{font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;color:var(--teal);margin-bottom:14px;}
+    .hero h1{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(28px,4.5vw,52px);font-weight:400;line-height:1.1;margin-bottom:14px;}
+    .hero-sub{font-size:17px;color:var(--text-secondary);max-width:520px;margin:0 auto 32px;line-height:1.6;}
+    .stats-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:40px;}
+    .stat-chip{padding:7px 16px;border-radius:var(--radius-full);background:var(--surface-card);border:1px solid var(--border-default);font-size:13px;font-weight:600;color:var(--text-secondary);}
+    .stat-chip strong{color:var(--text-primary);}
+
+    /* FILTER */
+    .filter-bar{position:sticky;top:64px;z-index:100;background:var(--surface-glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-subtle);padding:12px 0;}
+    .filter-inner{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 28px;max-width:1100px;margin:0 auto;}
+    .filter-inner::-webkit-scrollbar{display:none;}
+    .filter-tab{padding:8px 16px;border-radius:var(--radius-full);font-size:13px;font-weight:600;color:var(--text-tertiary);border:1px solid transparent;white-space:nowrap;transition:all .15s ease;cursor:pointer;}
+    .filter-tab:hover{color:var(--text-secondary);background:var(--border-subtle);}
+    .filter-tab.active{background:var(--surface-elevated);border-color:var(--border-default);color:var(--text-primary);}
+
+    /* JULIA HERO — FEATURED */
+    .julia-hero{
+      margin:40px 0 32px;
+      background:linear-gradient(135deg,rgba(167,139,250,0.06) 0%,rgba(74,44,90,0.12) 50%,rgba(10,15,30,0) 100%);
+      border:1px solid rgba(167,139,250,0.2);
+      border-radius:var(--radius-xl);
+      padding:48px;
+      display:grid;grid-template-columns:1fr 340px;gap:56px;align-items:center;
+      position:relative;overflow:hidden;
     }
+    .julia-hero::before{content:'✦ Pro';position:absolute;top:16px;right:20px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:0.06em;}
+    .julia-hero::after{content:'';position:absolute;top:-60px;right:120px;width:300px;height:300px;background:radial-gradient(ellipse,rgba(167,139,250,0.15) 0%,transparent 70%);pointer-events:none;}
+    @media(max-width:860px){.julia-hero{grid-template-columns:1fr;gap:32px;padding:28px;}}
 
-    body {
-      background: var(--surface-base);
-      color: var(--text-primary);
-      line-height: 1.6;
+    .julia-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:var(--radius-full);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);font-size:12px;font-weight:700;color:var(--purple);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:18px;}
+    .julia-hero h2{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(24px,3.5vw,40px);font-weight:400;line-height:1.15;margin-bottom:14px;}
+    .julia-hero p{font-size:15px;color:var(--text-secondary);line-height:1.7;margin-bottom:24px;max-width:480px;}
+    .julia-bullets{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+    .julia-bullet{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-secondary);}
+    .julia-bullet-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0;margin-top:5px;}
+    .julia-cta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .btn-julia{padding:12px 24px;border-radius:var(--radius-full);background:linear-gradient(135deg,#A78BFA,#7C3AED);color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;box-shadow:var(--glow-purple);transition:all .15s ease;}
+    .btn-julia:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(167,139,250,0.4);}
+    .pro-badge{padding:6px 14px;border-radius:var(--radius-full);background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);font-size:12px;font-weight:700;color:var(--gold);}
+
+    /* Julia chat visual */
+    .julia-chat{
+      background:#070C18;border:1px solid rgba(167,139,250,0.2);border-radius:24px;
+      overflow:hidden;box-shadow:var(--shadow-lg),var(--glow-purple);
     }
+    .jc-header{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;}
+    .jc-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#A78BFA,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 12px rgba(167,139,250,0.4);}
+    .jc-name{font-size:13px;font-weight:700;}
+    .jc-status{font-size:10px;color:var(--purple);display:flex;align-items:center;gap:4px;}
+    .jc-dot{width:5px;height:5px;border-radius:50%;background:var(--purple);animation:pulse-dot 2s infinite;}
+    @keyframes pulse-dot{0%,100%{opacity:0.5;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+    .jc-route{margin:0 12px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid var(--border-subtle);display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary);}
+    .jc-route strong{color:#fff;}
+    .jc-msgs{padding:14px 12px;display:flex;flex-direction:column;gap:8px;}
+    .jc-msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:11px;line-height:1.55;}
+    .jc-msg.bot{background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.18);color:#E2E8F0;align-self:flex-start;border-radius:4px 12px 12px 12px;}
+    .jc-msg.user{background:rgba(59,180,193,0.12);border:1px solid rgba(59,180,193,0.18);color:#E2E8F0;align-self:flex-end;border-radius:12px 4px 12px 12px;}
+    .jc-wave{display:flex;align-items:center;gap:2px;padding:3px 0;}
+    .jc-wave span{width:2px;border-radius:1px;background:var(--purple);animation:wave .9s ease-in-out infinite;}
+    .jc-wave span:nth-child(1){height:4px;animation-delay:0s;} .jc-wave span:nth-child(2){height:8px;animation-delay:.1s;} .jc-wave span:nth-child(3){height:12px;animation-delay:.2s;} .jc-wave span:nth-child(4){height:8px;animation-delay:.3s;} .jc-wave span:nth-child(5){height:5px;animation-delay:.4s;}
+    @keyframes wave{0%,100%{transform:scaleY(1);opacity:.5;}50%{transform:scaleY(1.6);opacity:1;}}
+    .jc-sos-alert{margin:0 12px;padding:8px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:8px;font-size:10px;color:#FCA5A5;display:flex;align-items:center;gap:6px;}
+    .jc-input{margin:10px 12px 12px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);border-radius:var(--radius-full);display:flex;align-items:center;gap:8px;}
+    .jc-mic{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#A78BFA,#7C3AED);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .jc-input-text{font-size:10px;color:var(--text-tertiary);flex:1;}
 
-    a { color: inherit; text-decoration: none; }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    /* FEATURE GRID */
+    .features-section{margin-bottom:56px;}
+    .section-heading{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+    .section-icon{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .section-name{font-family:'DM Serif Display',Georgia,serif;font-size:22px;font-weight:400;}
+    .section-count{font-size:12px;font-weight:700;color:var(--text-tertiary);margin-left:auto;}
 
-    .gradient-text {
-      background: var(--gradient-text);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+    @media(max-width:900px){.features-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:560px){.features-grid{grid-template-columns:1fr;}}
+
+    .feat-card{
+      padding:20px;background:var(--surface-card);border:1px solid var(--border-subtle);
+      border-radius:var(--radius-lg);transition:all .2s var(--ease-out);
+      position:relative;
     }
+    .feat-card:hover{border-color:var(--border-default);transform:translateY(-2px);box-shadow:var(--shadow-md);}
+    .feat-card.pro-card{border-color:rgba(245,195,65,0.15);background:linear-gradient(135deg,rgba(245,195,65,0.03),var(--surface-card));}
+    .feat-card.julia-card{border-color:rgba(167,139,250,0.2);background:linear-gradient(135deg,rgba(167,139,250,0.05),var(--surface-card));}
 
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .feat-icon{width:40px;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:18px;}
+    .feat-name{font-size:14px;font-weight:700;margin-bottom:6px;}
+    .feat-desc{font-size:12px;color:var(--text-secondary);line-height:1.55;}
+    .feat-pro{position:absolute;top:12px;right:12px;padding:3px 8px;border-radius:var(--radius-full);font-size:10px;font-weight:700;}
+    .feat-new{position:absolute;top:12px;right:12px;padding:3px 8px;border-radius:var(--radius-full);background:rgba(59,180,193,0.12);border:1px solid rgba(59,180,193,0.2);font-size:10px;font-weight:700;color:var(--teal);}
 
-    /* ── Nav ────────────────────────────── */
-    .nav {
-      position: fixed;
-      top: 0; left: 0; right: 0; z-index: 100;
-      background: var(--surface-glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border-subtle);
+    /* FEATURE SHOWCASE — large split row */
+    .showcase{
+      display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;
+      margin-bottom:56px;padding:40px;
+      background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);
     }
+    .showcase:nth-child(even) .showcase-visual{order:2;}
+    .showcase:nth-child(even) .showcase-content{order:1;}
+    @media(max-width:800px){.showcase{grid-template-columns:1fr;gap:28px;padding:24px;}.showcase:nth-child(even) .showcase-visual,.showcase:nth-child(even) .showcase-content{order:unset;}}
+    .showcase-visual{border-radius:var(--radius-xl);overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;position:relative;}
+    .showcase-title{font-family:'DM Serif Display',Georgia,serif;font-size:24px;font-weight:400;margin-bottom:10px;}
+    .showcase-body{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:20px;}
+    .showcase-bullets{display:flex;flex-direction:column;gap:8px;}
+    .showcase-bullet{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-secondary);}
+    .showcase-bullet::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:6px;}
 
-    .nav-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      height: 56px;
-    }
+    /* Map visual mock */
+    .map-mock{width:100%;height:100%;background:linear-gradient(135deg,#0D1527,#1a2540);position:relative;overflow:hidden;}
+    .map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(59,180,193,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(59,180,193,0.06) 1px,transparent 1px);background-size:32px 32px;}
+    .map-pin{position:absolute;display:flex;flex-direction:column;align-items:center;animation:float-pin 4s ease-in-out infinite;}
+    @keyframes float-pin{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+    .map-pin-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+    .map-pin-label{font-size:8px;font-weight:700;white-space:nowrap;margin-top:3px;padding:2px 6px;border-radius:4px;background:rgba(10,15,30,0.8);}
+    .map-user{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+    .map-user-dot{width:14px;height:14px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(59,180,193,0.2);}
+    .map-radar{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;border:1.5px solid rgba(59,180,193,0.3);animation:radar-pulse 2s ease-out infinite;}
+    @keyframes radar-pulse{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0.8;}100%{transform:translate(-50%,-50%) scale(1.8);opacity:0;}}
 
-    .nav-logo {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 17px; font-weight: 700;
-    }
+    /* SOS mock */
+    .sos-mock{background:#0A0010;border-radius:var(--radius-xl);padding:28px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+    .sos-ring{width:100px;height:100px;border-radius:50%;border:4px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;position:relative;animation:sos-pulse 1.5s ease-in-out infinite;}
+    .sos-ring-inner{width:72px;height:72px;border-radius:50%;background:rgba(239,68,68,0.12);border:3px solid var(--danger);display:flex;align-items:center;justify-content:center;font-size:28px;}
+    @keyframes sos-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4);}50%{box-shadow:0 0 0 20px rgba(239,68,68,0);}}
+    .sos-label{font-size:18px;font-weight:700;color:var(--danger);}
+    .sos-contacts{display:flex;gap:12px;}
+    .sos-contact{display:flex;flex-direction:column;align-items:center;gap:5px;}
+    .sos-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;}
+    .sos-alert-label{font-size:9px;color:var(--success);font-weight:700;}
 
-    .nav-logo-icon {
-      width: 28px; height: 28px;
-      border-radius: var(--radius-sm);
-      background: var(--gradient-primary);
-      display: flex; align-items: center; justify-content: center;
-    }
+    /* Trip mock */
+    .trip-mock{background:#070C18;border-radius:var(--radius-xl);padding:20px;width:100%;}
+    .trip-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+    .trip-icon{width:36px;height:36px;border-radius:50%;background:rgba(52,211,153,0.12);border:1.5px solid var(--success);display:flex;align-items:center;justify-content:center;}
+    .trip-dest{font-size:13px;font-weight:700;}
+    .trip-eta{font-size:11px;color:var(--success);}
+    .trip-progress{height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:12px;overflow:hidden;}
+    .trip-progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--success));width:42%;border-radius:2px;transition:width .3s ease;}
+    .trip-contacts{display:flex;gap:8px;}
+    .trip-contact{display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(255,255,255,0.04);border-radius:var(--radius-full);font-size:10px;font-weight:600;}
+    .trip-contact-av{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;}
+    .trip-status{font-size:9px;color:var(--success);}
 
-    .nav-right {
-      display: flex; align-items: center; gap: 10px;
-    }
+    /* Community mock */
+    .community-mock{background:#070C18;border-radius:var(--radius-xl);overflow:hidden;}
+    .cm-header{padding:12px 14px;border-bottom:1px solid var(--border-subtle);font-size:12px;font-weight:700;}
+    .cm-post{padding:12px 14px;border-bottom:1px solid var(--border-subtle);}
+    .cm-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .cm-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+    .cm-name{font-size:11px;font-weight:700;}
+    .cm-time{font-size:9px;color:var(--text-tertiary);margin-left:auto;}
+    .cm-tag{padding:2px 6px;border-radius:3px;font-size:8px;font-weight:700;margin-right:4px;}
+    .cm-text{font-size:11px;color:var(--text-secondary);line-height:1.5;}
+    .cm-actions{display:flex;gap:10px;margin-top:7px;}
+    .cm-action{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-tertiary);}
 
-    .theme-toggle {
-      width: 32px; height: 32px;
-      border-radius: var(--radius-full);
-      background: var(--interactive-hover);
-      border: 1px solid var(--border-default);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary);
-      transition: all var(--duration-fast) ease;
+    /* CTA SECTION */
+    .cta-section{
+      text-align:center;padding:80px 28px;
+      background:linear-gradient(135deg,rgba(59,180,193,0.06),rgba(74,44,90,0.10));
+      border:1px solid rgba(59,180,193,0.12);border-radius:var(--radius-2xl);
+      margin:40px 0 80px;
     }
-    .theme-toggle:hover { color: var(--text-primary); background: var(--interactive-active); }
+    .cta-section h2{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(24px,4vw,40px);font-weight:400;margin-bottom:14px;}
+    .cta-section p{font-size:16px;color:var(--text-secondary);max-width:480px;margin:0 auto 28px;line-height:1.6;}
 
-    /* ── Hamburger menu ───────────────── */
-    .hamburger {
-      width: 36px; height: 36px; border-radius: var(--radius-full);
-      background: var(--interactive-hover); border: 1px solid var(--border-default);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all var(--duration-fast) ease;
-    }
-    .hamburger:hover { background: var(--interactive-active); }
-    .hamburger span { display: flex; flex-direction: column; gap: 4px; }
-    .hamburger span i { display: block; width: 16px; height: 1.5px; background: var(--text-secondary); border-radius: 1px; transition: background var(--duration-fast) ease; }
-    .hamburger:hover span i { background: var(--text-primary); }
-    .menu-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 250ms ease; }
-    .menu-overlay.open { opacity: 1; pointer-events: auto; }
-    .menu-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 280px; z-index: 1000; background: var(--bg-card); border-left: 1px solid var(--border-default); transform: translateX(100%); transition: transform 250ms ease-out; display: flex; flex-direction: column; }
-    .menu-drawer.open { transform: translateX(0); }
-    .menu-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-default); }
-    .menu-drawer-header h3 { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--text-primary); margin: 0; }
-    .menu-close { width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--interactive-hover); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); font-size: 18px; transition: all var(--duration-fast) ease; }
-    .menu-close:hover { background: var(--interactive-active); color: var(--text-primary); }
-    .menu-links { padding: 12px 0; flex: 1; }
-    .menu-link { display: flex; align-items: center; gap: 12px; padding: 14px 20px; color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 500; border-left: 3px solid transparent; transition: all var(--duration-fast) ease; }
-    .menu-link:hover { color: var(--text-primary); background: var(--interactive-hover); }
-    .menu-link.active { color: var(--accent-teal); border-left-color: var(--accent-teal); background: rgba(59,180,193,0.06); }
-    .menu-link-icon { font-size: 18px; width: 24px; text-align: center; }
-    .menu-divider { height: 1px; background: var(--border-default); margin: 8px 20px; }
+    .fade-in{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease-out),transform .6s var(--ease-out);}
+    .fade-in.visible{opacity:1;transform:translateY(0);}
 
-    /* ── Filter tabs ───────────────────── */
-    .filter-bar {
-      position: sticky;
-      top: 56px;
-      z-index: 90;
-      background: var(--surface-glass);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 12px 0;
-      overflow-x: auto;
-    }
-
-    .filter-tabs {
-      display: flex;
-      gap: 8px;
-      padding: 0 24px;
-      white-space: nowrap;
-    }
-
-    .filter-tab {
-      padding: 7px 16px;
-      border-radius: var(--radius-full);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      background: transparent;
-      border: 1.5px solid var(--border-default);
-      transition: all var(--duration-fast) ease;
-      flex-shrink: 0;
-    }
-
-    .filter-tab:hover {
-      border-color: var(--border-strong);
-      color: var(--text-primary);
-    }
-
-    .filter-tab.active {
-      background: var(--accent-teal);
-      border-color: var(--accent-teal);
-      color: #FFFFFF;
-    }
-
-    /* ── Hero ───────────────────────────── */
-    .hero {
-      padding: 120px 24px 60px;
-      text-align: center;
-      position: relative;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -100px; left: 50%;
-      transform: translateX(-50%);
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(59,180,193,0.08) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .hero h1 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(28px, 5vw, 48px);
-      font-weight: 400;
-      line-height: 1.15;
-      margin-bottom: 14px;
-    }
-
-    .hero p {
-      font-size: clamp(15px, 2vw, 18px);
-      color: var(--text-secondary);
-      max-width: 520px;
-      margin: 0 auto;
-    }
-
-    .hero .stat-row {
-      display: flex;
-      gap: 24px;
-      justify-content: center;
-      margin-top: 28px;
-      flex-wrap: wrap;
-    }
-
-    .hero .stat-pill {
-      padding: 6px 16px;
-      border-radius: var(--radius-full);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .hero .stat-pill strong {
-      color: var(--accent-teal);
-    }
-
-    /* ── Feature sections ──────────────── */
-    .section {
-      padding: 80px 0;
-      border-top: 1px solid var(--border-subtle);
-    }
-
-    .section-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .section-icon {
-      width: 44px; height: 44px;
-      border-radius: var(--radius-md);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .section-meta h2 {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .section-meta p {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .section-tag {
-      margin-left: auto;
-      padding: 4px 12px;
-      border-radius: var(--radius-full);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      flex-shrink: 0;
-      align-self: center;
-    }
-
-    /* ── Feature detail grid ───────────── */
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-    }
-
-    .detail-card {
-      padding: 20px;
-      border-radius: var(--radius-md);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      transition: all var(--duration-normal) var(--ease-out);
-    }
-
-    .detail-card:hover {
-      border-color: var(--border-default);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .detail-card h4 {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .detail-card p {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-    }
-
-    /* ── Showcase card (larger) ─────────── */
-    .showcase {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      align-items: center;
-    }
-
-    .showcase-visual {
-      height: 320px;
-      border-radius: var(--radius-xl);
-      background: var(--surface-card);
-      border: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .showcase-content h3 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: 28px;
-      font-weight: 400;
-      margin-bottom: 12px;
-    }
-
-    .showcase-content p {
-      font-size: 15px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
-
-    .showcase-bullets {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .showcase-bullets li {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .showcase-bullets li svg {
-      flex-shrink: 0;
-      color: var(--semantic-success);
-    }
-
-    @media (max-width: 768px) {
-      .showcase { grid-template-columns: 1fr; }
-      .showcase-visual { height: 220px; }
-    }
-
-    /* ── Visual elements inside showcase ── */
-    .mock-pin {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      animation: float 4s ease-in-out infinite;
-    }
-
-    .mock-pin-icon {
-      width: 32px; height: 32px;
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-      box-shadow: var(--shadow-md);
-    }
-
-    .mock-pin-label {
-      font-size: 9px;
-      font-weight: 600;
-      background: var(--surface-elevated);
-      padding: 2px 8px;
-      border-radius: var(--radius-full);
-      border: 1px solid var(--border-subtle);
-      white-space: nowrap;
-      color: var(--text-secondary);
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-
-    .mock-hud {
-      width: 80%;
-      padding: 14px;
-      border-radius: var(--radius-md);
-      background: var(--surface-base);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .mock-progress {
-      height: 3px;
-      border-radius: 2px;
-      background: var(--border-subtle);
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
-
-    .mock-progress-fill {
-      height: 100%;
-      border-radius: 2px;
-      background: var(--accent-teal);
-      width: 65%;
-      animation: progress-grow 3s ease-in-out infinite;
-    }
-
-    @keyframes progress-grow {
-      0% { width: 30%; }
-      50% { width: 75%; }
-      100% { width: 30%; }
-    }
-
-    /* ── CTA bottom ────────────────────── */
-    .cta-bottom {
-      padding: 80px 0;
-      text-align: center;
-      border-top: 1px solid var(--border-subtle);
-      position: relative;
-    }
-
-    .cta-bottom::before {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(59,180,193,0.06) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .cta-bottom h2 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(24px, 4vw, 38px);
-      font-weight: 400;
-      margin-bottom: 14px;
-      position: relative;
-    }
-
-    .cta-bottom p {
-      font-size: 16px;
-      color: var(--text-secondary);
-      margin-bottom: 28px;
-      position: relative;
-    }
-
-    .btn-teal {
-      display: inline-flex;
-      align-items: center; justify-content: center; gap: 8px;
-      padding: 14px 32px;
-      border-radius: var(--radius-2xl);
-      background: var(--accent-teal);
-      color: #FFFFFF;
-      font-size: 15px; font-weight: 700;
-      box-shadow: var(--shadow-glow);
-      transition: all var(--duration-fast) ease;
-      position: relative;
-    }
-
-    .btn-teal:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 30px rgba(59, 180, 193, 0.4);
-    }
-
-    /* ── Fade-in ───────────────────────── */
-    .fade-in {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
-    }
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
-
-    @media (prefers-reduced-motion: reduce) {
-      .fade-in { opacity: 1; transform: none; transition: none; }
-      * { animation: none !important; }
-    }
+    .hidden{display:none;}
   </style>
 </head>
 <body>
 
-  <!-- NAV -->
-  <nav class="nav">
-    <div class="container nav-inner">
-      <a href="breveil-landing.html" class="nav-logo">
-        <div class="nav-logo-icon">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
-        </div>
-        Breveil
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="breveil-landing-v3.html" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      Breveil
+    </a>
+    <div class="nav-actions">
+      <button class="theme-btn" id="theme-toggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="icon-sun" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="lang-fr">FR</button>
+        <button class="lang-btn" id="lang-en">EN</button>
+      </div>
+      <a href="https://safepin-omega.vercel.app" class="btn-app" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <span class="fr-only">Ouvrir l'app</span><span class="en-only">Open app</span>
       </a>
-      <div class="nav-right">
-        <button class="theme-toggle" id="theme-toggle" aria-label="Thème">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-dark" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" id="theme-icon-light"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <button class="hamburger" id="hamburger" aria-label="Menu">
-          <span><i></i><i></i><i></i></span>
-        </button>
+      <button class="hamburger" id="hamburger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<div class="menu-overlay" id="menu-overlay"></div>
+<div class="menu-drawer" id="menu-drawer">
+  <div class="menu-drawer-header"><strong>Breveil</strong><button class="menu-close" id="menu-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="menu-links">
+    <a href="breveil-landing-v3.html" class="menu-link-item"><span>🏠</span><span class="fr-only">Accueil</span><span class="en-only">Home</span></a>
+    <a href="breveil-onboarding.html" class="menu-link-item"><span>👋</span>Onboarding</a>
+    <a href="breveil-pitch-deck.html" class="menu-link-item"><span>📊</span>Pitch Deck</a>
+    <a href="breveil-feature-showcase.html" class="menu-link-item active"><span>✨</span><span class="fr-only">Fonctionnalités</span><span class="en-only">Features</span></a>
+    <div class="menu-sep"></div>
+    <a href="https://safepin-omega.vercel.app" class="menu-link-item" target="_blank"><span>🚀</span><span class="fr-only">Ouvrir l'app</span><span class="en-only">Open app</span></a>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="page-top">
+  <div class="container">
+    <div class="hero fade-in">
+      <p class="hero-label fr-only">Tout ce que fait Breveil</p>
+      <p class="hero-label en-only">Everything Breveil does</p>
+      <h1>
+        <span class="fr-only">32+ fonctionnalités pour votre<br><span class="gradient-text">sécurité au quotidien</span></span>
+        <span class="en-only">32+ features for your<br><span class="gradient-text">everyday safety</span></span>
+      </h1>
+      <p class="hero-sub">
+        <span class="fr-only">De la carte communautaire à Julia IA — tout est pensé pour que vous ne vous sentiez jamais seule.</span>
+        <span class="en-only">From the community map to Julia AI — everything is designed so you never feel alone.</span>
+      </p>
+      <div class="stats-row">
+        <div class="stat-chip"><strong>32+</strong> <span class="fr-only">fonctionnalités</span><span class="en-only">features</span></div>
+        <div class="stat-chip"><strong>30</strong> <span class="fr-only">langues</span><span class="en-only">languages</span></div>
+        <div class="stat-chip"><strong>0€</strong> <span class="fr-only">pour l'essentiel</span><span class="en-only">for essentials</span></div>
+        <div class="stat-chip"><strong>24/7</strong> <span class="fr-only">disponible</span><span class="en-only">available</span></div>
       </div>
     </div>
-  </nav>
+  </div>
+</div>
 
-  <!-- Menu overlay + drawer -->
-  <div class="menu-overlay" id="menu-overlay"></div>
-  <div class="menu-drawer" id="menu-drawer">
-    <div class="menu-drawer-header">
-      <h3>Navigation</h3>
-      <button class="menu-close" id="menu-close">&times;</button>
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-inner">
+    <button class="filter-tab active" data-filter="all"><span class="fr-only">Tout</span><span class="en-only">All</span></button>
+    <button class="filter-tab" data-filter="safety"><span class="fr-only">Sécurité</span><span class="en-only">Safety</span></button>
+    <button class="filter-tab" data-filter="julia">✦ Julia AI</button>
+    <button class="filter-tab" data-filter="community"><span class="fr-only">Communauté</span><span class="en-only">Community</span></button>
+    <button class="filter-tab" data-filter="navigation"><span class="fr-only">Trajets</span><span class="en-only">Journeys</span></button>
+    <button class="filter-tab" data-filter="pro">Pro</button>
+  </div>
+</div>
+
+<div class="container" style="padding-top:40px;">
+
+  <!-- JULIA — FEATURED HERO CARD -->
+  <div class="julia-hero fade-in" data-cat="julia">
+    <div>
+      <div class="julia-eyebrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+        Julia — <span class="fr-only">IA vocale</span><span class="en-only">Voice AI</span>
+      </div>
+      <h2>
+        <span class="fr-only">Votre compagnon quand personne<br>n'est <span class="gradient-text">disponible</span></span>
+        <span class="en-only">Your companion when nobody<br>is <span class="gradient-text">available</span></span>
+      </h2>
+      <p>
+        <span class="fr-only">Il est 23h. Vous rentrez seule. Votre cercle de confiance dort. Julia est là — elle vous parle, connaît votre itinéraire, et peut déclencher une alerte SOS si vous ne répondez plus.</span>
+        <span class="en-only">It's 11pm. You're walking home alone. Your trusted circle is asleep. Julia is there — she talks to you, knows your route, and can trigger an SOS alert if you stop responding.</span>
+      </p>
+      <div class="julia-bullets">
+        <div class="julia-bullet"><div class="julia-bullet-dot"></div><span class="fr-only">Voix naturelle temps réel (ElevenLabs + Claude API)</span><span class="en-only">Real-time natural voice (ElevenLabs + Claude API)</span></div>
+        <div class="julia-bullet"><div class="julia-bullet-dot"></div><span class="fr-only">Contexte carte live — connaît les signalements autour de vous</span><span class="en-only">Live map context — knows reports around you</span></div>
+        <div class="julia-bullet"><div class="julia-bullet-dot"></div><span class="fr-only">Machine d'état : silence → alerte cercle → SOS automatique</span><span class="en-only">State machine: silence → circle alert → auto SOS</span></div>
+        <div class="julia-bullet"><div class="julia-bullet-dot" style="background:var(--gold);"></div><span class="fr-only" style="color:var(--gold);font-weight:600;">Gratuit : 3 sessions/mois — Pro : illimité</span><span class="en-only" style="color:var(--gold);font-weight:600;">Free: 3 sessions/month — Pro: unlimited</span></div>
+      </div>
+      <div class="julia-cta-row">
+        <a href="https://safepin-omega.vercel.app" class="btn-julia" target="_blank">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+          <span class="fr-only">Essayer Julia</span><span class="en-only">Try Julia</span>
+        </a>
+        <span class="pro-badge">✦ Pro</span>
+      </div>
     </div>
-    <div class="menu-links">
-      <a href="breveil-landing.html" class="menu-link"><span class="menu-link-icon">🏠</span> Accueil</a>
-      <a href="breveil-onboarding.html" class="menu-link"><span class="menu-link-icon">👋</span> Onboarding</a>
-      <a href="breveil-pitch-deck.html" class="menu-link"><span class="menu-link-icon">📊</span> Pitch Deck</a>
-      <a href="breveil-feature-showcase.html" class="menu-link active"><span class="menu-link-icon">✨</span> Fonctionnalités</a>
-      <div class="menu-divider"></div>
-      <a href="https://safepin-omega.vercel.app" class="menu-link"><span class="menu-link-icon">🚀</span> Ouvrir l'app</a>
+    <div class="julia-chat">
+      <div class="jc-header">
+        <div class="jc-av">🤍</div>
+        <div><div class="jc-name">Julia</div><div class="jc-status"><span class="jc-dot"></span><span class="fr-only">Trajet actif · 8 min</span><span class="en-only">Journey active · 8 min</span></div></div>
+        <div style="margin-left:auto;font-size:10px;color:var(--text-tertiary);font-weight:600;">21:47</div>
+      </div>
+      <div style="padding:10px 12px;">
+        <div class="jc-route">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
+          <span class="fr-only">Vers <strong>Rue Oberkampf</strong> · 8 min</span><span class="en-only">To <strong>Rue Oberkampf</strong> · 8 min</span>
+        </div>
+      </div>
+      <div class="jc-msgs">
+        <div class="jc-msg bot fr-only">Je suis là avec toi 🤍 La rue est bien éclairée. Tu veux qu'on parle pendant le trajet ?</div>
+        <div class="jc-msg bot en-only">I'm with you 🤍 The street is well lit. Want to talk while you walk?</div>
+        <div class="jc-msg user fr-only">Oui, il y a quelqu'un derrière moi…</div>
+        <div class="jc-msg user en-only">Yes, there's someone behind me…</div>
+        <div class="jc-msg bot">
+          <div class="fr-only">Je t'entends. Marche vers la pharmacie à 180m. <strong>Marie est prévenue</strong> 🔔</div>
+          <div class="en-only">I hear you. Walk toward the pharmacy 180m ahead. <strong>Marie has been notified</strong> 🔔</div>
+          <div class="jc-wave"><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <div class="jc-sos-alert">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="fr-only">SOS automatique si aucune réponse dans 60 secondes</span><span class="en-only">Auto SOS if no response in 60 seconds</span>
+      </div>
+      <div class="jc-input">
+        <div class="jc-mic"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+        <span class="jc-input-text fr-only">Parler à Julia…</span><span class="jc-input-text en-only">Talk to Julia…</span>
+      </div>
     </div>
   </div>
 
-  <!-- FILTER BAR -->
-  <div class="filter-bar">
-    <div class="filter-tabs">
-      <button class="filter-tab active" data-filter="all">Tout</button>
-      <button class="filter-tab" data-filter="safety">Sécurité</button>
-      <button class="filter-tab" data-filter="community">Communauté</button>
-      <button class="filter-tab" data-filter="navigation">Navigation</button>
-      <button class="filter-tab" data-filter="gamification">Gamification</button>
-      <button class="filter-tab" data-filter="pro">Pro</button>
+  <!-- SAFETY -->
+  <div class="features-section fade-in" data-cat="safety">
+    <div class="section-heading">
+      <div class="section-icon" style="background:rgba(239,68,68,0.12);">🛡️</div>
+      <div class="section-name fr-only">Sécurité & Urgence</div>
+      <div class="section-name en-only">Safety & Emergency</div>
+      <div class="section-count">7 <span class="fr-only">fonctionnalités</span><span class="en-only">features</span></div>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(239,68,68,0.12);">🆘</div>
+        <div class="feat-name fr-only">Bouton SOS</div>
+        <div class="feat-name en-only">SOS Button</div>
+        <div class="feat-desc fr-only">Un appui long déclenche une alerte à votre cercle + dispatch d'urgence avec géolocalisation en temps réel.</div>
+        <div class="feat-desc en-only">Long press triggers an alert to your circle + emergency dispatch with real-time geolocation.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(59,180,193,0.12);">📍</div>
+        <div class="feat-name fr-only">Marche avec moi</div>
+        <div class="feat-name en-only">Walk with me</div>
+        <div class="feat-desc fr-only">Vos contacts de confiance suivent votre trajet en temps réel jusqu'à votre arrivée confirmée.</div>
+        <div class="feat-desc en-only">Your trusted contacts follow your journey in real time until your arrival is confirmed.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(251,191,36,0.12);">⚠️</div>
+        <div class="feat-name fr-only">Signalements en temps réel</div>
+        <div class="feat-name en-only">Real-time reports</div>
+        <div class="feat-desc fr-only">Harcèlement, éclairage insuffisant, zone dangereuse — validés par la communauté.</div>
+        <div class="feat-desc en-only">Harassment, poor lighting, dangerous zones — validated by the community.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(52,211,153,0.12);">🏪</div>
+        <div class="feat-name fr-only">Espaces sûrs</div>
+        <div class="feat-name en-only">Safe spaces</div>
+        <div class="feat-desc fr-only">Pharmacies, commerces, lieux de refuge référencés par la communauté.</div>
+        <div class="feat-desc en-only">Pharmacies, shops, refuge spots referenced by the community.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">🔔</div>
+        <div class="feat-name fr-only">Alertes de proximité</div>
+        <div class="feat-name en-only">Proximity alerts</div>
+        <div class="feat-desc fr-only">Notification automatique si vous entrez dans une zone signalée récemment.</div>
+        <div class="feat-desc en-only">Automatic notification when you enter a recently reported zone.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(239,68,68,0.12);">📡</div>
+        <div class="feat-name fr-only">Thread SOS persistant</div>
+        <div class="feat-name en-only">Persistent SOS thread</div>
+        <div class="feat-desc fr-only">Canal de communication dédié pendant une urgence — conservé pour le suivi.</div>
+        <div class="feat-desc en-only">Dedicated communication channel during an emergency — preserved for follow-up.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(251,191,36,0.12);">🔕</div>
+        <div class="feat-name fr-only">Mode discret</div>
+        <div class="feat-name en-only">Discreet mode</div>
+        <div class="feat-desc fr-only">Alertez votre cercle sans interaction visible. Interface minimaliste activée d'un geste.</div>
+        <div class="feat-desc en-only">Alert your circle without visible interaction. Minimalist interface activated by gesture.</div>
+      </div>
     </div>
   </div>
 
-  <!-- HERO -->
-  <section class="hero">
-    <h1>32+ fonctionnalités<br><span class="gradient-text">pour votre sécurité</span></h1>
-    <p>Découvrez tout ce que Breveil met à votre disposition. Gratuitement.</p>
-    <div class="stat-row">
-      <span class="stat-pill"><strong>32+</strong> fonctionnalités</span>
-      <span class="stat-pill"><strong>30</strong> langues</span>
-      <span class="stat-pill"><strong>100 %</strong> gratuit</span>
+  <!-- NAVIGATION / TRAJETS -->
+  <div class="features-section fade-in" data-cat="navigation">
+    <div class="section-heading">
+      <div class="section-icon" style="background:rgba(52,211,153,0.12);">🗺️</div>
+      <div class="section-name fr-only">Carte & Trajets</div>
+      <div class="section-name en-only">Map & Journeys</div>
+      <div class="section-count">6 <span class="fr-only">fonctionnalités</span><span class="en-only">features</span></div>
     </div>
-  </section>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(59,180,193,0.12);">🛤️</div>
+        <div class="feat-name fr-only">Itinéraires sécurisés</div>
+        <div class="feat-name en-only">Safe routes</div>
+        <div class="feat-desc fr-only">Algorithme de route scoring basé sur les signalements communautaires. 3 alternatives : + sûre, équilibrée, + rapide.</div>
+        <div class="feat-desc en-only">Route scoring algorithm based on community reports. 3 alternatives: safest, balanced, fastest.</div>
+      </div>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">📊</div>
+        <div class="feat-name fr-only">Score de sécurité par zone</div>
+        <div class="feat-name en-only">Safety score by zone</div>
+        <div class="feat-desc fr-only">Analyse de densité des signalements par quartier. Couche visualisation sur la carte.</div>
+        <div class="feat-desc en-only">Incident density analysis by neighborhood. Visualization layer on the map.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">⭐</div>
+        <div class="feat-name fr-only">Trajets favoris</div>
+        <div class="feat-name en-only">Favorite routes</div>
+        <div class="feat-desc fr-only">Sauvegardez vos trajets fréquents. Démarrage en un tap avec vos contacts pré-sélectionnés.</div>
+        <div class="feat-desc en-only">Save frequent routes. One-tap start with pre-selected contacts.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(59,180,193,0.12);">🔄</div>
+        <div class="feat-name fr-only">Trajets récents</div>
+        <div class="feat-name en-only">Recent journeys</div>
+        <div class="feat-desc fr-only">Historique et replay de vos derniers trajets. Relancez en un tap.</div>
+        <div class="feat-desc en-only">History and replay of your recent journeys. Restart in one tap.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(52,211,153,0.12);">✅</div>
+        <div class="feat-name fr-only">Arrivée confirmée</div>
+        <div class="feat-name en-only">Arrival confirmed</div>
+        <div class="feat-desc fr-only">Notification automatique à votre cercle à l'arrivée. Célébration d'arrivée dans l'app.</div>
+        <div class="feat-desc en-only">Automatic notification to your circle upon arrival. In-app arrival celebration.</div>
+      </div>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">📍</div>
+        <div class="feat-name fr-only">Historique de localisation</div>
+        <div class="feat-name en-only">Location history</div>
+        <div class="feat-desc fr-only">Consultez vos déplacements sur les 30 derniers jours. Export RGPD disponible.</div>
+        <div class="feat-desc en-only">View your movements over the past 30 days. GDPR export available.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
+      </div>
+    </div>
+  </div>
 
-  <main class="container">
+  <!-- COMMUNITY -->
+  <div class="features-section fade-in" data-cat="community">
+    <div class="section-heading">
+      <div class="section-icon" style="background:rgba(167,139,250,0.12);">👥</div>
+      <div class="section-name fr-only">Communauté</div>
+      <div class="section-name en-only">Community</div>
+      <div class="section-count">8 <span class="fr-only">fonctionnalités</span><span class="en-only">features</span></div>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">❤️</div>
+        <div class="feat-name fr-only">Cercle de confiance</div>
+        <div class="feat-name en-only">Trusted circle</div>
+        <div class="feat-desc fr-only">Ajoutez jusqu'à 10 personnes. Ils reçoivent vos alertes SOS et suivent vos trajets.</div>
+        <div class="feat-desc en-only">Add up to 10 people. They receive your SOS alerts and follow your journeys.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(59,180,193,0.12);">💬</div>
+        <div class="feat-name fr-only">Fil communautaire</div>
+        <div class="feat-name en-only">Community feed</div>
+        <div class="feat-desc fr-only">Posts, alertes, conseils partagés dans votre quartier. Filtrage par hashtag et proximité.</div>
+        <div class="feat-desc en-only">Posts, alerts, tips shared in your neighborhood. Filter by hashtag and proximity.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(52,211,153,0.12);">📖</div>
+        <div class="feat-name fr-only">Stories</div>
+        <div class="feat-name en-only">Stories</div>
+        <div class="feat-desc fr-only">Partagez des moments ou alertes éphémères avec votre communauté locale.</div>
+        <div class="feat-desc en-only">Share ephemeral moments or alerts with your local community.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">🏘️</div>
+        <div class="feat-name fr-only">Groupes de quartier</div>
+        <div class="feat-name en-only">Neighborhood groups</div>
+        <div class="feat-desc fr-only">Rejoignez ou créez des groupes locaux. Modération communautaire.</div>
+        <div class="feat-desc en-only">Join or create local groups. Community moderation.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">✉️</div>
+        <div class="feat-name fr-only">Messagerie directe</div>
+        <div class="feat-name en-only">Direct messaging</div>
+        <div class="feat-desc fr-only">Échangez en privé avec les membres de votre cercle ou de vos groupes.</div>
+        <div class="feat-desc en-only">Chat privately with circle members or group members.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(59,180,193,0.12);">🏷️</div>
+        <div class="feat-name fr-only">Hashtags de sécurité</div>
+        <div class="feat-name en-only">Safety hashtags</div>
+        <div class="feat-desc fr-only">#harcèlement #nuit #éclairage — filtrage et suivi des sujets qui comptent pour vous.</div>
+        <div class="feat-desc en-only">#harassment #night #lighting — filter and follow topics that matter to you.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(239,68,68,0.12);">🚩</div>
+        <div class="feat-name fr-only">Modération communautaire</div>
+        <div class="feat-name en-only">Community moderation</div>
+        <div class="feat-desc fr-only">Signalez, votez, confirmez les pins. Système de réputation et vérification d'identité.</div>
+        <div class="feat-desc en-only">Report, vote, confirm pins. Reputation system and identity verification.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(52,211,153,0.12);">🎯</div>
+        <div class="feat-name fr-only">Codes d'invitation</div>
+        <div class="feat-name en-only">Invite codes</div>
+        <div class="feat-desc fr-only">Invitez vos proches avec un code personnel. Croissance par réseau de confiance.</div>
+        <div class="feat-desc en-only">Invite loved ones with a personal code. Growth through trust networks.</div>
+      </div>
+    </div>
+  </div>
 
-    <!-- ═══════════════════════════════════════
-         SECTION 1 — Carte & Signalement
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="safety">
-      <div class="showcase">
-        <div class="showcase-visual">
-          <div class="mock-pin" style="top: 20%; left: 20%; animation-delay: 0s;">
-            <div class="mock-pin-icon" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-            </div>
-            <span class="mock-pin-label">Harcèlement · 3min</span>
-          </div>
-          <div class="mock-pin" style="top: 50%; left: 55%; animation-delay: 1s;">
-            <div class="mock-pin-icon" style="background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
-            </div>
-            <span class="mock-pin-label">Éclairage faible</span>
-          </div>
-          <div class="mock-pin" style="top: 70%; left: 30%; animation-delay: 2s;">
-            <div class="mock-pin-icon" style="background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
-            <span class="mock-pin-label">Pharmacie 24h</span>
-          </div>
-        </div>
-        <div class="showcase-content">
-          <h3>Carte de sécurité <span class="gradient-text">en temps réel</span></h3>
-          <p>Visualisez les incidents signalés par la communauté. Filtrez par catégorie, horaire et distance. Zoomez sur votre quartier.</p>
-          <ul class="showcase-bullets">
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Incidents visibles en temps réel</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Filtres par catégorie et temporalité</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Votes communautaires pour la validation</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Signalement en moins de 30 secondes</li>
-          </ul>
-        </div>
+  <!-- JULIA FEATURES DEEP -->
+  <div class="features-section fade-in" data-cat="julia">
+    <div class="section-heading">
+      <div class="section-icon" style="background:rgba(167,139,250,0.12);box-shadow:0 0 20px rgba(167,139,250,0.2);">🤍</div>
+      <div class="section-name" style="color:var(--purple);">Julia AI</div>
+      <div class="section-count" style="color:var(--purple);">✦ Pro</div>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card julia-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">🎙️</div>
+        <div class="feat-name fr-only">Voix naturelle</div>
+        <div class="feat-name en-only">Natural voice</div>
+        <div class="feat-desc fr-only">ElevenLabs TTS + Deepgram STT. Latence < 300ms. Conversation fluide pendant la marche.</div>
+        <div class="feat-desc en-only">ElevenLabs TTS + Deepgram STT. < 300ms latency. Fluid conversation while walking.</div>
+        <span class="feat-pro" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);color:var(--purple);">Pro</span>
       </div>
-    </section>
+      <div class="feat-card julia-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">🧠</div>
+        <div class="feat-name fr-only">Contexte intelligent</div>
+        <div class="feat-name en-only">Smart context</div>
+        <div class="feat-desc fr-only">Julia connaît votre itinéraire, les signalements à proximité et votre profil en temps réel.</div>
+        <div class="feat-desc en-only">Julia knows your route, nearby reports, and your profile in real time.</div>
+        <span class="feat-pro" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);color:var(--purple);">Pro</span>
+      </div>
+      <div class="feat-card julia-card">
+        <div class="feat-icon" style="background:rgba(239,68,68,0.12);">🔴</div>
+        <div class="feat-name fr-only">SOS automatique</div>
+        <div class="feat-name en-only">Auto SOS</div>
+        <div class="feat-desc fr-only">Silence détecté → alerte cercle → contact services d'urgence. Machine d'état configurable.</div>
+        <div class="feat-desc en-only">Silence detected → circle alert → emergency services contact. Configurable state machine.</div>
+        <span class="feat-pro" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);color:var(--purple);">Pro</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">🆓</div>
+        <div class="feat-name fr-only">Sessions gratuites</div>
+        <div class="feat-name en-only">Free sessions</div>
+        <div class="feat-desc fr-only">3 sessions Julia par mois offertes dans le plan gratuit. Durée : 20 min max par session.</div>
+        <div class="feat-desc en-only">3 Julia sessions per month included in the free plan. Duration: 20 min max per session.</div>
+        <span class="feat-new">Free</span>
+      </div>
+    </div>
+  </div>
 
-    <!-- ═══════════════════════════════════════
-         SECTION 2 — SOS & Urgence
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="safety">
-      <div class="section-header">
-        <div class="section-icon" style="background: var(--semantic-danger-soft);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </div>
-        <div class="section-meta">
-          <h2>SOS & Urgence</h2>
-          <p>Alertez instantanément vos contacts et les autorités en un geste.</p>
-        </div>
-        <span class="section-tag" style="background: var(--semantic-danger-soft); color: var(--semantic-danger);">Gratuit</span>
+  <!-- PRO -->
+  <div class="features-section fade-in" data-cat="pro">
+    <div class="section-heading">
+      <div class="section-icon" style="background:rgba(245,195,65,0.12);">✦</div>
+      <div class="section-name fr-only" style="color:var(--gold);">Exclusif Pro</div>
+      <div class="section-name en-only" style="color:var(--gold);">Pro Exclusive</div>
+      <div class="section-count">6 <span class="fr-only">fonctionnalités</span><span class="en-only">features</span></div>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(167,139,250,0.12);">🤍</div>
+        <div class="feat-name fr-only">Julia illimitée</div>
+        <div class="feat-name en-only">Unlimited Julia</div>
+        <div class="feat-desc fr-only">Sessions Julia illimitées, voix premium, personnalisation de la personnalité de Julia.</div>
+        <div class="feat-desc en-only">Unlimited Julia sessions, premium voice, Julia personality customization.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
       </div>
-      <div class="detail-grid">
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
-            Bouton SOS
-          </h4>
-          <p>Maintenez le bouton 3 secondes. Alerte envoyée à votre cercle de confiance avec votre position GPS.</p>
-        </div>
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>
-            Diffusion SOS
-          </h4>
-          <p>Alerte envoyée aux utilisatrices à proximité. Réseau d'entraide activé en quelques secondes.</p>
-        </div>
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
-            Partage de position
-          </h4>
-          <p>Localisation partagée automatiquement lors d'un SOS. Coordonnées GPS en temps réel.</p>
-        </div>
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            Diffusion en direct
-          </h4>
-          <p>Vidéo en temps réel via LiveKit. Vos contacts voient ce qui se passe. Enregistrement automatique.</p>
-        </div>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">📊</div>
+        <div class="feat-name fr-only">Scores avancés</div>
+        <div class="feat-name en-only">Advanced scores</div>
+        <div class="feat-desc fr-only">Scores de sécurité détaillés par zone, heure et type d'incident. Prédiction de risque.</div>
+        <div class="feat-desc en-only">Detailed safety scores by zone, time, and incident type. Risk prediction.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
       </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════
-         SECTION 3 — Navigation & Trajets
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="navigation">
-      <div class="showcase" style="direction: rtl;">
-        <div class="showcase-content" style="direction: ltr;">
-          <h3>Trajet <span class="gradient-text">protégé</span></h3>
-          <p>Planifiez un itinéraire qui évite les zones signalées. Vos proches suivent votre progression en temps réel.</p>
-          <ul class="showcase-bullets">
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 4 modes : marche, vélo, transports, voiture</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Évitement automatique des zones à risque</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Transports en commun parisiens (API IDFM)</li>
-            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suivi en direct par votre cercle</li>
-          </ul>
-        </div>
-        <div class="showcase-visual" style="direction: ltr;">
-          <div class="mock-hud">
-            <div class="mock-progress"><div class="mock-progress-fill"></div></div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: rgba(239,68,68,0.12); display: flex; align-items: center; justify-content: center;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
-              </div>
-              <div style="flex: 1;">
-                <div style="font-size: 12px; font-weight: 700;">Gare du Nord</div>
-                <div style="font-size: 9px; color: var(--text-tertiary);">~12 min restantes</div>
-              </div>
-            </div>
-            <div style="display: flex; gap: 6px; margin-top: 10px;">
-              <div style="flex: 1; padding: 6px; border-radius: var(--radius-sm); background: var(--interactive-active); text-align: center; font-size: 10px; font-weight: 600; color: var(--text-secondary);">Partager</div>
-              <div style="flex: 1; padding: 6px; border-radius: var(--radius-sm); background: var(--semantic-danger-soft); text-align: center; font-size: 10px; font-weight: 700; color: var(--semantic-danger);">SOS</div>
-            </div>
-          </div>
-        </div>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">📍</div>
+        <div class="feat-name fr-only">Historique 30 jours</div>
+        <div class="feat-name en-only">30-day history</div>
+        <div class="feat-desc fr-only">Historique complet de localisation exportable. Revue des trajets passés.</div>
+        <div class="feat-desc en-only">Full exportable location history. Review of past journeys.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
       </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════
-         SECTION 4 — Marche avec moi
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="safety">
-      <div class="section-header">
-        <div class="section-icon" style="background: rgba(167,139,250,0.12);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div class="section-meta">
-          <h2>Marche avec moi</h2>
-          <p>Un accompagnement virtuel pour ne jamais être seule. Vos proches vous suivent en temps réel.</p>
-        </div>
-        <span class="section-tag" style="background: rgba(167,139,250,0.12); color: #A78BFA;">Gratuit</span>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">🔔</div>
+        <div class="feat-name fr-only">Alertes prioritaires</div>
+        <div class="feat-name en-only">Priority alerts</div>
+        <div class="feat-desc fr-only">Alertes immédiates pour les incidents critiques dans votre zone habituelle.</div>
+        <div class="feat-desc en-only">Immediate alerts for critical incidents in your regular zone.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
       </div>
-      <div class="detail-grid">
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Suivi en temps réel
-          </h4>
-          <p>Votre cercle de confiance voit votre position sur la carte, en direct, jusqu'à votre arrivée.</p>
-        </div>
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2"/><circle cx="12" cy="12" r="10"/></svg>
-            Check-in audio
-          </h4>
-          <p>Confirmations de sécurité périodiques. Un simple tap pour dire « je vais bien ».</p>
-        </div>
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            Confirmation d'arrivée
-          </h4>
-          <p>Notification automatique envoyée à vos contacts quand vous arrivez à destination.</p>
-        </div>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">✅</div>
+        <div class="feat-name fr-only">Badge vérifié</div>
+        <div class="feat-name en-only">Verified badge</div>
+        <div class="feat-desc fr-only">Vérification d'identité (Veriff). Badge qui renforce la confiance dans la communauté.</div>
+        <div class="feat-desc en-only">Identity verification (Veriff). Badge that builds community trust.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
       </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════
-         SECTION 5 — Communauté
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="community">
-      <div class="section-header">
-        <div class="section-icon" style="background: rgba(59,180,193,0.12);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div class="section-meta">
-          <h2>Communauté</h2>
-          <p>Groupes de quartier, cercle de confiance, amis et messages directs.</p>
-        </div>
-        <span class="section-tag" style="background: rgba(59,180,193,0.12); color: #3BB4C1;">Gratuit</span>
+      <div class="feat-card pro-card">
+        <div class="feat-icon" style="background:rgba(245,195,65,0.12);">🎨</div>
+        <div class="feat-name fr-only">Personnalisation</div>
+        <div class="feat-name en-only">Customization</div>
+        <div class="feat-desc fr-only">Thèmes, voix Julia personnalisées, interface adaptée à vos préférences.</div>
+        <div class="feat-desc en-only">Themes, custom Julia voices, interface adapted to your preferences.</div>
+        <span class="feat-pro" style="background:rgba(245,195,65,0.1);border:1px solid rgba(245,195,65,0.2);color:var(--gold);">Pro</span>
       </div>
-      <div class="detail-grid">
-        <div class="detail-card">
-          <h4>👥 Groupes de quartier</h4>
-          <p>Rejoignez les communautés de votre zone. Partagez des alertes et des conseils locaux.</p>
-        </div>
-        <div class="detail-card">
-          <h4>🛡️ Cercle de confiance</h4>
-          <p>Vos contacts de confiance vérifiés. Premiers alertés en cas d'urgence.</p>
-        </div>
-        <div class="detail-card">
-          <h4>💬 Messages directs</h4>
-          <p>Échangez en privé avec vos amis et contacts de confiance.</p>
-        </div>
-        <div class="detail-card">
-          <h4>📍 Notes de lieux</h4>
-          <p>Ajoutez des notes personnelles à des emplacements. Partagez-les avec votre communauté.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════
-         SECTION 6 — Gamification
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="gamification">
-      <div class="section-header">
-        <div class="section-icon" style="background: rgba(245,195,65,0.12);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        </div>
-        <div class="section-meta">
-          <h2>Gamification</h2>
-          <p>Progressez, collectez des badges, relevez des défis. Plus vous contribuez, plus vous gagnez.</p>
-        </div>
-        <span class="section-tag" style="background: rgba(245,195,65,0.12); color: #F5C341;">Gratuit</span>
-      </div>
-      <div class="detail-grid">
-        <div class="detail-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Niveaux de confiance
-          </h4>
-          <p>Watcher → Reporter → Guardian → Sentinel. Progressez en contribuant à la communauté.</p>
-        </div>
-        <div class="detail-card">
-          <h4>🎯 Défis hebdomadaires</h4>
-          <p>Missions renouvelées chaque semaine. Signaler, voter, vérifier — chaque action compte.</p>
-        </div>
-        <div class="detail-card">
-          <h4>🏅 Jalons</h4>
-          <p>Débloquez des accomplissements en atteignant des objectifs : 10 signalements, 50 votes, etc.</p>
-        </div>
-        <div class="detail-card">
-          <h4>🏷️ Badges d'expertise</h4>
-          <p>Spécialisez-vous : Transport, Éclairage, Harcèlement. Vos contributions ciblées vous distinguent.</p>
-        </div>
-        <div class="detail-card">
-          <h4>🔥 Séries quotidiennes</h4>
-          <p>Maintenez votre série d'activité. Récompenses aux jalons 3, 7, 14, 30, 60 et 100 jours.</p>
-        </div>
-        <div class="detail-card">
-          <h4>🎁 Parrainage</h4>
-          <p>Code unique Brume-XXXXX. Invitez vos amies et gagnez des points bonus.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════
-         SECTION 7 — Pro
-         ═══════════════════════════════════════ -->
-    <section class="section fade-in" data-category="pro">
-      <div class="section-header">
-        <div class="section-icon" style="background: rgba(59,180,193,0.12);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        </div>
-        <div class="section-meta">
-          <h2>Breveil Pro</h2>
-          <p>Pour celles qui veulent le maximum de protection. 4,99 €/mois.</p>
-        </div>
-        <span class="section-tag" style="background: rgba(59,180,193,0.12); color: #3BB4C1;">4,99 €/mois</span>
-      </div>
-      <div class="detail-grid">
-        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Historique de localisation
-          </h4>
-          <p>Consultez vos trajets passés. Identifiez les zones fréquentes et les patterns.</p>
-        </div>
-        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Safety Buddy
-          </h4>
-          <p>Accompagnement virtuel dédié avec fonctionnalités enrichies et priorité d'alerte.</p>
-        </div>
-        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
-            Scores de sécurité
-          </h4>
-          <p>Score de sécurité par quartier basé sur les données communautaires et historiques.</p>
-        </div>
-        <div class="detail-card" style="border-color: rgba(59,180,193,0.25);">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C341" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            Alertes prioritaires
-          </h4>
-          <p>Recevez les alertes de sécurité en priorité. Notifications enrichies avec contexte.</p>
-        </div>
-      </div>
-    </section>
-
-  </main>
+    </div>
+  </div>
 
   <!-- CTA -->
-  <section class="cta-bottom">
-    <div class="container">
-      <h2>Prête à rejoindre<br><span class="gradient-text">Breveil ?</span></h2>
-      <p>Gratuit, maintenant, pour toujours. 32+ fonctionnalités pour votre sécurité.</p>
-      <a href="https://safepin-omega.vercel.app" class="btn-teal">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Rejoindre Breveil
+  <div class="cta-section fade-in">
+    <h2>
+      <span class="fr-only">Prête à essayer <span class="gradient-text">Breveil</span> ?</span>
+      <span class="en-only">Ready to try <span class="gradient-text">Breveil</span>?</span>
+    </h2>
+    <p>
+      <span class="fr-only">Toutes les fonctionnalités essentielles sont gratuites. Débloquez Julia et les outils Pro quand vous êtes prête.</span>
+      <span class="en-only">All essential features are free. Unlock Julia and Pro tools when you're ready.</span>
+    </p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;">
+      <a href="https://safepin-omega.vercel.app" class="btn-app" target="_blank" style="padding:14px 32px;font-size:15px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        <span class="fr-only">Rejoindre Breveil — c'est gratuit</span><span class="en-only">Join Breveil — it's free</span>
+      </a>
+      <a href="breveil-pitch-deck.html" style="padding:14px 24px;border-radius:var(--radius-full);font-size:14px;font-weight:700;border:1.5px solid var(--border-default);color:var(--text-secondary);display:inline-flex;align-items:center;gap:8px;transition:all .15s ease;" onmouseover="this.style.color='var(--text-primary)';this.style.borderColor='var(--border-strong)'" onmouseout="this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-default)'">
+        <span class="fr-only">Voir le Pitch Deck →</span><span class="en-only">See Pitch Deck →</span>
       </a>
     </div>
-  </section>
+  </div>
 
-  <script>
-    // Theme
-    (function() {
-      var html = document.documentElement;
-      var toggle = document.getElementById('theme-toggle');
-      var iD = document.getElementById('theme-icon-dark');
-      var iL = document.getElementById('theme-icon-light');
-      var s = localStorage.getItem('breveil-theme');
-      if (s) html.setAttribute('data-theme', s);
-      function u() { var d = html.getAttribute('data-theme') !== 'light'; iD.style.display = d ? 'none' : 'block'; iL.style.display = d ? 'block' : 'none'; }
-      u();
-      toggle.addEventListener('click', function() { var n = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; html.setAttribute('data-theme', n); localStorage.setItem('breveil-theme', n); u(); });
-    })();
+</div>
 
-    // Scroll fade-in
-    (function() {
-      var els = document.querySelectorAll('.fade-in');
-      var obs = new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
-      }, { threshold: 0.1 });
-      els.forEach(function(el) { obs.observe(el); });
-    })();
-
-    // Filter tabs
-    (function() {
-      var tabs = document.querySelectorAll('.filter-tab');
-      var sections = document.querySelectorAll('.section[data-category]');
-
-      tabs.forEach(function(tab) {
-        tab.addEventListener('click', function() {
-          tabs.forEach(function(t) { t.classList.remove('active'); });
-          tab.classList.add('active');
-
-          var filter = tab.getAttribute('data-filter');
-          sections.forEach(function(sec) {
-            if (filter === 'all' || sec.getAttribute('data-category') === filter) {
-              sec.style.display = '';
-            } else {
-              sec.style.display = 'none';
-            }
-          });
+<script>
+  // Filter logic
+  (function(){
+    var tabs = document.querySelectorAll('.filter-tab');
+    tabs.forEach(function(tab){
+      tab.addEventListener('click', function(){
+        tabs.forEach(function(t){ t.classList.remove('active'); });
+        tab.classList.add('active');
+        var f = tab.getAttribute('data-filter');
+        document.querySelectorAll('[data-cat]').forEach(function(el){
+          el.style.display = (f==='all' || el.getAttribute('data-cat')===f) ? '' : 'none';
         });
       });
-    })();
+    });
+  })();
 
-    // Hamburger menu
-    (function() {
-      var btn = document.getElementById('hamburger');
-      var overlay = document.getElementById('menu-overlay');
-      var drawer = document.getElementById('menu-drawer');
-      var close = document.getElementById('menu-close');
-      function open() { overlay.classList.add('open'); drawer.classList.add('open'); }
-      function shut() { overlay.classList.remove('open'); drawer.classList.remove('open'); }
-      btn.addEventListener('click', open);
-      overlay.addEventListener('click', shut);
-      close.addEventListener('click', shut);
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') shut(); });
-    })();
-  </script>
-
+  // Theme
+  (function(){var h=document.documentElement,b=document.getElementById('theme-toggle'),s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon'),sv=localStorage.getItem('breveil-theme');if(sv)h.setAttribute('data-theme',sv);function sync(){var d=h.getAttribute('data-theme')!=='light';s.style.display=d?'none':'block';m.style.display=d?'block':'none';}sync();b.addEventListener('click',function(){var c=h.getAttribute('data-theme'),n=c==='light'?'dark':'light';h.setAttribute('data-theme',n);localStorage.setItem('breveil-theme',n);sync();});})();
+  // Lang
+  (function(){var h=document.documentElement,fr=document.getElementById('lang-fr'),en=document.getElementById('lang-en'),sv=localStorage.getItem('breveil-lang')||'fr';h.setAttribute('data-lang',sv);function sync(){var l=h.getAttribute('data-lang');fr.classList.toggle('active',l==='fr');en.classList.toggle('active',l==='en');}sync();fr.addEventListener('click',function(){h.setAttribute('data-lang','fr');localStorage.setItem('breveil-lang','fr');sync();});en.addEventListener('click',function(){h.setAttribute('data-lang','en');localStorage.setItem('breveil-lang','en');sync();});})();
+  // Fade
+  (function(){var els=document.querySelectorAll('.fade-in'),obs=new IntersectionObserver(function(e){e.forEach(function(i){if(i.isIntersecting){i.target.classList.add('visible');obs.unobserve(i.target);}});},{threshold:0.05});els.forEach(function(el){obs.observe(el);});})();
+  // Menu
+  (function(){var btn=document.getElementById('hamburger'),ov=document.getElementById('menu-overlay'),dr=document.getElementById('menu-drawer'),cl=document.getElementById('menu-close');function o(){ov.classList.add('open');dr.classList.add('open');document.body.style.overflow='hidden';}function s(){ov.classList.remove('open');dr.classList.remove('open');document.body.style.overflow='';}btn.addEventListener('click',o);ov.addEventListener('click',s);cl.addEventListener('click',s);document.addEventListener('keydown',function(e){if(e.key==='Escape')s();});})();
+</script>
 </body>
 </html>

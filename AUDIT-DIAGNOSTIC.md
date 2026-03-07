@@ -1,6 +1,6 @@
 # BREVEIL — Audit Diagnostic
 
-> **Date** : 2026-03-06 | **Version app** : 0.1.0 | **Auteur** : Claude Opus 4.6 + Mathieu
+> **Date** : 2026-03-07 | **Version app** : 0.1.0 | **Auteur** : Claude Opus 4.6 + Mathieu
 
 ---
 
@@ -14,8 +14,10 @@
 | **Gradient brand** | `#3BB4C1` → `#1E3A5F` → `#4A2C5A` → `#5C3D5E` |
 | **Logo** | `public/logo.svg` |
 | **PWA icons** | `public/icon-192.png`, `public/icon-512.png` |
+| **PWA name** | "Breveil" |
+| **PWA categories** | safety, navigation, social |
 
-### Palette couleurs (CSS Custom Properties)
+### Palette couleurs (CSS Custom Properties — globals.css)
 
 | Variable | Hex | Usage |
 |----------|-----|-------|
@@ -26,6 +28,7 @@
 | `--surface-base` | `#0F172A` | Fond dark |
 | `--surface-card` | `#1E293B` | Carte dark |
 | `--surface-elevated` | `#334155` | Surface haute |
+| `--surface-glass` | `rgba(30,41,59,0.8)` | Effet verre |
 | `--semantic-success` | `#34D399` | Vert (safe) |
 | `--semantic-warning` | `#FBBF24` | Ambre (attention) |
 | `--semantic-danger` | `#EF4444` | Rouge (urgence) |
@@ -37,17 +40,45 @@
 
 | Usage | Font | Style |
 |-------|------|-------|
-| Display | Cormorant Garamond | Serif, luxe |
-| Body | Inter | Sans-serif, clean |
-| Mono | JetBrains Mono | Code/données |
+| Body / UI | Inter | Sans-serif, clean |
+| Type scale | 11px (overline) → 40px (hero) | 8 niveaux |
 
-### Incohérences brand
+### Design tokens supplementaires (globals.css — 201 variables)
 
-| Problème | Détail | Fichiers |
+- **Spacing** : grille 8px (4px → 96px, 14 niveaux)
+- **Border radius** : xs (4px) → full (9999px)
+- **Shadows** : sm/md/lg/xl + glow/glow-strong
+- **Z-index** : base(0) → max(9999), 10 niveaux
+- **Transitions** : fast(150ms), normal(250ms), slow(400ms), slower(600ms)
+- **Animations** : fadeIn, fadeInUp, slideInUp, pulse, spin, radar-pulse, sosPulse, tab-bounce, tab-pop
+
+### Incoherences brand
+
+| Probleme | Detail | Fichiers |
 |----------|--------|----------|
-| localStorage keys `brume_*` | 12+ clés encore en `brume_` au lieu de `breveil_` | `stores/useStore.ts`, composants divers |
+| localStorage keys `brume_*` | 12 cles en `brume_` au lieu de `breveil_` | `stores/useStore.ts`, composants divers |
 | Theme key | `brume-theme` (tiret) vs `brume_*` (underscore) | `stores/useTheme.ts` |
-| Event messages mixtes | `BREVEIL_SYNC_COMPLETE` ET `BRUME_SYNC_COMPLETE` | `OfflineBanner.tsx` |
+| Keys breveil | Seulement 2 cles en `breveil_` : `breveil_invite_code`, `breveil_recent_searches` | Composants divers |
+
+**Liste complete des localStorage keys :**
+
+| Cle | Prefixe |
+|-----|---------|
+| `brume_active_trip` | brume_ |
+| `brume_community_tooltip_shown` | brume_ |
+| `brume_install_dismissed` | brume_ |
+| `brume_is_pro` | brume_ |
+| `brume_last_session_ts` | brume_ |
+| `brume_milestones` | brume_ |
+| `brume_offline` | brume_ |
+| `brume_onboarding_done` | brume_ |
+| `brume_onboarding_state` | brume_ |
+| `brume_session_count` | brume_ |
+| `brume_show_pin_labels` | brume_ |
+| `brume_show_simulated` | brume_ |
+| `brume-theme` | brume- |
+| `breveil_invite_code` | breveil_ |
+| `breveil_recent_searches` | breveil_ |
 
 ---
 
@@ -58,10 +89,10 @@
 | **Framework** | Next.js (App Router) | 16.1.6 |
 | **UI** | React | 19.2.3 |
 | **Langage** | TypeScript (strict) | ^5 |
-| **Base de données** | Supabase (PostgreSQL + Auth + Storage + Realtime) | 2.97.0 |
+| **Base de donnees** | Supabase (PostgreSQL + Auth + Storage + Realtime) | 2.97.0 |
 | **Carte** | Mapbox GL JS (style custom `matlab244/cmm6okd7v005q01s49w19fac0`) | 3.18.1 |
 | **State management** | Zustand | 5.0.11 |
-| **CSS** | Tailwind v4 + CSS Custom Properties | 4.x |
+| **CSS** | Tailwind v4 + CSS Custom Properties (201 tokens) | 4.x |
 | **Animations** | Framer Motion | 12.34.3 |
 | **Icons** | Lucide React | 0.575.0 |
 | **i18n** | next-intl (30 locales, en+fr a 100%) | 4.8.3 |
@@ -71,7 +102,7 @@
 | **Audio/Video temps reel** | LiveKit | 2.17.2 |
 | **Verification identite** | Veriff | API externe |
 | **Toasts** | Sonner | 2.0.7 |
-| **Emoji** | @emoji-mart/react | 1.1.1 |
+| **Emoji** | @emoji-mart/react + @emoji-mart/data | 1.1.1 / 1.2.1 |
 | **Tests** | Vitest + @testing-library | 4.0.18 |
 
 ---
@@ -81,8 +112,8 @@
 ```
 src/
   app/                          # Next.js App Router
-    admin/                     # Dashboard admin (10 pages)
-    api/                       # 36 routes API
+    admin/                     # Dashboard admin (12 sous-pages)
+    api/                       # 22 routes API
     auth/                      # OAuth callback
     login/                     # Page login
     map/                       # Page principale (map)
@@ -90,34 +121,34 @@ src/
     track/[sessionId]/         # Suivi trajet public
     cookies/ privacy/ terms/   # Pages legales
     layout.tsx                 # Root layout
-    globals.css                # Design tokens + animations
+    globals.css                # 201 design tokens + animations
     tailwind-theme.css         # Extension theme Tailwind
 
-  components/                   # 95+ composants
-    admin/          (11)       # Panel admin
+  components/                   # 104 composants
+    admin/          (12)       # Panel admin
     chat/           (2)        # ChatView, ChatBubble
     community/      (16)       # Hub social complet
     escorte/        (3)        # Accompagnement securise
-    hashtags/       (5)        # Systeme hashtags
+    hashtags/       (4)        # Systeme hashtags
     map/            (1)        # PinDetailSheet
     nearby/         (1)        # NearbySheet
-    settings/       (17)       # Parametres complets
+    settings/       (20)       # Parametres complets (4 composants + 16 screens)
     subscription/   (1)        # PaywallScreen
-    trip/           (2)        # TripView, FavorisSheet
+    trip/           (3)        # TripView, FavorisSheet, RouteCard
     ui/             (2)        # Avatar, EmojiPicker
-    [root]          (40)       # Composants principaux
+    [root]          (39)       # Composants principaux
 
-  stores/           (3)        # useStore, useTheme, notificationStore
+  stores/           (4)        # useStore, useTheme, uiStore, notificationStore
   hooks/            (9)        # Custom hooks React
-  lib/              (28)       # Utilitaires
-  types/            (1)        # Types TypeScript centraux
+  lib/              (31)       # Utilitaires (dont route-scoring.ts NOUVEAU)
+  types/            (1)        # Types TypeScript centraux (60+ types exportes)
   messages/         (2)        # en.json, fr.json
   i18n/             (2)        # Config i18n
   __tests__/        (8)        # Tests unitaires
 
 supabase/
   migrations/       (11)       # Migrations SQL
-  functions/                   # Edge Functions (emergency-dispatch, send-push)
+  functions/        (4)        # Edge Functions (emergency-dispatch, on-new-pin, send-push, weekly-digest)
 
 public/
   service-worker.js            # Service worker push
@@ -134,9 +165,10 @@ public/
 | Hooks | `use*.ts` |
 | Stores | `use*Store.ts` |
 | API routes | `src/app/api/[feature]/route.ts` |
-| localStorage | Prefixe `brume_` (legacy) |
-| CSS z-index | Tailwind scale: `z-600` pas `z-[600]` |
+| localStorage | Prefixe `brume_` (legacy, migration vers `breveil_` recommandee) |
+| CSS z-index | Tailwind scale : `z-600` pas `z-[600]` |
 | i18n | Pas de `t(variable)` — lookup maps (Record) |
+| Styles composants | Inline `style={}` (pas de Tailwind dans les composants) |
 
 ---
 
@@ -153,83 +185,59 @@ public/
 | 5 | Groupes | ACTIF | `groupes-tab.tsx`, `create-group-modal.tsx` |
 | 6 | Messagerie directe | ACTIF | `messages-tab.tsx`, `ChatView.tsx`, `ChatBubble.tsx` |
 | 7 | Stories | ACTIF | `story-compose-modal.tsx`, `story-viewer.tsx`, `stories-row.tsx` |
-| 8 | Trajet / Escorte | ACTIF | `EscorteSheet.tsx`, `TripView.tsx`, `TripHUD.tsx` |
+| 8 | Trajet / Escorte | ACTIF | `EscorteSheet.tsx`, `TripView.tsx`, `TripHUD.tsx`, `route-scoring.ts`, `RouteCard.tsx` |
 | 9 | Espaces surs | ACTIF | `SafeSpaceDetailSheet.tsx` |
 | 10 | Signalement incident | ACTIF | `ReportSheet.tsx`, `ConfirmIncidentModal.tsx` |
-| 11 | Notifications push | ACTIF | `PushOptInModal.tsx`, `/api/push-notify*`, `service-worker.js` |
+| 11 | Notifications push | ACTIF | `/api/push-notify*`, `service-worker.js`, `notificationStore.ts` |
 | 12 | Notifications in-app | ACTIF | `NotificationsSheet.tsx`, `GlobalToast.tsx`, `notificationStore.ts` |
-| 13 | Parametres | ACTIF | `SettingsSheet.tsx`, 17 sous-ecrans |
-| 14 | Onboarding | ACTIF | `OnboardingFunnel.tsx` (11 etapes) |
+| 13 | Parametres | ACTIF | `SettingsSheet.tsx`, 20 sous-ecrans |
+| 14 | Onboarding | ACTIF | `OnboardingFunnel.tsx` (V2 = version active) |
 | 15 | Abonnement Stripe | ACTIF | `PaywallScreen.tsx`, `/api/stripe/*` |
-| 16 | Gamification | ACTIF | `milestones.ts`, `streaks.ts`, `levels.ts`, `ChallengesSection.tsx` |
-| 17 | Profil perso | ACTIF | `MyKovaView.tsx` |
-| 18 | Admin dashboard | ACTIF | `admin/` (13 pages) |
+| 16 | Gamification | PARTIEL | `milestones.ts`, `streaks.ts`, `levels.ts` actifs ; `ChallengesSection.tsx` orphelin |
+| 17 | Profil | ACTIF | `UserProfileModal.tsx`, `UserContextMenu.tsx`, `MyKovaView.tsx`, `MyProfileScreen.tsx` |
+| 18 | Admin dashboard | ACTIF | `admin/` (12 pages) |
 | 19 | PWA | ACTIF | `manifest.json`, `InstallPrompt.tsx`, `OfflineBanner.tsx` |
 | 20 | i18n | ACTIF | `next-intl` — en+fr complets, 28 locales squelettes |
 | 21 | Verification identite | PARTIEL | `/api/verify/*`, Veriff — UI "coming soon" |
-| 22 | Tab "me" (profil) | DESACTIVE | `BottomNav.tsx` — tab rendu mais `aria-disabled`, opacity 0.4 |
-| 23 | RGPD / Export donnees | PARTIEL | Menu dans Securite, backend incomplet |
-| 24 | Redesign Communaute | DIFFERE | Besoin session design (Telegram-style) |
-| 25 | HUD Escorte plein ecran | DIFFERE | Besoin session design |
+| 22 | RGPD / Export donnees | PARTIEL | Menu dans Securite, backend incomplet |
+| 23 | Route scoring & alternatives | NOUVEAU | `route-scoring.ts`, `fetchDirectionsMulti()`, `RouteCard.tsx` |
 
-### Detail par feature
+### Changements depuis dernier audit (2026-03-06)
 
-#### 1. Carte & Pins
-- **Layers** : pins HTML (`<MapPin>`), clusters GeoJSON, transit stops, safe spaces, POI, heat map, route lines
-- **Filtres** : par categorie (urgent, attention, infra, positif), par temps
-- **Style** : Mapbox custom style (dark by default, switch possible)
-- **Interactions** : tap pin → detail sheet, drag pour signaler, compass button (reset north)
-- **Catégories pins** : assault, harassment, theft, following, suspect, group, unsafe, lighting, blocked, closed, safe, help, presence
+| Element | Avant | Apres |
+|---------|-------|-------|
+| `PushOptInModal.tsx` | ACTIF | **SUPPRIME** |
+| `route-scoring.ts` | N'existait pas | **CREE** — algo danger scoring |
+| `RouteCard.tsx` | N'existait pas | **CREE** — composant route card |
+| `directions.ts` | fetchDirections() seulement | **+ fetchDirectionsMulti()** avec alternatives |
+| `uiStore.ts` | ContextMenuUser sans displayName | **+ displayName** champ optionnel |
+| `useStore.ts` | Pas de selectedRouteIdx | **+ selectedRouteIdx** + setter |
+| `fil-tab.tsx` | post.user.name = display_name | **= username** (pseudo) + displayName separe |
+| `post-card.tsx` | Pas de displayName sur Post | **+ displayName** dans interface Post |
+| `OnboardingFunnelV2.tsx` | Mentionne en memoire | **N'EXISTE PAS** — V2 = OnboardingFunnel.tsx |
+| `CoachMark.tsx` | Mentionne en memoire | **N'EXISTE PAS** — tour supprime |
+| `useTour.ts` | Mentionne en memoire | **N'EXISTE PAS** — tour supprime |
+| Composants total | ~95 | **104** |
+| Libs total | ~28 | **31** |
+| Stores total | 3 | **4** (+ notificationStore) |
 
-#### 2. SOS / Urgence
-- **Activation** : hold 3s sur FAB → countdown 5s → dispatch
-- **Phases** : idle → count → sending → sent → resolution
-- **Actions** : pin urgence, trail GPS (30m/45s), dispatch contacts cercle via Edge Function, SOS thread communaute
-- **Resolution** : bouton "I'm Safe", notification au cercle
-- **UI** : flash rouge, progress ring SVG, vibration, numeros d'urgence (17, SAMU, pompiers, EU 112)
+### Detail features cles
 
-#### 3-7. Communaute
-- **Fil** : posts communautaires + threads SOS, likes, commentaires
-- **Cercle** : contacts de confiance, invitations (pseudo/email/tel), labels smart (Membre/En attente)
-- **Groupes** : creation (nom + emoji + description), chat de groupe, decouverte
-- **Messages** : DM 1-on-1, badge unread realtime, push notifications, ChatView avec emoji picker
-- **Stories** : creation ephemere (24h), viewer fullscreen, likes, messages, partage
-
-#### 8. Trajet / Escorte
-- **Modes** : marche, velo, voiture, transports (metro, RER, bus, tram)
-- **Directions** : Mapbox Directions API + Transit API
+#### 8. Trajet / Escorte (NOUVEAU : route scoring)
+- **Modes** : marche, velo, voiture (+ transports dans EscorteSheet)
+- **Directions** : Mapbox Directions API + `alternatives=true` (jusqu'a 3 routes)
+- **Route scoring** : `scoreRoute(coords, pins)` — corridor 200m, severity * decay * confirmations
+- **UI** : RouteCard compact (dot selection, pastille couleur, label, duree, distance)
+- **Couleurs routes** : Plus sure (#34D399), Equilibree (#F5C341), Plus rapide (#EF4444)
 - **Features** : favoris, recents, selection membres cercle, canal audio LiveKit, ETA temps reel
 - **HUD** : TripHUD en cours de trajet, checkpoints, session briefing
+- **danger_score** : envoye a `/api/trips/start` (etait hardcode a 0)
 
-#### 9. Espaces surs
-- **Types** : infirmeries, hopitaux, cafes, commerces
-- **Details** : horaires par jour, photos/videos, votes, commentaires, navigation
-- **Statut** : indicateur "ouvert maintenant"
-
-#### 10-12. Notifications
-- **Push** : VAPID web-push, service worker, `/api/push-notify`, `/api/push-notify-dm`, `/api/notify-nearby`
-- **In-app** : NotificationsSheet (bell icon), GlobalToast (auto-dismiss 4s)
-- **Types** : emergency, vote, comment, resolve, community, trusted_contact, milestone, digest, trip_share, circle_invitation
-- **Settings** : toggle DM notifications, quiet hours, rayon proximite
-
-#### 13. Parametres
-- **Compte** : infos perso, photo, pseudo, email, mot de passe, verification, visibilite, suppression
-- **Securite** : cercle, badge verif, alertes, localisation, RGPD
-- **Preferences** : dark mode, langue (en/fr), notifications DM
-- **Support** : chat avec equipe (meme systeme DM)
-- **Abonnement** : paywall, mon plan, referral
-
-#### 14. Onboarding (11 etapes)
-1. Welcome, 2. Date naissance, 3. Pays, 4. Ville, 5. Objectifs (6 choix), 6. Avatar (12 emojis + gradient), 7. Nom, 8. Permission localisation, 9. Contacts confiance, 10. Paywall, 11. Tour
-
-#### 15. Abonnement
-- **Plans** : Free vs Pro (mensuel/annuel)
-- **Integration** : Stripe Checkout, webhook, portal
-- **Referral** : code parrainage avec copie
-
-#### 16. Gamification
-- Milestones (achievements), streaks quotidiens, niveaux, challenges hebdo
-- `milestones.ts`, `streaks.ts`, `levels.ts`, `ChallengesSection.tsx`
+#### 17. Profil (AMELIORE : displayName)
+- **UserProfileModal** : bottom sheet avec snap points 50%/86%, share menu (copier lien, WhatsApp, Telegram, Email, message in-app)
+- **UserContextMenu** : bottom sheet avec Follow, Message, Voir profil, Inviter cercle
+- **displayName** : champ separe du username, utilise pour affichage reel (prenom nom) vs @pseudo
+- **Wiring global** : via `uiStore` + `GlobalModals.tsx`
 
 ---
 
@@ -237,100 +245,101 @@ public/
 
 ### Tables Supabase (62 tables)
 
-| Table | Rows | RLS | Usage |
-|-------|------|-----|-------|
-| `profiles` | 6 | oui | Profils utilisateurs |
-| `pins` | 310 | oui | Signalements carte |
-| `pin_votes` | 18 | oui | Votes sur pins |
-| `pin_comments` | 4 | oui | Commentaires pins |
-| `pin_evidence` | 21 | oui | Preuves/medias pins |
-| `pin_follows` | 0 | oui | Suivi de pins |
-| `pin_stories` | 0 | oui | Stories liees aux pins |
-| `pin_thanks` | 0 | oui | Remerciements pins |
-| `communities` | 5 | oui | Communautes |
-| `community_members` | 8 | oui | Membres communautes |
-| `community_messages` | 8 | oui | Messages communautes |
-| `community_posts` | 14 | oui | Posts communautes |
-| `community_stories` | 2 | oui | Stories communautes |
-| `post_comments` | 4 | oui | Commentaires posts |
-| `post_likes` | 0 | oui | Likes posts |
-| `story_likes` | 0 | oui | Likes stories |
-| `story_messages` | 0 | oui | Messages stories |
-| `dm_conversations` | 0 | oui | Conversations DM |
-| `direct_messages` | 0 | oui | Messages directs |
-| `trusted_contacts` | 4 | oui | Contacts de confiance |
-| `circle_invitations` | 2 | oui | Invitations cercle |
-| `friendships` | 1 | oui | Amities |
-| `notifications` | 2 | oui | Notifications persistantes |
-| `notification_settings` | 0 | oui | Preferences notifications |
-| `push_subscriptions` | 0 | oui | Abonnements push |
-| `escortes` | 46 | oui | Sessions escorte |
-| `escorte_circle` | 1 | oui | Cercle escorte |
-| `trips` | 1 | oui | Trajets |
-| `trip_log` | 13 | oui | Logs trajet |
-| `trip_checkpoints` | 0 | oui | Checkpoints trajet |
-| `saved_routes` | 1 | oui | Routes sauvegardees |
-| `favoris_trajets` | 2 | oui | Trajets favoris |
-| `trajets_recents` | 14 | oui | Trajets recents |
-| `saved_places` | 0 | oui | Lieux sauvegardes |
-| `place_notes` | 2 | oui | Notes de lieux |
-| `safe_spaces` | 1 | oui | Espaces surs |
-| `safe_space_votes` | 0 | oui | Votes espaces surs |
-| `safe_space_media` | 0 | oui | Medias espaces surs |
-| `safe_space_media_likes` | 0 | oui | Likes medias |
-| `location_history` | 571 | oui | Historique positions |
-| `live_sessions` | 0 | oui | Sessions live |
-| `walk_sessions` | 4 | oui | Sessions marche |
-| `subscriptions` | 0 | oui | Abonnements Stripe |
-| `invoices` | 0 | oui | Factures |
-| `pro_waitlist` | 1 | oui | Liste attente Pro |
-| `invite_codes` | 1 | oui | Codes invitation |
-| `invite_code_uses` | 0 | oui | Utilisations codes |
-| `pending_invites` | 1 | oui | Invitations en attente |
-| `trusted_circle` | 0 | oui | Cercle de confiance (v2?) |
-| `admin_params` | 10 | oui | Parametres admin |
-| `user_milestones` | 0 | oui | Achievements utilisateur |
-| `user_reports` | 1 | oui | Signalements utilisateur |
-| `challenges` | 0 | oui | Challenges hebdo |
-| `user_challenges` | 0 | oui | Progres challenges |
-| `sos_responders` | 1 | oui | Repondants SOS |
-| `sos_dispatch_log` | 0 | oui | Logs dispatch SOS |
-| `audio_checkins` | 0 | oui | Check-ins audio |
-| `engagement_events` | 5 | oui | Events engagement |
-| `email_logs` | 3 | oui | Logs emails |
-| `hashtags` | 10 | oui | Hashtags |
-| `content_hashtags` | 2 | oui | Liens contenu-hashtag |
-| `waitlist` | 0 | oui | Liste attente generale |
-| `route_upvotes` | 0 | oui | Votes routes |
-
-### Tables potentiellement inutilisees (0 rows, features non demarrees)
-
-- `pin_follows`, `pin_stories`, `pin_thanks`
-- `live_sessions`, `audio_checkins`
-- `challenges`, `user_challenges`, `user_milestones`
-- `subscriptions`, `invoices`
-- `trusted_circle` (doublon avec `trusted_contacts`?)
-- `waitlist`, `route_upvotes`, `saved_places`
-- `safe_space_votes`, `safe_space_media`, `safe_space_media_likes`
-- `push_subscriptions` (0 — en dev local seulement?)
+| Table | Usage |
+|-------|-------|
+| `profiles` | Profils utilisateurs |
+| `pins` | Signalements carte |
+| `pin_votes` | Votes sur pins |
+| `pin_comments` | Commentaires pins |
+| `pin_evidence` | Preuves/medias pins |
+| `pin_follows` | Suivi de pins |
+| `pin_stories` | Stories liees aux pins |
+| `pin_thanks` | Remerciements pins |
+| `communities` | Communautes |
+| `community_members` | Membres communautes |
+| `community_messages` | Messages communautes |
+| `community_posts` | Posts communautes |
+| `community_stories` | Stories communautes |
+| `post_comments` | Commentaires posts |
+| `post_likes` | Likes posts |
+| `story_likes` | Likes stories |
+| `story_messages` | Messages stories |
+| `dm_conversations` | Conversations DM |
+| `direct_messages` | Messages directs |
+| `trusted_contacts` | Contacts de confiance (+is_watching) |
+| `circle_invitations` | Invitations cercle |
+| `follows` | Abonnements entre utilisateurs |
+| `friendships` | Amities |
+| `notifications` | Notifications persistantes |
+| `notification_settings` | Preferences notifications |
+| `push_subscriptions` | Abonnements push |
+| `escortes` | Sessions escorte |
+| `escorte_circle` | Cercle escorte |
+| `trips` | Trajets (+status, walk_with_me, eta, last_seen) |
+| `trip_log` | Logs trajet |
+| `trip_checkpoints` | Checkpoints trajet |
+| `saved_routes` | Routes sauvegardees |
+| `favoris_trajets` | Trajets favoris |
+| `trajets_recents` | Trajets recents |
+| `saved_places` | Lieux sauvegardes |
+| `place_notes` | Notes de lieux |
+| `safe_spaces` | Espaces surs |
+| `safe_space_votes` | Votes espaces surs |
+| `safe_space_media` | Medias espaces surs |
+| `safe_space_media_likes` | Likes medias |
+| `location_history` | Historique positions |
+| `live_sessions` | Sessions live |
+| `walk_sessions` | Sessions marche |
+| `subscriptions` | Abonnements Stripe |
+| `invoices` | Factures |
+| `pro_waitlist` | Liste attente Pro |
+| `invite_codes` | Codes invitation |
+| `invite_code_uses` | Utilisations codes |
+| `pending_invites` | Invitations en attente |
+| `trusted_circle` | Cercle de confiance (v2?) |
+| `admin_params` | Parametres admin |
+| `user_milestones` | Achievements utilisateur |
+| `user_reports` | Signalements utilisateur |
+| `challenges` | Challenges hebdo |
+| `user_challenges` | Progres challenges |
+| `sos_responders` | Repondants SOS |
+| `sos_dispatch_log` | Logs dispatch SOS |
+| `audio_checkins` | Check-ins audio |
+| `engagement_events` | Events engagement |
+| `email_logs` | Logs emails |
+| `hashtags` | Hashtags |
+| `content_hashtags` | Liens contenu-hashtag |
+| `waitlist` | Liste attente generale |
+| `route_upvotes` | Votes routes |
 
 ### Migrations appliquees (11)
 
-1. `20260222_subscriptions.sql` — Tables Stripe
-2. `20260224_persistent_notifications.sql` — Notifications DB
-3. `20260225_safety_buddies.sql` — Contacts confiance / cercle
-4. `20260226_weekly_digest_cron.sql` — Cron emails digest
-5. `20260227_moderation.sql` — Moderation contenu
-6. `20260228_emergency_dispatch.sql` — Dispatch SOS
-7. `20260229_invite_codes.sql` — Codes invitation
-8. `20260301_admin_params.sql` — Parametres admin
-9. `20260302_pin_evidence.sql` — Preuves pins
-10. `20260303_profile_language.sql` — Langue profil
-11. `20260305_trip_sheet_schema.sql` — Schema trajets
+| # | Fichier | Tables/Actions |
+|---|---------|----------------|
+| 1 | `20260222_subscriptions.sql` | subscriptions, invoices, pro_waitlist |
+| 2 | `20260224_persistent_notifications.sql` | notifications, profil location tracking |
+| 3 | `20260225_safety_buddies.sql` | safety_buddies (route matching) |
+| 4 | `20260226_weekly_digest_cron.sql` | pg_cron + pg_net, cron lundi 9h UTC |
+| 5 | `20260227_moderation.sql` | user_reports, pin flag_count/hidden_at, is_shadow_banned |
+| 6 | `20260228_emergency_dispatch.sql` | emergency_dispatches, emergency_sessions |
+| 7 | `20260229_invite_codes.sql` | invite_codes, invite_code_uses |
+| 8 | `20260301_admin_params.sql` | admin_params (+description, updated_at, 6 defaults) |
+| 9 | `20260302_pin_evidence.sql` | pin_evidence (report/confirmation/rejection) |
+| 10 | `20260303_profile_language.sql` | profiles.language (default 'fr') |
+| 11 | `20260305_trip_sheet_schema.sql` | trips (+dest_*, status, walk_with_me, eta), trusted_contacts.is_watching |
+
+### Edge Functions Supabase (4)
+
+| Fonction | Declencheur | Action |
+|----------|-------------|--------|
+| `emergency-dispatch` | Appel API | Dispatch SOS aux contacts via push + SMS |
+| `on-new-pin` | DB webhook INSERT pins | Alerte proximite routes sauvegardees (300m) |
+| `send-push-notification` | DB webhook INSERT notifications | Envoi Web Push via VAPID/JWT |
+| `weekly-digest` | pg_cron lundi 9h UTC | Email digest hebdomadaire |
 
 ---
 
-## 6. API ROUTES (36 endpoints)
+## 6. API ROUTES (22 endpoints)
 
 ### Auth & Verification
 
@@ -354,7 +363,7 @@ public/
 |-------|---------|-------|
 | `/api/circle/add` | POST | Ajouter contact au cercle |
 | `/api/circle/invite` | POST | Invitation externe |
-| `/api/circle/search` | POST | Recherche par email/tel |
+| `/api/circle/search` | POST | Recherche par email/tel/pseudo |
 
 ### Paiement (Stripe)
 
@@ -368,7 +377,7 @@ public/
 
 | Route | Methode | Usage |
 |-------|---------|-------|
-| `/api/trips/start` | POST | Demarrer trajet |
+| `/api/trips/start` | POST | Demarrer trajet (+ danger_score reel) |
 | `/api/trips/checkpoint` | POST | Logger checkpoint |
 | `/api/trips/end` | POST | Terminer trajet |
 
@@ -376,7 +385,7 @@ public/
 
 | Route | Methode | Usage |
 |-------|---------|-------|
-| `/api/sos/thread` | POST | Creer thread SOS communaute |
+| `/api/sos/thread` | POST, PATCH | Creer/mettre a jour thread SOS |
 
 ### Invitations
 
@@ -390,19 +399,14 @@ public/
 | Route | Methode | Usage |
 |-------|---------|-------|
 | `/api/send-welcome` | POST | Email bienvenue |
-| `/api/cron/lifecycle-emails` | POST | Emails automatiques (cron) |
+| `/api/cron/lifecycle-emails` | GET | Emails automatiques (cron) |
 
-### LiveKit
+### LiveKit & Admin
 
 | Route | Methode | Usage |
 |-------|---------|-------|
 | `/api/livekit-token` | POST | Token audio/video |
-
-### Admin & Dev
-
-| Route | Methode | Usage |
-|-------|---------|-------|
-| `/api/admin-bypass` | POST | Bypass admin (dev/test) |
+| `/api/admin-bypass` | GET | Bypass admin (dev/test) |
 | `/api/simulation/seed` | POST | Generer donnees test |
 | `/api/simulation/tick` | POST | Tick simulation |
 | `/api/simulation/cleanup` | POST | Nettoyer simulation |
@@ -411,9 +415,9 @@ public/
 
 ## 7. COMPOSANTS — INVENTAIRE
 
-### Actifs (utilises dans le rendu)
+### Orchestrateur principal : `src/app/map/page.tsx` (~1071 lignes)
 
-**Orchestrateur principal** : `src/app/map/page.tsx` (1045 lignes)
+### Actifs (importes et utilises)
 
 | Composant | Fichier | Import par |
 |-----------|---------|------------|
@@ -432,51 +436,47 @@ public/
 | WalkWithMePanel | `components/WalkWithMePanel.tsx` | map/page.tsx (lazy) |
 | MyKovaView | `components/MyKovaView.tsx` | map/page.tsx (lazy) |
 | OnboardingFunnel | `components/OnboardingFunnel.tsx` | map/page.tsx |
-| PushOptInModal | `components/PushOptInModal.tsx` | map/page.tsx |
 | InstallPrompt | `components/InstallPrompt.tsx` | map/page.tsx |
 | OfflineBanner | `components/OfflineBanner.tsx` | map/page.tsx |
 | SosBanner | `components/SosBanner.tsx` | map/page.tsx |
 | CityContextPanel | `components/CityContextPanel.tsx` | map/page.tsx |
 | CommunityTooltip | `components/CommunityTooltip.tsx` | map/page.tsx |
 | GlobalToast | `components/GlobalToast.tsx` | map/page.tsx |
+| GlobalModals | `components/GlobalModals.tsx` | map/page.tsx |
 | ConfirmIncidentModal | `components/ConfirmIncidentModal.tsx` | map/page.tsx |
 | SafeSpaceDetailSheet | `components/SafeSpaceDetailSheet.tsx` | map/page.tsx |
+| BrandAssets | `components/BrandAssets.tsx` | map/page.tsx (BreveilMonogram) |
+| MilestoneToast | `components/MilestoneToast.tsx` | map/page.tsx |
 | ChatView | `components/chat/ChatView.tsx` | messages-tab, SupportChatScreen |
 | ChatBubble | `components/chat/ChatBubble.tsx` | ChatView.tsx |
-| UserProfileModal | `components/UserProfileModal.tsx` | community, map |
-| UserContextMenu | `components/UserContextMenu.tsx` | community |
+| UserProfileModal | `components/UserProfileModal.tsx` | GlobalModals.tsx |
+| UserContextMenu | `components/UserContextMenu.tsx` | GlobalModals.tsx |
 | EmojiPickerButton | `components/ui/EmojiPickerButton.tsx` | ChatView, compose-modal |
+| RouteCard | `components/trip/RouteCard.tsx` | TripView.tsx |
+| NeighborhoodScoreLayer | `components/NeighborhoodScoreLayer.tsx` | MapView.tsx (buildScoreGeoJSON) |
 
-### Deprecated
+### Orphelins confirmes (0 imports)
 
-| Composant | Fichier | Raison |
+| Composant | Fichier | Lignes |
 |-----------|---------|--------|
-| CommunityHub | `components/community/CommunityHub.tsx` | Logique migree vers tab-composants individuels |
+| CommunityHub | `components/community/CommunityHub.tsx` | 677 |
+| ThemeToggle | `components/ThemeToggle.tsx` | 35 |
+| SimulationTicker | `components/SimulationTicker.tsx` | 71 |
+| LocationHistoryViewer | `components/LocationHistoryViewer.tsx` | 190 |
+| SessionBriefingCard | `components/SessionBriefingCard.tsx` | 189 |
+| TrendSparkline | `components/TrendSparkline.tsx` | 137 |
+| ProGate | `components/ProGate.tsx` | 84 |
+| ReferralSection | `components/ReferralSection.tsx` | 143 |
+| ChallengesSection | `components/ChallengesSection.tsx` | ~40 |
 
-### Orphelins potentiels (a verifier)
+### Fichiers supprimes (depuis dernier audit)
 
-| Composant | Fichier | Observation |
-|-----------|---------|-------------|
-| BrandAssets | `components/BrandAssets.tsx` | Utilitaire statique — verifier si importe |
-| ThemeToggle | `components/ThemeToggle.tsx` | Peut etre remplace par SettingsToggle |
-| SimulationTicker | `components/SimulationTicker.tsx` | Dev-only — conditionnel a env |
-| NeighborhoodScoreLayer | `components/NeighborhoodScoreLayer.tsx` | Layer carte — verifier si actif |
-| LocationHistoryViewer | `components/LocationHistoryViewer.tsx` | Viewer historique — verifier si monte |
-| SessionBriefingCard | `components/SessionBriefingCard.tsx` | Briefing trip — verifier usage |
-| TrendSparkline | `components/TrendSparkline.tsx` | Mini chart — verifier si importe |
-| ProGate | `components/ProGate.tsx` | Paywall gate — verifier si utilise |
-| ReferralSection | `components/ReferralSection.tsx` | Section referral — peut etre dans PaywallScreen |
-| ChallengesSection | `components/ChallengesSection.tsx` | Challenges — verifier si monte |
-| MilestoneToast | `components/MilestoneToast.tsx` | Toast achievement — verifier |
-| VerificationView | `components/VerificationView.tsx` | UI verif — "coming soon" |
-
-### Fichiers mentionnes dans MEMORY mais supprimes
-
-| Fichier | Statut |
+| Fichier | Raison |
 |---------|--------|
-| `OnboardingFunnelV2.tsx` | SUPPRIME — V1 est la version active |
-| `CoachMark.tsx` | SUPPRIME — tour tooltip |
-| `useTour.ts` | SUPPRIME — hook tour 5 etapes |
+| `PushOptInModal.tsx` | Modal "Stay safe with alerts" en anglais, supprime |
+| `OnboardingFunnelV2.tsx` | N'a jamais existe — V2 = OnboardingFunnel.tsx |
+| `CoachMark.tsx` | Tour spotlight supprime |
+| `useTour.ts` | Hook tour 5 etapes supprime |
 
 ---
 
@@ -486,109 +486,113 @@ public/
 
 | Fichier | Lignes | Recommandation |
 |---------|--------|----------------|
-| `components/trip/TripView.tsx` | 1,844 | Extraire sous-composants (mode selector, route preview, transit view) |
-| `components/MapView.tsx` | 1,716 | Extraire layer managers, event handlers |
+| `components/trip/TripView.tsx` | 1,944 | Extraire sous-composants (mode selector, route preview) |
+| `components/MapView.tsx` | 1,771 | Extraire layer managers, event handlers |
 | `components/EscorteSheet.tsx` | 1,572 | Extraire formulaire depart/arrivee, mode selector |
 | `components/OnboardingFunnel.tsx` | 1,351 | Extraire chaque step en composant |
 | `components/SafeSpaceDetailSheet.tsx` | 1,321 | Extraire gallery, schedule, comments |
 | `components/subscription/PaywallScreen.tsx` | 1,181 | Extraire pricing cards, referral |
 | `components/MyKovaView.tsx` | 1,085 | Extraire stats cards, streak display |
+| `app/map/page.tsx` | 1,071 | Extraire hooks custom (useMapInit, usePins, etc.) |
 | `components/trip/FavorisSheet.tsx` | 1,059 | Extraire list items, search |
-| `app/map/page.tsx` | 1,045 | Extraire hooks custom (useMapInit, usePins, etc.) |
 | `components/community/create-group-modal.tsx` | 1,018 | Extraire form steps |
 
-### 8.2 Usages de `any` (8 fichiers)
+### 8.2 Type safety
 
-| Fichier | Contexte |
-|---------|----------|
-| `community/post-card.tsx` | `(item as any).danger` |
-| `community/groupes-tab.tsx` | Payload realtime |
-| `community/fil-tab.tsx` | Payload realtime |
-| `ui/EmojiPickerButton.tsx` | Emoji data type |
-| `MapPin.tsx` | DOM element type |
-| `hooks/useDestinationSearch.ts` | Mapbox response |
-| `lib/transit.ts` | Transit API response |
-| `lib/expertise.ts` | Expertise data |
+| Metrique | Valeur | Statut |
+|----------|--------|--------|
+| `as any` dans src/ | **0** | EXCELLENT |
+| TypeScript strict | OUI | OK |
 
-### 8.3 console.log en production (26 fichiers)
+### 8.3 console.log en production
 
-Fichiers avec `console.log` / `console.error` a auditer :
-- Composants : `MapView`, `EmergencyButton`, `post-card`, `story-viewer`, `ChatView`, etc.
-- API routes : `push-notify`, `push-notify-dm`, `notify-nearby`, `stripe/*`, etc.
-- Libs : `support.ts`, `pushSubscription.ts`, `TripMonitor.ts`
+| Metrique | Valeur | Statut |
+|----------|--------|--------|
+| console.log dans client src/ | **0** | EXCELLENT |
+| console.log dans edge functions | **2** | Acceptable (server-side) |
 
-**Action** : Creer un logger utilitaire avec niveaux (dev/prod), supprimer les console.log directs.
+Emplacements edge functions :
+- `supabase/functions/on-new-pin/index.ts:95` — smart-alert logging
+- `supabase/functions/send-push-notification/index.ts:179` — subscription cleanup
 
 ### 8.4 Coherence CSS
 
-| Pattern | Occurrences | Probleme |
-|---------|-------------|----------|
-| `className=` (Tailwind) | ~876 | OK |
-| `style=` (inline) | ~2,711 | Trop d'inline — couleurs hardcodees |
-| CSS Custom Properties | Dans `globals.css` | Bien centralise mais pas assez utilise |
+| Pattern | Occurrences | Observation |
+|---------|-------------|-------------|
+| `style=` (inline) | ~2,711 | Convention du projet |
+| `className=` (Tailwind) | ~876 | Surtout pages admin |
+| CSS Custom Properties | 201 vars dans `globals.css` | Bien centralise |
 
 **Duplication couleurs** :
-- `globals.css` : variables CSS officielles
+- `globals.css` : variables CSS officielles (201)
 - `tailwind-theme.css` : repetition pour Tailwind
-- `lib/colors.ts` : objet `C` avec noms paralleles (C.midnight, C.veil, etc.)
-- Inline : hex codes hardcodes dans 10+ composants
+- `lib/colors.ts` : objet couleurs parallele
+- Composants : hex codes inline dans `colors` const (TripView, EscorteSheet, etc.)
 
 ### 8.5 Brand legacy
 
 | Element | Valeur actuelle | Valeur cible |
 |---------|----------------|--------------|
-| localStorage `brume_onboarding_done` | `brume_` | `breveil_` |
-| localStorage `brume_milestones` | `brume_` | `breveil_` |
-| localStorage `brume_active_trip` | `brume_` | `breveil_` |
-| localStorage `brume_show_simulated` | `brume_` | `breveil_` |
-| localStorage `brume_push_dismissed` | `brume_` | `breveil_` |
-| localStorage `brume_session_count` | `brume_` | `breveil_` |
-| localStorage `brume_is_pro` | `brume_` | `breveil_` |
-| localStorage `brume-theme` | tiret | `breveil_theme` |
-| Event `BRUME_SYNC_COMPLETE` | mixte | `BREVEIL_SYNC_COMPLETE` |
-| IndexedDB `brume_offline` | `brume_` | `breveil_` |
+| 12 localStorage keys | `brume_*` | `breveil_*` |
+| Theme key | `brume-theme` | `breveil_theme` |
+| 2 localStorage keys | `breveil_*` | OK |
 
 ---
 
 ## 9. DEPENDANCES
 
-### Dependencies (55)
+### Production (26)
 
-| Categorie | Package | Utilise | Note |
-|-----------|---------|---------|------|
-| **Framework** | next, react, react-dom | OUI | Core |
-| **TypeScript** | typescript | OUI | Core |
-| **Database** | @supabase/supabase-js, @supabase/ssr | OUI | Core |
-| **Map** | mapbox-gl | OUI | Core |
-| **State** | zustand | OUI | Core |
-| **CSS** | tailwindcss, @tailwindcss/postcss | OUI | Core |
-| **Animation** | framer-motion | OUI | Forte utilisation |
-| **Icons** | lucide-react | OUI | Partout |
-| **i18n** | next-intl | OUI | 30 locales |
-| **Toast** | sonner | OUI | Toasts systeme |
-| **Paiement** | stripe, @stripe/stripe-js | OUI | Paywall |
-| **Email** | resend | OUI | Emails transactionnels |
-| **Push** | web-push | OUI | Notifications push |
-| **Audio/Video** | livekit-client, livekit-server-sdk | OUI | Escorte audio |
-| **Emoji** | @emoji-mart/react, @emoji-mart/data | OUI | Chat + compose |
+| Package | Version |
+|---------|---------|
+| `@emoji-mart/data` | ^1.2.1 |
+| `@emoji-mart/react` | ^1.1.1 |
+| `@stripe/stripe-js` | ^8.8.0 |
+| `@supabase/ssr` | ^0.8.0 |
+| `@supabase/supabase-js` | ^2.97.0 |
+| `@swc/helpers` | ^0.5.19 |
+| `emoji-mart` | ^5.6.0 |
+| `framer-motion` | ^12.34.3 |
+| `livekit-client` | ^2.17.2 |
+| `livekit-server-sdk` | ^2.15.0 |
+| `lucide-react` | ^0.575.0 |
+| `mapbox-gl` | ^3.18.1 |
+| `next` | 16.1.6 |
+| `next-intl` | ^4.8.3 |
+| `react` | 19.2.3 |
+| `react-dom` | 19.2.3 |
+| `resend` | ^6.9.3 |
+| `sonner` | ^2.0.7 |
+| `stripe` | ^20.3.1 |
+| `web-push` | ^3.6.7 |
+| `zustand` | ^5.0.11 |
 
-**Aucune dependance manifestement inutilisee detectee.**
+### DevDependencies (15)
 
-### DevDependencies (17)
-
-| Package | Usage |
-|---------|-------|
-| vitest | Tests unitaires |
-| @testing-library/* | Tests composants |
-| @types/* | Types TypeScript |
-| eslint, eslint-config-next | Linting |
-| postcss | Pipeline CSS |
+| Package | Version |
+|---------|---------|
+| `@tailwindcss/postcss` | ^4 |
+| `@testing-library/jest-dom` | ^6.9.1 |
+| `@testing-library/react` | ^16.3.2 |
+| `@testing-library/user-event` | ^14.6.1 |
+| `@types/mapbox-gl` | ^3.4.1 |
+| `@types/node` | ^20 |
+| `@types/react` | ^19 |
+| `@types/react-dom` | ^19 |
+| `@types/web-push` | ^3.6.4 |
+| `@vitejs/plugin-react` | ^5.1.4 |
+| `eslint` | ^9 |
+| `eslint-config-next` | 16.1.6 |
+| `jsdom` | ^28.1.0 |
+| `tailwindcss` | ^4 |
+| `typescript` | ^5 |
+| `vitest` | ^4.0.18 |
 
 ---
 
 ## 10. VARIABLES D'ENVIRONNEMENT
 
-### Publiques (`NEXT_PUBLIC_*`)
+### Publiques (`NEXT_PUBLIC_*`) — 7
 
 | Variable | Service |
 |----------|---------|
@@ -600,7 +604,7 @@ Fichiers avec `console.log` / `console.error` a auditer :
 | `NEXT_PUBLIC_SITE_URL` | URL production |
 | `NEXT_PUBLIC_SUPPORT_USER_ID` | ID user support |
 
-### Privees (server-side only)
+### Privees (server-side) — 15
 
 | Variable | Service |
 |----------|---------|
@@ -618,6 +622,7 @@ Fichiers avec `console.log` / `console.error` a auditer :
 | `LIVEKIT_API_KEY` | LiveKit |
 | `LIVEKIT_API_SECRET` | LiveKit |
 | `CRON_SECRET` | Cron jobs |
+| `NODE_ENV` | Environnement |
 
 ---
 
@@ -628,29 +633,28 @@ Fichiers avec `console.log` / `console.error` a auditer :
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
 | 1 | Migrer `brume_*` → `breveil_*` localStorage (avec fallback migration) | Brand coherence | Moyen |
-| 2 | Supprimer/conditionner les 26 `console.log` en production | Performance + securite | Faible |
-| 3 | Supprimer `CommunityHub.tsx` (deprecated) | Nettoyage | Faible |
-| 4 | Verifier et supprimer les composants orphelins (section 7) | Nettoyage | Moyen |
+| 2 | Supprimer les 9 composants orphelins (1,566 lignes de code mort) | Nettoyage | Faible |
+| 3 | Supprimer `CommunityHub.tsx` (677 lignes, deprecated) | Nettoyage | Faible |
 
 ### PRIORITE MOYENNE
 
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
-| 5 | Refactor TripView.tsx (1844 lignes) en sous-composants | Maintenabilite | Eleve |
-| 6 | Refactor MapView.tsx (1716 lignes) | Maintenabilite | Eleve |
-| 7 | Remplacer les 8 `any` par des types stricts | Type safety | Faible |
-| 8 | Centraliser les couleurs inline → CSS vars | Coherence design | Moyen |
-| 9 | Supprimer tables DB a 0 rows inutilisees | Nettoyage DB | Faible |
+| 4 | Refactor TripView.tsx (1,944 lignes) en sous-composants | Maintenabilite | Eleve |
+| 5 | Refactor MapView.tsx (1,771 lignes) | Maintenabilite | Eleve |
+| 6 | Centraliser les couleurs inline → CSS vars ou objet partage | Coherence design | Moyen |
+| 7 | Consolider globals.css + tailwind-theme.css + colors.ts | DX | Moyen |
+| 8 | Ajouter highlight route selectionnee sur map (line-width dynamique) | UX trajet | Faible |
 
 ### PRIORITE BASSE
 
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
-| 10 | Consolider globals.css + tailwind-theme.css + colors.ts | DX | Moyen |
-| 11 | Activer le tab "me" ou le supprimer | UX coherence | Moyen |
-| 12 | Completer traductions 28 locales restantes | i18n | Eleve |
-| 13 | Ajouter tests unitaires (couverture actuelle faible) | Qualite | Eleve |
-| 14 | Documenter les Edge Functions Supabase | DX | Faible |
+| 9 | Completer traductions 28 locales restantes | i18n | Eleve |
+| 10 | Ajouter tests unitaires (couverture actuelle faible) | Qualite | Eleve |
+| 11 | Documenter les Edge Functions Supabase | DX | Faible |
+| 12 | Ajouter layer danger zones sur map pendant planification trajet | UX trajet | Moyen |
+| 13 | Supprimer tables DB a 0 rows inutilisees | Nettoyage DB | Faible |
 
 ---
 
@@ -658,20 +662,26 @@ Fichiers avec `console.log` / `console.error` a auditer :
 
 | Metrique | Valeur |
 |----------|--------|
-| Fichiers TS/TSX | ~195 |
-| Composants React | 95+ |
-| Routes API | 36 |
+| Fichiers TS/TSX | ~208 |
+| Composants React | 104 |
+| Composants orphelins | 9 |
+| Routes API | 22 |
 | Pages publiques | 8 |
-| Pages admin | 13 |
+| Pages admin | 12 |
 | Custom hooks | 9 |
-| Zustand stores | 3 |
-| Libs utilitaires | 28 |
+| Zustand stores | 4 |
+| Libs utilitaires | 31 |
+| Types exportes | 60+ |
 | Migrations DB | 11 |
 | Tables Supabase | 62 |
-| Dependencies npm | 55 |
-| DevDependencies | 17 |
-| Variables env | 21+ |
+| Edge Functions | 4 |
+| Dependencies npm (prod) | 26 |
+| DevDependencies | 15 |
+| Variables env | 22 |
 | Locales i18n | 30 (2 completes) |
-| Lignes code estimees | ~30,000 |
-| Plus gros fichier | TripView.tsx (1,844 lignes) |
-| Services tiers | 6 (Supabase, Mapbox, Stripe, Resend, Veriff, LiveKit) |
+| CSS custom properties | 201 |
+| Lignes code estimees | ~48,800 |
+| Plus gros fichier | TripView.tsx (1,944 lignes) |
+| `as any` | 0 |
+| console.log client | 0 |
+| Services tiers | 7 (Supabase, Mapbox, Stripe, Resend, Veriff, LiveKit, Web Push) |

@@ -175,11 +175,24 @@ export function ConfirmIncidentModal({
     }
 
     if (data) updatePin(data)
-    setConfirmCount((c) => c + 1)
+    const newCount = (pin.confirmations ?? 0) + 1
+    setConfirmCount(newCount)
     toast.success('Confirmation envoyée')
     setConfirming(false)
     onConfirmed(pin.id)
     onClose()
+
+    // Notify nearby users when confirmation threshold (5) is crossed
+    if ((pin.confirmations ?? 0) < 5 && newCount >= 5) {
+      fetch('/api/notify-nearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: { id: pin.id, lat: pin.lat, lng: pin.lng, category: pin.category, severity: pin.severity, user_id: pin.user_id, is_emergency: false },
+          event_type: 'confirmed',
+        }),
+      }).catch(() => {})
+    }
   }
 
   // ─── Derived values ─────────────────────────

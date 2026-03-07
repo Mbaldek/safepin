@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Hashtag, ContentType } from '@/types'
 
 // ── Fetch trending tags par zone géographique ──────────────────
-export function useTrendingHashtags(lat?: number, lng?: number, radiusKm = 2) {
+export function useTrendingHashtags(lat?: number, lng?: number, radiusKm = 5) {
   const [trending, setTrending] = useState<(Hashtag & { count: number })[]>([])
   const [loading,  setLoading]  = useState(false)
+  const fetched = useRef(false)
 
   const fetchTrending = useCallback(async () => {
     setLoading(true)
@@ -44,6 +45,14 @@ export function useTrendingHashtags(lat?: number, lng?: number, radiusKm = 2) {
       setLoading(false)
     }
   }, [lat, lng, radiusKm])
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    if (!fetched.current) {
+      fetched.current = true
+      fetchTrending()
+    }
+  }, [fetchTrending])
 
   return { trending, loading, fetchTrending }
 }

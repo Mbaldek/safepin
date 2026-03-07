@@ -177,10 +177,11 @@ export default function BottomNav() {
                 <Icon
                   size={20}
                   strokeWidth={isActive ? 2.2 : 1.8}
+                  fill={isActive && !disabled ? 'currentColor' : 'none'}
                   style={{
                     color,
                     opacity,
-                    transition: 'color 150ms, opacity 150ms',
+                    transition: 'color 150ms, opacity 150ms, fill 150ms',
                   }}
                 />
               </div>
