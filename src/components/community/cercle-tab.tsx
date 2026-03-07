@@ -143,7 +143,7 @@ export default function CercleTab({ isDark, userId, onOpenConversation }: Cercle
       const seen = new Set<string>();
       const allContacts: ContactRow[] = [];
       for (const c of [...myContactRows, ...reverseContactRows]) {
-        if (!seen.has(c.contact_id)) {
+        if (!seen.has(c.contact_id) && c.contact_id !== userId) {
           seen.add(c.contact_id);
           allContacts.push(c);
         }

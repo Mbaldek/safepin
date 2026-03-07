@@ -2,6 +2,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, MessageCircle, Navigation, Sparkles, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
@@ -9,113 +10,208 @@ import { useTheme } from '@/stores/useTheme';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useTranslations } from 'next-intl';
 
-function getColors(isDark: boolean) {
-  return isDark ? {
-    textTertiary: '#64748B',
-    border: 'rgba(255,255,255,0.08)',
-  } : {
-    textTertiary: '#94A3B8',
-    border: 'rgba(15,23,42,0.06)',
-  };
-}
-const FIXED = { accentCyan: '#3BB4C1', semanticDanger: '#EF4444' };
-
 type Tab = 'map' | 'community' | 'trip' | 'me';
 
-const TAB_KEYS: { id: Tab; key: 'map' | 'community' | 'trip' | 'me'; Icon: LucideIcon }[] = [
-  { id: 'map',       key: 'map',       Icon: MapPin        },
-  { id: 'community', key: 'community', Icon: MessageCircle },
-  { id: 'trip',      key: 'trip',      Icon: Navigation    },
-  { id: 'me',        key: 'me',        Icon: Sparkles      },
+const TABS: { id: Tab; labelKey: 'map' | 'community' | 'trip' | 'me'; Icon: LucideIcon; disabled?: boolean }[] = [
+  { id: 'map',       labelKey: 'map',       Icon: MapPin        },
+  { id: 'community', labelKey: 'community', Icon: MessageCircle },
+  { id: 'trip',      labelKey: 'trip',      Icon: Navigation    },
+  { id: 'me',        labelKey: 'me',        Icon: Sparkles, disabled: true },
 ];
+
+const ACCENT = '#3BB4C1';
+const DANGER = '#EF4444';
 
 export default function BottomNav() {
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const C = getColors(isDark);
   const { activeTab, setActiveTab, pins, unreadDmCount } = useStore();
   const badgeCount = useNotificationStore((s) => s.badgeCount);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
   const t = useTranslations('nav');
+
+  const [pressedTab, setPressedTab] = useState<string | null>(null);
+  const [poppingTab, setPoppingTab] = useState<string | null>(null);
 
   const emergencyCount = pins.filter((p) => {
     if (!p.is_emergency || p.resolved_at) return false;
     return (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2;
   }).length;
 
+  const inactiveColor = isDark ? '#64748B' : '#94A3B8';
+
+  const handleTabClick = (tab: typeof TABS[number]) => {
+    if (tab.disabled) return;
+    if (tab.id === 'community') markAllRead();
+
+    setPressedTab(tab.id);
+    setPoppingTab(tab.id);
+    setActiveTab(tab.id);
+
+    setTimeout(() => setPressedTab(null), 400);
+    setTimeout(() => setPoppingTab(null), 350);
+  };
+
   return (
     <nav
       id="bottom-nav"
       aria-label="Main navigation"
-      className="shrink-0 flex items-stretch"
       style={{
-        height: '64px',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        background: isDark ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 300,
+        background: isDark ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.82)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderTop: `1px solid ${C.border}`,
+        borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
       }}
     >
-      {TAB_KEYS.map(({ id, key, Icon }) => {
-        const isActive = activeTab === id;
-        const label = t(key);
-        const badge =
-          id === 'map' && emergencyCount > 0 ? emergencyCount :
-          id === 'community' && (badgeCount + unreadDmCount) > 0 ? (badgeCount + unreadDmCount) : 0;
+      <div style={{ display: 'flex', height: 64 }}>
+        {TABS.map((tab) => {
+          const { id, labelKey, Icon, disabled } = tab;
+          const isActive = activeTab === id;
+          const label = t(labelKey);
 
-        const isDisabled = id === 'me';
+          const badge =
+            id === 'map' && emergencyCount > 0 ? emergencyCount :
+            id === 'community' && (badgeCount + unreadDmCount) > 0 ? (badgeCount + unreadDmCount) : 0;
 
-        return (
-          <button
-            key={id}
-            onClick={() => {
-              if (isDisabled) return;
-              if (id === 'community') markAllRead();
-              setActiveTab(id);
-            }}
-            aria-label={label}
-            aria-current={isActive ? 'page' : undefined}
-            aria-disabled={isDisabled || undefined}
-            className="flex-1 flex flex-col items-center justify-center gap-1 relative"
+          const color = disabled
+            ? inactiveColor
+            : isActive ? ACCENT : inactiveColor;
+          const opacity = disabled ? 0.4 : 1;
 
-          >
-            {/* Active dot indicator */}
-            {isActive && !isDisabled && (
-              <motion.div
-                layoutId="nav-dot"
-                className="absolute bottom-1.5 w-1 h-1 rounded-full"
-                style={{ background: FIXED.accentCyan }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              />
-            )}
-
-            {/* Badge */}
-            {badge > 0 && (
-              <span
-                className="absolute top-2 right-[calc(50%-14px)] min-w-[15px] h-[15px] rounded-full text-[0.5rem] font-semibold flex items-center justify-center px-1 z-10"
-                style={{ color: '#fff', background: FIXED.semanticDanger }}
-              >
-                {badge > 9 ? '9+' : badge}
-              </span>
-            )}
-
-{/* Icon */}
-            <Icon
-              size={20}
-              strokeWidth={isActive ? 2.2 : 1.8}
-              style={{ color: isDisabled ? C.textTertiary : isActive ? FIXED.accentCyan : C.textTertiary, opacity: isDisabled ? 0.4 : 1, transition: 'color 150ms, opacity 150ms' }}
-            />
-
-            {/* Label */}
-            <span
-              className="text-[0.58rem] font-semibold tracking-wide leading-none"
-              style={{ color: isDisabled ? C.textTertiary : isActive ? FIXED.accentCyan : C.textTertiary, opacity: isDisabled ? 0.4 : 1, transition: 'color 150ms, opacity 150ms' }}
+          return (
+            <button
+              key={id}
+              onClick={() => handleTabClick(tab)}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
+              aria-disabled={disabled || undefined}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                padding: '4px 0',
+                position: 'relative',
+                background: 'none',
+                border: 'none',
+                cursor: disabled ? 'default' : 'pointer',
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
-              {label}
-            </span>
-          </button>
-        );
-      })}
+              {/* Active dot indicator */}
+              {isActive && !disabled && (
+                <motion.div
+                  layoutId="nav-dot"
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: ACCENT,
+                  }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                />
+              )}
+
+              {/* Ripple burst */}
+              {pressedTab === id && !disabled && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: 32,
+                    height: 32,
+                    marginTop: -16,
+                    marginLeft: -16,
+                    borderRadius: '50%',
+                    background: 'rgba(59, 180, 193, 0.4)',
+                    animation: 'ripple-burst 400ms ease-out forwards',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+
+              {/* Icon wrapper (for animations) */}
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation:
+                    poppingTab === id && isActive && !disabled
+                      ? 'tab-pop 350ms ease-out'
+                      : pressedTab === id && !disabled
+                        ? 'tab-bounce 400ms ease-out'
+                        : undefined,
+                }}
+              >
+                {/* Badge */}
+                {badge > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -10,
+                      minWidth: 16,
+                      height: 16,
+                      padding: '0 4px',
+                      background: DANGER,
+                      color: '#fff',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      borderRadius: 99,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: 1,
+                      zIndex: 10,
+                    }}
+                  >
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
+
+                <Icon
+                  size={20}
+                  strokeWidth={isActive ? 2.2 : 1.8}
+                  style={{
+                    color,
+                    opacity,
+                    transition: 'color 150ms, opacity 150ms',
+                  }}
+                />
+              </div>
+
+              {/* Label */}
+              <span
+                style={{
+                  fontSize: '0.58rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1,
+                  color,
+                  opacity,
+                  transition: 'color 150ms, opacity 150ms',
+                }}
+              >
+                {label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Safe area spacer */}
+      <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
     </nav>
   );
 }
