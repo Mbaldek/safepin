@@ -6,8 +6,6 @@ import { X, MoreHorizontal, MessageCircle, UserPlus, UserCheck, Heart, Pencil, C
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/stores/useTheme";
 import { useUiStore } from "@/stores/uiStore";
-import { getOrCreateConversation } from "@/lib/dm";
-import { useStore } from "@/stores/useStore";
 import { toast } from "sonner";
 
 interface ProfileData {
@@ -80,8 +78,8 @@ export default function UserProfileModal() {
   const userId = useUiStore((s) => s.activeProfileUserId);
   const closeProfile = useUiStore((s) => s.closeProfile);
   const setOpenMyProfile = useUiStore((s) => s.setOpenMyProfile);
+  const openCommunityDM = useUiStore((s) => s.openCommunityDM);
   const isDark = useTheme((s) => s.theme) === "dark";
-  const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
 
   const C = isDark
     ? {
@@ -207,16 +205,12 @@ export default function UserProfileModal() {
     setFollowLoading(false);
   }, [currentUserId, userId, followLoading, isFollowing, followId]);
 
-  const handleMessage = useCallback(async () => {
+  const handleMessage = useCallback(() => {
     if (!currentUserId || !userId) return;
-    try {
-      await getOrCreateConversation(currentUserId, userId);
-      setCommunityDefaultTab(3);
-      closeProfile();
-    } catch {
-      toast.error("Erreur");
-    }
-  }, [currentUserId, userId, setCommunityDefaultTab, closeProfile]);
+    const userName = profile?.display_name || profile?.username || 'Utilisateur';
+    openCommunityDM({ userId, userName });
+    closeProfile();
+  }, [currentUserId, userId, profile, openCommunityDM, closeProfile]);
 
   const handleCircleInvite = useCallback(async () => {
     if (!currentUserId || !userId || circleStatus !== "none") return;

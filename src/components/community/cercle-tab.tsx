@@ -7,8 +7,6 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useUiStore } from "@/stores/uiStore";
-import { useStore } from "@/stores/useStore";
-import { getOrCreateConversation } from "@/lib/dm";
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
@@ -44,7 +42,7 @@ function timeAgo(d: string) {
 
 export default function CercleTab({ isDark, userId }: CercleTabProps) {
   const openProfile = useUiStore((s) => s.openProfile);
-  const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
+  const openCommunityDM = useUiStore((s) => s.openCommunityDM);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -595,15 +593,10 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
             .toUpperCase()
             .slice(0, 2) || "?";
 
-          const handleMessage = async () => {
+          const handleMessage = () => {
             if (!userId) return;
-            try {
-              await getOrCreateConversation(userId, selectedContact.contact_id);
-              setCommunityDefaultTab(3);
-              setSelectedContact(null);
-            } catch {
-              toast.error("Erreur");
-            }
+            openCommunityDM({ userId: selectedContact.contact_id, userName: selectedContact.name });
+            setSelectedContact(null);
           };
 
           const actions = [

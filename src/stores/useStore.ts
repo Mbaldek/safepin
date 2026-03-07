@@ -114,7 +114,6 @@ type Store = {
   setActiveTab: (tab: Tab) => void;
   communityDefaultTab: number | null;
   setCommunityDefaultTab: (tab: number | null) => void;
-
   // Profile
   userProfile: {
     id: string;
@@ -272,7 +271,6 @@ export const useStore = create<Store>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   communityDefaultTab: null,
   setCommunityDefaultTab: (tab) => set({ communityDefaultTab: tab }),
-
   // Profile
   userProfile: null,
   setUserProfile: (p) => set({ userProfile: p }),

@@ -6,15 +6,13 @@ import { ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/stores/useTheme";
 import { useUiStore } from "@/stores/uiStore";
-import { useStore } from "@/stores/useStore";
-import { getOrCreateConversation } from "@/lib/dm";
 import { toast } from "sonner";
 
 export default function UserContextMenu() {
   const menuUser = useUiStore((s) => s.activeContextMenuUser);
   const closeContextMenu = useUiStore((s) => s.closeContextMenu);
   const openProfile = useUiStore((s) => s.openProfile);
-  const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
+  const openCommunityDM = useUiStore((s) => s.openCommunityDM);
   const isDark = useTheme((s) => s.theme) === "dark";
 
   const C = isDark
@@ -123,15 +121,10 @@ export default function UserContextMenu() {
     setInviteLoading(false);
   };
 
-  const handleOpenMessage = async () => {
+  const handleOpenMessage = () => {
     if (!currentUserId) return;
-    try {
-      await getOrCreateConversation(currentUserId, userId);
-      setCommunityDefaultTab(3);
-      closeContextMenu();
-    } catch {
-      toast.error("Erreur");
-    }
+    openCommunityDM({ userId, userName: displayName });
+    closeContextMenu();
   };
 
   const handleOpenProfile = () => {
@@ -156,7 +149,7 @@ export default function UserContextMenu() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeContextMenu}
-            style={{ position: "fixed", inset: 0, zIndex: 190, background: "rgba(0,0,0,0.4)" }}
+            style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)" }}
           />
           <motion.div
             key="ctx-sheet"
@@ -165,7 +158,7 @@ export default function UserContextMenu() {
             exit={{ y: 300 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 191, background: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, boxShadow: "0 -10px 40px rgba(0,0,0,0.15)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
+            style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 301, background: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, boxShadow: "0 -10px 40px rgba(0,0,0,0.15)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
           >
             {/* Handle */}
             <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>

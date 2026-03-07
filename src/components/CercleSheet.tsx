@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useCercle } from '@/hooks/useCercle'
 import CercleChat from '@/components/CercleChat'
+import AddCircleContactModal from '@/components/community/AddCircleContactModal'
 import type { CircleMember } from '@/types'
 
 interface CercleSheetProps {
@@ -58,6 +59,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
 
   const [showChat, setShowChat] = useState(false)
   const [pulsingId, setPulsingId] = useState<string | null>(null)
+  const [showInvite, setShowInvite] = useState(false)
 
   // tokens
   const t = useMemo(() => ({
@@ -91,6 +93,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
 
   // ── render ─────────────────────────────────────────────
   return (
+    <>
     <AnimatePresence>
       {open && (
         <>
@@ -221,7 +224,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
 
                     {/* invite pill */}
                     <button
-                      onClick={() => toast('Invitation envoy\u00e9e')}
+                      onClick={() => setShowInvite(true)}
                       style={{
                         background: t.teal, color: '#fff', border: 'none',
                         borderRadius: 20, fontSize: 11, fontWeight: 700,
@@ -330,6 +333,13 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
         </>
       )}
     </AnimatePresence>
+
+    <AddCircleContactModal
+      isDark={isDark}
+      open={showInvite}
+      onClose={() => setShowInvite(false)}
+    />
+    </>
   )
 }
 
