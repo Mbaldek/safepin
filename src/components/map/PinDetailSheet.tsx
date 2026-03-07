@@ -11,6 +11,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
 import { useStore } from '@/stores/useStore'
+import { usePullToDismiss } from '@/hooks/usePullToDismiss'
 import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
@@ -128,6 +129,7 @@ function PinDetailSheet({
   const [resolving, setResolving] = useState(false)
   const [showFalseReportConfirm, setShowFalseReportConfirm] = useState(false)
   const [pinHashtags, setPinHashtags] = useState<Hashtag[]>([])
+  const pull = usePullToDismiss({ onDismiss: onClose })
 
   useEffect(() => {
     if (!pin) return
@@ -287,9 +289,12 @@ function PinDetailSheet({
               maxHeight: 'calc(100vh - 70px - 100px)',
             }}
             initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            animate={{ y: pull.translateY, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={pull.translateY > 0 ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
+            onTouchStart={pull.onTouchStart}
+            onTouchMove={pull.onTouchMove}
+            onTouchEnd={pull.onTouchEnd}
           >
             {/* ① HANDLE */}
             <div style={{
@@ -307,7 +312,7 @@ function PinDetailSheet({
             }} />
 
             {/* ③ SCROLL AREA */}
-            <div style={{
+            <div ref={pull.scrollRef as React.RefObject<HTMLDivElement>} style={{
               flex: 1, overflowY: 'auto',
               scrollbarWidth: 'none',
             }}>

@@ -7,10 +7,10 @@ import { motion } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
-import { MapPin } from 'lucide-react';
+import { MapPin, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { AppNotification } from '@/types';
-import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
+import { timeAgoLong as timeAgo } from '@/lib/utils';
 import { useTheme } from '@/stores/useTheme';
 
 const TYPE_META: Record<string, { icon: string; color: string }> = {
@@ -97,20 +97,30 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
         role="dialog"
         aria-modal="true"
         aria-label="Notifications"
-        className="sheet-motion absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] max-w-[440px] rounded-t-2xl z-[201] max-h-[72dvh] overflow-y-auto"
-        style={{ backgroundColor: C.elevated }}
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={springTransition}
+        className="absolute top-[56px] right-3 w-[92%] max-w-[400px] rounded-2xl z-[201] max-h-[60dvh] flex flex-col"
+        style={{ backgroundColor: C.elevated, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+        initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
       >
-        <div className="w-9 h-1 rounded-full mx-auto mt-3" style={{ backgroundColor: C.border }} />
-        <div className="p-5 pb-10">
-          <h3 className="text-lg font-black mb-4" style={{ color: C.textPrimary }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <h3 className="text-base font-black" style={{ color: C.textPrimary }}>
             {t('title')}
           </h3>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-full transition hover:opacity-70"
+            style={{ backgroundColor: C.card }}
+          >
+            <X size={14} style={{ color: C.textSecondary }} />
+          </button>
+        </div>
 
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
           {sorted.length === 0 ? (
-            <div className="flex flex-col items-center py-14 gap-3">
-              <span className="text-4xl">🔔</span>
+            <div className="flex flex-col items-center py-10 gap-3">
+              <span className="text-3xl">🔔</span>
               <p className="text-sm font-bold" style={{ color: C.textSecondary }}>
                 {t('empty')}
               </p>
@@ -166,18 +176,6 @@ export default function NotificationsSheet({ onClose }: { onClose: () => void })
               })}
             </div>
           )}
-
-          <button
-            onClick={onClose}
-            className="w-full mt-5 py-3.5 rounded-xl font-bold text-sm transition hover:opacity-80"
-            style={{
-              backgroundColor: C.card,
-              border: `1px solid ${C.border}`,
-              color: C.textPrimary,
-            }}
-          >
-            {t('close')}
-          </button>
         </div>
       </motion.div>
     </>

@@ -600,6 +600,7 @@ export type MapViewProps = {
   onTriggerSOS?: () => void;
   safetyFilter?: string | null;
   onClearSafetyFilter?: () => void;
+  onMapTap?: () => void;
 };
 
 // Mapping from safety hashtag to pin categories
@@ -651,6 +652,7 @@ function MapView({
   onTriggerSOS,
   safetyFilter,
   onClearSafetyFilter,
+  onMapTap,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -808,6 +810,34 @@ function MapView({
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
 
+  // ── User location pulsing dot ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!map.current) return;
+    const el = document.createElement('div');
+    el.style.cssText = 'width:22px;height:22px;position:relative;display:none;';
+    el.innerHTML =
+      '<div style="width:14px;height:14px;border-radius:50%;background:#3BB4C1;border:3px solid #fff;box-shadow:0 0 6px rgba(59,180,193,0.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1"></div>' +
+      '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,180,193,0.25);animation:pulse-ring 2s ease-out infinite"></div>';
+    const marker = new mapboxgl.Marker({ element: el }).setLngLat([0, 0]).addTo(map.current);
+    let prevLoc = useStore.getState().userLocation;
+    const unsub = useStore.subscribe((s) => {
+      const loc = s.userLocation;
+      if (loc === prevLoc) return;
+      prevLoc = loc;
+      if (loc) {
+        marker.setLngLat([loc.lng, loc.lat]);
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    // Set initial position if already available
+    const init = useStore.getState().userLocation;
+    if (init) { marker.setLngLat([init.lng, init.lat]); el.style.display = 'block'; }
+    return () => { unsub(); marker.remove(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Draggable departure pin
   useEffect(() => {
     const m = map.current;
@@ -861,13 +891,16 @@ function MapView({
       }
     });
 
-    // Tap on empty canvas → move pin to tap location
+    // Tap on empty canvas → move pin or dismiss overlays
     const onMapClick = (e: mapboxgl.MapMouseEvent) => {
       const store = useStore.getState();
-      if (store.activeSheet !== 'report') return;
       const features = m.queryRenderedFeatures(e.point);
       if (features.length > 0) return;
-      store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      if (store.activeSheet === 'report') {
+        store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      } else {
+        onMapTap?.();
+      }
     };
 
     m.on('click', onMapClick);

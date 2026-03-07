@@ -13,7 +13,7 @@ import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft, Plus } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
@@ -222,6 +222,15 @@ activeTrip, setActiveTrip,
 
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
+
+  const handleMapTap = useCallback(() => {
+    setActiveSheet('none');
+    setShowNotifications(false);
+    setShowSettings(false);
+    setShowSearch(false);
+    setShowCityContext(false);
+    setShowIncidentsList(false);
+  }, [setActiveSheet, setShowIncidentsList]);
 
   // Layer state (controls passed to MapView)
   const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>('custom');
@@ -656,6 +665,7 @@ activeTrip, setActiveTrip,
           onPoiLoadingChange={setPoiLoading}
           safetyFilter={safetyFilter}
           onClearSafetyFilter={() => setSafetyFilter(null)}
+          onMapTap={handleMapTap}
         />
 
         <EmergencyButton userId={userId} />
@@ -761,6 +771,35 @@ activeTrip, setActiveTrip,
             >
               <Plus size={22} color="#fff" strokeWidth={2} />
             </motion.button>
+
+            {/* Safe spaces toggle — left of GPS geolocate */}
+            <button
+              onClick={() => setShowSafeSpaces(!showSafeSpaces)}
+              aria-label={showSafeSpaces ? 'Masquer lieux sûrs' : 'Afficher lieux sûrs'}
+              style={{
+                position: 'fixed',
+                bottom: 30,
+                right: 60,
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: showSafeSpaces
+                  ? 'rgba(59,180,193,0.15)'
+                  : (isDark ? '#1E293B' : '#FFFFFF'),
+                border: showSafeSpaces
+                  ? '1.5px solid #3BB4C1'
+                  : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                transition: 'background 150ms, border-color 150ms',
+              }}
+            >
+              <Shield size={18} color={showSafeSpaces ? '#3BB4C1' : (isDark ? '#64748B' : '#94A3B8')} />
+            </button>
           </>
         )}
 
