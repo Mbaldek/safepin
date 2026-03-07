@@ -18,7 +18,10 @@ import { FavoriButton }     from './escorte/FavoriButton'
 import {
   formatElapsed, calcETA, calcDist, avatarColor
 } from '@/lib/escorteHelpers'
-import { fetchDirections, formatDuration, formatDistance } from '@/lib/directions'
+import { fetchDirectionsMulti, formatDuration, formatDistance } from '@/lib/directions'
+import { scoreRoute } from '@/lib/route-scoring'
+import RouteCard from '@/components/trip/RouteCard'
+import type { RouteOption } from '@/stores/useStore'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
 import { useStore } from '@/stores/useStore'
 import FavorisManager from './FavorisManager'
@@ -60,6 +63,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
   const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes } = useStore()
+  const pins = useStore((s) => s.pins)
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -78,6 +82,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const [routeInfo, setRouteInfo]         = useState<{ duration: number; distance: number } | null>(null)
   const [loadingRoute, setLoadingRoute]   = useState(false)
   const routeFetchRef = useRef(0)
+  const [fetchedRoutes, setFetchedRoutes] = useState<RouteOption[]>([])
+  const [selectedIdx, setSelectedIdx]     = useState(0)
 
   // ── Reverse geocode user position ────────────
   useEffect(() => {
@@ -100,10 +106,11 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       .catch(() => {})
   }, [userLat, userLng])
 
-  // ── Fetch route when depart + dest + mode change ─
+  // ── Fetch multi-route + score when depart + dest + mode change ─
   useEffect(() => {
     if (!departCoords || !selectedDest) {
       setRouteInfo(null)
+      setFetchedRoutes([])
       setPendingRoutes(null)
       return
     }
@@ -113,58 +120,52 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
 
     const from = departCoords
     const to = selectedDest.center
+    const ROUTE_COLORS = ['#34D399', '#F5C341', '#EF4444']
 
     ;(async () => {
       try {
         if (routeMode === 'transit') {
           const routes = await fetchTransitRoute(from, to)
           if (fetchId !== routeFetchRef.current) return
-          if (routes.length > 0) {
-            const best = routes[0]
-            setRouteInfo({ duration: best.totalDuration, distance: 0 })
-            setPendingRoutes([{
-              id: 'transit-0',
-              label: 'Transit',
-              color: '#A78BFA',
-              coords: best.coords,
-              duration: best.totalDuration,
-              distance: 0,
-              dangerScore: 0,
-            }])
-          } else {
-            setRouteInfo(null)
-            setPendingRoutes(null)
-          }
+          if (!routes.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
+          const opts: RouteOption[] = routes.slice(0, 3).map((tr, i) => ({
+            id: `transit-${i}`,
+            label: i === 0 ? 'Plus rapide' : i === 1 ? 'Équilibrée' : 'Moins de marche',
+            color: ROUTE_COLORS[i] ?? '#94A3B8',
+            coords: tr.coords,
+            duration: tr.totalDuration,
+            distance: 0,
+            dangerScore: scoreRoute(tr.coords, pins),
+          }))
+          setFetchedRoutes(opts)
+          setSelectedIdx(0)
+          setRouteInfo({ duration: opts[0].duration, distance: 0 })
+          setPendingRoutes(opts)
         } else {
-          const result = await fetchDirections(from, to, routeMode)
+          const results = await fetchDirectionsMulti(from, to, routeMode)
           if (fetchId !== routeFetchRef.current) return
-          if (result) {
-            setRouteInfo({ duration: result.duration, distance: result.distance })
-            const color = routeMode === 'walk' ? '#3BB4C1' : routeMode === 'bike' ? '#34D399' : '#F5C341'
-            setPendingRoutes([{
-              id: `${routeMode}-0`,
-              label: routeMode,
-              color,
-              coords: result.coords,
-              duration: result.duration,
-              distance: result.distance,
-              dangerScore: 0,
-            }])
-          } else {
-            setRouteInfo(null)
-            setPendingRoutes(null)
-          }
+          if (!results.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
+          const scored = results.map(r => ({ ...r, dangerScore: scoreRoute(r.coords, pins) }))
+          scored.sort((a, b) => a.dangerScore - b.dangerScore)
+          const fastestIdx = scored.reduce((best, r, i) => r.duration < scored[best].duration ? i : best, 0)
+          const opts: RouteOption[] = scored.map((r, i) => ({
+            id: `${routeMode}-${i}`,
+            label: i === 0 ? 'Plus sûre' : (i === fastestIdx && fastestIdx !== 0) ? 'Plus rapide' : 'Équilibrée',
+            color: ROUTE_COLORS[i] ?? '#94A3B8',
+            coords: r.coords, duration: r.duration, distance: r.distance, dangerScore: r.dangerScore,
+          }))
+          setFetchedRoutes(opts)
+          setSelectedIdx(0)
+          setRouteInfo({ duration: opts[0].duration, distance: opts[0].distance })
+          setPendingRoutes(opts)
         }
       } catch {
-        if (fetchId === routeFetchRef.current) {
-          setRouteInfo(null)
-          setPendingRoutes(null)
-        }
+        if (fetchId === routeFetchRef.current) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null) }
       } finally {
         if (fetchId === routeFetchRef.current) setLoadingRoute(false)
       }
     })()
-  }, [departCoords, selectedDest, routeMode, setPendingRoutes])
+  }, [departCoords, selectedDest, routeMode, setPendingRoutes, pins])
 
   // ── Fly to destination when selected ─────────
   useEffect(() => {
@@ -331,7 +332,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     const etaMin = routeInfo ? Math.round(routeInfo.duration / 60) : calcETA(distKm)
 
     // Promote pending route → active route so MapView draws it + fitBounds
-    const route = storeRoutes?.[0]
+    const route = storeRoutes?.[selectedIdx] ?? storeRoutes?.[0]
     if (route) {
       setActiveRoute({ coords: route.coords, destination: selectedDest.text })
     }
@@ -1214,6 +1215,49 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                   )
                 })}
               </div>
+
+              {/* Itinéraires */}
+              {fetchedRoutes.length > 0 && (
+                <>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'6px 0 2px' }}>
+                    <span style={{ fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase' as const, color: C.t3 }}>
+                      Itinéraires
+                    </span>
+                  </div>
+                  <div>
+                    {fetchedRoutes.map((route, idx) => (
+                      <div key={route.id}>
+                        <button
+                          onClick={() => {
+                            setSelectedIdx(idx)
+                            setRouteInfo({ duration: route.duration, distance: route.distance })
+                            setPendingRoutes(fetchedRoutes)
+                          }}
+                          style={{ width:'100%', background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left' as const }}
+                        >
+                          <RouteCard
+                            color={route.color}
+                            label={route.label}
+                            duration={formatDuration(route.duration)}
+                            distance={route.distance ? formatDistance(route.distance) : ''}
+                            isSelected={selectedIdx === idx}
+                            isDark={isDark}
+                          />
+                        </button>
+                        {idx < fetchedRoutes.length - 1 && (
+                          <div style={{ height:1, background: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB' }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {loadingRoute && fetchedRoutes.length === 0 && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:16, color: C.t3, fontSize:12 }}>
+                  Recherche d&apos;itinéraires…
+                </div>
+              )}
 
               {/* Escorte toggle — walk et transit uniquement */}
               {(routeMode === 'walk' || routeMode === 'transit') && (
