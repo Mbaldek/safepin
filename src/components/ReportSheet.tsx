@@ -246,7 +246,7 @@ export function ReportSheet() {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '10px 14px 24px', maxHeight: '50vh', overflowY: 'auto' }}>
+        <div style={{ padding: '10px 14px 24px', maxHeight: '60vh', overflowY: 'auto' }}>
 
           {/* Step 1: Chips */}
           {step === 1 && (

@@ -713,7 +713,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
       {showFlash && (
         <div
           style={{
-            position: 'absolute', inset: 0, zIndex: 500,
+            position: 'fixed', inset: 0, zIndex: 500,
             pointerEvents: 'none',
             backgroundColor: '#ef4444', opacity: 0.6,
             animation: 'flash-fade 2s ease-out forwards',
@@ -749,7 +749,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           fontWeight: 800,
           color: '#fff',
           letterSpacing: '0.05em',
-          zIndex: 50,
+          zIndex: 200,
           opacity: phase === 'idle' ? 1 : 0.5,
           transition: 'transform 0.1s ease, opacity 0.15s ease',
           touchAction: 'none',

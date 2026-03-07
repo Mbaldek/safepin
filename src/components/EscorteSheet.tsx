@@ -177,10 +177,10 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   // ── Sheet height per view ──────────────────────
   const SHEET_HEIGHTS: Record<string, string> = {
     'hub':               '52vh',
-    'escorte-intro':     '60vh',
+    'escorte-intro':     '50vh',
     'escorte-notifying': '52vh',
     'escorte-live':      '72vh',
-    'trip-form':         '38vh',
+    'trip-form':         '50vh',
     'trip-active':       '0px',
     'arrived':           '0px',
   }
@@ -476,8 +476,30 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
 
       <div style={{ height: 1, background: tk.bd, margin: '0 0 10px' }} />
 
+      {/* Favoris row */}
+      <button
+        onClick={() => setShowFavoris(true)}
+        style={{
+          width: '100%', background: 'rgba(245,195,65,0.06)',
+          border: '1px solid rgba(245,195,65,0.18)', borderRadius: 12,
+          padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 9,
+          cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
+        }}
+      >
+        <Star size={14} strokeWidth={1.5} color={T.accentGold} />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T.accentGold, textAlign: 'left' }}>
+          Mes favoris
+        </span>
+        {favoris.length > 0 && (
+          <span style={{ background: 'rgba(245,195,65,0.15)', color: T.accentGold, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100 }}>
+            {favoris.length}
+          </span>
+        )}
+        <ChevronRight size={12} strokeWidth={1.5} color={T.accentGold} />
+      </button>
+
       {/* Recents */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt }}>
           Recents
         </span>
@@ -487,7 +509,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       </div>
 
       {recents.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 12, color: tk.tt }}>
+        <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 11, color: tk.tt }}>
           Aucun trajet recent
         </div>
       ) : recents.slice(0, 3).map(r => (
@@ -509,50 +531,27 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           }}
           style={{
             width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 8px', borderRadius: 12, marginBottom: 2, textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '5px 6px', borderRadius: 10, marginBottom: 1, textAlign: 'left',
           }}
         >
           <div style={{
-            width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            width: 26, height: 26, borderRadius: 7, flexShrink: 0,
             background: tk.ih, border: `1px solid ${tk.bd}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Clock size={13} strokeWidth={1.5} color={tk.tt} />
+            <Clock size={11} strokeWidth={1.5} color={tk.tt} />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: tk.tp }}>{r.dest_name}</div>
-            <div style={{ fontSize: 10, color: tk.tt, marginTop: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: tk.tp }}>{r.dest_name}</div>
+            <div style={{ fontSize: 9, color: tk.tt, marginTop: 1 }}>
               {new Date(r.used_at).toLocaleDateString('fr-FR', { weekday: 'short' })}
               {r.duration_min ? ` · ${r.duration_min} min` : ''}
             </div>
           </div>
-          <ChevronRight size={12} strokeWidth={1.5} color={tk.tt} />
+          <ChevronRight size={11} strokeWidth={1.5} color={tk.tt} />
         </motion.button>
       ))}
-
-      {/* Favoris row */}
-      <div style={{ height: 1, background: tk.bd, margin: '8px 0' }} />
-      <button
-        onClick={() => setShowFavoris(true)}
-        style={{
-          width: '100%', background: 'rgba(245,195,65,0.06)',
-          border: '1px solid rgba(245,195,65,0.18)', borderRadius: 12,
-          padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 9,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}
-      >
-        <Star size={14} strokeWidth={1.5} color={T.accentGold} />
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T.accentGold, textAlign: 'left' }}>
-          Mes favoris
-        </span>
-        {favoris.length > 0 && (
-          <span style={{ background: 'rgba(245,195,65,0.15)', color: T.accentGold, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100 }}>
-            {favoris.length}
-          </span>
-        )}
-        <ChevronRight size={12} strokeWidth={1.5} color={T.accentGold} />
-      </button>
     </motion.div>
   )
 
