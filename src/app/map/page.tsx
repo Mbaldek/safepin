@@ -13,7 +13,7 @@ import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, Hospital } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
@@ -230,7 +230,12 @@ activeTrip, setActiveTrip,
     setShowSearch(false);
     setShowCityContext(false);
     setShowIncidentsList(false);
-  }, [setActiveSheet, setShowIncidentsList]);
+    // Close trip/community/cercle panels — return to map
+    const tab = useStore.getState().activeTab;
+    if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
+      setActiveTab('map');
+    }
+  }, [setActiveSheet, setShowIncidentsList, setActiveTab]);
 
   // When a store-driven overlay opens (pin detail, report), close all local overlays
   useEffect(() => {
@@ -440,12 +445,16 @@ activeTrip, setActiveTrip,
     }
   }, [unreadCount]);
 
-  // Update profile last_known_lat/lng for geo-filtered push (respects location_mode setting)
+  // Load notification settings for location_mode + quiet hours
   const locationModeRef = useRef<string>('while_using');
+  const quietHoursRef = useRef<{ enabled: boolean; start: string; end: string }>({ enabled: false, start: '22:00', end: '07:00' });
   useEffect(() => {
     if (!userId) return;
-    supabase.from('notification_settings').select('location_mode').eq('user_id', userId).single()
-      .then(({ data }) => { if (data?.location_mode) locationModeRef.current = data.location_mode; });
+    supabase.from('notification_settings').select('location_mode, quiet_hours_enabled, quiet_start, quiet_end').eq('user_id', userId).single()
+      .then(({ data }) => {
+        if (data?.location_mode) locationModeRef.current = data.location_mode;
+        if (data) quietHoursRef.current = { enabled: !!data.quiet_hours_enabled, start: data.quiet_start ?? '22:00', end: data.quiet_end ?? '07:00' };
+      });
   }, [userId]);
 
   useEffect(() => {
@@ -473,7 +482,14 @@ activeTrip, setActiveTrip,
         pin_id: pin.id,
       });
     } else {
-      toast('📍 New report nearby');
+      // Suppress toast during quiet hours
+      const qh = quietHoursRef.current;
+      let inQuiet = false;
+      if (qh.enabled) {
+        const now = new Date().toTimeString().slice(0, 5);
+        inQuiet = qh.start > qh.end ? (now >= qh.start || now < qh.end) : (now >= qh.start && now < qh.end);
+      }
+      if (!inQuiet) toast('📍 New report nearby');
     }
     // Notify nearby users (server-side push) — only triggered by the pin creator
     if (pin.user_id === useStore.getState().userId) {
@@ -678,7 +694,34 @@ activeTrip, setActiveTrip,
           onMapTap={handleMapTap}
         />
 
-        <EmergencyButton userId={userId} />
+        {activeTab !== 'trip' && <EmergencyButton userId={userId} />}
+
+        {/* Safe places toggle — single button left of GPS control */}
+        {activeTab === 'map' && (() => {
+          const poiActive = showPharmacy && showHospital && showPolice;
+          return (
+            <button
+              onClick={() => {
+                const next = !poiActive;
+                setShowPharmacy(next);
+                setShowHospital(next);
+                setShowPolice(next);
+              }}
+              aria-label="Lieux surs"
+              style={{
+                position: 'absolute', top: 10, right: 50, zIndex: 10,
+                width: 29, height: 29, borderRadius: 4,
+                backgroundColor: poiActive ? '#3BB4C1' : '#fff',
+                border: poiActive ? 'none' : '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0,
+              }}
+            >
+              <Hospital size={15} strokeWidth={2} color={poiActive ? '#fff' : '#333'} />
+            </button>
+          );
+        })()}
 
         {/* Location sharing chip — visible while Walk With Me broadcast is active */}
         {isSharingLocation && (

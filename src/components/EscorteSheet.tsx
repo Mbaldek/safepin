@@ -18,7 +18,7 @@ import { FavoriButton }     from './escorte/FavoriButton'
 import {
   formatElapsed, calcETA, calcDist, avatarColor
 } from '@/lib/escorteHelpers'
-import { fetchDirectionsMulti, formatDuration, formatDistance } from '@/lib/directions'
+import { fetchRoutesWithAvoidance, formatDuration, formatDistance } from '@/lib/directions'
 import { scoreRoute } from '@/lib/route-scoring'
 import RouteCard from '@/components/trip/RouteCard'
 import type { RouteOption } from '@/stores/useStore'
@@ -142,7 +142,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           setRouteInfo({ duration: opts[0].duration, distance: 0 })
           setPendingRoutes(opts)
         } else {
-          const results = await fetchDirectionsMulti(from, to, routeMode)
+          const results = await fetchRoutesWithAvoidance(from, to, routeMode, pins)
           if (fetchId !== routeFetchRef.current) return
           if (!results.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
           const scored = results.map(r => ({ ...r, dangerScore: scoreRoute(r.coords, pins) }))
