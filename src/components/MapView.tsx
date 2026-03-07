@@ -11,7 +11,7 @@ import { Pin, CATEGORY_DETAILS } from '@/types';
 import type { Escorte, EscorteView } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { T } from '@/lib/tokens';
-import { Clock, AlertTriangle, Navigation } from 'lucide-react';
+import { Clock, AlertTriangle, Navigation, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
 import { MapPin } from './MapPin';
@@ -598,7 +598,35 @@ export type MapViewProps = {
   escorteView?: EscorteView;
   activeEscorte?: Escorte | null;
   onTriggerSOS?: () => void;
+  safetyFilter?: string | null;
+  onClearSafetyFilter?: () => void;
 };
+
+// Mapping from safety hashtag to pin categories
+const SAFETY_FILTER_MAP: Record<string, string[]> = {
+  '#urgence':            ['assault', 'suspect', 'group'],
+  '#harcèlement':        ['harassment'],
+  '#harcelement':        ['harassment'],
+  '#unsafe':             ['lighting', 'blocked', 'unsafe'],
+  '#alerte':             ['assault', 'harassment'],
+  '#sos':                ['__sos__'],
+  '#eclairagefaible':    ['lighting'],
+  '#eclairageok':        ['safe', 'presence'],
+  '#zonecalme':          ['safe'],
+  '#trajetseul':         ['following', 'unsafe'],
+  '#nuit':               ['lighting', 'unsafe', 'following'],
+  '#soiree':             ['assault', 'harassment', 'suspect'],
+  '#ruepeufréquentée':   ['unsafe', 'following'],
+  '#ruepeufrequentee':   ['unsafe', 'following'],
+};
+
+function pinMatchesSafetyFilter(pin: { category: string; is_emergency?: boolean }, filter: string): boolean {
+  const key = filter.toLowerCase();
+  const categories = SAFETY_FILTER_MAP[key];
+  if (!categories) return false;
+  if (categories.includes('__sos__')) return !!pin.is_emergency;
+  return categories.includes(pin.category);
+}
 
 function getColors(isDark: boolean) {
   return {
@@ -621,6 +649,8 @@ function MapView({
   escorteView,
   activeEscorte,
   onTriggerSOS,
+  safetyFilter,
+  onClearSafetyFilter,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -1633,6 +1663,29 @@ function MapView({
         </button>
       )}
 
+      {/* Safety filter badge */}
+      {safetyFilter && (
+        <div style={{
+          position: 'absolute', top: 12, left: 12, zIndex: 20,
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(239,68,68,0.9)', backdropFilter: 'blur(8px)',
+          borderRadius: 100, padding: '6px 10px 6px 12px',
+          boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{safetyFilter}</span>
+          <button
+            onClick={onClearSafetyFilter}
+            style={{
+              width: 20, height: 20, borderRadius: '50%', border: 'none',
+              background: 'rgba(255,255,255,0.25)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+            }}
+          >
+            <X size={12} color="#fff" />
+          </button>
+        </div>
+      )}
+
       {map.current && filteredRegularPins.map((pin) => (
         <MapPin
           key={pin.id}
@@ -1640,6 +1693,7 @@ function MapView({
           pin={pin}
           onClick={handleTransportPinClick}
           showLabels={effectiveLabels}
+          opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
         />
       ))}
 
@@ -1650,6 +1704,7 @@ function MapView({
           pin={pin}
           onClick={handleTransportPinClick}
           showLabels={effectiveLabels}
+          opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
         />
       ))}
 

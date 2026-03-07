@@ -72,6 +72,15 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
         if (row.status === "accepted") members.add(otherId);
         else if (row.status === "pending") pending.add(otherId);
       }
+      const { data: invData } = await supabase
+        .from("circle_invitations")
+        .select("receiver_id")
+        .eq("sender_id", user.id);
+      for (const row of invData || []) {
+        if (row.receiver_id && !members.has(row.receiver_id)) {
+          pending.add(row.receiver_id);
+        }
+      }
       setMemberIds(members);
       setPendingIds(pending);
     })();
@@ -190,6 +199,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
       if (invErr) {
         if (invErr.code === "23505") {
           toast.info("Invitation déjà envoyée");
+          setSentIds((prev) => new Set(prev).add(target.id));
         } else {
           toast.error(invErr.message);
         }

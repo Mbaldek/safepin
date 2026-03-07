@@ -53,6 +53,13 @@ export default function UserContextMenu() {
       if (!user || cancelled) return;
       setCurrentUserId(user.id);
 
+      // Self-check: redirect to profile modal instead of context menu
+      if (user.id === menuUser.userId) {
+        openProfile(menuUser.userId);
+        closeContextMenu();
+        return;
+      }
+
       const [followRes, inviteRes] = await Promise.all([
         supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", menuUser.userId).maybeSingle(),
         supabase.from("trusted_contacts").select("id").or(`and(user_id.eq.${user.id},contact_id.eq.${menuUser.userId}),and(user_id.eq.${menuUser.userId},contact_id.eq.${user.id})`).limit(1).maybeSingle(),

@@ -225,6 +225,7 @@ export default function MapPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
   const [showPushOptIn, setShowPushOptIn] = useState(false);
+  const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
 
   // Layer state (controls passed to MapView)
@@ -731,6 +732,8 @@ export default function MapPage() {
           showPinLabels={showPinLabels}
           onTransitLoadingChange={setTransitLoading}
           onPoiLoadingChange={setPoiLoading}
+          safetyFilter={safetyFilter}
+          onClearSafetyFilter={() => setSafetyFilter(null)}
         />
 
         <EmergencyButton userId={userId} />
@@ -873,7 +876,7 @@ export default function MapPage() {
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence>
           {activeTab === 'community' && userId && (
-            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} />
+            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} />
           )}
         </AnimatePresence>
 

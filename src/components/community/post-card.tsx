@@ -55,7 +55,11 @@ interface PostCardProps {
   isDark: boolean;
   currentUserId?: string | null;
   onHide?: (postId: string) => void;
+  onSafetyFilter?: (tag: string) => void;
+  onHashtagClick?: (tag: string) => void;
 }
+
+const SAFETY_TAGS = new Set(['#sos', '#urgence', '#harcèlement', '#harcelement', '#unsafe', '#agression', '#alerte']);
 
 const typeStyles = {
   alerte: {
@@ -80,8 +84,9 @@ const typeStyles = {
   },
 };
 
-export default function PostCard({ post, isDark, currentUserId, onHide }: PostCardProps) {
+export default function PostCard({ post, isDark, currentUserId, onHide, onSafetyFilter, onHashtagClick }: PostCardProps) {
   const openContextMenu = useUiStore((s) => s.openContextMenu);
+  const openProfile = useUiStore((s) => s.openProfile);
   const [confirmed, setConfirmed] = useState(false);
   const [confirmCount, setConfirmCount] = useState(post.confirmations || 0);
   const [liked, setLiked] = useState(false);
@@ -218,7 +223,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div
-          onClick={(e) => { e.stopPropagation(); if (post.userId) openContextMenu({ userId: post.userId, username: post.user.name }); }}
+          onClick={(e) => { e.stopPropagation(); if (post.userId) { if (post.userId === currentUserId) openProfile(post.userId); else openContextMenu({ userId: post.userId, username: post.user.name }); } }}
           style={{
             display: "flex",
             alignItems: "center",
@@ -392,9 +397,14 @@ export default function PostCard({ post, isDark, currentUserId, onHide }: PostCa
             if (part.startsWith('#')) {
               const tagName = part.slice(1).toLowerCase();
               const meta = SAFETY_TAG_COLORS[tagName];
+              const isSafety = SAFETY_TAGS.has(part.toLowerCase());
               return (
                 <span
                   key={i}
+                  onClick={() => {
+                    if (isSafety) onSafetyFilter?.(part);
+                    else onHashtagClick?.(part);
+                  }}
                   style={{
                     color: meta?.color ?? '#3BB4C1',
                     fontWeight: 600,

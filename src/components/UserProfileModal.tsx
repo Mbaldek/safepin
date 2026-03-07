@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MoreHorizontal, MessageCircle, UserPlus, UserCheck, Heart, Pencil } from "lucide-react";
+import { X, MoreHorizontal, MessageCircle, UserPlus, UserCheck, Heart, Pencil, Copy, Send, Mail, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/stores/useTheme";
 import { useUiStore } from "@/stores/uiStore";
@@ -97,6 +97,7 @@ export default function UserProfileModal() {
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
   const [wh, setWh] = useState(typeof window !== "undefined" ? window.innerHeight : 800);
 
   useEffect(() => {
@@ -107,7 +108,7 @@ export default function UserProfileModal() {
 
   // Reset snap when opening
   useEffect(() => {
-    if (userId) setSnapPoint("peek");
+    if (userId) { setSnapPoint("peek"); setShowShare(false); }
   }, [userId]);
 
   useEffect(() => {
@@ -130,14 +131,14 @@ export default function UserProfileModal() {
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
         supabase.from("pins").select("id", { count: "exact", head: true }).eq("user_id", userId),
         // Circle count: accepted invitations for this user
-        supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},target_id.eq.${userId}`).eq("status", "accepted"),
+        supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted"),
         supabase.from("community_members").select("community_id, communities(id, name, avatar_emoji)").eq("user_id", userId).limit(8),
         supabase.from("pins").select("id, category, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
         myId ? supabase.from("follows").select("id").eq("follower_id", myId).eq("following_id", userId).maybeSingle() : Promise.resolve({ data: null }),
         // Circle: accepted
         myId ? supabase.from("trusted_contacts").select("id").or(`and(user_id.eq.${myId},contact_id.eq.${userId}),and(user_id.eq.${userId},contact_id.eq.${myId})`).eq("status", "accepted").maybeSingle() : Promise.resolve({ data: null }),
         // Circle: pending
-        myId ? supabase.from("circle_invitations").select("id").eq("sender_id", myId).eq("target_id", userId).eq("status", "pending").maybeSingle() : Promise.resolve({ data: null }),
+        myId ? supabase.from("circle_invitations").select("id").eq("sender_id", myId).eq("receiver_id", userId).eq("status", "pending").maybeSingle() : Promise.resolve({ data: null }),
       ]);
 
       if (cancelled) return;
@@ -208,7 +209,7 @@ export default function UserProfileModal() {
     try {
       const { error: invErr } = await supabase.from("circle_invitations").insert({
         sender_id: currentUserId,
-        target_id: userId,
+        receiver_id: userId,
         status: "pending",
       });
       if (invErr) throw invErr;
@@ -269,17 +270,15 @@ export default function UserProfileModal() {
           <motion.div
             key="profile-sheet"
             initial={{ y: "100%" }}
-            animate={{ y: 0 }}
+            animate={{ y: 0, height: sheetH }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
             style={{
               position: "fixed", bottom: 0, left: 0, right: 0,
               zIndex: 200,
-              height: sheetH,
               borderTopLeftRadius: 22, borderTopRightRadius: 22,
               background: C.card,
               display: "flex", flexDirection: "column",
-              transition: `height 380ms ${SPRING}`,
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
             }}
           >
@@ -317,15 +316,109 @@ export default function UserProfileModal() {
               <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1, textAlign: "center" }}>
                 {profile?.username ? `@${profile.username}` : "Profil"}
               </span>
-              <button style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: C.inputBg, border: "none", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: C.muted, flexShrink: 0,
-              }}>
+              <button
+                onClick={() => setShowShare((v) => !v)}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: C.inputBg, border: "none", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: C.muted, flexShrink: 0,
+                }}
+              >
                 <MoreHorizontal size={15} />
               </button>
             </div>
+
+            {/* SHARE SHEET */}
+            <AnimatePresence>
+              {showShare && (
+                <>
+                  <motion.div
+                    key="share-backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowShare(false)}
+                    style={{
+                      position: "absolute", inset: 0, zIndex: 10,
+                      background: "rgba(0,0,0,0.25)", borderTopLeftRadius: 22, borderTopRightRadius: 22,
+                    }}
+                  />
+                  <motion.div
+                    key="share-menu"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.18 }}
+                    style={{
+                      position: "absolute", top: 50, right: 16, zIndex: 11,
+                      background: C.bg, borderRadius: 14,
+                      border: `1px solid ${C.border}`,
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                      padding: "6px 0", minWidth: 220,
+                    }}
+                  >
+                    {[
+                      {
+                        icon: <Copy size={16} />, label: "Copier le lien",
+                        action: () => {
+                          const url = `${window.location.origin}/profil/@${profile?.username ?? userId}`;
+                          navigator.clipboard.writeText(url).then(() => toast.success("Lien copie !")).catch(() => toast.error("Erreur"));
+                        },
+                      },
+                      {
+                        icon: <Share2 size={16} />, label: "WhatsApp",
+                        action: () => {
+                          const url = `${window.location.origin}/profil/@${profile?.username ?? userId}`;
+                          const text = `Decouvre le profil de ${displayName} sur Breveil ! ${url}`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                        },
+                      },
+                      {
+                        icon: <Send size={16} />, label: "Telegram",
+                        action: () => {
+                          const url = `${window.location.origin}/profil/@${profile?.username ?? userId}`;
+                          const text = `Decouvre le profil de ${displayName} sur Breveil !`;
+                          window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank");
+                        },
+                      },
+                      {
+                        icon: <Mail size={16} />, label: "Email",
+                        action: () => {
+                          const url = `${window.location.origin}/profil/@${profile?.username ?? userId}`;
+                          const subject = `Profil de ${displayName} sur Breveil`;
+                          const body = `Decouvre le profil de ${displayName} sur Breveil !\n${url}`;
+                          window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                        },
+                      },
+                      {
+                        icon: <MessageCircle size={16} />, label: "Envoyer par message",
+                        action: () => {
+                          handleMessage();
+                        },
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => { item.action(); setShowShare(false); }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          width: "100%", padding: "10px 16px",
+                          background: "none", border: "none", cursor: "pointer",
+                          fontSize: 13, fontWeight: 500, color: C.text,
+                          textAlign: "left",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = C.inputBg; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                      >
+                        <span style={{ color: C.muted, display: "flex", alignItems: "center" }}>{item.icon}</span>
+                        {item.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
 
             {/* SCROLLABLE CONTENT */}
             <div

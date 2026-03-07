@@ -223,7 +223,15 @@ export default function CercleTab({ isDark, userId, onOpenConversation }: Cercle
       toast.error("Erreur");
       return;
     }
+    // Also sync circle_invitations status
     const accepted = pendingRequests.find((r) => r.id === requestId);
+    if (accepted && userId) {
+      await supabase
+        .from("circle_invitations")
+        .update({ status: "accepted" })
+        .eq("sender_id", accepted.user_id)
+        .eq("receiver_id", userId);
+    }
     setPendingRequests((p) => p.filter((r) => r.id !== requestId));
     if (accepted) {
       setContacts((prev) => [

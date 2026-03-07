@@ -117,7 +117,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
         supabase.from("profiles").select("username, display_name, city, bio, avatar_url, is_public").eq("id", userId).single(),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
-        supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},target_id.eq.${userId}`).eq("status", "accepted"),
+        supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted"),
       ]);
       if (profileRes.data) {
         const p = profileRes.data;
@@ -249,12 +249,12 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     (async () => {
       const { data } = await supabase
         .from("circle_invitations")
-        .select("id, sender_id, target_id, status")
-        .or(`sender_id.eq.${userId},target_id.eq.${userId}`)
+        .select("id, sender_id, receiver_id, status")
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .in("status", ["accepted", "pending"]);
 
       const otherIds = (data || []).map((r) =>
-        r.sender_id === userId ? r.target_id : r.sender_id
+        r.sender_id === userId ? r.receiver_id : r.sender_id
       );
 
       let profileMap = new Map<string, Record<string, unknown>>();
@@ -267,7 +267,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
       }
 
       const members: CircleMember[] = (data || []).map((r) => {
-        const otherId = r.sender_id === userId ? r.target_id : r.sender_id;
+        const otherId = r.sender_id === userId ? r.receiver_id : r.sender_id;
         const p = profileMap.get(otherId);
         return {
           invitationId: r.id,

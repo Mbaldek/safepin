@@ -37,9 +37,10 @@ function pickGradient(id: string): string[] {
 
 interface CommunityViewProps {
   onClose: () => void;
+  onSafetyFilter?: (tag: string) => void;
 }
 
-export default function CommunityView({ onClose }: CommunityViewProps) {
+export default function CommunityView({ onClose, onSafetyFilter }: CommunityViewProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
 
   const userId = useStore((s) => s.userId);
@@ -49,6 +50,8 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
 
   const [activeTab, setActiveTab] = useState(0);
   const [showCompose, setShowCompose] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (communityDefaultTab !== null) {
@@ -183,6 +186,9 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
         isDark={isDark}
         onCompose={() => setShowCompose(true)}
         onClose={onClose}
+        onSearch={(q) => setSearchQuery(q)}
+        forceOpen={searchOpen}
+        searchValue={searchQuery}
       />
 
       <TabBar
@@ -207,6 +213,12 @@ export default function CommunityView({ onClose }: CommunityViewProps) {
                 setShowStoryViewer(true);
               }}
               onPublish={() => setShowStoryCompose(true)}
+              onSafetyFilter={onSafetyFilter}
+              searchQuery={searchQuery}
+              onHashtagClick={(tag) => {
+                setSearchQuery(tag);
+                setSearchOpen(true);
+              }}
             />
           </>
         )}

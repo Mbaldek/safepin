@@ -12,6 +12,9 @@ interface FilTabProps {
   userId: string | null;
   onStoryClick: (index: number) => void;
   onPublish: () => void;
+  onSafetyFilter?: (tag: string) => void;
+  searchQuery?: string;
+  onHashtagClick?: (tag: string) => void;
 }
 
 const GRADIENTS = [
@@ -36,7 +39,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [sosPosts, setSosPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
@@ -301,12 +304,43 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
             return true;
           });
 
-          const visible = deduped.filter((p) => !hiddenIds.has(p.id));
+          let visible = deduped.filter((p) => !hiddenIds.has(p.id));
+
+          // Search filter
+          if (searchQuery && searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            visible = visible.filter((p) => {
+              if (p.content?.toLowerCase().includes(q)) return true;
+              const hashtags = p.content?.match(/#[\wÀ-ÿ]+/g) ?? [];
+              return hashtags.some((h: string) => h.toLowerCase().includes(q));
+            });
+          }
 
           if (visible.length === 0) {
+            if (searchQuery && searchQuery.trim()) {
+              return (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
+                  <span style={{ fontSize: 32 }}>🔍</span>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
+                    Aucun post pour &quot;{searchQuery.trim()}&quot;
+                  </p>
+                  <button
+                    onClick={() => onHashtagClick?.('')}
+                    style={{
+                      marginTop: 4, padding: "6px 16px", borderRadius: 20,
+                      background: isDark ? "#243050" : "#F1F5F9",
+                      border: "none", cursor: "pointer",
+                      fontSize: 13, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B",
+                    }}
+                  >
+                    Effacer
+                  </button>
+                </div>
+              );
+            }
             return (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
-                <span style={{ fontSize: 32 }}>{sosPosts.length > 0 ? '\uD83D\uDD0D' : '\uD83D\uDCDD'}</span>
+                <span style={{ fontSize: 32 }}>{sosPosts.length > 0 ? '🔍' : '📝'}</span>
                 <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                   {sosPosts.length > 0 ? 'Aucun post dans ce filtre' : 'Aucun post pour l\u0027instant'}
                 </p>
@@ -327,7 +361,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish }: FilT
               {post._isSos ? (
                 <SOSPostCard post={post} currentUserId={userId} />
               ) : (
-                <PostCard post={post} isDark={isDark} currentUserId={userId} onHide={handleHide} />
+                <PostCard post={post} isDark={isDark} currentUserId={userId} onHide={handleHide} onSafetyFilter={onSafetyFilter} onHashtagClick={onHashtagClick} />
               )}
             </motion.div>
           ));

@@ -19,6 +19,7 @@ interface MapPinProps {
   };
   onClick: (pin: any) => void;
   showLabels?: boolean;
+  opacity?: number;
 }
 
 const CATEGORY_CONFIG: Record<string, { color: string; emoji: string; label: string; group: string }> = {
@@ -123,7 +124,7 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
   return container;
 }
 
-export function MapPin({ map, pin, onClick, showLabels = true }: MapPinProps) {
+export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1 }: MapPinProps) {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const labelRef = useRef<HTMLDivElement | null>(null);
   const onClickRef = useRef(onClick);
@@ -188,6 +189,15 @@ export function MapPin({ map, pin, onClick, showLabels = true }: MapPinProps) {
       labelRef.current.style.display = showLabels ? '' : 'none';
     }
   }, [showLabels]);
+
+  // Update opacity without recreating marker
+  useEffect(() => {
+    const el = markerRef.current?.getElement();
+    if (el) {
+      el.style.opacity = String(opacity);
+      el.style.transition = 'opacity 300ms ease';
+    }
+  }, [opacity]);
 
   return null;
 }
