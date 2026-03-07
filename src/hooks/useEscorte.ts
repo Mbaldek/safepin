@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useStore } from '@/stores/useStore'
 import type { Escorte, EscorteCircleMember, EscorteView, RouteMode } from '@/types'
 
 export type UseEscorteReturn = ReturnType<typeof useEscorte>
@@ -183,6 +184,7 @@ export function useEscorte(userId: string) {
     watchRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
+        useStore.getState().setUserLocation({ lat, lng })
         await supabase
           .from('escortes')
           .update({

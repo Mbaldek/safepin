@@ -232,6 +232,16 @@ activeTrip, setActiveTrip,
     setShowIncidentsList(false);
   }, [setActiveSheet, setShowIncidentsList]);
 
+  // When a store-driven overlay opens (pin detail, report), close all local overlays
+  useEffect(() => {
+    if (activeSheet !== 'none') {
+      setShowNotifications(false);
+      setShowSettings(false);
+      setShowSearch(false);
+      setShowCityContext(false);
+    }
+  }, [activeSheet]);
+
   // Layer state (controls passed to MapView)
   const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>('custom');
   const [showBus, setShowBus] = useState(false);
@@ -609,7 +619,7 @@ activeTrip, setActiveTrip,
                 {/* Search icon — map tab only */}
                 {activeTab === 'map' && (
                   <button
-                    onClick={() => setShowSearch(true)}
+                    onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowNotifications(false); setShowSettings(false); setShowCityContext(false); setShowSearch(true); }}
                     aria-label="Search location"
                     className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
                   >
@@ -618,7 +628,7 @@ activeTrip, setActiveTrip,
                 )}
                 {/* Notification bell */}
                 <button
-                  onClick={() => setShowNotifications(true)}
+                  onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowSettings(false); setShowSearch(false); setShowCityContext(false); setShowNotifications(true); }}
                   aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                   className="relative w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
                 >
@@ -639,7 +649,7 @@ activeTrip, setActiveTrip,
                   aria-label="Settings"
                   className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
                   style={{ backgroundColor: showSettings ? 'var(--accent)' : 'transparent' }}
-                  onClick={() => setShowSettings((v) => !v)}
+                  onClick={() => { if (!showSettings) { setActiveSheet('none'); setShowIncidentsList(false); setShowNotifications(false); setShowSearch(false); setShowCityContext(false); } setShowSettings((v) => !v); }}
                 >
                   <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
                 </button>

@@ -607,19 +607,21 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             </div>
             <span style={{ fontSize: 12, color: tk.ts }}>4 personnes</span>
           </div>
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             style={{
               ...btnPrimary,
-              width: 'auto', padding: '9px 16px',
+              width: 'auto', padding: '7px 14px',
+              fontSize: 12, gap: 6, borderRadius: 12,
               opacity: escorte.isStarting ? 0.7 : 1,
               cursor: escorte.isStarting ? 'default' : 'pointer',
             }}
             onClick={escorte.startEscorteImmediate}
             disabled={escorte.isStarting}
           >
-            <Users size={13} strokeWidth={2} />
+            <Users size={12} strokeWidth={2} />
             {escorte.isStarting ? 'Connexion...' : 'Informer mon cercle'}
-          </button>
+          </motion.button>
         </div>
       </div>
 

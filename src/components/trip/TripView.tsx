@@ -21,6 +21,7 @@ import {
   Repeat2,
 } from "lucide-react";
 import { fetchDirectionsMulti, formatDuration, formatDistance } from "@/lib/directions";
+import { fetchTransitRoute } from "@/lib/transit";
 import { scoreRoute } from "@/lib/route-scoring";
 import RouteCard from "@/components/trip/RouteCard";
 import type { RouteOption } from "@/stores/useStore";
@@ -130,7 +131,7 @@ export default function TripView({ onClose }: TripViewProps) {
       .then(({ data }) => { if (data) setSavedPlaces(data); });
   }, [userId]);
   const [routeMode, setRouteMode] = useState<"safe" | "balanced" | "fast">("balanced");
-  const [transportMode, setTransportMode] = useState<"walk" | "bike" | "car">("walk");
+  const [transportMode, setTransportMode] = useState<"walk" | "transit" | "bike" | "car">("walk");
   const [fetchedRoutes, setFetchedRoutes] = useState<RouteOption[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
@@ -242,6 +243,31 @@ export default function TripView({ onClose }: TripViewProps) {
         const from: [number, number] = [origin.lng, origin.lat];
         const to: [number, number] = destCoords;
 
+        const ROUTE_COLORS = ["#34D399", "#F5C341", "#EF4444"];
+
+        if (transportMode === "transit") {
+          const transitRoutes = await fetchTransitRoute(from, to);
+          if (fetchId !== routeFetchRef.current) return;
+          if (!transitRoutes.length) {
+            setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoutes(false);
+            return;
+          }
+          const routeOptions: RouteOption[] = transitRoutes.slice(0, 3).map((tr, i) => ({
+            id: `transit-${i}`,
+            label: i === 0 ? "Plus rapide" : i === 1 ? "Équilibrée" : "Moins de marche",
+            color: ROUTE_COLORS[i] ?? "#94A3B8",
+            coords: tr.coords,
+            duration: tr.totalDuration,
+            distance: 0,
+            dangerScore: scoreRoute(tr.coords, pins),
+          }));
+          setFetchedRoutes(routeOptions);
+          setSelectedIdx(0);
+          setPendingRoutes(routeOptions);
+          setLoadingRoutes(false);
+          return;
+        }
+
         const results = await fetchDirectionsMulti(from, to, transportMode);
         if (fetchId !== routeFetchRef.current) return;
 
@@ -251,8 +277,6 @@ export default function TripView({ onClose }: TripViewProps) {
           setLoadingRoutes(false);
           return;
         }
-
-        const ROUTE_COLORS = ["#34D399", "#F5C341", "#EF4444"];
 
         // Score each route
         const scored = results.map((r) => ({
@@ -266,8 +290,8 @@ export default function TripView({ onClose }: TripViewProps) {
         const fastestIdx = scored.reduce((best, r, i) => r.duration < scored[best].duration ? i : best, 0);
 
         const routeOptions: RouteOption[] = scored.map((r, i) => {
-          let label = "Equilibree";
-          if (i === 0) label = "Plus sure";
+          let label = "Équilibrée";
+          if (i === 0) label = "Plus sûre";
           if (i === fastestIdx && fastestIdx !== 0) label = "Plus rapide";
           return {
             id: `${transportMode}-${i}`,
@@ -1301,8 +1325,9 @@ export default function TripView({ onClose }: TripViewProps) {
 
   // Render State 3 - Planifier
   const TRANSPORT_MODES = [
-    { id: "walk" as const, label: "A pied", emoji: "\uD83D\uDEB6" },
-    { id: "bike" as const, label: "Velo", emoji: "\uD83D\uDEB2" },
+    { id: "walk" as const, label: "À pied", emoji: "\uD83D\uDEB6" },
+    { id: "transit" as const, label: "Transports", emoji: "\uD83D\uDE87" },
+    { id: "bike" as const, label: "Vélo", emoji: "\uD83D\uDEB2" },
     { id: "car" as const, label: "Voiture", emoji: "\uD83D\uDE97" },
   ];
 
@@ -1398,7 +1423,7 @@ export default function TripView({ onClose }: TripViewProps) {
       </div>
 
       {/* Transport mode pills */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12, borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`, paddingBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12, borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`, paddingBottom: 12 }}>
         {TRANSPORT_MODES.map((mode) => {
           const isActive = transportMode === mode.id;
           return (

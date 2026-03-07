@@ -661,6 +661,9 @@ function MapView({
   const departDragMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const previewMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
+  const onMapTapRef = useRef(onMapTap);
+  onMapTapRef.current = onMapTap;
+
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     pins, mapFilters, setSelectedPin, activeSheet, setActiveSheet, mapFlyTo, setMapFlyTo,
@@ -892,14 +895,23 @@ function MapView({
     });
 
     // Tap on empty canvas → move pin or dismiss overlays
+    const INTERACTIVE_LAYERS = ['clusters', 'unclustered-point', TRANSIT_CIRCLE, SAFE_CIRCLE, SAFE_PARTNER];
     const onMapClick = (e: mapboxgl.MapMouseEvent) => {
+      // Only check interactive layers (not roads/labels/buildings)
+      let hitInteractive = false;
+      try {
+        const existing = INTERACTIVE_LAYERS.filter((l) => m.getLayer(l));
+        if (existing.length > 0) {
+          hitInteractive = m.queryRenderedFeatures(e.point, { layers: existing }).length > 0;
+        }
+      } catch { /* layer not ready yet */ }
+      if (hitInteractive) return;
+
       const store = useStore.getState();
-      const features = m.queryRenderedFeatures(e.point);
-      if (features.length > 0) return;
       if (store.activeSheet === 'report') {
         store.setNewPinCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       } else {
-        onMapTap?.();
+        onMapTapRef.current?.();
       }
     };
 
