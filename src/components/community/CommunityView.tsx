@@ -234,14 +234,14 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
     const userIds = [...new Set(data.map((s) => s.user_id))];
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url')
+      .select('id, display_name, username, avatar_url')
       .in('id', userIds);
     const pMap = new Map((profiles || []).map((p) => [p.id, p]));
 
     setDbStories(
       data.map((s) => {
         const p = pMap.get(s.user_id);
-        const name = p?.display_name || s.display_name || '?';
+        const name = p?.username || p?.display_name || s.display_name || '?';
         return {
           id: s.id,
           user_id: s.user_id,
@@ -443,6 +443,7 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
                 setSearchOpen(true);
               }}
               onHashtagsReady={setFeedHashtags}
+              refreshKey={refreshKey}
             />
           </>
         )}

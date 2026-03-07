@@ -11,6 +11,7 @@ interface StoriesRowProps {
   communityIds: string[];
   onStoryClick: (index: number) => void;
   onPublish: () => void;
+  refreshKey?: number;
 }
 
 interface StoryItem {
@@ -35,7 +36,7 @@ function pickGradient(id: string): string[] {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 }
 
-export default function StoriesRow({ isDark, userId, communityIds, onStoryClick, onPublish }: StoriesRowProps) {
+export default function StoriesRow({ isDark, userId, communityIds, onStoryClick, onPublish, refreshKey }: StoriesRowProps) {
   const [stories, setStories] = useState<StoryItem[]>([]);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
       setStories(
         data.map((s) => {
           const p = pMap.get(s.user_id);
-          const name = p?.display_name || p?.first_name || p?.username || s.display_name || "Membre";
+          const name = p?.username || p?.display_name || p?.first_name || s.display_name || "Membre";
           return {
             id: s.id,
             name,
@@ -81,7 +82,7 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
         })
       );
     })();
-  }, [communityIds]);
+  }, [communityIds, refreshKey]);
 
   // Always prepend the "+ Publier" slot
   const allItems: StoryItem[] = [

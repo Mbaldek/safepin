@@ -17,6 +17,7 @@ interface FilTabProps {
   searchQuery?: string;
   onHashtagClick?: (tag: string) => void;
   onHashtagsReady?: (tags: Map<string, number>) => void;
+  refreshKey?: number;
 }
 
 const GRADIENTS = [
@@ -41,7 +42,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [sosPosts, setSosPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
@@ -99,12 +100,24 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         return;
       }
 
+      // Pre-fetch viewer's social graph for visibility filtering
+      const [{ data: myFollows }, { data: myCircle1 }, { data: myCircle2 }] = await Promise.all([
+        supabase.from("follows").select("following_id").eq("follower_id", userId),
+        supabase.from("trusted_contacts").select("contact_id").eq("user_id", userId).eq("status", "accepted"),
+        supabase.from("trusted_contacts").select("user_id").eq("contact_id", userId).eq("status", "accepted"),
+      ]);
+      const followingSet = new Set((myFollows || []).map((f: any) => f.following_id));
+      const circleSet = new Set([
+        ...(myCircle1 || []).map((c: any) => c.contact_id),
+        ...(myCircle2 || []).map((c: any) => c.user_id),
+      ]);
+
       const { data: messages } = await supabase
         .from("community_messages")
-        .select("id, content, created_at, user_id, display_name, community_id")
+        .select("id, content, created_at, user_id, display_name, community_id, visibility")
         .in("community_id", ids)
         .order("created_at", { ascending: false })
-        .limit(30);
+        .limit(50);
 
       if (!messages?.length) {
         setPosts([]);
@@ -112,7 +125,17 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         return;
       }
 
-      const userIds = [...new Set(messages.map((m) => m.user_id))];
+      // Filter by visibility
+      const visible = messages.filter((m) => {
+        const vis = (m as any).visibility || "public";
+        if (vis === "public") return true;
+        if (m.user_id === userId) return true; // always see own posts
+        if (vis === "followers") return followingSet.has(m.user_id);
+        if (vis === "cercle") return circleSet.has(m.user_id);
+        return true;
+      });
+
+      const userIds = [...new Set(visible.map((m) => m.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, display_name, first_name, username, avatar_emoji, avatar_url")
@@ -121,7 +144,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
 
       // Fetch comment counts for all posts
-      const postIds = messages.map((m) => m.id);
+      const postIds = visible.map((m) => m.id);
       const { data: commentRows } = await supabase
         .from("post_comments")
         .select("post_id")
@@ -132,7 +155,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
       );
 
       setPosts(
-        messages.map((m) => {
+        visible.map((m) => {
           const p = profileMap.get(m.user_id);
           const displayName = p?.display_name || p?.first_name || m.display_name || "Anonyme";
           const name = p?.username || displayName;
@@ -259,7 +282,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
 
   return (
     <div style={{ paddingBottom: 20 }}>
-      <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} />
+      <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} refreshKey={refreshKey} />
 
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Favoris filter pill */}

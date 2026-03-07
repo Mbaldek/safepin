@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, MapPin, Users, Lock, Image, ChevronRight } from "lucide-react";
+import { X, Image } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ interface CommunityOption {
 export default function ComposeModal({ isDark, userId, onClose }: ComposeModalProps) {
   const [selectedType, setSelectedType] = useState("post");
   const [content, setContent] = useState("");
-  const [audience, setAudience] = useState<"public" | "cercle">("public");
+  const [audience, setAudience] = useState<"public" | "followers" | "cercle">("public");
   const [publishing, setPublishing] = useState(false);
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string>("");
@@ -82,6 +82,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
       user_id: userId,
       display_name: profile?.display_name || null,
       content: content.trim(),
+      visibility: audience,
     }).select("id").single();
 
     if (error) {
@@ -102,9 +103,6 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
     }
     setPublishing(false);
   };
-
-  const selectedCommunityName =
-    communities.find((c) => c.id === selectedCommunityId)?.name || "Choisir un groupe";
 
   return (
     <motion.div
@@ -203,32 +201,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
 
         {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: "auto" }} className="scrollbar-hidden">
-        {/* Community selector */}
-        {communities.length > 0 && (
-          <div style={{ padding: "12px 20px 0" }}>
-            <select
-              value={selectedCommunityId}
-              onChange={(e) => setSelectedCommunityId(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                color: isDark ? "#FFFFFF" : "#0F172A",
-                fontSize: 14,
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              {communities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* Community auto-selected (no UI) */}
 
         {/* Post type selector */}
         <div
@@ -311,51 +284,47 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
 
         {/* Options */}
         <div style={{ padding: "16px 20px" }}>
-          {/* Audience */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 16px",
-              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-              borderRadius: 12,
-              marginBottom: 12,
-              border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {audience === "public" ? (
-                <Users size={18} style={{ color: "#3BB4C1" }} />
-              ) : (
-                <Lock size={18} style={{ color: "#A78BFA" }} />
-              )}
-              <span
-                style={{
-                  fontSize: 14,
-                  color: isDark ? "#FFFFFF" : "#0F172A",
-                }}
-              >
-                {audience === "public" ? "Tout le quartier" : "Mon cercle"}
-              </span>
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() =>
-                setAudience(audience === "public" ? "cercle" : "public")
-              }
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                backgroundColor: isDark ? "#243050" : "#F1F5F9",
-                border: "none",
-                color: isDark ? "#94A3B8" : "#64748B",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Changer
-            </motion.button>
+          {/* Visibility selector — 3 levels */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            {([
+              { id: "public" as const, icon: "🌍", label: "Public", desc: "Visible par tous", color: "#3BB4C1" },
+              { id: "followers" as const, icon: "👥", label: "Abonnés", desc: "Mes abonnés", color: "#F5C341" },
+              { id: "cercle" as const, icon: "🤝", label: "Cercle", desc: "Mon cercle", color: "#A78BFA" },
+            ]).map((opt) => {
+              const selected = audience === opt.id;
+              return (
+                <motion.button
+                  key={opt.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setAudience(opt.id)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "10px 8px",
+                    borderRadius: 12,
+                    border: selected
+                      ? `2px solid ${opt.color}`
+                      : `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                    backgroundColor: selected
+                      ? `${opt.color}15`
+                      : isDark ? "#1E293B" : "#FFFFFF",
+                    cursor: "pointer",
+                    background: selected ? `${opt.color}15` : undefined,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{opt.icon}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: selected ? opt.color : (isDark ? "#FFFFFF" : "#0F172A") }}>
+                    {opt.label}
+                  </span>
+                  <span style={{ fontSize: 10, color: isDark ? "#64748B" : "#94A3B8" }}>
+                    {opt.desc}
+                  </span>
+                </motion.button>
+              );
+            })}
           </div>
 
           {/* Add photo */}
