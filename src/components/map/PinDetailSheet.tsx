@@ -283,10 +283,10 @@ function PinDetailSheet({
             key="pin-detail-sheet"
             style={{
               position: 'fixed',
-              bottom: 70,
+              bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
               left: 0,
               right: 0,
-              zIndex: 200,
+              zIndex: 301,
               background: d ? T.surfaceElevated : '#FFFFFF',
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,

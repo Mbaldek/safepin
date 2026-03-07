@@ -117,7 +117,7 @@ export default function AutocompleteInput({
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="w-full text-sm rounded-xl px-4 py-2.5 outline-none"
+        className="w-full text-base rounded-xl px-4 py-2.5 outline-none"
         style={{
           backgroundColor: C.card,
           border: `1.5px solid ${C.border}`,
@@ -143,7 +143,7 @@ export default function AutocompleteInput({
                 {section.items.map((item, i) => (
                   <button
                     key={i}
-                    onMouseDown={() => select(item)}
+                    onClick={() => select(item)}
                     className="w-full flex items-center gap-2.5 px-4 py-2 text-left transition hover:opacity-70 active:opacity-50"
                   >
                     {item.icon && <span className="text-base shrink-0">{item.icon}</span>}
@@ -184,7 +184,7 @@ export default function AutocompleteInput({
               {geoResults.map((item, i) => (
                 <button
                   key={i}
-                  onMouseDown={() => select(item)}
+                  onClick={() => select(item)}
                   className="w-full flex items-center gap-2.5 px-4 py-2 text-left transition hover:opacity-70 active:opacity-50"
                 >
                   <span className="text-base shrink-0">📍</span>

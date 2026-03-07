@@ -325,7 +325,7 @@ export function ReportSheet() {
                       </button>
                     ))}
                   </div>
-                  {tType && <input placeholder={trans.find(x => x.id === tType)?.p} value={tLine} onChange={e => setTLine(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 14, outline: 'none' }} />}
+                  {tType && <input placeholder={trans.find(x => x.id === tType)?.p} value={tLine} onChange={e => setTLine(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 16, outline: 'none' }} />}
                 </>
               )}
 
@@ -396,7 +396,7 @@ export function ReportSheet() {
                   width: '100%', padding: 10, borderRadius: 10,
                   background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
                   border: `1px solid ${c.border}`,
-                  color: c.text, fontSize: 13, outline: 'none', resize: 'none' as const,
+                  color: c.text, fontSize: 16, outline: 'none', resize: 'none' as const,
                   marginBottom: 12,
                 }}
               />
@@ -482,7 +482,7 @@ export function ReportSheet() {
                   <button onClick={() => setMedia(false)} style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12} /></button>
                 </div>
               )}
-              <textarea placeholder="Description..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, outline: 'none', resize: 'none' }} />
+              <textarea placeholder="Description..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 16, outline: 'none', resize: 'none' }} />
             </>
           )}
 

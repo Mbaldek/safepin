@@ -949,7 +949,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               autoFocus
               style={{
                 flex: 1, background: 'none', border: 'none', outline: 'none',
-                fontSize: 13, color: tk.ts, fontFamily: 'inherit',
+                fontSize: 16, color: tk.ts, fontFamily: 'inherit',
               }}
             />
             {departQuery && (
@@ -1120,7 +1120,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                   border:'1px solid rgba(59,180,193,0.35)',
                   boxShadow:'0 0 0 3px rgba(59,180,193,0.08)',
                   borderRadius:10, padding:'9px 12px 9px 34px',
-                  fontSize:12, fontFamily:'inherit', color: C.btn, outline:'none',
+                  fontSize:16, fontFamily:'inherit', color: C.btn, outline:'none',
                 }}
               />
               {/* Résultats */}

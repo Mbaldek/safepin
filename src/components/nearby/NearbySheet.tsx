@@ -179,7 +179,7 @@ export default function NearbySheet({ onClose }: Props) {
         backgroundColor: C.sheet,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        zIndex: 50,
+        zIndex: 301,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',

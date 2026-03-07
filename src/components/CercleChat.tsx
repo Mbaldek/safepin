@@ -328,7 +328,7 @@ export default function CercleChat({
             padding: '8px 13px',
             border: 'none',
             outline: 'none',
-            fontSize: 12.5,
+            fontSize: 16,
             color: t.textPrimary,
             resize: 'none',
             lineHeight: 1.4,

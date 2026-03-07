@@ -620,7 +620,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSelectedContact(null)}
-                style={{ position: "fixed", inset: 0, zIndex: 190, background: "rgba(0,0,0,0.4)" }}
+                style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)" }}
               />
               <motion.div
                 key="circle-sheet"
@@ -630,7 +630,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 191,
+                  position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 301,
                   background: SC.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22,
                   boxShadow: "0 -10px 40px rgba(0,0,0,0.15)",
                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",

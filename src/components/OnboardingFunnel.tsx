@@ -167,7 +167,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%', padding: '14px 16px',
   background: 'rgba(255,255,255,0.1)',
   border: '1px solid rgba(255,255,255,0.14)',
-  borderRadius: 14, color: '#fff', fontSize: 15,
+  borderRadius: 14, color: '#fff', fontSize: 16,
   fontFamily: 'inherit', outline: 'none',
 };
 

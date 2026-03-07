@@ -727,6 +727,9 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         onPointerUp={handleFabPointerUp}
         onPointerLeave={handleFabPointerUp}
         onPointerCancel={handleFabPointerUp}
+        onTouchStart={(e) => { e.preventDefault(); handleFabPointerDown(e as unknown as React.PointerEvent); }}
+        onTouchEnd={() => handleFabPointerUp()}
+        onTouchCancel={() => handleFabPointerUp()}
         onContextMenu={(e) => e.preventDefault()}
 
         disabled={phase !== 'idle'}
