@@ -147,7 +147,8 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
         style={{
           display: "flex",
           flexDirection: "column",
-          height: "60dvh",
+          flex: 1,
+          minHeight: 0,
         }}
       >
         {/* Chat header */}
@@ -274,7 +275,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
   );
 
   return (
-    <div style={{ padding: "16px" }}>
+    <div style={{ padding: "16px", paddingBottom: 80 }}>
       {/* Search */}
       <div
         style={{

@@ -388,7 +388,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
   }
 
   return (
-    <div style={{ padding: "16px" }}>
+    <div style={{ padding: "16px", paddingBottom: 80 }}>
       {/* Search */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12,

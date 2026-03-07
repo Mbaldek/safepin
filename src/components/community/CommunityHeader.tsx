@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Search, PenSquare, X } from "lucide-react";
+import { PenSquare, X } from "lucide-react";
 
 export interface HashtagSuggestion {
   tag: string;
@@ -14,11 +14,11 @@ interface HeaderProps {
   isDark: boolean;
   onCompose: () => void;
   onClose: () => void;
-  onSearchToggle: () => void;
-  searchOpen: boolean;
+  onSearchToggle?: () => void;
+  searchOpen?: boolean;
 }
 
-export default function Header({ isDark, onCompose, onClose, onSearchToggle, searchOpen }: HeaderProps) {
+export default function Header({ isDark, onCompose, onClose }: HeaderProps) {
   const textColor = isDark ? "#FFFFFF" : "#0F172A";
   const btnBg = isDark ? "#243050" : "#F1F5F9";
 
@@ -57,25 +57,6 @@ export default function Header({ isDark, onCompose, onClose, onSearchToggle, sea
 
       {/* Right side */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={onSearchToggle}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            backgroundColor: searchOpen
-              ? (isDark ? "rgba(59,180,193,0.18)" : "rgba(59,180,193,0.12)")
-              : btnBg,
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-          }}
-        >
-          <Search size={18} style={{ color: searchOpen ? "#3BB4C1" : textColor }} />
-        </motion.button>
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={onCompose}

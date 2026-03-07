@@ -1,18 +1,19 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, X, Users, Plus, Trash2, MessageCircle, User } from "lucide-react";
+import { Check, X, Users, Plus, Trash2, MessageCircle, User, ChevronRight } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useStore } from "@/stores/useStore";
+import { getOrCreateConversation } from "@/lib/dm";
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
   isDark: boolean;
   userId: string | null;
-  onOpenConversation?: (partnerId: string, partnerName: string, partnerAvatar: string | null) => void;
 }
 
 interface ContactRow {
@@ -41,8 +42,9 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function CercleTab({ isDark, userId, onOpenConversation }: CercleTabProps) {
+export default function CercleTab({ isDark, userId }: CercleTabProps) {
   const openProfile = useUiStore((s) => s.openProfile);
+  const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +311,7 @@ export default function CercleTab({ isDark, userId, onOpenConversation }: Cercle
             }}
           >
             <Plus size={14} />
-            Inviter
+            Inviter dans mon cercle
           </motion.button>
         </div>
         {contacts.length === 0 ? (
@@ -579,143 +581,111 @@ export default function CercleTab({ isDark, userId, onOpenConversation }: Cercle
         onAdded={handleAdded}
       />
 
-      {/* Remove contact confirmation */}
+      {/* Contact action sheet */}
       <AnimatePresence>
-        {selectedContact && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedContact(null)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.5)",
-              zIndex: 1000,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-              padding: 16,
-            }}
-          >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: "100%",
-                maxWidth: 360,
-                background: isDark ? "#1E293B" : "#FFFFFF",
-                borderRadius: 16,
-                padding: 20,
-                marginBottom: 16,
-              }}
-            >
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
-                  {selectedContact.name}
-                </div>
-              </div>
-              {/* Envoyer message */}
-              <button
-                onClick={() => {
-                  if (!onOpenConversation) return;
-                  onOpenConversation(selectedContact.contact_id, selectedContact.name, selectedContact.avatarUrl);
-                  setSelectedContact(null);
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px 0",
-                  borderRadius: 12,
-                  background: "#3BB4C1",
-                  border: "none",
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <MessageCircle size={15} />
-                Envoyer message
-              </button>
-              {/* Voir profil */}
-              <button
-                onClick={() => {
-                  openProfile(selectedContact.contact_id);
-                  setSelectedContact(null);
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px 0",
-                  borderRadius: 12,
-                  background: "transparent",
-                  border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
-                  color: isDark ? "#FFFFFF" : "#0F172A",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <User size={15} />
-                Voir profil
-              </button>
-              {/* Supprimer du cercle */}
-              <button
-                onClick={handleRemoveContact}
-                disabled={removing}
-                style={{
-                  width: "100%",
-                  padding: "12px 0",
-                  borderRadius: 12,
-                  background: "#EF4444",
-                  border: "none",
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  opacity: removing ? 0.6 : 1,
-                  marginBottom: 8,
-                }}
-              >
-                <Trash2 size={15} />
-                {removing ? "Suppression…" : "Supprimer du cercle"}
-              </button>
-              {/* Annuler */}
-              <button
+        {selectedContact && (() => {
+          const SC = isDark
+            ? { bg: "#1E293B", text: "#FFFFFF", sub: "#94A3B8", muted: "#64748B", border: "rgba(255,255,255,0.06)", chevron: "#475569" }
+            : { bg: "#FFFFFF", text: "#0F172A", sub: "#64748B", muted: "#94A3B8", border: "rgba(15,23,42,0.06)", chevron: "#CBD5E1" };
+
+          const initials = selectedContact.name
+            .split(/[\s._-]+/)
+            .map((w: string) => w[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2) || "?";
+
+          const handleMessage = async () => {
+            if (!userId) return;
+            try {
+              await getOrCreateConversation(userId, selectedContact.contact_id);
+              setCommunityDefaultTab(3);
+              setSelectedContact(null);
+            } catch {
+              toast.error("Erreur");
+            }
+          };
+
+          const actions = [
+            { emoji: "\uD83D\uDCAC", label: "Message", subtitle: "Ouvrir une conversation", onClick: handleMessage },
+            { emoji: "\uD83D\uDC64", label: "Voir le profil", subtitle: "Fiche publique", onClick: () => { openProfile(selectedContact.contact_id); setSelectedContact(null); } },
+            { emoji: "\uD83D\uDDD1\uFE0F", label: removing ? "Suppression\u2026" : "Retirer du cercle", subtitle: "Supprimer ce contact", onClick: handleRemoveContact, danger: true, loading: removing },
+          ];
+
+          return (
+            <>
+              <motion.div
+                key="circle-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setSelectedContact(null)}
+                style={{ position: "fixed", inset: 0, zIndex: 190, background: "rgba(0,0,0,0.4)" }}
+              />
+              <motion.div
+                key="circle-sheet"
+                initial={{ y: 300 }}
+                animate={{ y: 0 }}
+                exit={{ y: 300 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
                 style={{
-                  width: "100%",
-                  padding: "10px 0",
-                  borderRadius: 12,
-                  background: "transparent",
-                  border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
-                  color: isDark ? "#94A3B8" : "#64748B",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
+                  position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 191,
+                  background: SC.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+                  boxShadow: "0 -10px 40px rgba(0,0,0,0.15)",
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
                 }}
               >
-                Annuler
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
+                {/* Handle */}
+                <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 99, background: isDark ? "rgba(255,255,255,0.15)" : "rgba(15,23,42,0.12)" }} />
+                </div>
+
+                {/* Mini profile */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 20px 14px" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, overflow: "hidden" }}>
+                    {selectedContact.avatarUrl ? (
+                      <img src={selectedContact.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #3BB4C1, #06B6D4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#FFFFFF" }}>
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: SC.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedContact.name}</div>
+                    {selectedContact.relation && <div style={{ fontSize: 12, color: SC.muted, marginTop: 1 }}>{selectedContact.relation}</div>}
+                  </div>
+                </div>
+
+                <div style={{ height: 1, background: SC.border, margin: "0 20px" }} />
+
+                {/* Actions */}
+                <div style={{ padding: "6px 0" }}>
+                  {actions.map((action, i) => (
+                    <div key={i}>
+                      <button
+                        onClick={action.onClick}
+                        disabled={action.loading}
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "13px 20px", background: "none", border: "none", cursor: action.loading ? "default" : "pointer", opacity: action.loading ? 0.6 : 1, textAlign: "left" }}
+                      >
+                        <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{action.emoji}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: action.danger ? "#EF4444" : SC.text }}>{action.label}</div>
+                          <div style={{ fontSize: 12, color: SC.muted, marginTop: 1 }}>{action.subtitle}</div>
+                        </div>
+                        <ChevronRight size={16} style={{ color: SC.chevron, flexShrink: 0 }} />
+                      </button>
+                      {i < actions.length - 1 && (
+                        <div style={{ height: 1, background: SC.border, margin: "0 20px 0 54px" }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

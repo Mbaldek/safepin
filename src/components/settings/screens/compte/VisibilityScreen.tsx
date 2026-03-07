@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Globe, Lock, Shield, AtSign, MapPin, Flag, Calendar } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Shield, Users, AtSign, MapPin, Flag, Calendar } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import type { AccountData, VisibilityLevel } from './types';
 import { springTransition, fadeSlideUp } from './types';
@@ -39,6 +39,7 @@ const stagger = {
 
 const LEVELS: { value: VisibilityLevel; label: string; color: string }[] = [
   { value: 'public', label: 'Public', color: F.cyan },
+  { value: 'followers', label: 'Abonnés', color: F.gold },
   { value: 'circle', label: 'Cercle', color: F.purple },
   { value: 'private', label: 'Privé', color: '#64748B' },
 ];
@@ -194,9 +195,10 @@ export default function VisibilityScreen({ visibility, onSave, onBack }: Visibil
           <motion.div
             variants={fadeSlideUp}
             transition={springTransition}
-            style={{ display: 'flex', gap: 8, marginBottom: 20 }}
+            style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}
           >
             <LegendPill icon={<Globe size={12} />} color={F.cyan} label="Tous les membres" C={C} />
+            <LegendPill icon={<Users size={12} />} color={F.gold} label="Mes abonnés" C={C} />
             <LegendPill icon={<Shield size={12} />} color={F.purple} label="Contacts de confiance" C={C} />
             <LegendPill icon={<Lock size={12} />} color={C.t3} label="Moi uniquement" C={C} />
           </motion.div>
@@ -258,9 +260,9 @@ export default function VisibilityScreen({ visibility, onSave, onBack }: Visibil
                             transition={{ type: 'spring', stiffness: 500, damping: 20 }}
                             style={{
                               flex: 1,
-                              padding: '8px 0',
+                              padding: '7px 0',
                               borderRadius: 10,
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: 600,
                               border: isActive
                                 ? `1.5px solid ${lvl.color}`

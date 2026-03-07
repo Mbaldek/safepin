@@ -686,6 +686,11 @@ body {
   100% { opacity: 1; transform: translateY(0px) scale(1); }
 }
 
+@keyframes hashtag-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
 /* ============================================
    SCROLLBAR HIDDEN
    ============================================ */

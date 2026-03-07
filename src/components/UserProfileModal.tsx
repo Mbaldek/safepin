@@ -21,6 +21,20 @@ interface ProfileData {
   created_at: string;
   bio: string | null;
   is_public: boolean;
+  visibility: Record<string, string> | null;
+}
+
+function canSeeField(
+  level: string | undefined,
+  isOwnProfile: boolean,
+  viewerFollows: boolean,
+  viewerInCircle: boolean,
+): boolean {
+  if (isOwnProfile) return true;
+  if (!level || level === 'public') return true;
+  if (level === 'followers') return viewerFollows || viewerInCircle;
+  if (level === 'circle') return viewerInCircle;
+  return false; // 'private'
 }
 
 interface GroupRow {
@@ -126,7 +140,7 @@ export default function UserProfileModal() {
         circleCountRes, groupsRes, contribRes, isFollowingRes,
         circleAcceptedRes, circlePendingRes,
       ] = await Promise.all([
-        supabase.from("profiles").select("username, display_name, first_name, last_name, avatar_url, verified, city, created_at, bio, is_public").eq("id", userId).single(),
+        supabase.from("profiles").select("username, display_name, first_name, last_name, avatar_url, verified, city, created_at, bio, is_public, visibility").eq("id", userId).single(),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
         supabase.from("pins").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -464,7 +478,7 @@ export default function UserProfileModal() {
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: C.text, textAlign: "center" }}>{displayName}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      {profile.city && <><span>{profile.city}</span><span>·</span></>}
+                      {profile.city && canSeeField(profile.visibility?.city, isOwnProfile, isFollowing, circleStatus === "member") && <><span>{profile.city}</span><span>·</span></>}
                       <span>Membre depuis {formatMemberSince(profile.created_at)}</span>
                     </div>
                   </div>

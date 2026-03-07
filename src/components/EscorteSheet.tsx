@@ -587,7 +587,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         <div style={{ fontSize: 10, fontWeight: 700, color: T.gradientStart, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 10 }}>
           TON CERCLE
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex' }}>
               {['Marie','Tom','Alex','Sara'].map((name, i) => {
@@ -618,7 +618,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             disabled={escorte.isStarting}
           >
             <Users size={13} strokeWidth={2} />
-            {escorte.isStarting ? 'Connexion...' : 'Notifier mon cercle'}
+            {escorte.isStarting ? 'Connexion...' : 'Informer mon cercle'}
           </button>
         </div>
       </div>
@@ -715,97 +715,112 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         {/* Modal card */}
         <motion.div
           key="notifying-card"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.92 }}
           transition={springConfig}
           style={{
             position: 'fixed',
-            bottom: 100,
+            top: '50%',
             left: '50%',
-            transform: 'translateX(-50%)',
+            x: '-50%',
+            y: '-50%',
             width: '88%',
             maxWidth: 340,
             background: 'var(--surface-card)',
             border: '1px solid var(--border-default)',
             borderRadius: 20,
             boxShadow: T.shadowLg,
-            padding: '16px 16px 12px',
+            padding: 0,
             zIndex: 300,
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
+            overflow: 'hidden',
           }}
         >
-          {/* Row 1 — Icon + status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              background: 'rgba(59,180,193,0.10)', border: '1px solid rgba(59,180,193,0.20)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Users size={15} strokeWidth={1.5} color="#3BB4C1" />
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-              {hasResponded
-                ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`
-                : 'Notification envoyée · En attente…'}
-            </span>
-          </div>
+          {/* Gradient accent strip */}
+          <div style={{
+            height: 4,
+            background: 'linear-gradient(90deg, #3BB4C1, #A78BFA)',
+            borderRadius: '20px 20px 0 0',
+          }} />
 
-          {/* Row 2 — Circle member avatars */}
-          {escorte.circleMembers.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {escorte.circleMembers.slice(0, 5).map((m, i) => {
-                const name = m.profiles?.name ?? '?'
-                const col = avatarColor(name)
-                return (
-                  <div key={m.id} style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: `${col}25`,
-                    border: '2px solid var(--surface-card)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 700, color: col,
-                    marginLeft: i > 0 ? -6 : 0,
-                    flexShrink: 0,
-                  }}>
-                    {name[0]}
-                  </div>
-                )
-              })}
+          <div style={{ padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Row 1 — Icon + status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <motion.div
+                animate={!hasResponded ? { scale: [1, 1.15, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, rgba(59,180,193,0.15), rgba(167,139,250,0.15))',
+                  border: '1px solid rgba(59,180,193,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <Users size={16} strokeWidth={1.5} color="#3BB4C1" />
+              </motion.div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+                {hasResponded
+                  ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`
+                  : 'Notification envoyée · En attente…'}
+              </span>
             </div>
-          )}
 
-          {/* Row 3 — Actions */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => escorte.endEscorte()}
-              style={{
-                flex: 1, padding: '10px',
-                background: 'transparent',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-secondary)',
-                borderRadius: 99,
-                fontFamily: 'inherit', fontSize: 14,
-                cursor: 'pointer',
-              }}
-            >
-              Annuler
-            </button>
-            <button
-              onClick={() => escorte.setView('escorte-live')}
-              style={{
-                flex: 2, padding: '10px 16px',
-                background: 'var(--text-primary)',
-                color: 'var(--text-inverse)',
-                border: 'none',
-                borderRadius: 99,
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {hasResponded ? 'Continuer →' : 'Démarrer →'}
-            </button>
+            {/* Row 2 — Circle member avatars */}
+            {escorte.circleMembers.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {escorte.circleMembers.slice(0, 5).map((m, i) => {
+                  const name = m.profiles?.name ?? '?'
+                  const col = avatarColor(name)
+                  return (
+                    <div key={m.id} style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: `${col}25`,
+                      border: '2px solid var(--surface-card)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700, color: col,
+                      marginLeft: i > 0 ? -6 : 0,
+                      flexShrink: 0,
+                    }}>
+                      {name[0]}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Row 3 — Actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => escorte.endEscorte()}
+                style={{
+                  flex: 1, padding: '10px',
+                  background: 'transparent',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: 99,
+                  fontFamily: 'inherit', fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => escorte.setView('escorte-live')}
+                style={{
+                  flex: 2, padding: '10px 16px',
+                  background: 'linear-gradient(135deg, #3BB4C1, #A78BFA)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 99,
+                  fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {hasResponded ? 'Continuer →' : 'Démarrer →'}
+              </button>
+            </div>
           </div>
         </motion.div>
       </>
@@ -1258,14 +1273,13 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       {/* Modal card */}
       <motion.div
         key="arrived"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
+        animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+        exit={{ opacity: 0, x: '-50%', y: '-50%' }}
         transition={gentleSpring}
         style={{
           position: 'fixed',
           top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
           width: '88%', maxWidth: 360,
           borderRadius: 24,
           background: 'var(--surface-card)',
@@ -1507,7 +1521,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       transition={springConfig}
       style={{
         position:            'absolute',
-        bottom:              0,
+        bottom:              64,
         left:                0,
         right:               0,
         background:          d ? T.surfaceElevated : '#FFFFFF',

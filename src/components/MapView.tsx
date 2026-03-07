@@ -1643,11 +1643,11 @@ function MapView({
           onClick={() => map.current?.easeTo({ bearing: 0, duration: 400 })}
           style={{
             position: 'absolute',
-            top: 160,
-            right: 12,
-            width: 40,
-            height: 40,
-            borderRadius: 8,
+            top: 56,
+            right: 10,
+            width: 44,
+            height: 44,
+            borderRadius: 10,
             backgroundColor: '#fff',
             border: '1px solid rgba(0,0,0,0.1)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',

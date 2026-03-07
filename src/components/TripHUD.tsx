@@ -47,7 +47,7 @@ export default function TripHUD({
           transition={{ type: 'spring', stiffness: 300, damping: 32 }}
           style={{
             position: 'absolute',
-            bottom: 0,
+            bottom: 64,
             left: 0, right: 0,
             zIndex: 200,
             background: C.bg,

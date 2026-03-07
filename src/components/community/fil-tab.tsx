@@ -2,8 +2,9 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useTrendingHashtags } from "@/hooks/useHashtags";
 import StoriesRow from "./stories-row";
 import PostCard from "./post-card";
 import { SOSPostCard } from "./CommunityHub";
@@ -18,6 +19,7 @@ interface FilTabProps {
   onHashtagClick?: (tag: string) => void;
   onHashtagsReady?: (tags: Map<string, number>) => void;
   refreshKey?: number;
+  onSearchToggle?: () => void;
 }
 
 const GRADIENTS = [
@@ -42,7 +44,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey, onSearchToggle }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [sosPosts, setSosPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
@@ -51,6 +53,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [sosTab, setSosTab] = useState<'active' | 'resolved' | 'notifs'>('active');
   const [showFavoris, setShowFavoris] = useState(false);
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
+  const [activeHashtagFilter, setActiveHashtagFilter] = useState<string | null>(null);
+  const { trending } = useTrendingHashtags();
 
   const handleHide = useCallback((postId: string) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
@@ -284,29 +288,85 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
     <div style={{ paddingBottom: 20 }}>
       <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} refreshKey={refreshKey} />
 
+      {/* Trending bar: search + favoris + hashtag pills */}
+      <div
+        className="scrollbar-hidden"
+        style={{
+          display: 'flex',
+          gap: 8,
+          padding: '8px 16px',
+          overflowX: 'auto',
+          alignItems: 'center',
+        }}
+      >
+        {/* Search pill */}
+        <button
+          onClick={() => onSearchToggle?.()}
+          style={{
+            width: 34, height: 34, minWidth: 34, borderRadius: 99,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: isDark ? '#1E293B' : '#F1F5F9',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'}`,
+            cursor: 'pointer',
+          }}
+        >
+          <Search size={16} style={{ color: '#3BB4C1' }} />
+        </button>
+
+        {/* Favoris pill */}
+        <button
+          onClick={() => setShowFavoris(f => !f)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '6px 14px', borderRadius: 99, whiteSpace: 'nowrap',
+            fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+            cursor: 'pointer', transition: 'all 0.15s ease',
+            background: showFavoris
+              ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
+              : (isDark ? '#1E293B' : '#F1F5F9'),
+            border: `1px solid ${showFavoris
+              ? 'rgba(251,191,36,0.3)'
+              : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+            color: showFavoris ? '#FBBF24' : (isDark ? '#94A3B8' : '#64748B'),
+          }}
+        >
+          <Bookmark size={13} fill={showFavoris ? '#FBBF24' : 'none'} />
+          <span>Favoris</span>
+        </button>
+
+        {/* Trending hashtag pills */}
+        {trending.map((t) => {
+          const isActive = activeHashtagFilter === t.tag;
+          const tagColor = t.color || '#3BB4C1';
+          return (
+            <button
+              key={t.id}
+              onClick={() => {
+                if (isActive) {
+                  setActiveHashtagFilter(null);
+                  onHashtagClick?.('');
+                } else {
+                  setActiveHashtagFilter(t.tag);
+                  onHashtagClick?.(`#${t.tag}`);
+                }
+              }}
+              style={{
+                padding: '6px 12px', borderRadius: 99, whiteSpace: 'nowrap',
+                fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                cursor: 'pointer', transition: 'all 0.15s ease',
+                background: isActive ? `${tagColor}15` : (isDark ? '#1E293B' : '#F1F5F9'),
+                border: `1px solid ${isActive ? tagColor : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+                color: isActive ? tagColor : (isDark ? '#94A3B8' : '#64748B'),
+                animation: t.count > 10 ? 'hashtag-pulse 2s infinite' : undefined,
+              }}
+            >
+              #{t.tag} · {t.count}
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* Favoris filter pill */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => setShowFavoris(f => !f)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '6px 14px', borderRadius: 20,
-              fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-              cursor: 'pointer', transition: 'all 0.15s ease',
-              background: showFavoris
-                ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
-                : (isDark ? 'var(--surface-elevated, #273449)' : '#F1F5F9'),
-              border: `1px solid ${showFavoris
-                ? 'rgba(251,191,36,0.3)'
-                : (isDark ? 'var(--border-default, rgba(255,255,255,0.08))' : '#E2E8F0')}`,
-              color: showFavoris ? '#FBBF24' : (isDark ? '#94A3B8' : '#64748B'),
-            }}
-          >
-            <Bookmark size={13} fill={showFavoris ? '#FBBF24' : 'none'} />
-            <span>Favoris</span>
-          </button>
-        </div>
 
         {/* SOS filter tabs — only shown when SOS posts exist */}
         {sosPosts.length > 0 && (
@@ -395,6 +455,15 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               if (p.content?.toLowerCase().includes(q)) return true;
               const hashtags = p.content?.match(/#[\wÀ-ÿ]+/g) ?? [];
               return hashtags.some((h: string) => h.toLowerCase().includes(q));
+            });
+          }
+
+          // Hashtag filter (from trending bar)
+          if (activeHashtagFilter) {
+            const ht = activeHashtagFilter.toLowerCase();
+            visible = visible.filter((p) => {
+              const hashtags = p.content?.match(/#[\wÀ-ÿ]+/g) ?? [];
+              return hashtags.some((h: string) => h.replace(/^#/, '').toLowerCase() === ht);
             });
           }
 

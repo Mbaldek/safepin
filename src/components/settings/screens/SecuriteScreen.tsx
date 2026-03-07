@@ -11,10 +11,12 @@ import SettingsRow from '../components/SettingsRow';
 export interface SecuriteScreenProps {
   onBack: () => void;
   onClose: () => void;
+  onNavigate: (screen: string) => void;
 }
 
-export default function SecuriteScreen({ onBack, onClose }: SecuriteScreenProps) {
+export default function SecuriteScreen({ onBack, onClose, onNavigate }: SecuriteScreenProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
+  const verified = useStore((s) => s.userProfile?.verified);
   const [circleCount, setCircleCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -90,8 +92,8 @@ export default function SecuriteScreen({ onBack, onClose }: SecuriteScreenProps)
             icon="ShieldCheck"
             iconColor="#34D399"
             label="Badge de vérification"
-            subtitle="Compte vérifié"
-            onPress={comingSoon}
+            subtitle={verified ? "Compte vérifié ✓" : "Vérifier votre identité"}
+            onPress={() => onNavigate('verification')}
           />
         </SettingsSection>
 
@@ -102,15 +104,15 @@ export default function SecuriteScreen({ onBack, onClose }: SecuriteScreenProps)
             iconColor="#F87171"
             label="Notifications d'alerte"
             subtitle="Rayon, heures calmes"
-            onPress={comingSoon}
+            onPress={() => onNavigate('alert-notifications')}
           />
           <div style={divider} />
           <SettingsRow
             icon="Eye"
             iconColor="#22D3EE"
             label="Localisation"
-            subtitle="Toujours active"
-            onPress={comingSoon}
+            subtitle="G\u00e9rer la localisation"
+            onPress={() => onNavigate('location')}
           />
         </SettingsSection>
 
@@ -120,14 +122,14 @@ export default function SecuriteScreen({ onBack, onClose }: SecuriteScreenProps)
             icon="Lock"
             label="Confidentialité & RGPD"
             subtitle="Analytics, export, suppression"
-            onPress={comingSoon}
+            onPress={() => onNavigate('privacy-rgpd')}
           />
           <div style={divider} />
           <SettingsRow
             icon="Settings"
             label="Sessions & sécurité"
             subtitle="2FA, appareils connectés"
-            onPress={comingSoon}
+            onPress={() => onNavigate('sessions-security')}
           />
         </SettingsSection>
       </div>

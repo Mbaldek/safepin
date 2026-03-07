@@ -17,7 +17,7 @@ import ComposeModal from './compose-modal';
 import StoryViewer, { type DBStory } from './story-viewer';
 import StoryComposeModal from './story-compose-modal';
 import CreateGroupModal from './create-group-modal';
-import { TrendingHashtags, HashtagFeedSheet } from '@/components/hashtags';
+import { HashtagFeedSheet } from '@/components/hashtags';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Hashtag } from '@/types';
 
@@ -286,8 +286,6 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
         isDark={isDark}
         onCompose={() => setShowCompose(true)}
         onClose={onClose}
-        onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
-        searchOpen={searchOpen}
       />
 
       <TabBar
@@ -421,31 +419,26 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto' }} className="scrollbar-hidden">
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="scrollbar-hidden">
         {activeTab === 0 && (
-          <>
-            <TrendingHashtags
-              isDark={isDark}
-              onTagPress={setActiveHashtag}
-            />
-            <FilTab
-              isDark={isDark}
-              userId={userId}
-              onStoryClick={(i) => {
-                setStoryIndex(i);
-                setShowStoryViewer(true);
-              }}
-              onPublish={() => setShowStoryCompose(true)}
-              onSafetyFilter={onSafetyFilter}
-              searchQuery={searchQuery}
-              onHashtagClick={(tag) => {
-                setSearchQuery(tag);
-                setSearchOpen(true);
-              }}
-              onHashtagsReady={setFeedHashtags}
-              refreshKey={refreshKey}
-            />
-          </>
+          <FilTab
+            isDark={isDark}
+            userId={userId}
+            onStoryClick={(i) => {
+              setStoryIndex(i);
+              setShowStoryViewer(true);
+            }}
+            onPublish={() => setShowStoryCompose(true)}
+            onSafetyFilter={onSafetyFilter}
+            searchQuery={searchQuery}
+            onHashtagClick={(tag) => {
+              setSearchQuery(tag);
+              setSearchOpen(true);
+            }}
+            onHashtagsReady={setFeedHashtags}
+            refreshKey={refreshKey}
+            onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
+          />
         )}
         {activeTab === 1 && (
           <GroupesTab

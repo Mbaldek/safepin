@@ -1,6 +1,6 @@
 // src/components/settings/screens/compte/types.ts
 
-export type VisibilityLevel = 'public' | 'circle' | 'private'
+export type VisibilityLevel = 'public' | 'followers' | 'circle' | 'private'
 
 export interface AccountData {
   firstName: string

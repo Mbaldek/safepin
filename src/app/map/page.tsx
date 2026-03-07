@@ -11,11 +11,7 @@ import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { Pin } from '@/types';
 import { toast } from 'sonner';
-import { checkMilestones, type MilestoneStats } from '@/lib/milestones';
-import { updateStreak } from '@/lib/streaks';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
-import { computeScore } from '@/lib/levels';
-import { showMilestoneToast } from '@/components/MilestoneToast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, ChevronLeft, Plus } from 'lucide-react';
 import MapView from '@/components/MapView';
@@ -97,9 +93,7 @@ export default function MapPage() {
     userLocation, userProfile, setNewPinCoords,
     setLiveSessions, addLiveSession, updateLiveSession,
     showIncidentsList, setShowIncidentsList,
-    achievedMilestones, addAchievedMilestone,
-    setStreakInfo, longestStreak,
-    activeTrip, setActiveTrip,
+activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     showWalkWithMe, setShowWalkWithMe,
     mapFilters,
@@ -393,27 +387,6 @@ export default function MapPage() {
 
   // Show push opt-in after a short delay (first session only)
 
-  // Run milestone check on first load (catches anything earned between sessions)
-  useEffect(() => {
-    if (userId && pins.length > 0 && onboardingDone) runMilestoneCheck();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, pins.length > 0, onboardingDone]);
-
-
-  // ── Streak tracking — update on each session ────────────────────────────
-  useEffect(() => {
-    if (!userId || !onboardingDone) return;
-    updateStreak(supabase, userId).then((result) => {
-      if (result) {
-        setStreakInfo(result.streak, result.isNewRecord ? result.streak : longestStreak);
-        if (result.milestone) {
-          toast.success(`\u{1F525} ${result.streak}-day streak!`);
-        }
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, onboardingDone]);
-
   // Listen for SW sync-complete messages → refresh pins + queue count
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -448,64 +421,22 @@ export default function MapPage() {
     }
   }, [unreadCount]);
 
-  // Update profile last_known_lat/lng for geo-filtered push
+  // Update profile last_known_lat/lng for geo-filtered push (respects location_mode setting)
+  const locationModeRef = useRef<string>('while_using');
   useEffect(() => {
-    if (!userId || !userLocation) return;
+    if (!userId) return;
+    supabase.from('notification_settings').select('location_mode').eq('user_id', userId).single()
+      .then(({ data }) => { if (data?.location_mode) locationModeRef.current = data.location_mode; });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !userLocation || locationModeRef.current === 'never') return;
     supabase.from('profiles').update({
       last_known_lat: userLocation.lat,
       last_known_lng: userLocation.lng,
       last_seen_at: new Date().toISOString(),
     }).eq('id', userId).then(() => {});
   }, [userId, userLocation?.lat, userLocation?.lng]);
-
-  // ── Milestone check — runs after realtime events that involve the current user ──
-  const milestoneCheckRef = useRef(false);
-  const runMilestoneCheck = useCallback(async () => {
-    if (!userId || milestoneCheckRef.current) return;
-    milestoneCheckRef.current = true;
-    try {
-      const store = useStore.getState();
-      const myPins = store.pins.filter((p) => p.user_id === userId);
-      const alerts = myPins.filter((p) => p.is_emergency).length;
-      const pinsCount = myPins.filter((p) => !p.is_emergency).length;
-
-      const [{ count: votesCount }, { count: commentsCount }, { count: routesCount }, { count: communitiesCount }] = await Promise.all([
-        supabase.from('pin_votes').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('vote_type', 'confirm'),
-        supabase.from('pin_comments').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('saved_routes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-        supabase.from('community_members').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      ]);
-
-      const score = computeScore(pinsCount, alerts, votesCount ?? 0, commentsCount ?? 0);
-      const stats: MilestoneStats = {
-        pins: pinsCount,
-        alerts,
-        votes: votesCount ?? 0,
-        comments: commentsCount ?? 0,
-        routes: routesCount ?? 0,
-        communities: communitiesCount ?? 0,
-        score,
-      };
-
-      const newMilestones = checkMilestones(stats, store.achievedMilestones);
-      for (const m of newMilestones) {
-        store.addAchievedMilestone(m.key);
-        showMilestoneToast(m);
-        store.addNotification({
-          id: crypto.randomUUID(),
-          type: 'milestone',
-          title: `${m.emoji} ${m.label}`,
-          body: m.description,
-          read: false,
-          created_at: new Date().toISOString(),
-        });
-      }
-    } catch {
-      // Non-critical — don't block the app
-    } finally {
-      milestoneCheckRef.current = false;
-    }
-  }, [userId]);
 
   // Realtime: new/updated pins
   const handleNewPin = useCallback((pin: Pin) => {
@@ -532,9 +463,8 @@ export default function MapPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin }),
       }).catch(() => {});
-      runMilestoneCheck();
     }
-  }, [addPin, addNotification, runMilestoneCheck]);
+  }, [addPin, addNotification]);
 
   // Realtime: comment on own pin → notification
   const handleNewComment = useCallback((payload: { pin_id: string; display_name: string | null; content: string }) => {
@@ -550,8 +480,7 @@ export default function MapPage() {
       created_at: new Date().toISOString(),
       pin_id: payload.pin_id,
     });
-    runMilestoneCheck();
-  }, [addNotification, runMilestoneCheck]);
+  }, [addNotification]);
 
   // Realtime: vote on own pin → notification
   const handleNewVote = useCallback((payload: { pin_id: string }) => {
@@ -567,8 +496,7 @@ export default function MapPage() {
       created_at: new Date().toISOString(),
       pin_id: payload.pin_id,
     });
-    runMilestoneCheck();
-  }, [addNotification, runMilestoneCheck]);
+  }, [addNotification]);
 
   useEffect(() => {
     const channel = supabase

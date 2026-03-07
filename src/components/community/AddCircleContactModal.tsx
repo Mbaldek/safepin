@@ -307,22 +307,21 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
           />
           {/* Modal */}
           <motion.div
+            layout
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             style={{
               position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
+              bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
+              left: 8,
+              right: 8,
               zIndex: 999,
               backgroundColor: bg,
-              borderRadius: "20px 20px 0 0",
+              borderRadius: 20,
               border: `1px solid ${border}`,
-              borderBottom: "none",
-              maxHeight: "80vh",
-              overflow: "auto",
+              overflow: "hidden",
             }}
           >
             {/* Header */}
@@ -336,7 +335,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
               }}
             >
               <h2 style={{ fontSize: 17, fontWeight: 700, color: textPrimary, margin: 0 }}>
-                Inviter au cercle
+                Inviter dans mon cercle
               </h2>
               <button
                 onClick={handleClose}
@@ -492,8 +491,15 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
 
                   {/* Results list */}
                   {pseudoResults.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {pseudoResults.filter((u) => u.id !== currentUserId).map((user) => {
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 340, overflowY: "auto" }}
+                    >
+                      {pseudoResults.filter((u) => u.id !== currentUserId).slice(0, 5).map((user) => {
                         const isMember = memberIds.has(user.id);
                         const isPending = pendingIds.has(user.id) || sentIds.has(user.id);
                         return (
@@ -601,7 +607,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
                           </motion.div>
                         );
                       })}
-                    </div>
+                    </motion.div>
                   )}
 
                   {/* No results */}

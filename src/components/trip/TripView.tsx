@@ -542,54 +542,25 @@ export default function TripView({ onClose }: TripViewProps) {
         <ChevronRight size={22} color="white" />
       </motion.button>
 
-      {/* 2-col grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setState("planifier")}
-          style={{
-            ...cardStyle,
-            padding: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            cursor: "pointer",
-          }}
-        >
-          <Map size={20} color={colors.cyan} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>Planifier</span>
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setState("favoris")}
-          style={{
-            ...cardStyle,
-            padding: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            cursor: "pointer",
-          }}
-        >
-          <Star size={20} color={colors.gold} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>Favoris</span>
-          {savedPlaces.length > 0 && (
-            <span
-              style={{
-                marginLeft: "auto",
-                backgroundColor: `${colors.cyan}20`,
-                color: colors.cyan,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "2px 8px",
-                borderRadius: 10,
-              }}
-            >
-              {savedPlaces.length}
-            </span>
-          )}
-        </motion.button>
-      </div>
+      {/* Planifier button */}
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={() => setState("planifier")}
+        style={{
+          ...cardStyle,
+          padding: "14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          cursor: "pointer",
+          width: "100%",
+          marginBottom: 12,
+        }}
+      >
+        <Map size={20} color={colors.cyan} />
+        <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>Planifier un trajet</span>
+        <ChevronRight size={16} color={colors.textTertiary[theme]} style={{ marginLeft: "auto" }} />
+      </motion.button>
 
       {/* Toggle row */}
       <div
@@ -634,6 +605,47 @@ export default function TripView({ onClose }: TripViewProps) {
           />
         </div>
       </div>
+
+      {/* Separator */}
+      <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.07)", marginBottom: 12 }} />
+
+      {/* Mes favoris row */}
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={() => setState("favoris")}
+        style={{
+          ...cardStyle,
+          padding: "12px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          cursor: "pointer",
+          width: "100%",
+          marginBottom: 12,
+        }}
+      >
+        <Star size={18} color={colors.gold} />
+        <span style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>Mes favoris</span>
+        {savedPlaces.length > 0 && (
+          <span
+            style={{
+              marginLeft: "auto",
+              backgroundColor: `${colors.cyan}20`,
+              color: colors.cyan,
+              fontSize: 12,
+              fontWeight: 600,
+              padding: "2px 8px",
+              borderRadius: 10,
+            }}
+          >
+            {savedPlaces.length}
+          </span>
+        )}
+        <ChevronRight size={16} color={colors.textTertiary[theme]} style={savedPlaces.length > 0 ? {} : { marginLeft: "auto" }} />
+      </motion.button>
+
+      {/* Separator */}
+      <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.07)", marginBottom: 12 }} />
 
       {/* Section header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
