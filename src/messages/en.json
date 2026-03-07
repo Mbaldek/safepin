@@ -17,6 +17,7 @@
   "nav": {
     "map": "Map",
     "community": "Community",
+    "cercle": "Circle",
     "trip": "Trip",
     "me": "Julia"
   },

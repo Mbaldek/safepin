@@ -31,7 +31,7 @@ import NotificationsSheet from '@/components/NotificationsSheet';
 import CityContextPanel from '@/components/CityContextPanel';
 import SosBanner from '@/components/SosBanner';
 import { useOnboardingDone } from '@/components/OnboardingFunnel';
-import PushOptInModal, { shouldShowPushOptIn, dismissPushOptIn } from '@/components/PushOptInModal';
+
 import OfflineBanner from '@/components/OfflineBanner';
 import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
@@ -44,6 +44,7 @@ const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
+const CercleTab = dynamic(() => import('@/components/community/cercle-tab'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -224,7 +225,7 @@ export default function MapPage() {
   const [showCityContext, setShowCityContext] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
-  const [showPushOptIn, setShowPushOptIn] = useState(false);
+
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
 
@@ -391,13 +392,6 @@ export default function MapPage() {
   }, [pins, setActiveSheet]);
 
   // Show push opt-in after a short delay (first session only)
-  useEffect(() => {
-    if (!userId || loading || !onboardingDone) return;
-    const timer = setTimeout(() => {
-      if (shouldShowPushOptIn()) setShowPushOptIn(true);
-    }, 8000);
-    return () => clearTimeout(timer);
-  }, [userId, loading, onboardingDone]);
 
   // Run milestone check on first load (catches anything earned between sessions)
   useEffect(() => {
@@ -880,6 +874,42 @@ export default function MapPage() {
           )}
         </AnimatePresence>
 
+        {/* Cercle tab — standalone trust circle */}
+        <AnimatePresence>
+          {activeTab === 'cercle' && userId && (
+            <motion.div
+              key="cercle-tab"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                zIndex: 200,
+                background: isDark ? '#0F172A' : '#F8FAFC',
+                display: 'flex', flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '16px 20px', flexShrink: 0,
+                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+              }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: isDark ? '#fff' : '#0F172A' }}>
+                  Cercle
+                </span>
+                <button onClick={() => setActiveTab('map')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <X size={20} style={{ color: isDark ? '#94A3B8' : '#64748B' }} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+                <CercleTab isDark={isDark} userId={userId} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Escorte sheet — trip tab */}
         <AnimatePresence>
           {activeTab === 'trip' && userId && (
@@ -1021,21 +1051,6 @@ export default function MapPage() {
 
       {/* Onboarding is now an early return — see above */}
 
-      {/* ── Push notification opt-in ─────────────────────────────────── */}
-      <AnimatePresence>
-        {showPushOptIn && (
-          <PushOptInModal
-            key="push-optin"
-            onEnable={async () => {
-              setShowPushOptIn(false);
-              dismissPushOptIn();
-              const perm = await Notification.requestPermission();
-              if (perm === 'granted' && userId) registerPush(userId);
-            }}
-            onDismiss={() => { setShowPushOptIn(false); dismissPushOptIn(); }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── PWA install prompt ──────────────────────────────────────── */}
       <InstallPrompt />

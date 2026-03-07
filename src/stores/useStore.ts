@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 export type WatchedLocation = { lat: number; lng: number; name: string | null };
 
 type Sheet = 'none' | 'report' | 'detail';
-type Tab = 'map' | 'community' | 'trip' | 'me';
+type Tab = 'map' | 'community' | 'cercle' | 'trip' | 'me';
 
 export type RouteOption = {
   id: string;
@@ -142,6 +142,8 @@ type Store = {
   // Pending route options
   pendingRoutes: RouteOption[] | null;
   setPendingRoutes: (routes: RouteOption[] | null) => void;
+  selectedRouteIdx: number;
+  setSelectedRouteIdx: (idx: number) => void;
 
   // Transit per-segment colored route lines
   transitSegments: RouteSegment[] | null;
@@ -274,6 +276,8 @@ export const useStore = create<Store>((set) => ({
   // Pending route options
   pendingRoutes: null,
   setPendingRoutes: (routes) => set({ pendingRoutes: routes }),
+  selectedRouteIdx: 0,
+  setSelectedRouteIdx: (idx) => set({ selectedRouteIdx: idx }),
   transitSegments: null,
   setTransitSegments: (s) => set({ transitSegments: s }),
 

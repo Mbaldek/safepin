@@ -134,7 +134,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
       setPosts(
         messages.map((m) => {
           const p = profileMap.get(m.user_id);
-          const name = p?.display_name || p?.first_name || p?.username || m.display_name || "Anonyme";
+          const displayName = p?.display_name || p?.first_name || m.display_name || "Anonyme";
+          const name = p?.username || displayName;
           const avatar = p?.avatar_emoji || name.charAt(0).toUpperCase();
           return {
             id: m.id,
@@ -150,6 +151,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             content: m.content,
             comments: commentCountMap.get(m.id) || 0,
             userId: m.user_id,
+            username: p?.username || null,
+            displayName,
             _createdAt: m.created_at,
           };
         })
@@ -218,7 +221,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             .select("display_name, first_name, username, avatar_emoji, avatar_url")
             .eq("id", m.user_id)
             .maybeSingle();
-          const name = prof?.display_name || prof?.first_name || prof?.username || m.display_name || "Anonyme";
+          const displayName = prof?.display_name || prof?.first_name || m.display_name || "Anonyme";
+          const name = prof?.username || displayName;
           const avatar = prof?.avatar_emoji || name.charAt(0).toUpperCase();
           setPosts((prev) => [
             {
@@ -234,6 +238,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               title: "",
               content: m.content,
               userId: m.user_id,
+              username: prof?.username || null,
+              displayName,
             },
             ...prev,
           ]);

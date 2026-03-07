@@ -4,17 +4,17 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, MessageCircle, Navigation, Sparkles, type LucideIcon } from 'lucide-react';
+import { Heart, MessageCircle, Navigation, Sparkles, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useTranslations } from 'next-intl';
 
-type Tab = 'map' | 'community' | 'trip' | 'me';
+type Tab = 'map' | 'community' | 'cercle' | 'trip' | 'me';
 
-const TABS: { id: Tab; labelKey: 'map' | 'community' | 'trip' | 'me'; Icon: LucideIcon; disabled?: boolean }[] = [
-  { id: 'map',       labelKey: 'map',       Icon: MapPin        },
+const TABS: { id: Tab; labelKey: string; Icon: LucideIcon; disabled?: boolean }[] = [
   { id: 'community', labelKey: 'community', Icon: MessageCircle },
+  { id: 'cercle',    labelKey: 'cercle',    Icon: Heart         },
   { id: 'trip',      labelKey: 'trip',      Icon: Navigation    },
   { id: 'me',        labelKey: 'me',        Icon: Sparkles, disabled: true },
 ];
@@ -24,18 +24,13 @@ const DANGER = '#EF4444';
 
 export default function BottomNav() {
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const { activeTab, setActiveTab, pins, unreadDmCount } = useStore();
+  const { activeTab, setActiveTab, unreadDmCount } = useStore();
   const badgeCount = useNotificationStore((s) => s.badgeCount);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
   const t = useTranslations('nav');
 
   const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [poppingTab, setPoppingTab] = useState<string | null>(null);
-
-  const emergencyCount = pins.filter((p) => {
-    if (!p.is_emergency || p.resolved_at) return false;
-    return (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2;
-  }).length;
 
   const inactiveColor = isDark ? '#64748B' : '#94A3B8';
 
@@ -74,7 +69,6 @@ export default function BottomNav() {
           const label = t(labelKey);
 
           const badge =
-            id === 'map' && emergencyCount > 0 ? emergencyCount :
             id === 'community' && (badgeCount + unreadDmCount) > 0 ? (badgeCount + unreadDmCount) : 0;
 
           const color = disabled

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -18,7 +18,12 @@ import {
   Check,
   Plus,
   Trash2,
+  Repeat2,
 } from "lucide-react";
+import { fetchDirectionsMulti, formatDuration, formatDistance } from "@/lib/directions";
+import { scoreRoute } from "@/lib/route-scoring";
+import RouteCard from "@/components/trip/RouteCard";
+import type { RouteOption } from "@/stores/useStore";
 import { useTheme } from "@/stores/useTheme";
 import { useStore } from "@/stores/useStore";
 import { supabase } from "@/lib/supabase";
@@ -85,6 +90,9 @@ export default function TripView({ onClose }: TripViewProps) {
   const userId = useStore((s) => s.userId);
   const isSharingLocation = useStore((s) => s.isSharingLocation);
   const setIsSharingLocation = useStore((s) => s.setIsSharingLocation);
+  const setPendingRoutes = useStore((s) => s.setPendingRoutes);
+  const setActiveRoute = useStore((s) => s.setActiveRoute);
+  const pins = useStore((s) => s.pins);
   const [state, setState] = useState<AppState>("idle");
   const [walkSubState, setWalkSubState] = useState<WalkSubState>("intro");
   const [circleEnabled, setCircleEnabled] = useState(false);
@@ -122,6 +130,11 @@ export default function TripView({ onClose }: TripViewProps) {
       .then(({ data }) => { if (data) setSavedPlaces(data); });
   }, [userId]);
   const [routeMode, setRouteMode] = useState<"safe" | "balanced" | "fast">("balanced");
+  const [transportMode, setTransportMode] = useState<"walk" | "bike" | "car">("walk");
+  const [fetchedRoutes, setFetchedRoutes] = useState<RouteOption[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [loadingRoutes, setLoadingRoutes] = useState(false);
+  const routeFetchRef = useRef(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [countdownSeconds, setCountdownSeconds] = useState(107);
   const [contactStatuses, setContactStatuses] = useState<Record<string, string>>({});
@@ -212,6 +225,70 @@ export default function TripView({ onClose }: TripViewProps) {
     }
     return () => timers.forEach(clearTimeout);
   }, [walkSubState, circleContacts]);
+
+  // Fetch routes when destination or transport mode changes
+  useEffect(() => {
+    if (!destCoords || state !== "planifier") {
+      setFetchedRoutes([]);
+      setPendingRoutes(null);
+      return;
+    }
+    const fetchId = ++routeFetchRef.current;
+    setLoadingRoutes(true);
+
+    (async () => {
+      try {
+        const origin = await getCurrentPosition();
+        const from: [number, number] = [origin.lng, origin.lat];
+        const to: [number, number] = destCoords;
+
+        const results = await fetchDirectionsMulti(from, to, transportMode);
+        if (fetchId !== routeFetchRef.current) return;
+
+        if (results.length === 0) {
+          setFetchedRoutes([]);
+          setPendingRoutes(null);
+          setLoadingRoutes(false);
+          return;
+        }
+
+        const ROUTE_COLORS = ["#34D399", "#F5C341", "#EF4444"];
+
+        // Score each route
+        const scored = results.map((r) => ({
+          ...r,
+          dangerScore: scoreRoute(r.coords, pins),
+        }));
+        // Sort by danger score ascending (safest first)
+        scored.sort((a, b) => a.dangerScore - b.dangerScore);
+
+        // Find fastest (shortest duration)
+        const fastestIdx = scored.reduce((best, r, i) => r.duration < scored[best].duration ? i : best, 0);
+
+        const routeOptions: RouteOption[] = scored.map((r, i) => {
+          let label = "Equilibree";
+          if (i === 0) label = "Plus sure";
+          if (i === fastestIdx && fastestIdx !== 0) label = "Plus rapide";
+          return {
+            id: `${transportMode}-${i}`,
+            label,
+            color: ROUTE_COLORS[i] ?? "#94A3B8",
+            coords: r.coords,
+            duration: r.duration,
+            distance: r.distance,
+            dangerScore: r.dangerScore,
+          };
+        });
+
+        setFetchedRoutes(routeOptions);
+        setSelectedIdx(0);
+        setPendingRoutes(routeOptions);
+      } catch (e) {
+        console.error("Failed to fetch routes:", e);
+      }
+      setLoadingRoutes(false);
+    })();
+  }, [destCoords, transportMode, state]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -1211,6 +1288,14 @@ export default function TripView({ onClose }: TripViewProps) {
   );
 
   // Render State 3 - Planifier
+  const TRANSPORT_MODES = [
+    { id: "walk" as const, label: "A pied", emoji: "\uD83D\uDEB6" },
+    { id: "bike" as const, label: "Velo", emoji: "\uD83D\uDEB2" },
+    { id: "car" as const, label: "Voiture", emoji: "\uD83D\uDE97" },
+  ];
+
+  const selectedRoute = fetchedRoutes[selectedIdx] ?? null;
+
   const renderPlanifier = () => (
     <motion.div
       initial={{ opacity: 0, x: 40 }}
@@ -1220,214 +1305,229 @@ export default function TripView({ onClose }: TripViewProps) {
       style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px" }}
     >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setState("idle")}
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            backgroundColor: colors.card[theme],
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          <ChevronLeft size={20} color={colors.textPrimary[theme]} />
-        </motion.button>
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>
-          Planifier un trajet
-        </h1>
-      </div>
-
-      {/* Departure */}
-      <div style={{ ...cardStyle, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: colors.success, flexShrink: 0 }} />
-        <span style={{ fontSize: 14, color: colors.textSecondary[theme] }}>Ma position actuelle</span>
-      </div>
-
-      {/* Destination */}
-      <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <AutocompleteInput
-            value={destination}
-            onChange={(text, coords) => {
-              setDestination(text);
-              setDestCoords(coords || null);
-            }}
-            placeholder="Rechercher une destination"
-            localSections={savedPlaces.length > 0 ? [{
-              title: "Lieux favoris",
-              items: savedPlaces.map((p) => ({
-                label: p.label,
-                coords: [p.lng, p.lat] as [number, number],
-                icon: p.icon || "⭐",
-              })),
-            }] : undefined}
-            autoFocus
-          />
-        </div>
-        {destination && destCoords && (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
           <motion.button
-            whileTap={{ scale: 0.85 }}
-            onClick={async () => {
-              if (isDestSaved) {
-                const match = savedPlaces.find(
-                  (p) => destCoords && Math.abs(p.lat - destCoords[1]) < 0.0001 && Math.abs(p.lng - destCoords[0]) < 0.0001
-                );
-                if (match) await removePlace(match.id);
-              } else {
-                await savePlace(destination, destCoords[1], destCoords[0]);
-              }
-            }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => { setState("idle"); setPendingRoutes(null); }}
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
-              backgroundColor: isDestSaved ? `${colors.gold}20` : colors.card[theme],
-              border: `1px solid ${isDestSaved ? colors.gold : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              flexShrink: 0,
-              marginTop: 1,
+              width: 34, height: 34, borderRadius: "50%", backgroundColor: colors.card[theme],
+              border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", flexShrink: 0,
             }}
           >
-            <Star size={18} color={isDestSaved ? colors.gold : colors.textTertiary[theme]} fill={isDestSaved ? colors.gold : "none"} />
+            <ChevronLeft size={20} color={colors.textPrimary[theme]} />
           </motion.button>
+          <h1 style={{ fontSize: 15, fontWeight: 600, color: colors.textPrimary[theme], margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            Trajet avec destination
+          </h1>
+        </div>
+        {selectedRoute && (
+          <div style={{
+            background: isDark ? "#FFFFFF" : "#111827", color: isDark ? "#111827" : "#FFFFFF",
+            fontSize: 13, fontWeight: 500, padding: "6px 12px", borderRadius: 99, flexShrink: 0, marginLeft: 8,
+          }}>
+            {formatDuration(selectedRoute.duration)} →
+          </div>
         )}
       </div>
 
-      {/* Quick access — saved places */}
-      {savedPlaces.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-          {savedPlaces.slice(0, 4).map((place) => (
+      {/* Origin / Destination card */}
+      <div style={{ ...cardStyle, padding: "12px 14px", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 10 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: colors.success, flexShrink: 0 }} />
+          <span style={{ fontSize: 14, color: colors.textSecondary[theme] }}>Ma position actuelle</span>
+        </div>
+        <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB", margin: "0 0 10px 0" }} />
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flex: 1, minWidth: 0 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: colors.danger, flexShrink: 0, marginTop: 4 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <AutocompleteInput
+                value={destination}
+                onChange={(text, coords) => {
+                  setDestination(text);
+                  setDestCoords(coords || null);
+                }}
+                placeholder="Rechercher une destination"
+                localSections={savedPlaces.length > 0 ? [{
+                  title: "Lieux favoris",
+                  items: savedPlaces.map((p) => ({
+                    label: p.label,
+                    coords: [p.lng, p.lat] as [number, number],
+                    icon: p.icon || "\u2B50",
+                  })),
+                }] : undefined}
+                autoFocus
+              />
+            </div>
+          </div>
+          {destination && destCoords && (
             <motion.button
-              key={place.id}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                setDestination(place.label);
-                setDestCoords([place.lng, place.lat]);
+              whileTap={{ scale: 0.85 }}
+              onClick={async () => {
+                if (isDestSaved) {
+                  const match = savedPlaces.find(
+                    (p) => destCoords && Math.abs(p.lat - destCoords[1]) < 0.0001 && Math.abs(p.lng - destCoords[0]) < 0.0001
+                  );
+                  if (match) await removePlace(match.id);
+                } else {
+                  await savePlace(destination, destCoords[1], destCoords[0]);
+                }
               }}
               style={{
-                ...cardStyle,
-                padding: "12px",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                cursor: "pointer",
+                background: "none", border: "none", padding: 4, marginLeft: 8, cursor: "pointer", flexShrink: 0,
               }}
             >
-              <span style={{ fontSize: 18 }}>{place.icon || "📍"}</span>
-              <div style={{ textAlign: "left", minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: colors.textPrimary[theme] }}>{place.label}</div>
-              </div>
+              <Star size={16} color={isDestSaved ? colors.gold : colors.textTertiary[theme]} fill={isDestSaved ? colors.gold : "none"} />
             </motion.button>
-          ))}
-        </div>
-      )}
-
-      {/* Route mode */}
-      <div style={{ marginBottom: 20 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: colors.textTertiary[theme], letterSpacing: 0.5, display: "block", marginBottom: 10 }}>
-          TYPE DE TRAJET
-        </span>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-          {[
-            { key: "safe", icon: Shield, label: "Plus sûr", color: colors.success },
-            { key: "balanced", icon: Map, label: "Équilibré", color: colors.cyan },
-            { key: "fast", icon: Clock, label: "Plus rapide", color: colors.gold },
-          ].map((mode) => {
-            const isActive = routeMode === mode.key;
-            return (
-              <motion.button
-                key={mode.key}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setRouteMode(mode.key as "safe" | "balanced" | "fast")}
-                style={{
-                  padding: "12px 8px",
-                  borderRadius: 12,
-                  backgroundColor: isActive ? `${mode.color}15` : colors.card[theme],
-                  border: isActive ? `1px solid ${mode.color}40` : `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
-                  cursor: "pointer",
-                }}
-              >
-                <mode.icon size={18} color={isActive ? mode.color : colors.textTertiary[theme]} />
-                <span style={{ fontSize: 11, fontWeight: 500, color: isActive ? mode.color : colors.textSecondary[theme] }}>
-                  {mode.label}
-                </span>
-              </motion.button>
-            );
-          })}
+          )}
         </div>
       </div>
+
+      {/* Transport mode pills */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12, borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`, paddingBottom: 12 }}>
+        {TRANSPORT_MODES.map((mode) => {
+          const isActive = transportMode === mode.id;
+          return (
+            <motion.button
+              key={mode.id}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setTransportMode(mode.id)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                padding: "8px 4px", borderRadius: 10, cursor: "pointer", border: "none",
+                background: isActive ? (isDark ? "rgba(59,180,193,0.15)" : "#E0F7FB") : "transparent",
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{mode.emoji}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, lineHeight: 1.2, textAlign: "center", color: isActive ? colors.cyan : colors.textTertiary[theme] }}>
+                {mode.label}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* Veille cercle */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "10px 0", marginBottom: 8,
+        borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Users size={18} color={colors.textSecondary[theme]} />
+          <span style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary[theme] }}>Veille cercle</span>
+        </div>
+        <button
+          onClick={() => setCircleEnabled(!circleEnabled)}
+          style={{
+            width: 44, height: 26, borderRadius: 13, position: "relative",
+            background: circleEnabled ? colors.cyan : (isDark ? "#475569" : "#D1D5DB"),
+            border: "none", cursor: "pointer", padding: 0, flexShrink: 0,
+            transition: "background 0.2s",
+          }}
+        >
+          <div style={{
+            width: 20, height: 20, borderRadius: "50%", background: "white", position: "absolute",
+            top: 3, left: circleEnabled ? 21 : 3, transition: "left 0.2s",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          }} />
+        </button>
+      </div>
+
+      {/* Itineraires section */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 0", marginBottom: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: colors.textTertiary[theme] }}>
+          Itineraires
+        </span>
+      </div>
+
+      {/* Route list */}
+      {loadingRoutes ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24, color: colors.textTertiary[theme], fontSize: 13 }}>
+          Recherche d'itineraires...
+        </div>
+      ) : fetchedRoutes.length > 0 ? (
+        <div style={{ marginBottom: 16 }}>
+          {fetchedRoutes.map((route, idx) => (
+            <div key={route.id}>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { setSelectedIdx(idx); }}
+                style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
+              >
+                <RouteCard
+                  color={route.color}
+                  label={route.label}
+                  duration={formatDuration(route.duration)}
+                  distance={formatDistance(route.distance)}
+                  isSelected={selectedIdx === idx}
+                  isDark={isDark}
+                />
+              </motion.button>
+              {idx < fetchedRoutes.length - 1 && (
+                <div style={{ height: 1, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB" }} />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : destCoords ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24, color: colors.textTertiary[theme], fontSize: 13 }}>
+          Aucun itineraire trouve
+        </div>
+      ) : null}
 
       {/* CTA */}
       <motion.button
         onClick={async () => {
-          if (destination) {
-            setState("active");
-            setElapsedSeconds(0);
-            if (userId) {
-              try {
-                const origin = await getCurrentPosition();
-                const dLat = destCoords ? destCoords[1] : origin.lat;
-                const dLng = destCoords ? destCoords[0] : origin.lng;
-                const dist = destCoords ? haversineDistance(origin.lat, origin.lng, dLat, dLng) : 0;
-                const walkSpeed = routeMode === "fast" ? 1.6 : routeMode === "safe" ? 1.2 : 1.39;
-                const estDuration = dist > 0 ? Math.round(dist / walkSpeed) : 1800;
-                setDistanceM(Math.round(dist));
-                setPlannedDurationS(estDuration);
-                const res = await fetch("/api/trips/start", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    user_id: userId,
-                    from_label: "Ma position",
-                    to_label: destination,
-                    mode: "walk",
-                    origin_lat: origin.lat,
-                    origin_lng: origin.lng,
-                    dest_lat: dLat,
-                    dest_lng: dLng,
-                    planned_duration_s: estDuration,
-                    danger_score: 0,
-                    distance_m: Math.round(dist),
-                  }),
-                });
-                const data = await res.json();
-                if (data.trip_id) setTripId(data.trip_id);
-              } catch (e) {
-                console.error("Failed to start trip:", e);
-              }
+          const route = fetchedRoutes[selectedIdx];
+          if (!destination || !route) return;
+          setState("active");
+          setElapsedSeconds(0);
+          setDistanceM(Math.round(route.distance));
+          setPlannedDurationS(Math.round(route.duration));
+          setActiveRoute({ coords: route.coords, destination });
+          setPendingRoutes(null);
+          if (userId) {
+            try {
+              const origin = await getCurrentPosition();
+              const res = await fetch("/api/trips/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: userId,
+                  from_label: "Ma position",
+                  to_label: destination,
+                  mode: transportMode,
+                  origin_lat: origin.lat,
+                  origin_lng: origin.lng,
+                  dest_lat: destCoords ? destCoords[1] : origin.lat,
+                  dest_lng: destCoords ? destCoords[0] : origin.lng,
+                  planned_duration_s: Math.round(route.duration),
+                  danger_score: route.dangerScore,
+                  distance_m: Math.round(route.distance),
+                }),
+              });
+              const data = await res.json();
+              if (data.trip_id) setTripId(data.trip_id);
+            } catch (e) {
+              console.error("Failed to start trip:", e);
             }
           }
         }}
-        whileHover={destination ? { scale: 1.01 } : {}}
-        whileTap={destination ? { scale: 0.97 } : {}}
+        whileHover={selectedRoute ? { scale: 1.01 } : {}}
+        whileTap={selectedRoute ? { scale: 0.97 } : {}}
         style={{
-          width: "100%",
-          padding: "14px",
-          borderRadius: 14,
-          background: destination ? colors.cyan : colors.elevated[theme],
-          border: "none",
-          fontSize: 15,
-          fontWeight: 700,
-          color: destination ? "white" : colors.textTertiary[theme],
-          cursor: destination ? "pointer" : "default",
-          opacity: destination ? 1 : 0.6,
+          width: "100%", padding: "14px", borderRadius: 14,
+          background: selectedRoute ? colors.cyan : colors.elevated[theme],
+          border: "none", fontSize: 15, fontWeight: 700,
+          color: selectedRoute ? "white" : colors.textTertiary[theme],
+          cursor: selectedRoute ? "pointer" : "default",
+          opacity: selectedRoute ? 1 : 0.6,
         }}
       >
-        Démarrer le trajet
+        Demarrer le trajet
       </motion.button>
     </motion.div>
   );

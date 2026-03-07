@@ -30,10 +30,11 @@ export default function UserContextMenu() {
 
   const userId = menuUser?.userId ?? "";
   const username = menuUser?.username ?? "";
+  const displayName = menuUser?.displayName || username;
   const city = menuUser?.city;
   const isVerified = menuUser?.isVerified;
 
-  const initials = username
+  const initials = displayName
     .split(/[\s._-]+/)
     .map((w) => w[0])
     .join("")
@@ -98,7 +99,7 @@ export default function UserContextMenu() {
     setInviteLoading(true);
 
     const { error: tcErr } = await supabase.from("trusted_contacts").insert({
-      user_id: currentUserId, contact_id: userId, contact_name: username, status: "pending",
+      user_id: currentUserId, contact_id: userId, contact_name: displayName, status: "pending",
     });
 
     if (tcErr) {
@@ -184,7 +185,7 @@ export default function UserContextMenu() {
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{username}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
                 {city && <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{city}</div>}
               </div>
             </div>

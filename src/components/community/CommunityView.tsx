@@ -11,7 +11,6 @@ import Header from './CommunityHeader';
 import { Search, X } from 'lucide-react';
 import TabBar from './tab-bar';
 import FilTab from './fil-tab';
-import CercleTab from './cercle-tab';
 import GroupesTab from './groupes-tab';
 import MessagesTab from './messages-tab';
 import ComposeModal from './compose-modal';
@@ -196,7 +195,7 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
         partner_avatar: partnerAvatar,
         is_unread: false,
       });
-      setActiveTab(3); // Messages tab
+      setActiveTab(2); // Messages tab
     } catch {
       // conversation creation failed silently
     }
@@ -263,7 +262,7 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
     fetchStories();
   }, [fetchStories, refreshKey]);
 
-  const tabs = ['Fil', 'Cercle', 'Groupes', 'Messages'];
+  const tabs = ['Fil', 'Groupes', 'Messages'];
 
   return (
     <div
@@ -447,15 +446,14 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
             />
           </>
         )}
-        {activeTab === 1 && <CercleTab isDark={isDark} userId={userId} onOpenConversation={handleOpenConversation} />}
-        {activeTab === 2 && (
+        {activeTab === 1 && (
           <GroupesTab
             isDark={isDark}
             userId={userId}
             onCreateGroup={() => setShowCreateGroup(true)}
           />
         )}
-        {activeTab === 3 && <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />}
+        {activeTab === 2 && <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />}
       </div>
 
       {showCompose && (

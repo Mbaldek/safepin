@@ -37,6 +37,8 @@ interface Post {
     verified?: boolean;
   };
   userId?: string;
+  username?: string;
+  displayName?: string;
   time: string;
   location?: string;
   title: string;
@@ -253,7 +255,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div
-          onClick={(e) => { e.stopPropagation(); if (post.userId) { if (post.userId === currentUserId) openProfile(post.userId); else openContextMenu({ userId: post.userId, username: post.user.name }); } }}
+          onClick={(e) => { e.stopPropagation(); if (post.userId) { if (post.userId === currentUserId) openProfile(post.userId); else openContextMenu({ userId: post.userId, username: post.username || "", displayName: post.displayName || post.user.name }); } }}
           style={{
             display: "flex",
             alignItems: "center",

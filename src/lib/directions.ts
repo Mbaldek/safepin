@@ -55,6 +55,41 @@ export async function fetchDirections(
 }
 
 /**
+ * Fetch up to 3 alternative routes from the Mapbox Directions API.
+ */
+export async function fetchDirectionsMulti(
+  from: [number, number],
+  to: [number, number],
+  mode: 'walk' | 'bike' | 'car',
+): Promise<DirectionsResult[]> {
+  try {
+    const profile = PROFILE_MAP[mode] ?? 'walking';
+    const coords = `${from[0]},${from[1]};${to[0]},${to[1]}`;
+    const url =
+      `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coords}` +
+      `?geometries=geojson&overview=full&alternatives=true&access_token=${TOKEN}`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error(`[directions] Mapbox API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    if (!data.routes?.length) return [];
+
+    return data.routes.map((route: any) => ({
+      coords: route.geometry.coordinates as [number, number][],
+      duration: route.duration ?? 0,
+      distance: route.distance ?? 0,
+    }));
+  } catch (err) {
+    console.error('[directions] Failed to fetch routes:', err);
+    return [];
+  }
+}
+
+/**
  * Format a duration in seconds to a human-readable string.
  * Examples: "5 min", "1h 15"
  */

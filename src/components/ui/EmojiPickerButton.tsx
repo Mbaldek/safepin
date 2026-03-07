@@ -14,7 +14,7 @@ interface EmojiPickerButtonProps {
 
 export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: EmojiPickerButtonProps) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
+  const [pos, setPos] = useState<{ bottom: number; left: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -25,9 +25,16 @@ export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: Emo
   const updatePosition = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const pickerWidth = 352; // emoji-mart default width
+    // Anchor left-aligned to button, but clamp so it stays within viewport
+    let left = rect.left;
+    if (left + pickerWidth > window.innerWidth - 8) {
+      left = window.innerWidth - pickerWidth - 8;
+    }
+    if (left < 8) left = 8;
     setPos({
       bottom: window.innerHeight - rect.top + 8,
-      right: Math.max(8, window.innerWidth - rect.right),
+      left,
     });
   }, []);
 
@@ -81,7 +88,7 @@ export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: Emo
           style={{
             position: 'fixed',
             bottom: pos.bottom,
-            right: pos.right,
+            left: pos.left,
             zIndex: 9999,
           }}
         >

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 interface ContextMenuUser {
   userId: string;
   username: string;
+  displayName?: string;
   city?: string;
   isVerified?: boolean;
 }

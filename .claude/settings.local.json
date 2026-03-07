@@ -75,7 +75,16 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(psql \"postgresql://postgres.tzdemtgxogagjqqfmvbx:[your-password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres\" -c \"\\\\dt public.*communit* public.dm_* public.direct_*\")",
       "Bash(git -C /c/Users/mathi/Desktop/safepin log --all --full-history --format=\"%h %s\" -- \"*communities*\")",
-      "Bash(1 head -c 500 /tmp/unescaped.json)"
+      "Bash(1 head -c 500 /tmp/unescaped.json)",
+      "Bash(do rm \"$f\")",
+      "Bash(jq '.tables[] | select\\(.name == \"\"public.post_comments\"\"\\)' C:Usersmathi.claudeprojectsc--Users-mathi-Desktop-safepin80ef7b83-e35f-4ef3-b2cb-0e4bedf14b2atool-resultstoolu_01E66zBe794UoEtnVkiYi1vE.json)",
+      "Bash(taskkill //F //PID 23664)",
+      "Bash(npx supabase secrets set VAPID_PUBLIC_KEY=BK1470Tq4IbI3mNnQCCWQRBIQ_Tea-dhq8bQxH5pp_h1xLXEcgQnNYxB6kd5apQq6GwJojYn_7FaEiyMBHtmcwQ VAPID_PRIVATE_KEY=2NxgGSqkNLVhwIJi-ppaoXWCcJRVoGG6CoB50yOfVfo VAPID_SUBJECT=mailto:hello@breveil.com --project-ref tzdemtgxogagjqqfmvbx)",
+      "Bash(npx next dev)",
+      "Bash(python3:*)",
+      "Bash(npx vercel ls)",
+      "Bash(taskkill //F //PID 92476)",
+      "Bash(npx kill-port 3000 3001)"
     ]
   }
 }
