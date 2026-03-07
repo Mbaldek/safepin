@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/stores/notificationStore";
-import { getOrCreateConversation } from "@/lib/dm";
+import { useUiStore } from "@/stores/uiStore";
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
@@ -42,6 +42,7 @@ function timeAgo(d: string) {
 }
 
 export default function CercleTab({ isDark, userId, onOpenConversation }: CercleTabProps) {
+  const openProfile = useUiStore((s) => s.openProfile);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -636,20 +637,22 @@ export default function CercleTab({ isDark, userId, onOpenConversation }: Cercle
                 <MessageCircle size={15} />
                 Envoyer message
               </button>
-              {/* Voir profil (disabled) */}
+              {/* Voir profil */}
               <button
-                disabled
+                onClick={() => {
+                  openProfile(selectedContact.contact_id);
+                  setSelectedContact(null);
+                }}
                 style={{
                   width: "100%",
                   padding: "12px 0",
                   borderRadius: 12,
                   background: "transparent",
                   border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.1)"}`,
-                  color: isDark ? "#94A3B8" : "#64748B",
+                  color: isDark ? "#FFFFFF" : "#0F172A",
                   fontSize: 14,
                   fontWeight: 500,
-                  cursor: "default",
-                  opacity: 0.4,
+                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -658,7 +661,7 @@ export default function CercleTab({ isDark, userId, onOpenConversation }: Cercle
                 }}
               >
                 <User size={15} />
-                Voir profil (bientot)
+                Voir profil
               </button>
               {/* Supprimer du cercle */}
               <button

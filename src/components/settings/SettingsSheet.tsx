@@ -10,6 +10,7 @@ import PreferencesScreen from './screens/PreferencesScreen';
 import AideScreen from './screens/AideScreen';
 import SupportChatScreen from './screens/SupportChatScreen';
 import PaywallScreen from '../subscription/PaywallScreen';
+import MyProfileScreen from './screens/MyProfileScreen';
 
 export interface SettingsSheetProps {
   isOpen: boolean;
@@ -75,7 +76,7 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   function renderScreen() {
     switch (currentScreen) {
       case 'compte':
-        return <MonCompteScreen onBack={goBack} />;
+        return <MonCompteScreen onBack={goBack} onNavigateParent={setCurrentScreen} />;
       case 'securite':
         return <SecuriteScreen onBack={goBack} onClose={onClose} />;
       case 'preferences':
@@ -86,6 +87,8 @@ export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
         return <SupportChatScreen onBack={() => setCurrentScreen('aide')} />;
       case 'abonnement':
         return <PaywallScreen onClose={goBack} context="settings" />;
+      case 'myProfile':
+        return <MyProfileScreen onClose={goBack} />;
       default:
         return <MainSettings onNavigate={setCurrentScreen} onClose={onClose} />;
     }

@@ -46,9 +46,10 @@ const F = {
 
 interface MonCompteScreenProps {
   onBack: () => void;
+  onNavigateParent?: (screen: string) => void;
 }
 
-export default function MonCompteScreen({ onBack }: MonCompteScreenProps) {
+export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteScreenProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const C = getColors(isDark);
   const userId = useStore((s) => s.userId);
@@ -308,6 +309,7 @@ export default function MonCompteScreen({ onBack }: MonCompteScreenProps) {
             C={C}
             onBack={onBack}
             navigateTo={navigateTo}
+            onNavigateParent={onNavigateParent}
           />
         );
     }
@@ -340,9 +342,10 @@ interface MainCompteScreenProps {
   C: ReturnType<typeof getColors>;
   onBack: () => void;
   navigateTo: (screen: CompteScreen) => void;
+  onNavigateParent?: (screen: string) => void;
 }
 
-function MainCompteScreen({ account, C, onBack, navigateTo }: MainCompteScreenProps) {
+function MainCompteScreen({ account, C, onBack, navigateTo, onNavigateParent }: MainCompteScreenProps) {
   const userProfile = useStore((s) => s.userProfile);
   const displayName = [account?.firstName, account?.lastName].filter(Boolean).join(' ')
     || account?.username
@@ -529,6 +532,14 @@ function MainCompteScreen({ account, C, onBack, navigateTo }: MainCompteScreenPr
                 label="Nom d'utilisateur"
                 subtitle={account?.username ? `@${account.username}` : undefined}
                 onPress={() => navigateTo('username')}
+              />
+              <div style={{ height: 1, background: C.border, margin: '0 20px' }} />
+              <SettingsRow
+                icon="User"
+                iconColor={F.cyan}
+                label="Mon profil"
+                subtitle="Gerer abonnes, cercle et visibilite"
+                onPress={() => onNavigateParent?.('myProfile')}
               />
               <div style={{ height: 1, background: C.border, margin: '0 20px' }} />
               <SettingsRow
