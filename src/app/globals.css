@@ -656,6 +656,38 @@ body {
   100% { transform: scale(1.8); opacity: 0;   }
 }
 
+/* ── BREVEIL PIN SYSTEM v2 ── */
+
+/* URGENT — double ring rapide 1.2s */
+.pin-urgent-ring1 {
+  animation: radar-pulse 1.2s ease-out infinite;
+  animation-delay: 0s;
+}
+.pin-urgent-ring2 {
+  animation: radar-pulse 1.2s ease-out infinite;
+  animation-delay: 0.4s;
+}
+
+/* ATTENTION — single ring lent 2.5s */
+.pin-attention-ring {
+  animation: radar-pulse 2.5s ease-out infinite;
+  animation-delay: 0s;
+}
+
+/* POSITIF — breathing doux 3s */
+@keyframes positif-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50%       { transform: scale(1.25); opacity: 0.75; }
+}
+.pin-positif-ring {
+  animation: positif-breathe 3s ease-in-out infinite;
+}
+
+/* DÉGRADATION — classes opacité */
+.pin-opacity-full     { opacity: 1; }
+.pin-opacity-degraded { opacity: 0.6; }
+.pin-opacity-expired  { opacity: 0.35; }
+
 /* ============================================
    USER LOCATION PULSE
    ============================================ */

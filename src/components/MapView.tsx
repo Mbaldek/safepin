@@ -286,9 +286,9 @@ function addPOILayers(m: mapboxgl.Map) {
     id: POI_CIRCLE,
     type: 'circle',
     source: POI_SRC,
-    minzoom: 14,
+    minzoom: 12,
     paint: {
-      'circle-radius': 6,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 15, 7],
       'circle-color': ['match', ['get', 'kind'], 'pharmacy', '#10b981', 'hospital', '#ef4444', 'police', '#3b82f6', '#6b7280'],
       'circle-stroke-width': 2,
       'circle-stroke-color': '#fff',
@@ -299,7 +299,7 @@ function addPOILayers(m: mapboxgl.Map) {
     id: POI_LABEL,
     type: 'symbol',
     source: POI_SRC,
-    minzoom: 14,
+    minzoom: 13,
     layout: {
       'text-field': ['get', 'name'],
       'text-size': 10,
@@ -1309,13 +1309,23 @@ function MapView({
       if (mapFilters.severity !== 'all' && pin.severity !== mapFilters.severity) return false;
       // Age
       const ageMs = Date.now() - new Date(pin.created_at).getTime();
-      if (mapFilters.age === '1h'    && ageMs > 3_600_000)      return false;
-      if (mapFilters.age === '6h'    && ageMs > 6 * 3_600_000)  return false;
-      if (mapFilters.age === 'today' && ageMs > 24 * 3_600_000) return false;
+      if (mapFilters.age === '1h'    && ageMs > 3_600_000)            return false;
+      if (mapFilters.age === '6h'    && ageMs > 6 * 3_600_000)      return false;
+      if (mapFilters.age === 'today' && ageMs > 24 * 3_600_000)     return false;
+      if (mapFilters.age === '7d'    && ageMs > 7 * 24 * 3_600_000) return false;
       // Urban context
       if (mapFilters.urban !== 'all' && pin.urban_context !== mapFilters.urban) return false;
       // Confirmed only
       if (mapFilters.confirmedOnly && !pin.last_confirmed_at) return false;
+      // Category group filters
+      const DANGER_CATS = ['assault','harassment','theft','following','aggression','stalking','verbal_abuse'];
+      const WARNING_CATS = ['suspect','group','unsafe','suspicious','drunk'];
+      const INFRA_CATS = ['lighting','blocked','closed','poor_lighting','dark_area','unsafe_road','obstacle','construction'];
+      const POSITIVE_CATS = ['safe','help','presence'];
+      if (!mapFilters.showDanger && DANGER_CATS.includes(pin.category)) return false;
+      if (!mapFilters.showWarning && WARNING_CATS.includes(pin.category)) return false;
+      if (!mapFilters.showInfra && INFRA_CATS.includes(pin.category)) return false;
+      if (!mapFilters.showPositive && POSITIVE_CATS.includes(pin.category)) return false;
       // Time of day
       if (mapFilters.timeOfDay !== 'all') {
         const h = new Date(pin.created_at).getHours();

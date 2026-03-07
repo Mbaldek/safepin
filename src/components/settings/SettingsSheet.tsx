@@ -22,6 +22,7 @@ import { useStore } from '@/stores/useStore';
 export interface SettingsSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  initialScreen?: string;
 }
 
 const screenTransition = { duration: 0.2 };
@@ -29,17 +30,17 @@ const screenInitial = { x: 30, opacity: 0 };
 const screenAnimate = { x: 0, opacity: 1 };
 const screenExit = { x: -30, opacity: 0 };
 
-export default function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
+export default function SettingsSheet({ isOpen, onClose, initialScreen }: SettingsSheetProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const [currentScreen, setCurrentScreen] = useState('main');
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const goBack = useCallback(() => setCurrentScreen('main'), []);
 
-  // Reset to main when sheet opens
+  // Reset to initial screen when sheet opens
   useEffect(() => {
-    if (isOpen) setCurrentScreen('main');
-  }, [isOpen]);
+    if (isOpen) setCurrentScreen(initialScreen ?? 'main');
+  }, [isOpen, initialScreen]);
 
   // Close on Escape
   useEffect(() => {

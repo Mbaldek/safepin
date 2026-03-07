@@ -12,6 +12,7 @@ interface MapPinProps {
     category: string;
     confirmations?: number;
     created_at: string;
+    last_confirmed_at?: string | null;
     is_transport?: boolean;
     transport_type?: string;
     transport_line?: string;
@@ -52,20 +53,127 @@ function getSize(confirmations: number): number {
   return 16;
 }
 
-// Standard pin - simple circle with emoji
-function createStandardPin(size: number, color: string, emoji: string): HTMLDivElement {
+/* ── Pin degradation ─────────────────────────────────────────────── */
+
+const POSITIF_CATS = new Set(['safe', 'help', 'presence']);
+
+const LIFETIME_HOURS: Record<string, number> = {
+  // URGENT
+  assault: 24, harassment: 24, theft: 24, following: 24,
+  // ATTENTION
+  suspect: 6, group: 6, unsafe: 6,
+  // INFRA
+  lighting: 168, blocked: 168, closed: 168,
+};
+
+function getPinDegradationState(
+  category: string,
+  createdAt: string,
+  lastConfirmedAt?: string | null,
+): 'active' | 'degraded' | 'expired' {
+  if (POSITIF_CATS.has(category)) return 'active';
+
+  const referenceDate = lastConfirmedAt
+    ? new Date(lastConfirmedAt)
+    : new Date(createdAt);
+  const hoursElapsed = (Date.now() - referenceDate.getTime()) / (1000 * 60 * 60);
+  const lifetime = LIFETIME_HOURS[category] ?? 24;
+
+  if (hoursElapsed >= lifetime) return 'expired';
+  if (hoursElapsed >= lifetime * 0.5) return 'degraded';
+  return 'active';
+}
+
+/* ── Glow config per category ────────────────────────────────────── */
+
+const GLOW_CONFIG: Record<string, { glow: string; group: string }> = {
+  // URGENT
+  assault:    { glow: 'rgba(239,68,68,0.5)',  group: 'urgent' },
+  harassment: { glow: 'rgba(239,68,68,0.5)',  group: 'urgent' },
+  theft:      { glow: 'rgba(239,68,68,0.5)',  group: 'urgent' },
+  following:  { glow: 'rgba(239,68,68,0.5)',  group: 'urgent' },
+  // ATTENTION
+  suspect:    { glow: 'rgba(249,115,22,0.4)', group: 'attention' },
+  group:      { glow: 'rgba(249,115,22,0.4)', group: 'attention' },
+  unsafe:     { glow: 'rgba(249,115,22,0.4)', group: 'attention' },
+  // INFRA
+  lighting:   { glow: 'none',                 group: 'infra' },
+  blocked:    { glow: 'none',                 group: 'infra' },
+  closed:     { glow: 'none',                 group: 'infra' },
+  // POSITIF
+  safe:       { glow: 'rgba(52,211,153,0.4)', group: 'positif' },
+  help:       { glow: 'rgba(52,211,153,0.4)', group: 'positif' },
+  presence:   { glow: 'rgba(52,211,153,0.4)', group: 'positif' },
+};
+
+// Standard pin — with v2 animation rings + degradation
+function createStandardPin(
+  size: number,
+  color: string,
+  emoji: string,
+  category: string,
+  createdAt: string,
+  lastConfirmedAt?: string | null,
+): HTMLDivElement {
+  const degradation = getPinDegradationState(category, createdAt, lastConfirmedAt);
+  const glowCfg = GLOW_CONFIG[category] ?? { glow: 'none', group: 'infra' };
+  const finalColor = degradation === 'expired' ? '#94A3B8' : color;
+  const finalGlow = degradation === 'active' && glowCfg.glow !== 'none' ? glowCfg.glow : 'none';
+  const opacityClass =
+    degradation === 'expired' ? 'pin-opacity-expired' :
+    degradation === 'degraded' ? 'pin-opacity-degraded' : 'pin-opacity-full';
+
+  const needsRings = degradation === 'active' && glowCfg.group !== 'infra';
+
   const container = document.createElement('div');
   container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;`;
+  container.className = opacityClass;
 
-  const circle = document.createElement('div');
-  circle.style.cssText = `
-    width:${size}px;height:${size}px;border-radius:50%;background:${color};
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;transition:transform 0.2s ease;
-    box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:${size * 0.5}px;
-  `;
-  if (size >= 18) circle.textContent = emoji;
-  container.appendChild(circle);
+  if (needsRings) {
+    // Wrapper with room for animated rings
+    const pinWrapper = document.createElement('div');
+    pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease;`;
+
+    // Add ring divs based on group
+    if (glowCfg.group === 'urgent') {
+      for (const cls of ['pin-urgent-ring1', 'pin-urgent-ring2']) {
+        const ring = document.createElement('div');
+        ring.className = cls;
+        ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};`;
+        pinWrapper.appendChild(ring);
+      }
+    } else if (glowCfg.group === 'attention') {
+      const ring = document.createElement('div');
+      ring.className = 'pin-attention-ring';
+      ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};`;
+      pinWrapper.appendChild(ring);
+    } else if (glowCfg.group === 'positif') {
+      const ring = document.createElement('div');
+      ring.className = 'pin-positif-ring';
+      ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};`;
+      pinWrapper.appendChild(ring);
+    }
+
+    // Main circle
+    const main = document.createElement('div');
+    const glowShadow = finalGlow !== 'none' ? `0 0 10px ${finalGlow}` : '0 2px 6px rgba(0,0,0,0.3)';
+    main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:${glowShadow};`;
+    if (size >= 18) main.textContent = emoji;
+    pinWrapper.appendChild(main);
+
+    container.appendChild(pinWrapper);
+  } else {
+    // Simple circle — infra or degraded/expired pins
+    const circle = document.createElement('div');
+    circle.style.cssText = `
+      width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;transition:transform 0.2s ease;
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:${size * 0.5}px;
+    `;
+    if (size >= 18) circle.textContent = emoji;
+    container.appendChild(circle);
+  }
 
   return container;
 }
@@ -146,7 +254,7 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1 }: Ma
     } else if (isUrgent) {
       container = createUrgentPin(size, config.emoji);
     } else {
-      container = createStandardPin(size, config.color, config.emoji);
+      container = createStandardPin(size, config.color, config.emoji, pin.category, pin.created_at, pin.last_confirmed_at);
     }
 
     // Add label (always create, toggle visibility via separate effect)

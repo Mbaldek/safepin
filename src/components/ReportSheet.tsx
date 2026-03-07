@@ -90,7 +90,7 @@ export function ReportSheet() {
   const C = getColors(isDark);
   const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo } = useStore();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number | '2b'>(1);
   const [cat, setCat] = useState<CategoryItem | null>(null);
   const [transport, setTransport] = useState<boolean | null>(null);
   const [tType, setTType] = useState<string | null>(null);
@@ -99,6 +99,8 @@ export function ReportSheet() {
   const [media, setMedia] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
+  const [establishmentType, setEstablishmentType] = useState<string | null>(null);
+  const [positifNote, setPositifNote] = useState('');
 
   // Reverse geocode when coords change
   useEffect(() => {
@@ -139,7 +141,10 @@ export function ReportSheet() {
     else if (step === 2) setStep(3);
     else if (step === 3) handleSubmit();
   };
-  const back = () => step > 1 && setStep(step - 1);
+  const back = () => {
+    if (step === '2b') setStep(1);
+    else if (typeof step === 'number' && step > 1) setStep(step - 1);
+  };
 
   const reset = () => {
     setStep(1);
@@ -150,6 +155,8 @@ export function ReportSheet() {
     setDesc('');
     setMedia(false);
     setAddress(null);
+    setEstablishmentType(null);
+    setPositifNote('');
   };
 
   const handleClose = () => {
@@ -199,7 +206,7 @@ export function ReportSheet() {
 
   return (
     <AnimatePresence>
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      <div style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 201, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
@@ -217,12 +224,12 @@ export function ReportSheet() {
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid ' + c.border }}>
-          <button onClick={step > 1 ? back : handleClose} style={{ width: 32, height: 32, borderRadius: '50%', background: c.pill, border: 'none', color: c.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {step > 1 ? <ChevronLeft size={18} /> : <X size={18} />}
+          <button onClick={step === 1 ? handleClose : back} style={{ width: 32, height: 32, borderRadius: '50%', background: c.pill, border: 'none', color: c.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {step === 1 ? <X size={18} /> : <ChevronLeft size={18} />}
           </button>
           <div style={{ flex: 1, textAlign: 'center' }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: c.text }}>
-              {step === 1 ? 'Signaler' : step === 2 ? 'Transport' : step === 3 ? 'Validation' : 'Envoyé'}
+            <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>
+              {step === 1 ? 'Signaler' : step === '2b' ? 'Lieu positif' : step === 2 ? 'Transport' : step === 3 ? 'Validation' : 'Envoyé'}
             </span>
           </div>
           {step === 2 ? (
@@ -233,6 +240,8 @@ export function ReportSheet() {
             <button onClick={handleSubmit} disabled={isSubmitting} style={{ width: 32, height: 32, borderRadius: '50%', background: '#34D399', border: 'none', color: '#FFFFFF', cursor: isSubmitting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isSubmitting ? 0.6 : 1 }}>
               <Check size={16} />
             </button>
+          ) : step === '2b' ? (
+            <div style={{ width: 32 }} />
           ) : <div style={{ width: 32 }} />}
         </div>
 
@@ -262,7 +271,7 @@ export function ReportSheet() {
                       return (
                         <button
                           key={item.id}
-                          onClick={() => { setCat(item); setStep(2); }}
+                          onClick={() => { setCat(item); setStep(['safe','help','presence'].includes(item.id) ? '2b' : 2); }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -298,12 +307,12 @@ export function ReportSheet() {
                   <span style={{ fontSize: 13, fontWeight: 500, color: selectedGroup?.color.text }}>{cat.label}</span>
                 </div>
               )}
-              <p style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 12 }}>Dans un transport ?</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 12 }}>Dans un transport ?</p>
 
               {transport === null && (
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setTransport(true)} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Oui</button>
-                  <button onClick={() => { setTransport(false); setStep(3); }} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>Non</button>
+                  <button onClick={() => setTransport(true)} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Oui</button>
+                  <button onClick={() => { setTransport(false); setStep(3); }} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Non</button>
                 </div>
               )}
 
@@ -321,6 +330,138 @@ export function ReportSheet() {
               )}
 
               {/* transport === false auto-advances to step 3 */}
+            </>
+          )}
+
+          {/* Step 2b: Positif funnel */}
+          {step === '2b' && (
+            <>
+              {/* Address */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, minWidth: 0 }}>
+                <MapPin size={13} color={c.muted} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: c.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  {newPinCoords
+                    ? (address ?? `${newPinCoords.lat.toFixed(4)}, ${newPinCoords.lng.toFixed(4)}`)
+                    : 'Position actuelle'}
+                </span>
+              </div>
+
+              {/* Establishment type */}
+              <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: c.muted, marginBottom: 8 }}>
+                Type d&apos;établissement
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+                {([
+                  { id: 'cafe', emoji: '\u2615', label: 'Café / bar' },
+                  { id: 'pharma', emoji: '\uD83D\uDC8A', label: 'Pharmacie' },
+                  { id: 'police', emoji: '\uD83D\uDE94', label: 'Commissariat' },
+                  { id: 'hotel', emoji: '\uD83C\uDFE8', label: 'Hôtel / lobby' },
+                  { id: 'transport', emoji: '\uD83D\uDE87', label: 'Station metro/bus' },
+                  { id: 'other', emoji: '\uD83D\uDCCD', label: 'Autre lieu sûr' },
+                ]).map((et) => {
+                  const isSel = establishmentType === et.id;
+                  return (
+                    <button
+                      key={et.id}
+                      onClick={() => setEstablishmentType(isSel ? null : et.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '10px 12px', borderRadius: 12,
+                        background: isSel
+                          ? 'rgba(52,211,153,0.10)'
+                          : (isDark ? '#334155' : '#F8FAFC'),
+                        border: `1.5px solid ${isSel ? 'rgba(52,211,153,0.35)' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)')}`,
+                        cursor: 'pointer',
+                        transition: 'all 150ms',
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>{et.emoji}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: isSel ? '#34D399' : c.text }}>{et.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Note */}
+              <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: c.muted, marginBottom: 6 }}>
+                Note (facultatif)
+              </p>
+              <textarea
+                placeholder="Ex: ouvert 24h/7j, personnel accueillant..."
+                value={positifNote}
+                onChange={(e) => setPositifNote(e.target.value)}
+                maxLength={120}
+                rows={2}
+                style={{
+                  width: '100%', padding: 10, borderRadius: 10,
+                  background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
+                  border: `1px solid ${c.border}`,
+                  color: c.text, fontSize: 13, outline: 'none', resize: 'none' as const,
+                  marginBottom: 12,
+                }}
+              />
+
+              {/* Callout */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 12px', borderRadius: 10,
+                background: 'rgba(52,211,153,0.06)',
+                border: '1px solid rgba(52,211,153,0.15)',
+                marginBottom: 14,
+              }}>
+                <span style={{ fontSize: 13, flexShrink: 0 }}>{'\u2705'}</span>
+                <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>
+                  Visible immédiatement — pas de validation requise
+                </span>
+              </div>
+
+              {/* CTA */}
+              <button
+                disabled={!establishmentType || isSubmitting}
+                onClick={async () => {
+                  if (!newPinCoords || !cat || !establishmentType) return;
+                  setIsSubmitting(true);
+                  try {
+                    const newPin = {
+                      user_id: userId,
+                      lat: newPinCoords.lat,
+                      lng: newPinCoords.lng,
+                      category: cat.id,
+                      severity: 'low' as const,
+                      description: positifNote || null,
+                      is_transport: false,
+                      transport_type: null,
+                      transport_line: null,
+                      confirmations: 1,
+                      decay_type: 'positive' as const,
+                      address: address || null,
+                      last_confirmed_at: new Date().toISOString(),
+                      urban_context_custom: JSON.stringify({ establishment_type: establishmentType }),
+                    };
+                    const { data, error } = await supabase.from('pins').insert(newPin).select().single();
+                    if (error) throw error;
+                    if (data) addPin(data);
+                    setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
+                    setStep(4);
+                    setTimeout(handleClose, 1500);
+                  } catch {
+                    // submission failed silently
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }}
+                style={{
+                  width: '100%', padding: '12px 0', borderRadius: 12,
+                  background: establishmentType ? '#34D399' : (isDark ? '#334155' : '#CBD5E1'),
+                  border: 'none',
+                  color: '#FFFFFF', fontSize: 13, fontWeight: 700,
+                  cursor: establishmentType && !isSubmitting ? 'pointer' : 'default',
+                  opacity: establishmentType ? 1 : 0.4,
+                  transition: 'all 150ms',
+                }}
+              >
+                {isSubmitting ? 'Envoi...' : 'Publier ce lieu \u2713'}
+              </button>
             </>
           )}
 
@@ -351,7 +492,7 @@ export function ReportSheet() {
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(52,211,153,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                 <Check size={26} color="#34D399" />
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 500, color: c.text, marginBottom: 6 }}>Merci !</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 500, color: c.text, marginBottom: 6 }}>Merci !</h3>
               <p style={{ fontSize: 13, color: c.muted }}>Ton signalement aide la communauté.</p>
             </div>
           )}

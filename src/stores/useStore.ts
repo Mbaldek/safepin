@@ -51,6 +51,10 @@ export type MapFilters = {
   confirmedOnly: boolean;
   liveOnly: boolean;
   timeOfDay: TimeOfDay;
+  showDanger: boolean;
+  showWarning: boolean;
+  showInfra: boolean;
+  showPositive: boolean;
 };
 
 const DEFAULT_MAP_FILTERS: MapFilters = {
@@ -60,6 +64,10 @@ const DEFAULT_MAP_FILTERS: MapFilters = {
   confirmedOnly: false,
   liveOnly: false,
   timeOfDay: 'all',
+  showDanger: true,
+  showWarning: true,
+  showInfra: true,
+  showPositive: true,
 };
 
 function loadLS<T>(key: string, fallback: T): T {

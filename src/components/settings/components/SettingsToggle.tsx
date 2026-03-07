@@ -12,10 +12,10 @@ export default function SettingsToggle({ value, onChange }: SettingsToggleProps)
   const isDark = useTheme((s) => s.theme) === 'dark';
 
   return (
-    <button
+    <div
       role="switch"
       aria-checked={value}
-      onClick={() => onChange(!value)}
+      onClick={(e) => { e.stopPropagation(); onChange(!value); }}
       style={{
         width: 44,
         height: 26,
@@ -26,6 +26,7 @@ export default function SettingsToggle({ value, onChange }: SettingsToggleProps)
         padding: 0,
         cursor: 'pointer',
         transition: 'background 200ms ease',
+        flexShrink: 0,
       }}
     >
       <motion.span
@@ -40,6 +41,6 @@ export default function SettingsToggle({ value, onChange }: SettingsToggleProps)
           background: '#fff',
         }}
       />
-    </button>
+    </div>
   );
 }

@@ -13,7 +13,7 @@ import { Pin } from '@/types';
 import { toast } from 'sonner';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, Hospital } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, SlidersHorizontal } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
@@ -32,6 +32,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
 import { useEscorte } from '@/hooks/useEscorte';
+import { useUiStore } from '@/stores/uiStore';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
@@ -40,7 +41,7 @@ const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
-const CercleTab = dynamic(() => import('@/components/community/cercle-tab'), { ssr: false });
+const CercleSheet = dynamic(() => import('@/components/CercleSheet'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -96,13 +97,15 @@ export default function MapPage() {
 activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     showWalkWithMe, setShowWalkWithMe,
-    mapFilters,
+    mapFilters, setMapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
   } = useStore();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const tMap = useTranslations('map');
   const escorte = useEscorte(userId ?? '');
+  const { communityDMTarget, closeCommunityDM } = useUiStore();
+  const [dmTarget, setDmTarget] = useState<{ userId: string; userName: string } | null>(null);
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
   const justCompletedOnboardingRef = useRef(false);
@@ -122,6 +125,14 @@ activeTrip, setActiveTrip,
 
   // Presence heartbeat — updates last_seen_at every 2 min
   usePresenceHeartbeat(userId);
+
+  // Open CommunityView DM when triggered from CercleSheet
+  useEffect(() => {
+    if (!communityDMTarget) return;
+    setDmTarget(communityDMTarget);
+    setActiveTab('community');
+    closeCommunityDM();
+  }, [communityDMTarget, closeCommunityDM, setActiveTab]);
 
   // Clear pending route options whenever the user leaves the trip tab
   useEffect(() => {
@@ -218,7 +229,9 @@ activeTrip, setActiveTrip,
   const [showSearch, setShowSearch] = useState(false);
   const [showCityContext, setShowCityContext] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialScreen, setSettingsInitialScreen] = useState<string | undefined>(undefined);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
+  const [showFilterPopover, setShowFilterPopover] = useState(false);
 
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
@@ -262,12 +275,15 @@ activeTrip, setActiveTrip,
   // Map style defaults to Breveil custom — user can change in Settings
 
   // Filter active count for badge
+  const poiActive = showPharmacy && showHospital && showPolice;
   const filterActiveCount = [
-    mapFilters.severity !== 'all',
-    mapFilters.age !== 'all',
-    mapFilters.urban !== 'all',
+    !mapFilters.showDanger,
+    !mapFilters.showWarning,
+    !mapFilters.showInfra,
+    !mapFilters.showPositive,
+    poiActive,
     mapFilters.confirmedOnly,
-    mapFilters.timeOfDay !== 'all',
+    mapFilters.age !== 'all',
   ].filter(Boolean).length;
 
   // Count of unresolved emergency pins created in the last 2 hours (red badge on "Nearby" button)
@@ -627,7 +643,7 @@ activeTrip, setActiveTrip,
                   <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
                   <circle cx="40" cy="22" r="4" fill="currentColor" />
                 </svg>
-                <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>BREVEIL</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>BREVEIL</span>
               </div>
               <div className="flex-1" />
               {/* Right icons */}
@@ -644,11 +660,17 @@ activeTrip, setActiveTrip,
                 )}
                 {/* Notification bell */}
                 <button
-                  onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowSettings(false); setShowSearch(false); setShowCityContext(false); setShowNotifications(true); }}
+                  onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowSettings(false); setShowSearch(false); setShowCityContext(false); setShowNotifications((v) => !v); }}
                   aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                   className="relative w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                  style={{
+                    background: showNotifications
+                      ? '#3BB4C1'
+                      : (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)'),
+                    boxShadow: showNotifications ? '0 0 0 3px rgba(59,180,193,0.30)' : 'none',
+                  }}
                 >
-                  <Bell size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                  <Bell size={16} strokeWidth={2} style={{ color: showNotifications ? '#fff' : 'var(--text-muted)' }} />
                   {unreadCount > 0 && (
                     <span
                       aria-hidden="true"
@@ -696,32 +718,208 @@ activeTrip, setActiveTrip,
 
         {activeTab !== 'trip' && <EmergencyButton userId={userId} />}
 
-        {/* Safe places toggle — single button left of GPS control */}
-        {activeTab === 'map' && (() => {
-          const poiActive = showPharmacy && showHospital && showPolice;
-          return (
+        {/* Filter button — replaces old POI toggle */}
+        {activeTab === 'map' && (
+          <>
             <button
-              onClick={() => {
-                const next = !poiActive;
-                setShowPharmacy(next);
-                setShowHospital(next);
-                setShowPolice(next);
-              }}
-              aria-label="Lieux surs"
+              onClick={() => setShowFilterPopover((v) => !v)}
+              aria-label="Filtrer les signalements"
               style={{
                 position: 'absolute', top: 10, right: 50, zIndex: 10,
                 width: 29, height: 29, borderRadius: 4,
-                backgroundColor: poiActive ? '#3BB4C1' : '#fff',
-                border: poiActive ? 'none' : '1px solid rgba(0,0,0,0.08)',
+                backgroundColor: (showFilterPopover || filterActiveCount > 0) ? '#3BB4C1' : '#fff',
+                border: (showFilterPopover || filterActiveCount > 0) ? 'none' : '1px solid rgba(0,0,0,0.08)',
                 boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0,
               }}
             >
-              <Hospital size={15} strokeWidth={2} color={poiActive ? '#fff' : '#333'} />
+              <SlidersHorizontal size={14} strokeWidth={2} color={(showFilterPopover || filterActiveCount > 0) ? '#fff' : '#333'} />
+              {filterActiveCount > 0 && !showFilterPopover && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -4,
+                  minWidth: 14, height: 14, borderRadius: 7,
+                  background: '#EF4444', color: '#fff',
+                  fontSize: 8, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{filterActiveCount}</span>
+              )}
             </button>
-          );
-        })()}
+
+            {/* Filter popover */}
+            {showFilterPopover && (
+              <>
+                {/* Backdrop */}
+                <div
+                  onClick={() => setShowFilterPopover(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 59 }}
+                />
+                <div style={{
+                  position: 'absolute', top: 44, right: 10, zIndex: 60,
+                  width: 260, borderRadius: 12,
+                  background: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
+                  backdropFilter: 'blur(20px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                  padding: 12,
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#94A3B8' : '#64748B', marginBottom: 8 }}>
+                    Catégories
+                  </div>
+                  {[
+                    { emoji: '🚨', label: 'Danger', key: 'showDanger' as const, value: mapFilters.showDanger },
+                    { emoji: '⚠️', label: 'Vigilance', key: 'showWarning' as const, value: mapFilters.showWarning },
+                    { emoji: '🚧', label: 'Infrastructure', key: 'showInfra' as const, value: mapFilters.showInfra },
+                    { emoji: '💚', label: 'Positif', key: 'showPositive' as const, value: mapFilters.showPositive },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => setMapFilters({ ...mapFilters, [item.key]: !item.value })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                        padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                        background: item.value
+                          ? (isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)')
+                          : 'transparent',
+                        opacity: item.value ? 1 : 0.45,
+                        transition: 'all 150ms',
+                      }}
+                    >
+                      <span style={{ fontSize: 13 }}>{item.emoji}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#E2E8F0' : '#1E293B', flex: 1, textAlign: 'left' }}>{item.label}</span>
+                      <div style={{
+                        width: 32, height: 18, borderRadius: 9, padding: 2,
+                        background: item.value ? '#3BB4C1' : (isDark ? '#334155' : '#CBD5E1'),
+                        transition: 'background 150ms',
+                      }}>
+                        <div style={{
+                          width: 14, height: 14, borderRadius: 7, background: '#fff',
+                          transform: item.value ? 'translateX(14px)' : 'translateX(0)',
+                          transition: 'transform 150ms',
+                        }} />
+                      </div>
+                    </button>
+                  ))}
+
+                  {/* Lieux SOS toggle */}
+                  <button
+                    onClick={() => {
+                      const next = !poiActive;
+                      setShowPharmacy(next); setShowHospital(next); setShowPolice(next);
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: poiActive
+                        ? (isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)')
+                        : 'transparent',
+                      opacity: poiActive ? 1 : 0.45,
+                      transition: 'all 150ms',
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>🏥</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#E2E8F0' : '#1E293B', flex: 1, textAlign: 'left' }}>Lieux SOS</span>
+                    <div style={{
+                      width: 32, height: 18, borderRadius: 9, padding: 2,
+                      background: poiActive ? '#3BB4C1' : (isDark ? '#334155' : '#CBD5E1'),
+                      transition: 'background 150ms',
+                    }}>
+                      <div style={{
+                        width: 14, height: 14, borderRadius: 7, background: '#fff',
+                        transform: poiActive ? 'translateX(14px)' : 'translateX(0)',
+                        transition: 'transform 150ms',
+                      }} />
+                    </div>
+                  </button>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '8px 0' }} />
+
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#94A3B8' : '#64748B', marginBottom: 6 }}>
+                    Qualité
+                  </div>
+
+                  {/* Confirmés only toggle */}
+                  <button
+                    onClick={() => setMapFilters({ ...mapFilters, confirmedOnly: !mapFilters.confirmedOnly })}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: mapFilters.confirmedOnly
+                        ? (isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)')
+                        : 'transparent',
+                      transition: 'all 150ms',
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>✅</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#E2E8F0' : '#1E293B', flex: 1, textAlign: 'left' }}>Confirmés uniquement</span>
+                    <div style={{
+                      width: 32, height: 18, borderRadius: 9, padding: 2,
+                      background: mapFilters.confirmedOnly ? '#3BB4C1' : (isDark ? '#334155' : '#CBD5E1'),
+                      transition: 'background 150ms',
+                    }}>
+                      <div style={{
+                        width: 14, height: 14, borderRadius: 7, background: '#fff',
+                        transform: mapFilters.confirmedOnly ? 'translateX(14px)' : 'translateX(0)',
+                        transition: 'transform 150ms',
+                      }} />
+                    </div>
+                  </button>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '8px 0' }} />
+
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#94A3B8' : '#64748B', marginBottom: 6 }}>
+                    Période
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {([
+                      { label: 'Tous', value: 'all' },
+                      { label: '1h', value: '1h' },
+                      { label: "Aujourd'hui", value: 'today' },
+                      { label: '7 jours', value: '7d' },
+                    ] as const).map((item) => (
+                      <button
+                        key={item.value}
+                        onClick={() => setMapFilters({ ...mapFilters, age: item.value })}
+                        style={{
+                          padding: '4px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                          fontSize: 11, fontWeight: 600,
+                          background: mapFilters.age === item.value
+                            ? '#3BB4C1'
+                            : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                          color: mapFilters.age === item.value
+                            ? '#fff'
+                            : (isDark ? '#CBD5E1' : '#64748B'),
+                          transition: 'all 150ms',
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Reset link */}
+                  {filterActiveCount > 0 && (
+                    <button
+                      onClick={() => {
+                        setMapFilters({ ...mapFilters, showDanger: true, showWarning: true, showInfra: true, showPositive: true, confirmedOnly: false, age: 'all' });
+                        setShowPharmacy(true); setShowHospital(true); setShowPolice(true);
+                      }}
+                      style={{
+                        display: 'block', width: '100%', marginTop: 8, padding: '6px 0',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: 11, fontWeight: 600, color: '#3BB4C1', textAlign: 'center',
+                      }}
+                    >
+                      Réinitialiser
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </>
+        )}
 
         {/* Location sharing chip — visible while Walk With Me broadcast is active */}
         {isSharingLocation && (
@@ -784,15 +982,6 @@ activeTrip, setActiveTrip,
                   style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
                   {emergencyNearbyCount}
-                </span>
-              )}
-              {/* Active filter count badge */}
-              {!showIncidentsList && filterActiveCount > 0 && (
-                <span
-                  className="min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-                  style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-                >
-                  {filterActiveCount}
                 </span>
               )}
             </button>
@@ -890,53 +1079,12 @@ activeTrip, setActiveTrip,
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence>
           {activeTab === 'community' && userId && (
-            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} />
+            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} />
           )}
         </AnimatePresence>
 
         {/* Cercle tab — standalone trust circle */}
-        <AnimatePresence>
-          {activeTab === 'cercle' && userId && (
-            <motion.div
-              key="cercle-tab"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                maxHeight: '85dvh',
-                zIndex: 50,
-                backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                boxShadow: '0 -4px 30px rgba(0,0,0,0.15)',
-              }}
-            >
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 20px', flexShrink: 0,
-                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-              }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: isDark ? '#fff' : '#0F172A' }}>
-                  Cercle
-                </span>
-                <button onClick={() => setActiveTab('map')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <X size={20} style={{ color: isDark ? '#94A3B8' : '#64748B' }} />
-                </button>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
-                <CercleTab isDark={isDark} userId={userId} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <CercleSheet open={activeTab === 'cercle'} onClose={() => setActiveTab('map')} />
 
         {/* Escorte sheet — trip tab */}
         <AnimatePresence>
@@ -1063,19 +1211,16 @@ activeTrip, setActiveTrip,
         )}
       </AnimatePresence>
 
-      {/* ── Notifications overlay ──────────────────────────────────── */}
-      <AnimatePresence>
-        {showNotifications && (
-          <motion.div key="notifications" className="absolute inset-0 z-300"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}>
-            <NotificationsSheet onClose={() => setShowNotifications(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Notifications dropdown ─────────────────────────────────── */}
+      {showNotifications && (
+        <NotificationsSheet
+          onClose={() => setShowNotifications(false)}
+          onOpenSettings={() => { setSettingsInitialScreen('alert-notifications'); setShowSettings(true); }}
+        />
+      )}
 
       {/* ── Settings sheet ─────────────────────────────────────────── */}
-      <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsSheet isOpen={showSettings} onClose={() => { setShowSettings(false); setSettingsInitialScreen(undefined); }} initialScreen={settingsInitialScreen} />
 
       {/* Onboarding is now an early return — see above */}
 
