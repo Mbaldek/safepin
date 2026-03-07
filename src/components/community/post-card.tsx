@@ -95,8 +95,38 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
   const [participating, setParticipating] = useState(false);
   const [participantCount, setParticipantCount] = useState(post.participants || 0);
   const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Check if post is bookmarked
+  useEffect(() => {
+    if (!currentUserId) return;
+    supabase
+      .from('saved_posts')
+      .select('id')
+      .eq('user_id', currentUserId)
+      .eq('post_id', post.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setBookmarked(true); });
+  }, [currentUserId, post.id]);
+
+  const handleBookmark = async () => {
+    if (!currentUserId || bookmarkLoading) return;
+    setBookmarkLoading(true);
+    if (bookmarked) {
+      setBookmarked(false);
+      const { error } = await supabase.from('saved_posts').delete().eq('user_id', currentUserId).eq('post_id', post.id);
+      if (error) { setBookmarked(true); toast.error('Erreur'); }
+      else toast('Retire des favoris');
+    } else {
+      setBookmarked(true);
+      const { error } = await supabase.from('saved_posts').insert({ user_id: currentUserId, post_id: post.id });
+      if (error) { setBookmarked(false); toast.error(error.code === '23505' ? 'Deja en favoris' : 'Erreur'); }
+      else toast('Ajoute aux favoris');
+    }
+    setBookmarkLoading(false);
+  };
 
   // Comments state
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -628,10 +658,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         )}
         <motion.button
           whileTap={{ scale: 0.85 }}
-          onClick={() => {
-            setBookmarked(!bookmarked);
-            toast(bookmarked ? "Retiré des favoris" : "Ajouté aux favoris");
-          }}
+          onClick={handleBookmark}
           style={{
             background: "none",
             border: "none",

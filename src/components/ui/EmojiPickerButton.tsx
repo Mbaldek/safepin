@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Smile } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -13,12 +14,32 @@ interface EmojiPickerButtonProps {
 
 export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: EmojiPickerButtonProps) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
+  const iconSize = size === 'sm' ? 14 : 18;
+  const btnSize = size === 'sm' ? 24 : 32;
+
+  // Calculate position when opening
+  const updatePosition = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setPos({
+      bottom: window.innerHeight - rect.top + 8,
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+  }, []);
+
+  // Click outside → close
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        pickerRef.current && !pickerRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     }
@@ -26,14 +47,23 @@ export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: Emo
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  const iconSize = size === 'sm' ? 14 : 18;
-  const btnSize = size === 'sm' ? 24 : 32;
+  // Recalculate position on scroll/resize while open
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open, updatePosition]);
 
   return (
     <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
       <button
         type="button"
-        onClick={() => setOpen(p => !p)}
+        onClick={() => { setOpen(p => !p); }}
         style={{
           width: btnSize, height: btnSize, borderRadius: '50%',
           background: 'none', border: 'none', cursor: 'pointer',
@@ -45,10 +75,16 @@ export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: Emo
         <Smile size={iconSize} />
       </button>
 
-      {open && (
-        <div style={{
-          position: 'absolute', bottom: btnSize + 8, right: 0, zIndex: 50,
-        }}>
+      {open && pos && createPortal(
+        <div
+          ref={pickerRef}
+          style={{
+            position: 'fixed',
+            bottom: pos.bottom,
+            right: pos.right,
+            zIndex: 9999,
+          }}
+        >
           <Picker
             data={data}
             onEmojiSelect={(emoji: any) => {
@@ -62,7 +98,8 @@ export default function EmojiPickerButton({ onSelect, isDark, size = 'md' }: Emo
             perLine={8}
             maxFrequentRows={2}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

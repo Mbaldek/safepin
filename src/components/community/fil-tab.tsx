@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
+import { Bookmark } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import StoriesRow from "./stories-row";
 import PostCard from "./post-card";
@@ -47,10 +48,24 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [loading, setLoading] = useState(true);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [sosTab, setSosTab] = useState<'active' | 'resolved' | 'notifs'>('active');
+  const [showFavoris, setShowFavoris] = useState(false);
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
 
   const handleHide = useCallback((postId: string) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
   }, []);
+
+  // Fetch saved post IDs when favoris filter is toggled on
+  useEffect(() => {
+    if (!showFavoris || !userId) { setSavedPostIds(new Set()); return; }
+    (async () => {
+      const { data } = await supabase
+        .from('saved_posts')
+        .select('post_id')
+        .eq('user_id', userId);
+      setSavedPostIds(new Set((data || []).map((r: any) => r.post_id)));
+    })();
+  }, [showFavoris, userId]);
 
   // Extract hashtags from loaded posts and notify parent
   useEffect(() => {
@@ -241,6 +256,29 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
       <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} />
 
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Favoris filter pill */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowFavoris(f => !f)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 14px', borderRadius: 20,
+              fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+              background: showFavoris
+                ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
+                : (isDark ? 'var(--surface-elevated, #273449)' : '#F1F5F9'),
+              border: `1px solid ${showFavoris
+                ? 'rgba(251,191,36,0.3)'
+                : (isDark ? 'var(--border-default, rgba(255,255,255,0.08))' : '#E2E8F0')}`,
+              color: showFavoris ? '#FBBF24' : (isDark ? '#94A3B8' : '#64748B'),
+            }}
+          >
+            <Bookmark size={13} fill={showFavoris ? '#FBBF24' : 'none'} />
+            <span>Favoris</span>
+          </button>
+        </div>
+
         {/* SOS filter tabs — only shown when SOS posts exist */}
         {sosPosts.length > 0 && (
           <div style={{ display: 'flex', gap: 5 }}>
@@ -331,7 +369,25 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             });
           }
 
+          // Favoris filter
+          if (showFavoris) {
+            visible = visible.filter((p) => savedPostIds.has(p.id));
+          }
+
           if (visible.length === 0) {
+            if (showFavoris) {
+              return (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
+                  <span style={{ fontSize: 32 }}>🔖</span>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
+                    Aucun favori pour l&apos;instant
+                  </p>
+                  <p style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                    Ajoutez des posts en favoris avec le bouton 🔖
+                  </p>
+                </div>
+              );
+            }
             if (searchQuery && searchQuery.trim()) {
               return (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
