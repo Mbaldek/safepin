@@ -2,12 +2,13 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTheme } from '@/stores/useTheme';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import { getOrCreateConversation } from '@/lib/dm';
 import Header from './CommunityHeader';
+import { Search, X } from 'lucide-react';
 import TabBar from './tab-bar';
 import FilTab from './fil-tab';
 import CercleTab from './cercle-tab';
@@ -18,7 +19,7 @@ import StoryViewer, { type DBStory } from './story-viewer';
 import StoryComposeModal from './story-compose-modal';
 import CreateGroupModal from './create-group-modal';
 import { TrendingHashtags, HashtagFeedSheet } from '@/components/hashtags';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { Hashtag } from '@/types';
 
 const GRADIENTS = [
@@ -52,6 +53,106 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
   const [showCompose, setShowCompose] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+  const [dbHashtags, setDbHashtags] = useState<{ tag: string; count: number; category?: string; color?: string }[]>([]);
+  const [feedHashtags, setFeedHashtags] = useState<Map<string, number>>(new Map());
+
+  // Fetch hashtags from DB once
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('hashtags')
+        .select('tag, uses_count, category, color')
+        .order('uses_count', { ascending: false })
+        .limit(20);
+      if (data) {
+        setDbHashtags(data.map((h: any) => ({ tag: h.tag, count: h.uses_count ?? 0, category: h.category, color: h.color })));
+      }
+    })();
+  }, []);
+
+  // Merge DB + feed hashtags, deduplicate, sort by frequency
+  const mergedSuggestions = useMemo(() => {
+    const map = new Map<string, { tag: string; count: number; category?: string; color?: string }>();
+    // DB hashtags first
+    for (const h of dbHashtags) {
+      const key = (h.tag.startsWith('#') ? h.tag : `#${h.tag}`).toLowerCase();
+      map.set(key, { tag: key, count: h.count, category: h.category, color: h.color });
+    }
+    // Feed hashtags — merge counts
+    for (const [tag, count] of feedHashtags) {
+      const key = tag.startsWith('#') ? tag.toLowerCase() : `#${tag}`.toLowerCase();
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += count;
+      } else {
+        map.set(key, { tag: key, count });
+      }
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [dbHashtags, feedHashtags]);
+
+  const SAFETY_TAGS_SET = useMemo(() => new Set([
+    '#sos', '#urgence', '#harcelement', '#harcèlement',
+    '#unsafe', '#agression', '#alerte',
+  ]), []);
+
+  // Filter suggestions by current query
+  const filteredSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return mergedSuggestions.slice(0, 6);
+    const q = searchQuery.trim().toLowerCase();
+    return mergedSuggestions
+      .filter((s) => s.tag.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [searchQuery, mergedSuggestions]);
+
+  // Focus input when search opens
+  useEffect(() => {
+    if (searchOpen && activeTab === 0) {
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
+  }, [searchOpen, activeTab]);
+
+  // Click outside dropdown → close it
+  useEffect(() => {
+    if (!showDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (searchBarRef.current && !searchBarRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showDropdown]);
+
+  // Escape key → close search
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSearchQuery('');
+        setSearchOpen(false);
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [searchOpen]);
+
+  const handleSelectSuggestion = (tag: string) => {
+    const isSafety = SAFETY_TAGS_SET.has(tag.toLowerCase());
+    if (isSafety && onSafetyFilter) {
+      onSafetyFilter(tag);
+      setSearchQuery('');
+      setSearchOpen(false);
+      setShowDropdown(false);
+    } else {
+      setSearchQuery(tag);
+      setShowDropdown(false);
+    }
+  };
 
   useEffect(() => {
     if (communityDefaultTab !== null) {
@@ -186,9 +287,8 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
         isDark={isDark}
         onCompose={() => setShowCompose(true)}
         onClose={onClose}
-        onSearch={(q) => setSearchQuery(q)}
-        forceOpen={searchOpen}
-        searchValue={searchQuery}
+        onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
+        searchOpen={searchOpen}
       />
 
       <TabBar
@@ -197,6 +297,130 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
         setActiveTab={setActiveTab}
         isDark={isDark}
       />
+
+      {/* Search bar — only visible on Fil tab when searchOpen */}
+      {searchOpen && activeTab === 0 && (
+        <div
+          ref={searchBarRef}
+          style={{
+            padding: '10px 16px 6px',
+            backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
+            borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`,
+            flexShrink: 0,
+            position: 'relative',
+          }}
+        >
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '9px 14px',
+            background: isDark ? '#1E293B' : '#F1F5F9',
+            borderRadius: 12,
+            border: `1px solid ${searchQuery.trim() ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)')}`,
+            transition: 'border-color 200ms ease',
+          }}>
+            <Search size={15} style={{ color: isDark ? '#64748B' : '#94A3B8', flexShrink: 0 }} />
+            <input
+              ref={searchInputRef}
+              autoFocus
+              placeholder="Rechercher dans le fil..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowDropdown(e.target.value.length >= 1);
+              }}
+              onFocus={() => { if (searchQuery.length >= 1) setShowDropdown(true); }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: 13,
+                color: isDark ? '#FFFFFF' : '#0F172A',
+                flex: 1,
+                minWidth: 0,
+                padding: 0,
+              }}
+            />
+            {searchQuery.trim() && (
+              <button
+                onClick={() => { setSearchQuery(''); setShowDropdown(false); searchInputRef.current?.focus(); }}
+                style={{
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={12} style={{ color: isDark ? '#94A3B8' : '#64748B' }} />
+              </button>
+            )}
+          </div>
+          {searchQuery.trim() && (
+            <div style={{ fontSize: 11, color: isDark ? '#64748B' : '#94A3B8', marginTop: 6, paddingLeft: 2 }}>
+              Resultats pour &quot;{searchQuery.trim()}&quot; dans le fil
+            </div>
+          )}
+
+          {/* Suggestions dropdown */}
+          <AnimatePresence>
+            {showDropdown && filteredSuggestions.length > 0 && (
+              <motion.div
+                key="search-dropdown"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 12,
+                  right: 12,
+                  zIndex: 100,
+                  background: isDark ? '#1E293B' : '#FFFFFF',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  overflow: 'hidden',
+                }}
+              >
+                {filteredSuggestions.map((s) => {
+                  const isSafety = SAFETY_TAGS_SET.has(s.tag.toLowerCase());
+                  const tagColor = isSafety ? '#EF4444' : (s.color || '#3BB4C1');
+                  return (
+                    <button
+                      key={s.tag}
+                      onClick={() => handleSelectSuggestion(s.tag)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '10px 14px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
+                      }}
+                    >
+                      {isSafety && <span style={{ fontSize: 13, flexShrink: 0 }}>⚠️</span>}
+                      <span style={{ fontSize: 14, fontWeight: 700, color: tagColor }}>#</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: isDark ? '#FFFFFF' : '#0F172A', flex: 1 }}>
+                        {s.tag.replace(/^#/, '')}
+                      </span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 500, color: isDark ? '#64748B' : '#94A3B8',
+                        background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                        padding: '2px 8px', borderRadius: 10,
+                      }}>
+                        {s.count} post{s.count !== 1 ? 's' : ''}
+                      </span>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       <div style={{ flex: 1, overflowY: 'auto' }} className="scrollbar-hidden">
         {activeTab === 0 && (
@@ -219,6 +443,7 @@ export default function CommunityView({ onClose, onSafetyFilter }: CommunityView
                 setSearchQuery(tag);
                 setSearchOpen(true);
               }}
+              onHashtagsReady={setFeedHashtags}
             />
           </>
         )}

@@ -15,6 +15,7 @@ interface FilTabProps {
   onSafetyFilter?: (tag: string) => void;
   searchQuery?: string;
   onHashtagClick?: (tag: string) => void;
+  onHashtagsReady?: (tags: Map<string, number>) => void;
 }
 
 const GRADIENTS = [
@@ -39,7 +40,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [sosPosts, setSosPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
@@ -50,6 +51,20 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const handleHide = useCallback((postId: string) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
   }, []);
+
+  // Extract hashtags from loaded posts and notify parent
+  useEffect(() => {
+    if (!onHashtagsReady) return;
+    const tagCounts = new Map<string, number>();
+    for (const p of posts) {
+      const matches = p.content?.match(/#[\wÀ-ÿ]+/g) ?? [];
+      for (const tag of matches) {
+        const lower = tag.toLowerCase();
+        tagCounts.set(lower, (tagCounts.get(lower) || 0) + 1);
+      }
+    }
+    onHashtagsReady(tagCounts);
+  }, [posts, onHashtagsReady]);
 
   useEffect(() => {
     if (!userId) return;
