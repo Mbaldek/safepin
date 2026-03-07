@@ -884,11 +884,19 @@ export default function MapPage() {
               exit={{ opacity: 0, y: 40 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{
-                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                zIndex: 200,
-                background: isDark ? '#0F172A' : '#F8FAFC',
-                display: 'flex', flexDirection: 'column',
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                maxHeight: '85dvh',
+                zIndex: 50,
+                backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
+                display: 'flex',
+                flexDirection: 'column',
                 overflow: 'hidden',
+                boxShadow: '0 -4px 30px rgba(0,0,0,0.15)',
               }}
             >
               <div style={{
