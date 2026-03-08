@@ -46,7 +46,7 @@ async function dispatchToContacts(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function EmergencyButton({ userId }: { userId: string | null }) {
+export default function EmergencyButton({ userId, compact = false }: { userId: string | null; compact?: boolean }) {
   const { userLocation, setUserLocation } = useStore();
   useTheme(); // subscribe to theme changes for CSS var updates
   const t = useTranslations('emergency');
@@ -736,25 +736,22 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         aria-label="Emergency alert — hold 3 seconds to activate"
         style={{
           position: 'fixed',
-          bottom: 80,
-          right: 20,
-          width: 52,
-          height: 52,
+          ...(compact
+            ? { top: 62, right: 16, width: 40, height: 40, fontSize: 10, zIndex: 150, boxShadow: '0 2px 10px rgba(239,68,68,0.4)' }
+            : { bottom: 80, right: 20, width: 52, height: 52, fontSize: 13, zIndex: 200, boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }
+          ),
           borderRadius: '50%',
           background: 'linear-gradient(135deg, #EF4444, #DC2626)',
           border: '2px solid rgba(239,68,68,0.3)',
           cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(239,68,68,0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 13,
           fontWeight: 800,
           color: '#fff',
           letterSpacing: '0.05em',
-          zIndex: 200,
           opacity: phase === 'idle' ? 1 : 0.5,
-          transition: 'transform 0.1s ease, opacity 0.15s ease',
+          transition: 'all 0.3s ease',
           touchAction: 'none',
           userSelect: 'none',
         }}
