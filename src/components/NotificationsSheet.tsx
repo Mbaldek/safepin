@@ -22,6 +22,8 @@ function getIcon(type: string): string {
     case 'pin': case 'new_pin': case 'comment': return '📍';
     case 'pin_confirmed': case 'vote': return '👍';
     case 'digest': case 'weekly': case 'milestone': return '📊';
+    case 'mention': return '@';
+    case 'story': return '📸';
     default: return '🔔';
   }
 }
@@ -33,13 +35,15 @@ function getDotColor(type: string): string {
     case 'circle_invite': case 'cercle': case 'circle_invitation': case 'community': return '#3BB4C1';
     case 'pin': case 'new_pin': case 'comment': case 'pin_confirmed': case 'vote': return '#F59E0B';
     case 'digest': case 'weekly': case 'milestone': return '#A78BFA';
+    case 'mention': return '#3BB4C1';
+    case 'story': return '#A78BFA';
     default: return '#3BB4C1';
   }
 }
 
 /* ── component ──────────────────────────────────────────────────── */
 
-export default function NotificationsSheet({ onClose, onOpenSettings }: { onClose: () => void; onOpenSettings?: () => void }) {
+export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStory }: { onClose: () => void; onOpenSettings?: () => void; onOpenStory?: (storyId: string) => void }) {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const { notifications, markNotificationsRead, setActiveTab, userId } = useStore();
   const focusTrapRef = useFocusTrap(true, onClose);
@@ -215,9 +219,16 @@ export default function NotificationsSheet({ onClose, onOpenSettings }: { onClos
                 return (
                   <div
                     key={n.id}
+                    onClick={() => {
+                      if ((n.type === 'mention' || n.type === 'story') && n.payload) {
+                        const storyId = (n.payload as Record<string, unknown>).storyId as string | undefined;
+                        if (storyId && onOpenStory) { onOpenStory(storyId); onClose(); }
+                      }
+                    }}
                     style={{
                       display: 'flex', gap: 9, padding: '8px 10px',
                       borderRadius: 12, marginBottom: 4,
+                      cursor: (n.type === 'mention' || n.type === 'story') ? 'pointer' : 'default',
                       background: isUnread
                         ? (isDark ? 'rgba(59,180,193,0.06)' : '#F0FAFB')
                         : 'transparent',

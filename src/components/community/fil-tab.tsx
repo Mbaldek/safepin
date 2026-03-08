@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
-import { Bookmark, Search } from "lucide-react";
+import { Bookmark, Search, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTrendingHashtags } from "@/hooks/useHashtags";
 import { useStore } from "@/stores/useStore";
@@ -60,6 +60,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [activeHashtagFilter, setActiveHashtagFilter] = useState<string | null>(null);
   const [hashtagPinIds, setHashtagPinIds] = useState<Set<string>>(new Set());
+  const [contentFilter, setContentFilter] = useState<Set<'post' | 'sos' | 'pin'>>(new Set(['post', 'sos', 'pin']));
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const { trending } = useTrendingHashtags();
   const userLocation = useStore((s) => s.userLocation);
 
@@ -398,7 +400,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
 
   return (
     <div style={{ paddingBottom: 20 }}>
-      <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} refreshKey={refreshKey} />
+      <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} refreshKey={refreshKey} activeHashtagFilter={activeHashtagFilter} />
 
       {/* Trending bar: search + favoris + hashtag pills */}
       <div
@@ -424,6 +426,65 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         >
           <Search size={16} style={{ color: '#3BB4C1' }} />
         </button>
+
+        {/* Filter pill */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setShowFilterMenu(f => !f)}
+            style={{
+              width: 34, height: 34, minWidth: 34, borderRadius: 99,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: contentFilter.size < 3
+                ? (isDark ? 'rgba(59,180,193,0.15)' : 'rgba(59,180,193,0.10)')
+                : (isDark ? '#1E293B' : '#F1F5F9'),
+              border: `1px solid ${contentFilter.size < 3 ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+              cursor: 'pointer',
+            }}
+          >
+            <SlidersHorizontal size={15} style={{ color: contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
+          </button>
+          {showFilterMenu && (
+            <div style={{
+              position: 'absolute', top: 40, left: 0, zIndex: 50,
+              background: isDark ? '#1E293B' : '#FFFFFF',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#E2E8F0'}`,
+              borderRadius: 12, padding: '6px 0', minWidth: 160,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            }}>
+              {([
+                { key: 'post' as const, label: 'Publications', icon: '📝' },
+                { key: 'sos' as const, label: 'Alertes SOS', icon: '🚨' },
+                { key: 'pin' as const, label: 'Signalements', icon: '📍' },
+              ]).map(opt => {
+                const active = contentFilter.has(opt.key);
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => {
+                      setContentFilter(prev => {
+                        const next = new Set(prev);
+                        if (active && next.size > 1) next.delete(opt.key);
+                        else next.add(opt.key);
+                        return next;
+                      });
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      width: '100%', padding: '8px 14px', border: 'none',
+                      background: 'transparent', cursor: 'pointer', fontSize: 12.5,
+                      fontWeight: active ? 600 : 400, fontFamily: 'inherit',
+                      color: active ? (isDark ? '#FFFFFF' : '#0F172A') : (isDark ? '#64748B' : '#94A3B8'),
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{opt.icon}</span>
+                    <span style={{ flex: 1, textAlign: 'left' }}>{opt.label}</span>
+                    {active && <span style={{ color: '#3BB4C1', fontSize: 14, fontWeight: 700 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Favoris pill */}
         <button
@@ -550,9 +611,16 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               })
             : allPosts;
 
+          // Content type filter
+          const typeFiltered = filtered.filter(p => {
+            if (p._isPin) return contentFilter.has('pin');
+            if (p._isSos) return contentFilter.has('sos');
+            return contentFilter.has('post');
+          });
+
           // Deduplicate SOS posts by sos_id (keep first = most recent)
           const seenSosIds = new Set<string>();
-          const deduped = filtered.filter(p => {
+          const deduped = typeFiltered.filter(p => {
             if (!p._isSos || !p.sos_id) return true;
             if (seenSosIds.has(p.sos_id)) return false;
             seenSosIds.add(p.sos_id);

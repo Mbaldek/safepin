@@ -57,7 +57,7 @@ export type Comment = {
 
 export type AppNotification = {
   id: string;
-  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact' | 'milestone' | 'digest' | 'trip_share' | 'circle_invitation' | 'mention';
+  type: 'emergency' | 'vote' | 'comment' | 'resolve' | 'community' | 'trusted_contact' | 'milestone' | 'digest' | 'trip_share' | 'circle_invitation' | 'mention' | 'story';
   title?: string;
   body?: string | null;
   payload?: Record<string, unknown>;
@@ -142,6 +142,8 @@ export type DirectMessage = {
   created_at: string;
 };
 
+export type StoryVisibility = 'public' | 'followers' | 'cercle';
+
 export type CommunityStory = {
   id: string;
   community_id: string | null;
@@ -150,6 +152,7 @@ export type CommunityStory = {
   media_url: string;
   media_type: 'image' | 'video';
   caption: string | null;
+  visibility: StoryVisibility;
   created_at: string;
 };
 

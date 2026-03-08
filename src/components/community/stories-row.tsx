@@ -12,6 +12,7 @@ interface StoriesRowProps {
   onStoryClick: (index: number) => void;
   onPublish: () => void;
   refreshKey?: number;
+  activeHashtagFilter?: string | null;
 }
 
 interface StoryItem {
@@ -36,11 +37,31 @@ function pickGradient(id: string): string[] {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 }
 
-export default function StoriesRow({ isDark, userId, communityIds, onStoryClick, onPublish, refreshKey }: StoriesRowProps) {
+export default function StoriesRow({ isDark, userId, communityIds, onStoryClick, onPublish, refreshKey, activeHashtagFilter }: StoriesRowProps) {
   const [stories, setStories] = useState<StoryItem[]>([]);
 
   useEffect(() => {
     (async () => {
+      // If hashtag filter active, resolve matching story IDs first
+      let hashtagStoryIds: Set<string> | null = null;
+      if (activeHashtagFilter) {
+        const { data: htRow } = await supabase
+          .from("hashtags")
+          .select("id")
+          .eq("tag", activeHashtagFilter.toLowerCase())
+          .maybeSingle();
+        if (htRow) {
+          const { data: links } = await supabase
+            .from("content_hashtags")
+            .select("content_id")
+            .eq("hashtag_id", htRow.id)
+            .eq("content_type", "story");
+          hashtagStoryIds = new Set((links || []).map((l: { content_id: string }) => l.content_id));
+        } else {
+          hashtagStoryIds = new Set();
+        }
+      }
+
       // Fetch recent stories (last 24h) — global + user's communities
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const filter = communityIds.length
@@ -52,15 +73,20 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
         .or(filter)
         .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
 
-      if (!data?.length) {
+      let filtered = data || [];
+      if (hashtagStoryIds !== null) {
+        filtered = filtered.filter((s) => hashtagStoryIds!.has(s.id));
+      }
+
+      if (!filtered.length) {
         setStories([]);
         return;
       }
 
       // Enrich with profiles
-      const userIds = [...new Set(data.map((s) => s.user_id))];
+      const userIds = [...new Set(filtered.map((s) => s.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, display_name, first_name, username, avatar_emoji, avatar_url")
@@ -68,7 +94,7 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
       const pMap = new Map((profiles || []).map((p) => [p.id, p]));
 
       setStories(
-        data.map((s) => {
+        filtered.map((s) => {
           const p = pMap.get(s.user_id);
           const name = p?.username || p?.display_name || p?.first_name || s.display_name || "Membre";
           return {
@@ -81,7 +107,7 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
         })
       );
     })();
-  }, [communityIds, refreshKey]);
+  }, [communityIds, refreshKey, activeHashtagFilter]);
 
   // Always prepend the "+ Publier" slot
   const allItems: StoryItem[] = [

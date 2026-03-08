@@ -52,6 +52,8 @@ export default function StoryViewer({
   const [likeCount, setLikeCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [storyTags, setStoryTags] = useState<{ tag: string; display: string; color: string | null }[]>([]);
+  const [storyMentions, setStoryMentions] = useState<{ name: string; userId: string }[]>([]);
 
   // Guard: no stories
   useEffect(() => {
@@ -80,6 +82,39 @@ export default function StoryViewer({
         }
       });
   }, [story?.id, userId]);
+
+  // Fetch hashtags + mentions for current story
+  useEffect(() => {
+    if (!story?.id) { setStoryTags([]); setStoryMentions([]); return; }
+    supabase
+      .from("content_hashtags")
+      .select("hashtags(tag, display, color)")
+      .eq("content_id", story.id)
+      .eq("content_type", "story")
+      .then(({ data }) => {
+        setStoryTags(
+          (data || [])
+            .map((r: Record<string, unknown>) => {
+              const h = r.hashtags as { tag: string; display: string; color: string | null } | null;
+              return h ? { tag: h.tag, display: h.display || `#${h.tag}`, color: h.color } : null;
+            })
+            .filter(Boolean) as { tag: string; display: string; color: string | null }[]
+        );
+      });
+    supabase
+      .from("content_mentions")
+      .select("mentioned_user_id, profiles:mentioned_user_id(display_name, username)")
+      .eq("content_id", story.id)
+      .eq("content_type", "story")
+      .then(({ data }) => {
+        setStoryMentions(
+          (data || []).map((r: Record<string, unknown>) => {
+            const p = r.profiles as { display_name: string | null; username: string | null } | null;
+            return { name: p?.display_name || p?.username || "?", userId: r.mentioned_user_id as string };
+          })
+        );
+      });
+  }, [story?.id]);
 
   const toggleLike = useCallback(async () => {
     if (!story || !userId) return;
@@ -330,6 +365,48 @@ export default function StoryViewer({
               objectFit: "cover",
             }}
           />
+        )}
+
+        {/* Hashtag pills overlay — top */}
+        {storyTags.length > 0 && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "absolute", top: 8, left: 12, right: 12,
+              display: "flex", gap: 5, flexWrap: "wrap",
+              zIndex: 2,
+            }}
+          >
+            {storyTags.map((t) => (
+              <span
+                key={t.tag}
+                style={{
+                  padding: "3px 9px", borderRadius: 100,
+                  background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+                  fontSize: 11, fontWeight: 600,
+                  color: t.color || "#fff",
+                }}
+              >
+                {t.display}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Mentions overlay — above caption */}
+        {storyMentions.length > 0 && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "absolute", bottom: story.caption ? 80 : 16, left: 16, right: 16,
+              zIndex: 2,
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontSize: 12, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.6)", fontWeight: 500 }}>
+              avec {storyMentions.map((m) => `@${m.name}`).join(", ")}
+            </span>
+          </div>
         )}
 
         {/* Caption overlay */}

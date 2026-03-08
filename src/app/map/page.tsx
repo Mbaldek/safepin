@@ -1079,7 +1079,10 @@ activeTrip, setActiveTrip,
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence>
           {activeTab === 'community' && userId && (
-            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} />
+            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} onPinClick={async (pinId) => {
+              const { data: pin } = await supabase.from('pins').select('*').eq('id', pinId).single();
+              if (pin) { useStore.getState().setSelectedPin(pin); setActiveSheet('detail'); }
+            }} />
           )}
         </AnimatePresence>
 
@@ -1216,6 +1219,10 @@ activeTrip, setActiveTrip,
         <NotificationsSheet
           onClose={() => setShowNotifications(false)}
           onOpenSettings={() => { setSettingsInitialScreen('alert-notifications'); setShowSettings(true); }}
+          onOpenStory={(storyId) => {
+            setActiveTab('community');
+            useUiStore.getState().openStory(storyId);
+          }}
         />
       )}
 

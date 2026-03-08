@@ -10,9 +10,15 @@ import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
 import { useHashtagSearch, upsertHashtag, attachHashtags } from "@/hooks/useHashtags";
 import { useMentionSearch, insertMentions } from "@/hooks/useMentionSearch";
 import type { MentionProfile } from "@/hooks/useMentionSearch";
-import type { Hashtag } from "@/types";
+import type { Hashtag, StoryVisibility } from "@/types";
 
 const SPRING = springConfig;
+
+const VISIBILITY_OPTIONS: { id: StoryVisibility; icon: string; label: string; desc: string; color: string }[] = [
+  { id: "public", icon: "\uD83C\uDF0D", label: "Public", desc: "Visible par tous", color: "#3BB4C1" },
+  { id: "followers", icon: "\uD83D\uDC65", label: "Abonnés", desc: "Mes abonnés", color: "#F5C341" },
+  { id: "cercle", icon: "\uD83E\uDD1D", label: "Cercle", desc: "Mon cercle", color: "#A78BFA" },
+];
 
 interface StoryComposeModalProps {
   isDark: boolean;
@@ -36,6 +42,7 @@ export default function StoryComposeModal({
   const [caption, setCaption] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [storyTags, setStoryTags] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<StoryVisibility>("public");
 
   // Mentions
   const [mentions, setMentions] = useState<MentionProfile[]>([]);
@@ -90,13 +97,16 @@ export default function StoryComposeModal({
       .eq("id", userId)
       .single();
 
+    const displayName = profile?.display_name || null;
+
     const { data: inserted, error } = await supabase.from("community_stories").insert({
       community_id: null,
       user_id: userId,
-      display_name: profile?.display_name || null,
+      display_name: displayName,
       media_url: urlData.publicUrl,
       media_type: mediaType,
       caption: caption.trim() || null,
+      visibility,
     }).select("id").single();
 
     if (error) {
@@ -134,9 +144,38 @@ export default function StoryComposeModal({
         contentType: "story",
         contentId: inserted.id,
         mentionerId: userId,
-        mentionerName: profile?.display_name || "Quelqu\u2019un",
+        mentionerName: displayName || "Quelqu\u2019un",
         mentionedUsers: mentions,
       });
+    }
+
+    // Notify cercle members
+    if (visibility === "cercle" || visibility === "public") {
+      const [{ data: c1 }, { data: c2 }] = await Promise.all([
+        supabase.from("trusted_contacts").select("contact_id").eq("user_id", userId).eq("status", "accepted"),
+        supabase.from("trusted_contacts").select("user_id").eq("contact_id", userId).eq("status", "accepted"),
+      ]);
+      const cercleIds = [...new Set([...(c1 || []).map((r: { contact_id: string }) => r.contact_id), ...(c2 || []).map((r: { user_id: string }) => r.user_id)])];
+      if (cercleIds.length) {
+        await supabase.from("notifications").insert(cercleIds.map(uid => ({
+          user_id: uid, type: "story" as const,
+          title: `${displayName || "Quelqu\u2019un"} a publie une story`,
+          payload: { senderId: userId, senderName: displayName, storyId: inserted.id },
+        })));
+      }
+    }
+
+    // Notify followers
+    if (visibility === "followers" || visibility === "public") {
+      const { data: followers } = await supabase.from("follows").select("follower_id").eq("following_id", userId);
+      const followerIds = (followers || []).map((r: { follower_id: string }) => r.follower_id).filter(id => id !== userId);
+      if (followerIds.length) {
+        await supabase.from("notifications").insert(followerIds.map(uid => ({
+          user_id: uid, type: "story" as const,
+          title: `${displayName || "Quelqu\u2019un"} a publie une story`,
+          payload: { senderId: userId, senderName: displayName, storyId: inserted.id },
+        })));
+      }
     }
 
     toast.success("Story publiee !");
@@ -413,6 +452,38 @@ export default function StoryComposeModal({
                     )}
                     {display}
                   </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Visibility ── */}
+          <div style={{ marginTop: 12 }}>
+            <div style={labelStyle}>Qui peut voir ?</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {VISIBILITY_OPTIONS.map((opt) => {
+                const selected = visibility === opt.id;
+                return (
+                  <motion.button
+                    key={opt.id}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setVisibility(opt.id)}
+                    style={{
+                      flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+                      gap: 4, padding: "10px 8px", borderRadius: 12,
+                      border: selected ? `2px solid ${opt.color}` : `1px solid ${d ? "#334155" : "#E2E8F0"}`,
+                      backgroundColor: selected ? `${opt.color}15` : d ? "#1E293B" : "#FFFFFF",
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    <span style={{ fontSize: 18 }}>{opt.icon}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: selected ? opt.color : d ? T.textSecondary : T.textSecondaryL }}>
+                      {opt.label}
+                    </span>
+                    <span style={{ fontSize: 9, color: d ? T.textTertiary : T.textTertiaryL }}>
+                      {opt.desc}
+                    </span>
+                  </motion.button>
                 );
               })}
             </div>

@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTheme } from '@/stores/useTheme';
 import { useStore } from '@/stores/useStore';
+import { useUiStore } from '@/stores/uiStore';
 import { supabase } from '@/lib/supabase';
 import { getOrCreateConversation } from '@/lib/dm';
 import Header from './CommunityHeader';
@@ -40,9 +41,10 @@ interface CommunityViewProps {
   onSafetyFilter?: (tag: string) => void;
   dmTarget?: { userId: string; userName: string } | null;
   onDMOpened?: () => void;
+  onPinClick?: (pinId: string) => void;
 }
 
-export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMOpened }: CommunityViewProps) {
+export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMOpened, onPinClick }: CommunityViewProps) {
   const isDark = useTheme((s) => s.theme) === 'dark';
 
   const userId = useStore((s) => s.userId);
@@ -169,6 +171,19 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [dbStories, setDbStories] = useState<DBStory[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Open story from notification tap
+  const pendingStoryId = useUiStore((s) => s.pendingStoryId);
+  const clearPendingStory = useUiStore((s) => s.clearPendingStory);
+  useEffect(() => {
+    if (!pendingStoryId || !dbStories.length) return;
+    const idx = dbStories.findIndex((s) => s.id === pendingStoryId);
+    if (idx >= 0) {
+      setStoryIndex(idx);
+      setShowStoryViewer(true);
+    }
+    clearPendingStory();
+  }, [pendingStoryId, dbStories, clearPendingStory]);
   const [activeHashtag, setActiveHashtag] = useState<Hashtag | null>(null);
 
   // DM opening from circle tab
@@ -462,8 +477,8 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
             onHashtagsReady={setFeedHashtags}
             refreshKey={refreshKey}
             onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
+            onPinClick={onPinClick}
           />
-        )}
         ) : activeTab === 1 ? (
           <GroupesTab
             isDark={isDark}

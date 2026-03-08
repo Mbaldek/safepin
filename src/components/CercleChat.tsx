@@ -320,7 +320,7 @@ export default function CercleChat({
           onKeyDown={handleKeyDown}
           onInput={handleInput}
           rows={1}
-          placeholder="Message\u2026"
+          placeholder="Message…"
           style={{
             flex: 1,
             background: t.surfaceElevated,
@@ -336,26 +336,23 @@ export default function CercleChat({
           }}
         />
 
-        {/* send / mic */}
-        <button
-          onClick={handleSend}
-          style={{
-            width: 34, height: 34, borderRadius: '50%',
-            border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16,
-            transition: 'background 0.15s',
-            ...(hasTrimmed ? {
+        {/* send */}
+        {hasTrimmed && (
+          <button
+            onClick={handleSend}
+            style={{
+              width: 34, height: 34, borderRadius: '50%',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16,
               background: t.teal,
               color: '#fff',
-            } : {
-              background: t.surfaceElevated,
-              color: t.textTertiary,
-            }),
-          }}
-        >
-          {hasTrimmed ? '\u27A4' : '\uD83C\uDF99'}
-        </button>
+              transition: 'background 0.15s',
+            }}
+          >
+            {'\u27A4'}
+          </button>
+        )}
       </div>
     </div>
   )

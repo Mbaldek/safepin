@@ -737,7 +737,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         style={{
           position: 'fixed',
           ...(compact
-            ? { top: 62, right: 16, width: 40, height: 40, fontSize: 10, zIndex: 150, boxShadow: '0 2px 10px rgba(239,68,68,0.4)' }
+            ? { top: 14, left: '50%', transform: 'translateX(-50%)', width: 40, height: 40, fontSize: 10, zIndex: 150, boxShadow: '0 2px 10px rgba(239,68,68,0.4)' }
             : { bottom: 80, right: 20, width: 52, height: 52, fontSize: 13, zIndex: 200, boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }
           ),
           borderRadius: '50%',
