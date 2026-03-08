@@ -43,6 +43,8 @@ const SAFE_SRC = 'safe-spaces-src';
 const SAFE_CIRCLE = 'safe-spaces-circle';
 const SAFE_LABEL = 'safe-spaces-label';
 const SAFE_PARTNER = 'safe-spaces-partner';
+const SOS_TRAIL_SRC = 'sos-trail-source';
+const SOS_TRAIL_LYR = 'sos-trail-line';
 
 const STYLE_URLS: Record<string, string> = {
   custom:  'mapbox://styles/matlab244/cmm6okd7v005q01s49w19fac0',
@@ -60,6 +62,7 @@ const OWN_LAYERS = new Set([
   HEAT_LYR, 'safety-scores-fill',
   WATCH_CIRCLE, WATCH_LABEL,
   ROUTE_LYR,
+  SOS_TRAIL_LYR,
 ]);
 
 // ── Module-level handler refs for proper cleanup ────────────────────────────
@@ -1256,6 +1259,46 @@ function MapView({
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ));
     });
+
+    // ── SOS trail polylines ──────────────────────────────────────────────────
+    if (map.current.getLayer(SOS_TRAIL_LYR)) map.current.removeLayer(SOS_TRAIL_LYR);
+    if (map.current.getSource(SOS_TRAIL_SRC)) map.current.removeSource(SOS_TRAIL_SRC);
+
+    const trailFeatures: GeoJSON.Feature<GeoJSON.LineString>[] = [];
+    trailGroups.forEach((groupPins) => {
+      // Skip resolved groups or groups with < 2 pins (no line to draw)
+      if (groupPins.length < 2 || groupPins[0].resolved_at) return;
+      // Sort oldest-first for correct route direction
+      const sorted = [...groupPins].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      trailFeatures.push({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: sorted.map((p) => [p.lng, p.lat]),
+        },
+      });
+    });
+
+    if (trailFeatures.length > 0) {
+      map.current.addSource(SOS_TRAIL_SRC, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: trailFeatures },
+      });
+      map.current.addLayer({
+        id: SOS_TRAIL_LYR,
+        type: 'line',
+        source: SOS_TRAIL_SRC,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#ef4444',
+          'line-width': 3,
+          'line-opacity': 0.7,
+        },
+      });
+    }
 
     const TRAIL_LEVELS: [number, number, number, boolean][] = [
       [1.0, 38, 44, true],

@@ -32,6 +32,9 @@ interface AlertSettings {
   quiet_hours_enabled: boolean;
   quiet_start: string;
   quiet_end: string;
+  // Follower SOS
+  notify_sos_followers: boolean;
+  follower_sos_radius_m: number;
 }
 
 const DEFAULTS: AlertSettings = {
@@ -48,6 +51,8 @@ const DEFAULTS: AlertSettings = {
   quiet_hours_enabled: false,
   quiet_start: '22:00',
   quiet_end: '07:00',
+  notify_sos_followers: true,
+  follower_sos_radius_m: 5000,
 };
 
 const ALL_COLS = [
@@ -57,6 +62,7 @@ const ALL_COLS = [
   'notify_cat_urgent', 'notify_cat_warning', 'notify_cat_infra',
   'pin_notif_channel',
   'quiet_hours_enabled', 'quiet_start', 'quiet_end',
+  'notify_sos_followers', 'follower_sos_radius_m',
 ] as const;
 
 export default function AlertNotificationsScreen({ onBack }: Props) {
@@ -193,6 +199,56 @@ export default function AlertNotificationsScreen({ onBack }: Props) {
                   onChange={(v) => save({ sos_notif_channel: v })}
                   isDark={isDark}
                 />
+              </div>
+            </>
+          )}
+        </SettingsSection>
+
+        {/* ── Section 2b: SOS abonnements ── */}
+        <SettingsSection label="SOS abonnements">
+          <SettingsRow
+            icon="Users"
+            iconColor="#8B5CF6"
+            label="SOS d'un abonnement"
+            subtitle="Quand un utilisateur que vous suivez declenche un SOS"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_sos_followers}
+                onChange={(v) => save({ notify_sos_followers: v })}
+              />
+            }
+          />
+          {settings.notify_sos_followers && (
+            <>
+              <div style={divider} />
+              <div style={{ padding: '12px 20px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: txt1 }}>Rayon abonnements</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700, color: '#8B5CF6',
+                    background: 'rgba(139,92,246,0.10)', padding: '2px 10px', borderRadius: 8,
+                  }}>
+                    {formatRadius(settings.follower_sos_radius_m)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1000}
+                  max={10000}
+                  step={500}
+                  value={settings.follower_sos_radius_m}
+                  onChange={(e) => save({ follower_sos_radius_m: Number(e.target.value) })}
+                  style={{
+                    width: '100%', height: 6, appearance: 'none',
+                    borderRadius: 3, outline: 'none', cursor: 'pointer',
+                    background: `linear-gradient(to right, #8B5CF6 ${((settings.follower_sos_radius_m - 1000) / 9000) * 100}%, ${isDark ? '#334155' : '#E2E8F0'} 0%)`,
+                    accentColor: '#8B5CF6',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                  <span style={{ fontSize: 11, color: txt2 }}>1 km</span>
+                  <span style={{ fontSize: 11, color: txt2 }}>10 km</span>
+                </div>
               </div>
             </>
           )}

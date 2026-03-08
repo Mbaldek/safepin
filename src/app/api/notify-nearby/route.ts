@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
 
   let sent = 0;
   const inAppInserts: { user_id: string; type: string; title: string; body: string; pin_id: string }[] = [];
+  const notifiedUserIds = new Set<string>();
 
   for (const sub of subs) {
     const s = settingsMap[sub.user_id];
@@ -185,6 +186,103 @@ export async function POST(req: NextRequest) {
       } catch {
         // Subscription expired — clean up
         await admin.from('push_subscriptions').delete().eq('user_id', sub.user_id);
+      }
+    }
+
+    notifiedUserIds.add(sub.user_id);
+  }
+
+  // ── SOS: notify followers within enlarged radius ──
+  if (pin.is_emergency) {
+    // Get trusted contact IDs for deduplication (already notified by edge function)
+    const { data: trustedRows } = await admin
+      .from('trusted_contacts')
+      .select('user_id, contact_id')
+      .or(`user_id.eq.${pin.user_id},contact_id.eq.${pin.user_id}`)
+      .eq('status', 'accepted');
+    const trustedIds = new Set(
+      (trustedRows ?? []).map((c) => (c.user_id === pin.user_id ? c.contact_id : c.user_id))
+    );
+
+    // Get followers of the SOS trigger user
+    const { data: followerRows } = await admin
+      .from('follows')
+      .select('follower_id')
+      .eq('following_id', pin.user_id);
+    const followerIds = (followerRows ?? [])
+      .map((r) => r.follower_id)
+      .filter((id) => id !== pin.user_id && !notifiedUserIds.has(id) && !trustedIds.has(id));
+
+    if (followerIds.length > 0) {
+      const { data: followerSubs } = await admin
+        .from('push_subscriptions')
+        .select('user_id, subscription')
+        .in('user_id', followerIds);
+
+      const fUserIds = (followerSubs ?? []).map((s) => s.user_id);
+
+      const { data: fSettingsRows } = await admin
+        .from('notification_settings')
+        .select('user_id, notify_sos_followers, follower_sos_radius_m, sos_notif_channel')
+        .in('user_id', fUserIds);
+      const fSettingsMap = Object.fromEntries(
+        (fSettingsRows ?? []).map((r) => [r.user_id, r])
+      );
+
+      const { data: fLocRows } = await admin
+        .from('profiles')
+        .select('id, last_known_lat, last_known_lng')
+        .in('id', fUserIds);
+      const fLocMap = Object.fromEntries(
+        (fLocRows ?? []).map((r) => [r.id, { lat: r.last_known_lat, lng: r.last_known_lng }])
+      );
+
+      const fTitle = 'SOS a proximite';
+      const fBody = 'Un utilisateur que vous suivez a declenche un SOS a proximite';
+
+      for (const sub of followerSubs ?? []) {
+        const fs = fSettingsMap[sub.user_id];
+
+        // Opt-out check
+        if (fs?.notify_sos_followers === false) continue;
+
+        // Geo-filter with follower radius (default 5000m)
+        const radiusM = fs?.follower_sos_radius_m ?? 5000;
+        const loc = fLocMap[sub.user_id];
+        if (loc?.lat != null && loc?.lng != null) {
+          const dist = haversineMetersRaw(loc.lat, loc.lng, pin.lat, pin.lng);
+          if (dist > radiusM) continue;
+        }
+
+        // Channel routing
+        const channel = fs?.sos_notif_channel ?? 'both';
+        const shouldPush = channel === 'push' || channel === 'both';
+        const shouldInApp = channel === 'in_app' || channel === 'both';
+
+        if (shouldInApp) {
+          inAppInserts.push({
+            user_id: sub.user_id,
+            type: 'emergency',
+            title: fTitle,
+            body: fBody,
+            pin_id: pin.id,
+          });
+        }
+
+        // Push (bypass quiet hours for SOS)
+        if (shouldPush) {
+          try {
+            const { default: webpush } = await import('web-push');
+            webpush.setVapidDetails(vapidDetails.subject, vapidDetails.publicKey, vapidDetails.privateKey);
+            await webpush.sendNotification(
+              sub.subscription as Parameters<typeof webpush.sendNotification>[0],
+              JSON.stringify({ title: fTitle, body: fBody, pinId: pin.id }),
+            );
+            sent++;
+          } catch {
+            await admin.from('push_subscriptions').delete().eq('user_id', sub.user_id);
+          }
+        }
       }
     }
   }

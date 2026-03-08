@@ -226,6 +226,9 @@ export type NotifSettings = {
   notify_followed_pins: boolean;
   notify_milestones: boolean;
   notify_dm: boolean;
+  // Follower SOS
+  notify_sos_followers: boolean;
+  follower_sos_radius_m: number;
 };
 
 export const DEFAULT_NOTIF_SETTINGS: NotifSettings = {
@@ -246,6 +249,8 @@ export const DEFAULT_NOTIF_SETTINGS: NotifSettings = {
   notify_followed_pins: true,
   notify_milestones: true,
   notify_dm: true,
+  notify_sos_followers: true,
+  follower_sos_radius_m: 5000,
 };
 
 export type UserReport = {

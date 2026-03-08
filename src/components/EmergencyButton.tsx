@@ -136,6 +136,22 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
     }).select().single();
     if (error) return;
     emergencyPinIdsRef.current.push(data.id);
+    // Append to emergency_sessions.location_trail for live tracking
+    if (dispatchSessionRef.current) {
+      const { data: session } = await supabase
+        .from('emergency_sessions')
+        .select('location_trail')
+        .eq('id', dispatchSessionRef.current)
+        .single();
+      if (session) {
+        const trail = (session.location_trail as { lat: number; lng: number; ts: string }[]) || [];
+        trail.push({ lat: loc.lat, lng: loc.lng, ts: new Date().toISOString() });
+        await supabase
+          .from('emergency_sessions')
+          .update({ location_trail: trail })
+          .eq('id', dispatchSessionRef.current);
+      }
+    }
     geocodeAndPatchPin(data.id, loc);
   }
 
