@@ -282,6 +282,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         left: 0,
         right: 0,
         maxHeight: '85dvh',
+        paddingBottom: 64,
         zIndex: 50,
         backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
         borderTopLeftRadius: 28,
