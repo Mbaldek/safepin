@@ -122,6 +122,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
               left: 0,
               right: 0,
               height: '65%',
+              paddingBottom: 64,
               background: t.sheetBg,
               borderTopLeftRadius: 26,
               borderTopRightRadius: 26,

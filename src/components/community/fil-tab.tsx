@@ -5,8 +5,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Bookmark, Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTrendingHashtags } from "@/hooks/useHashtags";
+import { useStore } from "@/stores/useStore";
+import { CATEGORY_DETAILS } from "@/types";
 import StoriesRow from "./stories-row";
 import PostCard from "./post-card";
+import PinFeedCard from "./pin-feed-card";
 import { SOSPostCard } from "./CommunityHub";
 
 interface FilTabProps {
@@ -20,6 +23,7 @@ interface FilTabProps {
   onHashtagsReady?: (tags: Map<string, number>) => void;
   refreshKey?: number;
   onSearchToggle?: () => void;
+  onPinClick?: (pinId: string) => void;
 }
 
 const GRADIENTS = [
@@ -44,9 +48,10 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey, onSearchToggle }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey, onSearchToggle, onPinClick }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [sosPosts, setSosPosts] = useState<any[]>([]);
+  const [pinPosts, setPinPosts] = useState<any[]>([]);
   const [communityIds, setCommunityIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
@@ -54,7 +59,9 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [showFavoris, setShowFavoris] = useState(false);
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [activeHashtagFilter, setActiveHashtagFilter] = useState<string | null>(null);
+  const [hashtagPinIds, setHashtagPinIds] = useState<Set<string>>(new Set());
   const { trending } = useTrendingHashtags();
+  const userLocation = useStore((s) => s.userLocation);
 
   const handleHide = useCallback((postId: string) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
@@ -71,6 +78,25 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
       setSavedPostIds(new Set((data || []).map((r: any) => r.post_id)));
     })();
   }, [showFavoris, userId]);
+
+  // Fetch pin IDs linked to active hashtag filter via content_hashtags
+  useEffect(() => {
+    if (!activeHashtagFilter) { setHashtagPinIds(new Set()); return; }
+    (async () => {
+      const { data: htRow } = await supabase
+        .from('hashtags')
+        .select('id')
+        .eq('tag', activeHashtagFilter.toLowerCase())
+        .maybeSingle();
+      if (!htRow) { setHashtagPinIds(new Set()); return; }
+      const { data: links } = await supabase
+        .from('content_hashtags')
+        .select('content_id')
+        .eq('hashtag_id', htRow.id)
+        .eq('content_type', 'incident');
+      setHashtagPinIds(new Set((links || []).map((l: any) => l.content_id)));
+    })();
+  }, [activeHashtagFilter]);
 
   // Extract hashtags from loaded posts and notify parent
   useEffect(() => {
@@ -225,6 +251,91 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         }
       } catch {
         // community_posts table may not exist — silent
+      }
+
+      // Fetch recent pins (nearby + social graph)
+      try {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+        const pinSelect = 'id, user_id, lat, lng, category, severity, description, photo_url, address, confirmations, created_at';
+
+        const pinQueries: Promise<{ data: any[] | null }>[] = [];
+
+        // A) Geo-nearby (5km radius)
+        const lat = userLocation?.lat ?? 48.8566;
+        const lng = userLocation?.lng ?? 2.3522;
+        const latDelta = 5 / 111;
+        const lngDelta = 5 / (111 * Math.cos(lat * Math.PI / 180));
+        pinQueries.push(
+          supabase.from('pins').select(pinSelect)
+            .gte('created_at', sevenDaysAgo)
+            .is('resolved_at', null)
+            .gte('lat', lat - latDelta).lte('lat', lat + latDelta)
+            .gte('lng', lng - lngDelta).lte('lng', lng + lngDelta)
+            .order('created_at', { ascending: false })
+            .limit(30)
+        );
+
+        // B) Social graph (following + circle)
+        const socialIds = [...followingSet, ...circleSet];
+        if (socialIds.length > 0) {
+          pinQueries.push(
+            supabase.from('pins').select(pinSelect)
+              .gte('created_at', sevenDaysAgo)
+              .is('resolved_at', null)
+              .in('user_id', socialIds)
+              .order('created_at', { ascending: false })
+              .limit(20)
+          );
+        }
+
+        const pinResults = await Promise.all(pinQueries);
+        const allPins = pinResults.flatMap(r => r.data ?? []);
+
+        // Deduplicate
+        const seenPinIds = new Set<string>();
+        const uniquePins = allPins.filter(p => {
+          if (seenPinIds.has(p.id)) return false;
+          seenPinIds.add(p.id);
+          return true;
+        });
+
+        // Enrich with profiles
+        const pinAuthorIds = [...new Set(uniquePins.map(p => p.user_id))];
+        let pinProfileMap = new Map<string, any>();
+        if (pinAuthorIds.length > 0) {
+          const { data: pinProfiles } = await supabase
+            .from('profiles')
+            .select('id, display_name, first_name, username, avatar_emoji, avatar_url')
+            .in('id', pinAuthorIds);
+          pinProfileMap = new Map((pinProfiles || []).map((p: any) => [p.id, p]));
+        }
+
+        setPinPosts(uniquePins.map(pin => {
+          const prof = pinProfileMap.get(pin.user_id);
+          const displayName = prof?.display_name || prof?.first_name || 'Anonyme';
+          const name = prof?.username || displayName;
+          const avatar = prof?.avatar_emoji || name.charAt(0).toUpperCase();
+          return {
+            id: pin.id,
+            type: 'pin' as const,
+            _isPin: true,
+            _isSos: false,
+            _createdAt: pin.created_at,
+            category: pin.category,
+            severity: pin.severity,
+            description: pin.description,
+            address: pin.address,
+            photo_url: pin.photo_url,
+            confirmations: pin.confirmations || 0,
+            lat: pin.lat,
+            lng: pin.lng,
+            userId: pin.user_id,
+            user: { name, avatar, avatarUrl: prof?.avatar_url || null, gradientColors: pickGradient(pin.user_id) },
+            content: pin.description || '',
+          };
+        }));
+      } catch {
+        // pins table query failed — silent
       }
 
       setLoading(false);
@@ -419,8 +530,9 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
 
         {(() => {
           const allPosts = [
-            ...posts.map(p => ({ ...p, _isSos: false })),
-            ...sosPosts,
+            ...posts.map(p => ({ ...p, _isSos: false, _isPin: false })),
+            ...sosPosts.map(p => ({ ...p, _isPin: false })),
+            ...pinPosts,
           ].sort((a, b) => new Date(b._createdAt).getTime() - new Date(a._createdAt).getTime());
 
           // Apply SOS tab filter when SOS posts exist
@@ -454,7 +566,13 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             visible = visible.filter((p) => {
               if (p.content?.toLowerCase().includes(q)) return true;
               const hashtags = p.content?.match(/#[\wÀ-ÿ]+/g) ?? [];
-              return hashtags.some((h: string) => h.toLowerCase().includes(q));
+              if (hashtags.some((h: string) => h.toLowerCase().includes(q))) return true;
+              if (p._isPin) {
+                if (p.address?.toLowerCase().includes(q)) return true;
+                const catLabel = CATEGORY_DETAILS[p.category]?.label?.toLowerCase();
+                if (catLabel?.includes(q)) return true;
+              }
+              return false;
             });
           }
 
@@ -463,7 +581,9 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             const ht = activeHashtagFilter.toLowerCase();
             visible = visible.filter((p) => {
               const hashtags = p.content?.match(/#[\wÀ-ÿ]+/g) ?? [];
-              return hashtags.some((h: string) => h.replace(/^#/, '').toLowerCase() === ht);
+              if (hashtags.some((h: string) => h.replace(/^#/, '').toLowerCase() === ht)) return true;
+              if (p._isPin && hashtagPinIds.has(p.id)) return true;
+              return false;
             });
           }
 
@@ -527,7 +647,9 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30, delay: index * 0.04 }}
             >
-              {post._isSos ? (
+              {post._isPin ? (
+                <PinFeedCard pin={post} isDark={isDark} onClick={() => onPinClick?.(post.id)} />
+              ) : post._isSos ? (
                 <SOSPostCard post={post} currentUserId={userId} />
               ) : (
                 <PostCard post={post} isDark={isDark} currentUserId={userId} onHide={handleHide} onSafetyFilter={onSafetyFilter} onHashtagClick={onHashtagClick} />
