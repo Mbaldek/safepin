@@ -51,6 +51,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
   const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
 
   const [activeTab, setActiveTab] = useState(0);
+  const [ready, setReady] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -60,8 +61,9 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
   const [dbHashtags, setDbHashtags] = useState<{ tag: string; count: number; category?: string; color?: string }[]>([]);
   const [feedHashtags, setFeedHashtags] = useState<Map<string, number>>(new Map());
 
-  // Fetch hashtags from DB once
+  // Fetch hashtags from DB once (deferred until animation done)
   useEffect(() => {
+    if (!ready) return;
     (async () => {
       const { data } = await supabase
         .from('hashtags')
@@ -72,7 +74,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         setDbHashtags(data.map((h: any) => ({ tag: h.tag, count: h.uses_count ?? 0, category: h.category, color: h.color })));
       }
     })();
-  }, []);
+  }, [ready]);
 
   // Merge DB + feed hashtags, deduplicate, sort by frequency
   const mergedSuggestions = useMemo(() => {
@@ -269,14 +271,21 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
   }, [userId]);
 
   useEffect(() => {
+    if (!ready) return;
     fetchStories();
-  }, [fetchStories, refreshKey]);
+  }, [ready, fetchStories, refreshKey]);
 
   const tabs = ['Fil', 'Groupes', 'Messages'];
 
   return (
-    <div
+    <motion.div
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      onAnimationComplete={() => setReady(true)}
       style={{
+        willChange: 'transform',
         position: 'fixed',
         bottom: 0,
         left: 0,
@@ -431,7 +440,11 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="scrollbar-hidden">
-        {activeTab === 0 && (
+        {!ready ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: 13 }}>
+            Chargement…
+          </div>
+        ) : activeTab === 0 ? (
           <FilTab
             isDark={isDark}
             userId={userId}
@@ -451,14 +464,15 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
             onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
           />
         )}
-        {activeTab === 1 && (
+        ) : activeTab === 1 ? (
           <GroupesTab
             isDark={isDark}
             userId={userId}
             onCreateGroup={() => setShowCreateGroup(true)}
           />
-        )}
-        {activeTab === 2 && <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />}
+        ) : activeTab === 2 ? (
+          <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />
+        ) : null}
       </div>
 
       {showCompose && (
@@ -503,6 +517,6 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
           />
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
