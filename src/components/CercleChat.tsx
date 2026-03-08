@@ -98,7 +98,7 @@ export default function CercleChat({
   const stackedMembers = members.slice(0, 3)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* 1. HEADER */}
       <div style={{
         flexShrink: 0,

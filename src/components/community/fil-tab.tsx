@@ -258,7 +258,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
         const pinSelect = 'id, user_id, lat, lng, category, severity, description, photo_url, address, confirmations, created_at';
 
-        const pinQueries: Promise<{ data: any[] | null }>[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pinQueries: PromiseLike<{ data: any[] | null }>[] = [];
 
         // A) Geo-nearby (5km radius)
         const lat = userLocation?.lat ?? 48.8566;

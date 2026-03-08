@@ -103,7 +103,7 @@ export function useCercle(userId: string) {
     try {
       const { data, error } = await supabase
         .from('circle_messages')
-        .select('*, profiles!circle_messages_sender_id_fkey(name)')
+        .select('*, profiles!circle_messages_sender_id_fkey(name, display_name)')
         .order('created_at', { ascending: true })
         .limit(50)
 
@@ -117,7 +117,7 @@ export function useCercle(userId: string) {
         return {
           id: m.id as string,
           sender_id: m.sender_id as string,
-          sender_name: (profile?.name as string) ?? '',
+          sender_name: (profile?.display_name as string) || (profile?.name as string) || '',
           content: m.content as string,
           type: m.type as CircleMessage['type'],
           media_url: (m.media_url as string | null) ?? null,
