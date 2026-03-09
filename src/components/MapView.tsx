@@ -1037,12 +1037,11 @@ function MapView({
 
     if (!previewMarkerRef.current) {
       const el = document.createElement('div');
-      el.style.cssText = 'width:64px;height:64px;position:relative;pointer-events:none;';
+      el.style.cssText = 'width:36px;height:36px;position:relative;pointer-events:none;display:flex;align-items:center;justify-content:center;';
       el.innerHTML = `
-        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(239,68,68,0.5)"></div>
-        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(239,68,68,0.5)"></div>
-        <div style="position:absolute;top:50%;left:50%;width:14px;height:14px;transform:translate(-50%,-50%);border-radius:50%;background:#EF4444;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
-        <div style="position:absolute;top:50%;left:50%;width:32px;height:32px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(239,68,68,0.5);animation:previewPulse 1.6s ease-out infinite"></div>`;
+        <svg width="28" height="36" viewBox="0 0 24 32" fill="#1E3A5F" stroke="#fff" stroke-width="1.2" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));">
+          <path d="M12 1C7.58 1 4 4.58 4 9c0 6.5 8 22 8 22s8-15.5 8-22c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+        </svg>`;
       previewMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat(lngLat)
         .addTo(map.current);

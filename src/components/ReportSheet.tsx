@@ -265,7 +265,7 @@ export function ReportSheet() {
               <ArrowRight size={16} />
             </button>
           ) : step === 3 ? (
-            <button onClick={handleSubmit} disabled={isSubmitting} style={{ width: 32, height: 32, borderRadius: '50%', background: '#34D399', border: 'none', color: '#FFFFFF', cursor: isSubmitting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isSubmitting ? 0.6 : 1 }}>
+            <button onClick={handleSubmit} disabled={isSubmitting || !newPinCoords || !cat} style={{ width: 32, height: 32, borderRadius: '50%', background: '#34D399', border: 'none', color: '#FFFFFF', cursor: (isSubmitting || !newPinCoords || !cat) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (isSubmitting || !newPinCoords || !cat) ? 0.4 : 1 }}>
               <Check size={16} />
             </button>
           ) : step === '2b' ? (
