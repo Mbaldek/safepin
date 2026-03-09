@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Camera, Video, Mic, MapPin, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
@@ -96,7 +96,9 @@ export function ReportSheet() {
   const [tType, setTType] = useState<string | null>(null);
   const [tLine, setTLine] = useState('');
   const [desc, setDesc] = useState('');
-  const [media, setMedia] = useState(false);
+  const [mediaType, setMediaType] = useState<'photo' | 'video' | 'audio' | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [establishmentType, setEstablishmentType] = useState<string | null>(null);
@@ -153,7 +155,8 @@ export function ReportSheet() {
     setTType(null);
     setTLine('');
     setDesc('');
-    setMedia(false);
+    setMediaType(null);
+    setMediaFile(null);
     setAddress(null);
     setEstablishmentType(null);
     setPositifNote('');
@@ -162,6 +165,15 @@ export function ReportSheet() {
   const handleClose = () => {
     setActiveSheet('none');
     reset();
+  };
+
+  const uploadMedia = async (pinId: string): Promise<string | null> => {
+    if (!mediaFile || !userId) return null;
+    const ext = mediaFile.name.split('.').pop();
+    const path = `${pinId}/${userId}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('incident-proofs').upload(path, mediaFile, { upsert: false });
+    if (error) return null;
+    return supabase.storage.from('incident-proofs').getPublicUrl(path).data.publicUrl;
   };
 
   const handleSubmit = async () => {
@@ -192,7 +204,23 @@ export function ReportSheet() {
 
       const { data, error } = await supabase.from('pins').insert(newPin).select().single();
       if (error) throw error;
-      if (data) addPin(data);
+      if (data) {
+        addPin(data);
+        // Upload media + save to pin_evidence
+        let mediaUrl: string | null = null;
+        if (mediaFile && mediaType && mediaType !== 'audio') {
+          mediaUrl = await uploadMedia(data.id);
+        }
+        if (mediaType || desc) {
+          await supabase.from('pin_evidence').insert({
+            pin_id: data.id,
+            user_id: userId,
+            activity: 'report',
+            content: desc || null,
+            media_urls: mediaUrl ? [{ type: mediaType, url: mediaUrl }] : null,
+          });
+        }
+      }
       setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
 
       setStep(4);
@@ -470,18 +498,49 @@ export function ReportSheet() {
             <>
               <p style={{ fontSize: 12, color: c.muted, marginBottom: 10 }}>Optionnel</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                {[{ I: Camera, l: 'Photo' }, { I: Video, l: 'Vidéo' }, { I: Mic, l: 'Audio' }].map((m, i) => (
-                  <button key={i} onClick={() => setMedia(true)} style={{ flex: 1, padding: 12, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.muted, fontSize: 11, fontWeight: 500, cursor: 'pointer', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 5 }}>
-                    <m.I size={18} /> {m.l}
-                  </button>
-                ))}
+                {([{ id: 'photo' as const, I: Camera, l: 'Photo' }, { id: 'video' as const, I: Video, l: 'Vidéo' }, { id: 'audio' as const, I: Mic, l: 'Audio' }]).map((m) => {
+                  const sel = mediaType === m.id;
+                  return (
+                    <button key={m.id} onClick={() => {
+                      if (sel) { setMediaType(null); setMediaFile(null); return; }
+                      setMediaType(m.id);
+                      setMediaFile(null);
+                      if (m.id !== 'audio') setTimeout(() => fileInputRef.current?.click(), 0);
+                    }} style={{ flex: 1, padding: 12, borderRadius: 10, background: sel ? `${c.accent}14` : c.pill, border: `1px solid ${sel ? c.accent : c.border}`, color: sel ? c.accent : c.muted, fontSize: 11, fontWeight: 500, cursor: 'pointer', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 5, transition: 'all 150ms' }}>
+                      <m.I size={18} /> {m.l}
+                    </button>
+                  );
+                })}
               </div>
-              {media && (
-                <div style={{ position: 'relative', marginBottom: 10, borderRadius: 10, overflow: 'hidden' }}>
-                  <div style={{ width: '100%', height: 70, background: c.pill, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📷</div>
-                  <button onClick={() => setMedia(false)} style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12} /></button>
+              {/* File picker zone for photo/video */}
+              {(mediaType === 'photo' || mediaType === 'video') && (
+                <div style={{ marginBottom: 10 }}>
+                  {!mediaFile ? (
+                    <div onClick={() => fileInputRef.current?.click()} style={{ border: `1.5px dashed ${c.accent}50`, background: `${c.accent}06`, borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: `${c.accent}14`, border: `1px solid ${c.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {mediaType === 'photo' ? <Camera size={14} color={c.accent} /> : <Video size={14} color={c.accent} />}
+                      </div>
+                      <span style={{ fontSize: 12, color: c.muted }}>Appuyer pour choisir un fichier</span>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: c.pill, border: `1px solid ${c.border}`, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {mediaType === 'photo' ? <Camera size={14} color={c.accent} /> : <Video size={14} color={c.accent} />}
+                      <span style={{ fontSize: 12, color: c.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaFile.name}</span>
+                      <button onClick={() => setMediaFile(null)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><X size={10} /></button>
+                    </div>
+                  )}
                 </div>
               )}
+              {/* Audio badge */}
+              {mediaType === 'audio' && (
+                <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: `${c.accent}10`, border: `1px solid ${c.accent}30` }}>
+                  <Mic size={14} color={c.accent} />
+                  <span style={{ fontSize: 12, color: c.accent, flex: 1 }}>Audio attaché</span>
+                  <button onClick={() => setMediaType(null)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={10} /></button>
+                </div>
+              )}
+              {/* Hidden file input */}
+              <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setMediaFile(e.target.files?.[0] ?? null)} />
               <textarea placeholder="Description..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 16, outline: 'none', resize: 'none' }} />
             </>
           )}
