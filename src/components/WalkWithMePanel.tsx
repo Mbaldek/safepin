@@ -262,7 +262,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        zIndex: 180,
+        zIndex: 200,
       }}
     >
       <style>{KEYFRAMES}</style>

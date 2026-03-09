@@ -468,14 +468,15 @@ activeTrip, setActiveTrip,
   }, [setShowSimulated]);
 
   useEffect(() => {
-    async function loadPins() {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
       const now = new Date().toISOString();
 
       if (mapViewport && mapViewport.zoom >= 10) {
         // ── Viewport-based spatial load via PostGIS ──────────────────────────
-        // Uses GIST index on pins.location — only fetches pins in current viewport
         const { lat, lng, radiusM } = mapViewport;
-        const radius = Math.min(radiusM * 1.3, 15_000); // 30% buffer, cap 15 km
+        const radius = Math.min(radiusM * 1.3, 15_000);
 
         const [{ data: spatialPins, error }, { data: ownPins } = { data: [] }] = await Promise.all([
           supabase.rpc('pins_nearby', { p_lat: lat, p_lng: lng, p_radius_m: radius }),
@@ -484,7 +485,8 @@ activeTrip, setActiveTrip,
             : Promise.resolve({ data: [] }),
         ]);
 
-        if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
+        if (cancelled) return;
+        if (error) { console.error('[loadPins] pins_nearby:', error.message); return; }
 
         const merged = new Map<string, Pin>();
         for (const p of (spatialPins as Pin[] ?? [])) merged.set(p.id, p);
@@ -496,7 +498,6 @@ activeTrip, setActiveTrip,
 
       } else if (mapViewport && mapViewport.zoom < 10) {
         // ── Low zoom: DB spatial clustering via ST_ClusterDBSCAN ─────────────
-        // Returns cluster centroids with count + dominant category instead of individual pins
         const { lat, lng, radiusM, zoom } = mapViewport;
         const eps = zoom < 7 ? 3000 : zoom < 9 ? 1500 : 800;
 
@@ -506,11 +507,12 @@ activeTrip, setActiveTrip,
           p_eps_m: eps,
         });
 
+        if (cancelled) return;
         if (!error) setDbClusters(clusters ?? []);
         setPins([]);
 
       } else {
-        // ── Fallback: global load (no viewport yet — map still initializing) ──
+        // ── Fallback: global load (no viewport yet) ──────────────────────────
         const q1 = supabase
           .from('pins').select('*')
           .is('hidden_at', null).gt('expires_at', now)
@@ -522,7 +524,8 @@ activeTrip, setActiveTrip,
         const [{ data: publicPins, error }, { data: ownPins } = { data: [] }] =
           await Promise.all([q1, q2 ?? Promise.resolve({ data: [] })]);
 
-        if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
+        if (cancelled) return;
+        if (error) { console.error('[loadPins] fallback:', error.message); return; }
 
         const merged = new Map<string, Pin>();
         for (const p of (publicPins as Pin[] ?? [])) merged.set(p.id, p);
@@ -532,8 +535,9 @@ activeTrip, setActiveTrip,
         setPins(result);
         setDbClusters([]);
       }
-    }
-    loadPins();
+    }, 300);
+
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [setPins, setDbClusters, userId, showSimulated, pinsVersion, mapViewport]);
 
   // Deep link: ?pin=UUID → fly to pin and open detail sheet
@@ -1273,7 +1277,7 @@ activeTrip, setActiveTrip,
 
         {/* Escorte sheet — trip tab */}
         <AnimatePresence>
-          {activeTab === 'trip' && userId && (
+          {activeTab === 'trip' && !showWalkWithMe && userId && (
             <EscorteSheet
               key="escorte-sheet"
               userId={userId}
@@ -1380,7 +1384,7 @@ activeTrip, setActiveTrip,
             key="walk-with-me"
             userId={userId}
             destination={activeTrip?.destination?.label ?? ''}
-            onClose={() => setShowWalkWithMe(false)}
+            onClose={() => { setShowWalkWithMe(false); setActiveTab('map'); }}
           />
         )}
       </AnimatePresence>
