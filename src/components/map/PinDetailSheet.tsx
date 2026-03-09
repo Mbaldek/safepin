@@ -6,7 +6,7 @@ import {
   X, Check, CheckCircle2, MapPin, Users,
   AlertTriangle, Wrench, Share2, ThumbsDown,
   MessageCircle, Route, ClipboardCheck,
-  RefreshCw, Image as ImageIcon, ChevronDown, Video,
+  RefreshCw, Image as ImageIcon, ChevronDown, Video, Download,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
@@ -124,6 +124,8 @@ function PinDetailSheet({
   const [pinHashtags, setPinHashtags] = useState<Hashtag[]>([])
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([])
   const [mediaExpanded, setMediaExpanded] = useState(false)
+  const [selectedMedia, setSelectedMedia] = useState<EvidenceItem | null>(null)
+  const [mediaLoadError, setMediaLoadError] = useState(false)
   const pull = usePullToDismiss({ onDismiss: onClose })
 
   useEffect(() => {
@@ -134,6 +136,8 @@ function PinDetailSheet({
     setShowFalseReportConfirm(false)
     setEvidenceItems([])
     setMediaExpanded(false)
+    setSelectedMedia(null)
+    setMediaLoadError(false)
 
     const load = async () => {
       // Check if user already confirmed
@@ -255,6 +259,22 @@ function PinDetailSheet({
     } else {
       await navigator.clipboard.writeText(text)
       toast.success('Lien copié')
+    }
+  }
+
+  const handleDownload = async (url: string) => {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const ext = url.split('.').pop()?.split('?')[0] ?? 'file'
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `preuve_${Date.now()}.${ext}`
+      a.click()
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      window.open(url, '_blank')
     }
   }
 
@@ -541,7 +561,7 @@ function PinDetailSheet({
                       {evidenceItems.map((item, i) => (
                         <div
                           key={i}
-                          onClick={() => window.open(item.url, '_blank')}
+                          onClick={() => { setSelectedMedia(item); setMediaLoadError(false) }}
                           style={{
                             flexShrink: 0, width: 80, height: 80, borderRadius: 10,
                             overflow: 'hidden', cursor: 'pointer',
@@ -861,6 +881,101 @@ function PinDetailSheet({
 
       {/* Pulse keyframes for skeleton */}
       <style>{`@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }`}</style>
+
+      {/* ── IN-APP MEDIA VIEWER ──────────── */}
+      <AnimatePresence>
+        {selectedMedia && (
+          <>
+            <motion.div
+              key="media-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setSelectedMedia(null)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 650,
+                background: 'rgba(0,0,0,0.88)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <motion.div
+                key="media-content"
+                initial={{ scale: 0.88, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.92, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: 'relative',
+                  maxWidth: '92vw', maxHeight: '82vh',
+                  borderRadius: 16, overflow: 'hidden',
+                  background: '#000',
+                  boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+                }}
+              >
+                {/* Close button */}
+                <button
+                  onClick={() => setSelectedMedia(null)}
+                  style={{
+                    position: 'absolute', top: 10, right: 10, zIndex: 10,
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <X size={14} style={{ color: '#fff' }} />
+                </button>
+
+                {/* Media content */}
+                {!mediaLoadError ? (
+                  selectedMedia.type === 'photo' ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selectedMedia.url}
+                      alt="preuve"
+                      onError={() => setMediaLoadError(true)}
+                      style={{ maxWidth: '92vw', maxHeight: '82vh', display: 'block', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <video
+                      src={selectedMedia.url}
+                      controls
+                      autoPlay
+                      onError={() => setMediaLoadError(true)}
+                      style={{ maxWidth: '92vw', maxHeight: '82vh', display: 'block' }}
+                    />
+                  )
+                ) : (
+                  <div style={{
+                    padding: '32px 24px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 14, minWidth: 260,
+                  }}>
+                    <span style={{ fontSize: 32 }}>📎</span>
+                    <span style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
+                      Ce format ne peut pas être affiché
+                    </span>
+                    <button
+                      onClick={() => handleDownload(selectedMedia.url)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '10px 20px', borderRadius: 32,
+                        background: '#3BB4C1', border: 'none', cursor: 'pointer',
+                        fontSize: 13, fontWeight: 600, color: '#fff',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <Download size={14} /> Sauvegarder le fichier
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   )
 }
