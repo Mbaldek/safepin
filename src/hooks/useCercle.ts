@@ -26,6 +26,7 @@ export function useCercle(userId: string) {
         .select('id, user_id, contact_id, is_watching, status')
         .eq('user_id', userId)
         .eq('status', 'accepted')
+        .neq('contact_id', userId)
 
       if (error) {
         if (isDev) console.error('[useCercle] fetchMembers', error)

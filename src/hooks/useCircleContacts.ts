@@ -22,11 +22,13 @@ export function useCircleContacts(userId: string) {
         return;
       }
 
-      const otherIds = tc.map((c) =>
-        (c.user_id as string) === userId
-          ? (c.contact_id as string)
-          : (c.user_id as string),
-      );
+      const otherIds = tc
+        .map((c) =>
+          (c.user_id as string) === userId
+            ? (c.contact_id as string)
+            : (c.user_id as string),
+        )
+        .filter((id) => id !== userId);
 
       const { data: profiles } = await supabase
         .from('profiles')
