@@ -1,215 +1,224 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/stores/useTheme";
-import { useUiStore } from "@/stores/uiStore";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MessageCircle, UserCheck, UserPlus, User, Shield, X, ChevronRight } from 'lucide-react'
+import { useTheme } from '@/stores/useTheme'
+import { useUiStore } from '@/stores/uiStore'
+import { supabase } from '@/lib/supabase'
 
-export default function UserContextMenu() {
-  const menuUser = useUiStore((s) => s.activeContextMenuUser);
-  const closeContextMenu = useUiStore((s) => s.closeContextMenu);
-  const openProfile = useUiStore((s) => s.openProfile);
-  const openCommunityDM = useUiStore((s) => s.openCommunityDM);
-  const isDark = useTheme((s) => s.theme) === "dark";
+export function UserContextMenu() {
+  const theme = useTheme().theme
+  const isDark = theme === 'dark'
+  const activeUser = useUiStore((s) => s.activeContextMenuUser)
+  const closeContextMenu = useUiStore((s) => s.closeContextMenu)
+  const openProfile = useUiStore((s) => s.openProfile)
+  const setCommunityDMTarget = useUiStore((s) => s.setCommunityDMTarget)
 
-  const C = isDark
-    ? { bg: "#1E293B", text: "#FFFFFF", sub: "#94A3B8", muted: "#64748B", border: "rgba(255,255,255,0.06)", chevron: "#475569" }
-    : { bg: "#FFFFFF", text: "#0F172A", sub: "#64748B", muted: "#94A3B8", border: "rgba(15,23,42,0.06)", chevron: "#CBD5E1" };
+  const isOpen = !!activeUser
+  const userId = activeUser?.userId ?? ''
+  const username = activeUser?.username ?? ''
+  const displayName = activeUser?.displayName
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followId, setFollowId] = useState<string | null>(null);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [inviteSent, setInviteSent] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [inviteSent, setInviteSent] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [pressedIdx, setPressedIdx] = useState<number | null>(null)
 
-  const userId = menuUser?.userId ?? "";
-  const username = menuUser?.username ?? "";
-  const displayName = menuUser?.displayName || username;
-  const city = menuUser?.city;
-  const isVerified = menuUser?.isVerified;
+  const t = isDark
+    ? { bg:'#1E293B', border:'rgba(255,255,255,0.08)', textPrimary:'#F1F5F9', textTertiary:'#64748B', overlay:'rgba(0,0,0,0.5)' }
+    : { bg:'#FFFFFF', border:'rgba(0,0,0,0.07)', textPrimary:'#0F172A', textTertiary:'#94A3B8', overlay:'rgba(0,0,0,0.25)' }
 
-  const initials = displayName
-    .split(/[\s._-]+/)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "?";
-
-  // Fetch initial states
   useEffect(() => {
-    if (!menuUser) return;
-    let cancelled = false;
-    setIsFollowing(false);
-    setFollowId(null);
-    setInviteSent(false);
-
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-      setCurrentUserId(user.id);
-
-      // Self-check: redirect to profile modal instead of context menu
-      if (user.id === menuUser.userId) {
-        openProfile(menuUser.userId);
-        closeContextMenu();
-        return;
-      }
-
-      const [followRes, inviteRes] = await Promise.all([
-        supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", menuUser.userId).maybeSingle(),
-        supabase.from("trusted_contacts").select("id").or(`and(user_id.eq.${user.id},contact_id.eq.${menuUser.userId}),and(user_id.eq.${menuUser.userId},contact_id.eq.${user.id})`).limit(1).maybeSingle(),
-      ]);
-
-      if (cancelled) return;
-      setIsFollowing(!!followRes.data);
-      setFollowId(followRes.data?.id ?? null);
-      setInviteSent(!!inviteRes.data);
-    })();
-    return () => { cancelled = true; };
-  }, [menuUser]);
-
-  if (!menuUser) return null;
+    if (!isOpen || !userId) return
+    setIsFollowing(false)
+    setInviteSent(false)
+    setPressedIdx(null)
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id
+      setCurrentUserId(uid ?? null)
+      if (!uid) return
+      supabase.from('follows').select('id').eq('follower_id', uid).eq('following_id', userId).maybeSingle()
+        .then(({ data: f }) => setIsFollowing(!!f))
+      supabase.from('circle_invitations').select('id').eq('inviter_id', uid).eq('invitee_id', userId).maybeSingle()
+        .then(({ data: c }) => setInviteSent(!!c))
+    })
+  }, [isOpen, userId])
 
   const handleFollow = async () => {
-    if (!currentUserId || followLoading) return;
-    setFollowLoading(true);
-
-    if (isFollowing && followId) {
-      setIsFollowing(false);
-      const { error } = await supabase.from("follows").delete().eq("id", followId);
-      if (error) { setIsFollowing(true); toast.error("Erreur"); }
-      else setFollowId(null);
+    if (!currentUserId) return
+    if (isFollowing) {
+      await supabase.from('follows').delete().eq('follower_id', currentUserId).eq('following_id', userId)
+      setIsFollowing(false)
     } else {
-      setIsFollowing(true);
-      const { data, error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: userId }).select("id").single();
-      if (error) { setIsFollowing(false); toast.error(error.code === "23505" ? "Deja abonne" : "Erreur"); }
-      else setFollowId(data.id);
+      await supabase.from('follows').insert({ follower_id: currentUserId, following_id: userId })
+      setIsFollowing(true)
     }
-    setFollowLoading(false);
-  };
+  }
 
-  const handleInviteCircle = async () => {
-    if (!currentUserId || inviteLoading || inviteSent) return;
-    setInviteLoading(true);
+  const handleCircle = async () => {
+    if (!currentUserId || inviteSent) return
+    await supabase.from('circle_invitations').insert({ inviter_id: currentUserId, invitee_id: userId })
+    setInviteSent(true)
+  }
 
-    const { error: tcErr } = await supabase.from("trusted_contacts").insert({
-      user_id: currentUserId, contact_id: userId, contact_name: displayName, status: "pending",
-    });
+  const handleMessage = () => {
+    if (setCommunityDMTarget) setCommunityDMTarget({ userId, userName: displayName ?? username })
+    closeContextMenu()
+  }
 
-    if (tcErr) {
-      if (tcErr.code === "23505") { toast.info("Invitation deja envoyee"); setInviteSent(true); }
-      else toast.error("Erreur");
-      setInviteLoading(false);
-      return;
-    }
-
-    await supabase.from("circle_invitations").insert({ sender_id: currentUserId, receiver_id: userId });
-
-    const { data: myProfile } = await supabase.from("profiles").select("display_name").eq("id", currentUserId).single();
-    await supabase.from("notifications").insert({
-      user_id: userId,
-      type: "circle_invitation",
-      payload: { senderId: currentUserId, senderName: myProfile?.display_name ?? "Quelqu\u2019un" },
-    });
-
-    setInviteSent(true);
-    toast.success("Invitation envoyee");
-    setInviteLoading(false);
-  };
-
-  const handleOpenMessage = () => {
-    if (!currentUserId) return;
-    openCommunityDM({ userId, userName: displayName });
-    closeContextMenu();
-  };
-
-  const handleOpenProfile = () => {
-    openProfile(userId);
-    closeContextMenu();
-  };
+  const handleViewProfile = () => {
+    openProfile(userId)
+    closeContextMenu()
+  }
 
   const actions = [
-    { emoji: "\uD83D\uDCAC", label: "Message", subtitle: "Ouvrir une conversation", onClick: handleOpenMessage },
-    { emoji: isFollowing ? "\u2705" : "\u2795", label: isFollowing ? "Abonne\u00B7e \u2713" : "Suivre", subtitle: isFollowing ? "Ne plus suivre" : "Suivre cette personne", onClick: handleFollow, loading: followLoading },
-    { emoji: "\uD83D\uDC64", label: "Voir le profil", subtitle: "Fiche publique complete", onClick: handleOpenProfile },
-    { emoji: inviteSent ? "\uD83D\uDC9A" : "\uD83D\uDC9B", label: inviteSent ? "Invitation envoyee" : "Inviter dans mon cercle", subtitle: inviteSent ? "Demande deja envoyee" : "Demande de confiance", onClick: handleInviteCircle, loading: inviteLoading, disabled: inviteSent },
-  ];
+    {
+      Icon: MessageCircle, label: 'Message', sub: 'Ouvrir une conversation',
+      color: '#3BB4C1', disabled: false, onPress: handleMessage,
+    },
+    isFollowing
+      ? { Icon: UserCheck, label: 'Abonné·e ✓', sub: 'Ne plus suivre', color: '#34D399', disabled: false, onPress: handleFollow }
+      : { Icon: UserPlus, label: "S'abonner", sub: 'Voir ses publications', color: '#3BB4C1', disabled: false, onPress: handleFollow },
+    {
+      Icon: User, label: 'Voir le profil', sub: 'Fiche publique complète',
+      color: '#64748B', disabled: false, onPress: handleViewProfile,
+    },
+    inviteSent
+      ? { Icon: Shield, label: 'Invitation envoyée', sub: 'Demande déjà envoyée', color: '#94A3B8', disabled: true, onPress: () => {} }
+      : { Icon: Shield, label: 'Inviter au cercle', sub: 'Ajouter à mon cercle', color: '#FBBF24', disabled: false, onPress: handleCircle },
+  ]
+
+  const initial = (displayName ?? username ?? '?')[0]?.toUpperCase() ?? '?'
+  const avatarColors = ['#34D399','#3BB4C1','#A78BFA','#F472B6','#FBBF24','#F87171']
+  const avatarColor = userId ? avatarColors[userId.charCodeAt(0) % avatarColors.length] : avatarColors[0]
 
   return (
     <AnimatePresence>
-      {menuUser && (
-        <>
+      {isOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:400 }}>
+          {/* Backdrop */}
           <motion.div
-            key="ctx-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity:0 }}
+            animate={{ opacity:1 }}
+            exit={{ opacity:0 }}
+            transition={{ duration:0.2 }}
             onClick={closeContextMenu}
-            style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)" }}
+            style={{
+              position:'absolute', inset:0,
+              background: t.overlay,
+              backdropFilter:'blur(4px)',
+              WebkitBackdropFilter:'blur(4px)',
+            }}
           />
+
+          {/* Panel — slide depuis la gauche */}
           <motion.div
-            key="ctx-sheet"
-            initial={{ y: 300 }}
-            animate={{ y: 0 }}
-            exit={{ y: 300 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            onClick={(e) => e.stopPropagation()}
-            style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 301, background: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, boxShadow: "0 -10px 40px rgba(0,0,0,0.15)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
+            initial={{ x: -300, opacity:0 }}
+            animate={{ x: 0, opacity:1 }}
+            exit={{ x: -300, opacity:0 }}
+            transition={{ type:'spring', stiffness:340, damping:30 }}
+            style={{
+              position:'absolute',
+              top:'20%',
+              left:16,
+              width:272,
+              background: t.bg,
+              borderRadius:20,
+              border:`1px solid ${t.border}`,
+              boxShadow: isDark
+                ? '0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)'
+                : '0 24px 60px rgba(0,0,0,0.12)',
+              overflow:'hidden',
+            }}
           >
-            {/* Handle */}
-            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
-              <div style={{ width: 36, height: 4, borderRadius: 99, background: isDark ? "rgba(255,255,255,0.15)" : "rgba(15,23,42,0.12)" }} />
-            </div>
-
-            {/* Mini profile */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 20px 14px" }}>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #3BB4C1, #06B6D4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#FFFFFF" }}>
-                  {initials}
+            {/* Header */}
+            <div style={{
+              display:'flex', alignItems:'center', gap:12,
+              padding:'15px 14px 13px',
+              borderBottom:`1px solid ${t.border}`,
+            }}>
+              <div style={{
+                width:42, height:42, borderRadius:'50%',
+                background: avatarColor, flexShrink:0,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:17, fontWeight:700, color:'#fff',
+              }}>
+                {initial}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:t.textPrimary, lineHeight:1.2 }}>
+                  {displayName ?? username}
                 </div>
-                {isVerified && (
-                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 16, height: 16, borderRadius: "50%", background: "#34D399", border: `2px solid ${C.bg}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#FFFFFF", fontWeight: 700 }}>
-                    ✓
-                  </div>
-                )}
+                <div style={{ fontSize:11, color:t.textTertiary, marginTop:1 }}>@{username}</div>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
-                {city && <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{city}</div>}
-              </div>
+              <button
+                onClick={closeContextMenu}
+                style={{
+                  width:26, height:26, borderRadius:7,
+                  border:`1px solid ${t.border}`, background:'none', cursor:'pointer',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  color:t.textTertiary, flexShrink:0,
+                }}
+              >
+                <X size={12}/>
+              </button>
             </div>
-
-            <div style={{ height: 1, background: C.border, margin: "0 20px" }} />
 
             {/* Actions */}
-            <div style={{ padding: "6px 0" }}>
-              {actions.map((action, i) => (
-                <div key={i}>
-                  <button
-                    onClick={action.onClick}
-                    disabled={action.disabled || action.loading}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "13px 20px", background: "none", border: "none", cursor: action.disabled ? "default" : "pointer", opacity: action.disabled ? 0.5 : action.loading ? 0.6 : 1, textAlign: "left" }}
+            <div style={{ padding:'6px 0 8px' }}>
+              {actions.map((action, i) => {
+                const { Icon } = action
+                const pressed = pressedIdx === i
+
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity:0, x:-12 }}
+                    animate={{ opacity:1, x:0 }}
+                    transition={{ delay: i * 0.045, type:'spring', stiffness:340, damping:28 }}
+                    onMouseDown={() => !action.disabled && setPressedIdx(i)}
+                    onMouseUp={() => { setPressedIdx(null); !action.disabled && action.onPress() }}
+                    onMouseLeave={() => setPressedIdx(null)}
+                    onTouchStart={() => !action.disabled && setPressedIdx(i)}
+                    onTouchEnd={() => { setPressedIdx(null); !action.disabled && action.onPress() }}
+                    style={{
+                      display:'flex', alignItems:'center', gap:11,
+                      padding:'9px 14px',
+                      cursor: action.disabled ? 'default' : 'pointer',
+                      opacity: action.disabled ? 0.38 : 1,
+                      transform: pressed ? 'scale(0.97)' : 'scale(1)',
+                      background: pressed
+                        ? (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)')
+                        : 'transparent',
+                      transition:'background 140ms, transform 140ms',
+                    }}
                   >
-                    <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{action.emoji}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{action.label}</div>
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{action.subtitle}</div>
+                    <div style={{
+                      width:34, height:34, borderRadius:10, flexShrink:0,
+                      background:`${action.color}1A`,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      transform: pressed ? 'scale(0.86)' : 'scale(1)',
+                      transition:'transform 150ms cubic-bezier(0.34,1.56,0.64,1)',
+                    }}>
+                      <Icon size={15} style={{ color:action.color }}/>
                     </div>
-                    <ChevronRight size={16} style={{ color: C.chevron, flexShrink: 0 }} />
-                  </button>
-                  {i < actions.length - 1 && (
-                    <div style={{ height: 1, background: C.border, margin: "0 20px 0 54px" }} />
-                  )}
-                </div>
-              ))}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:t.textPrimary }}>{action.label}</div>
+                      <div style={{ fontSize:11, color:t.textTertiary, marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {action.sub}
+                      </div>
+                    </div>
+                    {!action.disabled && <ChevronRight size={12} style={{ color:t.textTertiary, flexShrink:0 }}/>}
+                  </motion.div>
+                )
+              })}
             </div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
-  );
+  )
 }
+
+export default UserContextMenu

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useTheme } from "@/stores/useTheme"
+import { useUiStore } from "@/stores/uiStore"
 import SoutienSheet from "./SoutienSheet"
 
 interface SOSPost {
@@ -21,6 +22,7 @@ interface SOSPost {
 
 export function SOSPostCard({ post, currentUserId }: { post: SOSPost; currentUserId: string | null }) {
   const isDark = useTheme((s) => s.theme) === 'dark'
+  const { openContextMenu, openProfile } = useUiStore()
   const [showSoutien, setShowSoutien] = useState(false)
   const resolved = post.status === 'resolved'
   const isCircle = post.visibility === 'circle'
@@ -91,33 +93,46 @@ export function SOSPostCard({ post, currentUserId }: { post: SOSPost; currentUse
       <div style={{ padding: '12px 13px 9px' }}>
         {/* Author row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: resolved ? successSoft : dangerSoft,
-            border: `2px solid ${resolved ? 'rgba(52,211,153,0.3)' : 'rgba(240,64,96,0.3)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15,
-          }}>
-            {post.is_anonymous ? '\uD83C\uDF3A' : (post.author_emoji || '\uD83D\uDC64')}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                fontSize: 13, fontWeight: 600,
-                color: isDark ? '#FFFFFF' : '#0F172A',
-              }}>
-                {post.is_anonymous ? 'Utilisatrice anonyme' : (post.author_name || 'Membre')}
-              </span>
-              {isCircle && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation()
+              if (post.is_anonymous) return
+              if (post.author_id === currentUserId) {
+                openProfile(post.author_id)
+              } else if (post.author_id) {
+                openContextMenu({ userId: post.author_id, username: post.author_name || '', displayName: post.author_name || '' })
+              }
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: post.is_anonymous ? 'default' : 'pointer' }}
+          >
+            <div style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: resolved ? successSoft : dangerSoft,
+              border: `2px solid ${resolved ? 'rgba(52,211,153,0.3)' : 'rgba(240,64,96,0.3)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 15,
+            }}>
+              {post.is_anonymous ? '\uD83C\uDF3A' : (post.author_emoji || '\uD83D\uDC64')}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{
-                  fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6,
-                  background: tealSoft, color: teal,
-                }}>Cercle</span>
+                  fontSize: 13, fontWeight: 600,
+                  color: isDark ? '#FFFFFF' : '#0F172A',
+                }}>
+                  {post.is_anonymous ? 'Utilisatrice anonyme' : (post.author_name || 'Membre')}
+                </span>
+                {isCircle && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6,
+                    background: tealSoft, color: teal,
+                  }}>Cercle</span>
+                )}
+              </div>
+              {label && (
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{label}</span>
               )}
             </div>
-            {label && (
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{label}</span>
-            )}
           </div>
         </div>
 
