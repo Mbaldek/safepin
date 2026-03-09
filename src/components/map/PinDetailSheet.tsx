@@ -6,7 +6,7 @@ import {
   X, Check, CheckCircle2, MapPin, Users,
   AlertTriangle, Wrench, Share2, ThumbsDown,
   MessageCircle, Route, ClipboardCheck,
-  RefreshCw,
+  RefreshCw, Image as ImageIcon, ChevronDown, Video,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
@@ -112,6 +112,8 @@ function PinDetailSheet({
   const { updatePin, pins, setSelectedPin, setActiveSheet } = useStore()
   const { openCommunityDM } = useUiStore()
 
+  type EvidenceItem = { type: 'photo' | 'video'; url: string; activity: string }
+
   const [confirmCount, setConfirmCount] = useState(0)
   const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
   const [isResolved, setIsResolved] = useState(false)
@@ -120,6 +122,8 @@ function PinDetailSheet({
   const [resolving, setResolving] = useState(false)
   const [showFalseReportConfirm, setShowFalseReportConfirm] = useState(false)
   const [pinHashtags, setPinHashtags] = useState<Hashtag[]>([])
+  const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([])
+  const [mediaExpanded, setMediaExpanded] = useState(false)
   const pull = usePullToDismiss({ onDismiss: onClose })
 
   useEffect(() => {
@@ -128,6 +132,8 @@ function PinDetailSheet({
     setIsResolved(!!pin.resolved_at)
     setAlreadyConfirmed(false)
     setShowFalseReportConfirm(false)
+    setEvidenceItems([])
+    setMediaExpanded(false)
 
     const load = async () => {
       // Check if user already confirmed
@@ -156,6 +162,28 @@ function PinDetailSheet({
             name: (c.profiles as { name?: string } | null)?.name ?? '?',
           }))
         )
+      }
+
+      // Fetch evidence media (media_urls + proof_url from confirmations)
+      const { data: evidRows } = await supabase
+        .from('pin_evidence')
+        .select('activity, media_urls, proof_type, proof_url')
+        .eq('pin_id', pin.id)
+        .order('created_at', { ascending: false })
+      if (evidRows) {
+        const items: EvidenceItem[] = []
+        for (const row of evidRows) {
+          const urls = row.media_urls as { type: string; url: string }[] | null
+          if (urls?.length) {
+            for (const m of urls) {
+              if (m.url) items.push({ type: m.type === 'video' ? 'video' : 'photo', url: m.url, activity: row.activity })
+            }
+          }
+          if (row.proof_url && row.proof_type && row.proof_type !== 'audio') {
+            items.push({ type: row.proof_type === 'video' ? 'video' : 'photo', url: row.proof_url, activity: row.activity })
+          }
+        }
+        setEvidenceItems(items)
       }
 
       // Fetch hashtags for this pin
@@ -474,6 +502,68 @@ function PinDetailSheet({
                   </span>
                 </div>
               </div>
+
+              {/* ── MEDIA EVIDENCE ──────────────────── */}
+              {evidenceItems.length > 0 && (
+                <div style={{ borderBottom: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}` }}>
+                  <button
+                    onClick={() => setMediaExpanded(e => !e)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between', padding: '10px 18px',
+                      background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <ImageIcon size={13} style={{ color: d ? T.textTertiary : T.textTertiaryL }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: d ? T.textSecondary : T.textSecondaryL }}>
+                        Preuves & Médias
+                      </span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        background: d ? 'rgba(59,180,193,0.15)' : 'rgba(59,180,193,0.10)',
+                        color: '#3BB4C1', padding: '1px 7px', borderRadius: 99,
+                      }}>
+                        {evidenceItems.length}
+                      </span>
+                    </div>
+                    <ChevronDown size={14} style={{
+                      color: d ? T.textTertiary : T.textTertiaryL,
+                      transform: mediaExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 200ms',
+                    }} />
+                  </button>
+                  {mediaExpanded && (
+                    <div style={{
+                      display: 'flex', gap: 8, overflowX: 'auto',
+                      padding: '0 18px 12px', scrollbarWidth: 'none',
+                    }}>
+                      {evidenceItems.map((item, i) => (
+                        <div
+                          key={i}
+                          onClick={() => window.open(item.url, '_blank')}
+                          style={{
+                            flexShrink: 0, width: 80, height: 80, borderRadius: 10,
+                            overflow: 'hidden', cursor: 'pointer',
+                            background: d ? '#1E293B' : '#F1F5F9',
+                            border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                          }}
+                        >
+                          {item.type === 'photo' ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.url} alt="preuve" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <Video size={20} style={{ color: '#3BB4C1' }} />
+                              <span style={{ fontSize: 9, color: d ? T.textTertiary : T.textTertiaryL }}>Vidéo</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ── CTA ZONE ──────────────────────── */}
               <div style={{
