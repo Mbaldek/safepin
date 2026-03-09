@@ -33,6 +33,8 @@ export type Pin = {
   // Confirmations
   confirmations?: number;
   decay_type?: 'people' | 'infra' | 'positive';
+  category_label?: string;
+  username?: string;
   created_at: string;
 };
 
@@ -806,11 +808,14 @@ export type ContentType     = 'story' | 'post' | 'incident'
 export interface Hashtag {
   id:          string
   tag:         string
+  name?:       string
   category:    HashtagCategory
   display:     string
   color?:      string
   icon?:       string
   uses_count:  number
+  count?:      number
+  pin_count?:  number
   created_at:  string
 }
 

@@ -377,7 +377,7 @@ function PinDetailSheet({
                         {cat.label}
                       </span>
                       {pinHashtags.map(tag => (
-                        <HashtagPill key={tag.id} tag={tag} isDark={d} size="xs" />
+                        <HashtagPill key={tag.id} hashtag={tag} isDark={d} size="xs" />
                       ))}
                     </div>
                   </div>

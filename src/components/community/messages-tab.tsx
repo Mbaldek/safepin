@@ -104,7 +104,7 @@ function SwipeableConvoRow({
           zIndex: 1,
           background: isDark ? "#0F172A" : "#FFFFFF",
         }}
-        whileHover={!swiped ? { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" } : undefined}
+        whileHover={!swiped ? { backgroundColor: isDark ? "#1E293B" : "#F1F5F9", x: 3 } : undefined}
         onClick={() => { if (!swiped) onSelect(); else setSwiped(false); }}
         transition={{ type: "spring", stiffness: 400, damping: 35 }}
       >
@@ -158,6 +158,7 @@ function SwipeableConvoRow({
           <div style={{
             width: 10, height: 10, borderRadius: "50%",
             backgroundColor: "#3BB4C1", flexShrink: 0,
+            animation: "badgePop 0.4s cubic-bezier(0.34,1.56,0.64,1)",
           }} />
         )}
       </motion.div>

@@ -99,6 +99,8 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cardHovered, setCardHovered] = useState(false);
+  const [cardPressed, setCardPressed] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Check if post is bookmarked
@@ -245,11 +247,26 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
 
   return (
     <div
+      onMouseEnter={() => setCardHovered(true)}
+      onMouseLeave={() => { setCardHovered(false); setCardPressed(false); }}
+      onMouseDown={() => setCardPressed(true)}
+      onMouseUp={() => setCardPressed(false)}
       style={{
-        backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+        backgroundColor: cardHovered
+          ? (isDark ? "#1E293B" : "#F8FAFC")
+          : (isDark ? "#1E293B" : "#FFFFFF"),
         borderRadius: 16,
         padding: 16,
         border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+        transition: "transform 220ms cubic-bezier(0.16,1,0.3,1), box-shadow 220ms cubic-bezier(0.16,1,0.3,1), background-color 200ms",
+        transform: cardPressed
+          ? "scale(0.98)"
+          : cardHovered
+          ? "translateY(-2px)"
+          : "none",
+        boxShadow: cardHovered
+          ? "0 8px 28px rgba(0,0,0,0.12)"
+          : "none",
       }}
     >
       {/* Header */}

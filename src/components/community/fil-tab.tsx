@@ -715,6 +715,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30, delay: index * 0.04 }}
+              style={{ animation: `cardIn ${index * 70}ms cubic-bezier(0.16,1,0.3,1) both` }}
             >
               {post._isPin ? (
                 <PinFeedCard pin={post} isDark={isDark} onClick={() => onPinClick?.(post.id)} />
