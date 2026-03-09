@@ -100,6 +100,7 @@ activeTrip, setActiveTrip,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
     setTripPrefill,
+    mapViewport, setDbClusters,
   } = useStore();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const tMap = useTranslations('map');
@@ -411,35 +412,70 @@ activeTrip, setActiveTrip,
     async function loadPins() {
       const now = new Date().toISOString();
 
-      // Q1: active public pins not yet expired (uses idx_pins_active_expires)
-      const q1 = supabase
-        .from('pins')
-        .select('*')
-        .is('hidden_at', null)
-        .gt('expires_at', now)
-        .order('created_at', { ascending: false });
+      if (mapViewport && mapViewport.zoom >= 10) {
+        // ── Viewport-based spatial load via PostGIS ──────────────────────────
+        // Uses GIST index on pins.location — only fetches pins in current viewport
+        const { lat, lng, radiusM } = mapViewport;
+        const radius = Math.min(radiusM * 1.3, 15_000); // 30% buffer, cap 15 km
 
-      // Q2: user's own pins regardless of expiry/visibility (uses idx_pins_user_created)
-      const q2 = userId
-        ? supabase.from('pins').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-        : null;
+        const [{ data: spatialPins, error }, { data: ownPins } = { data: [] }] = await Promise.all([
+          supabase.rpc('pins_nearby', { p_lat: lat, p_lng: lng, p_radius_m: radius }),
+          userId
+            ? supabase.from('pins').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+            : Promise.resolve({ data: [] }),
+        ]);
 
-      const [{ data: publicPins, error }, { data: ownPins } = { data: [] }] =
-        await Promise.all([q1, q2 ?? Promise.resolve({ data: [] })]);
+        if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
 
-      if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
+        const merged = new Map<string, Pin>();
+        for (const p of (spatialPins as Pin[] ?? [])) merged.set(p.id, p);
+        for (const p of (ownPins as Pin[] ?? [])) merged.set(p.id, p);
+        let result = [...merged.values()];
+        if (!showSimulated) result = result.filter((p) => !p.is_simulated);
+        setPins(result);
+        setDbClusters([]);
 
-      // Merge: own pins override public entries (dedup by id)
-      const merged = new Map<string, Pin>();
-      for (const p of (publicPins as Pin[] ?? [])) merged.set(p.id, p);
-      for (const p of (ownPins as Pin[] ?? [])) merged.set(p.id, p);
+      } else if (mapViewport && mapViewport.zoom < 10) {
+        // ── Low zoom: DB spatial clustering via ST_ClusterDBSCAN ─────────────
+        // Returns cluster centroids with count + dominant category instead of individual pins
+        const { lat, lng, radiusM, zoom } = mapViewport;
+        const eps = zoom < 7 ? 3000 : zoom < 9 ? 1500 : 800;
 
-      let result = [...merged.values()];
-      if (!showSimulated) result = result.filter((p) => !p.is_simulated);
-      setPins(result);
+        const { data: clusters, error } = await supabase.rpc('pins_clustered', {
+          p_lat: lat, p_lng: lng,
+          p_radius_m: Math.min(radiusM * 1.5, 60_000),
+          p_eps_m: eps,
+        });
+
+        if (!error) setDbClusters(clusters ?? []);
+        setPins([]);
+
+      } else {
+        // ── Fallback: global load (no viewport yet — map still initializing) ──
+        const q1 = supabase
+          .from('pins').select('*')
+          .is('hidden_at', null).gt('expires_at', now)
+          .order('created_at', { ascending: false });
+        const q2 = userId
+          ? supabase.from('pins').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+          : null;
+
+        const [{ data: publicPins, error }, { data: ownPins } = { data: [] }] =
+          await Promise.all([q1, q2 ?? Promise.resolve({ data: [] })]);
+
+        if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
+
+        const merged = new Map<string, Pin>();
+        for (const p of (publicPins as Pin[] ?? [])) merged.set(p.id, p);
+        for (const p of (ownPins as Pin[] ?? [])) merged.set(p.id, p);
+        let result = [...merged.values()];
+        if (!showSimulated) result = result.filter((p) => !p.is_simulated);
+        setPins(result);
+        setDbClusters([]);
+      }
     }
     loadPins();
-  }, [setPins, userId, showSimulated, pinsVersion]);
+  }, [setPins, setDbClusters, userId, showSimulated, pinsVersion, mapViewport]);
 
   // Deep link: ?pin=UUID → fly to pin and open detail sheet
   useEffect(() => {
@@ -1032,7 +1068,7 @@ activeTrip, setActiveTrip,
                   position: 'fixed',
                   bottom: 200,
                   right: 20,
-                  width: 48, height: 48, borderRadius: '50%', border: 'none',
+                  width: 50, height: 50, borderRadius: '50%', border: 'none',
                   background: 'linear-gradient(145deg, #8B6B9A 0%, #5C3D5E 55%, #3d2245 100%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', overflow: 'hidden', zIndex: 50,
@@ -1067,8 +1103,8 @@ activeTrip, setActiveTrip,
                 position: 'fixed',
                 bottom: 140,
                 right: 20,
-                width: 52,
-                height: 52,
+                width: 50,
+                height: 50,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, #3BB4C1, #0E7490)',
                 border: 'none',

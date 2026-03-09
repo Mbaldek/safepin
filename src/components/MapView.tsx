@@ -41,6 +41,10 @@ const HEAT_SRC = 'location-history-src';
 const HEAT_LYR = 'location-history-heat';
 const SAFE_SRC = 'safe-spaces-src';
 const SAFE_CIRCLE = 'safe-spaces-circle';
+const DB_CLUSTER_SRC    = 'pins-db-cluster-src';
+const DB_CLUSTER_CIRCLE = 'pins-db-cluster-circle';
+const DB_CLUSTER_HALO   = 'pins-db-cluster-halo';
+const DB_CLUSTER_LABEL  = 'pins-db-cluster-label';
 const SAFE_LABEL = 'safe-spaces-label';
 const SAFE_PARTNER = 'safe-spaces-partner';
 const SOS_TRAIL_SRC = 'sos-trail-source';
@@ -584,6 +588,68 @@ function addClusterLayers(m: mapboxgl.Map) {
   m.on('click', 'clusters', _clusterClickHandler);
   m.on('mouseenter', 'clusters', _clusterMouseEnter);
   m.on('mouseleave', 'clusters', _clusterMouseLeave);
+
+  // ── DB spatial cluster layers (zoom < 10) ──────────────────────────────────
+  if (!m.getSource(DB_CLUSTER_SRC)) {
+    m.addSource(DB_CLUSTER_SRC, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+
+    // Halo
+    m.addLayer({
+      id: DB_CLUSTER_HALO,
+      type: 'circle',
+      source: DB_CLUSTER_SRC,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 22, 20, 34, 100, 50],
+        'circle-color': [
+          'match', ['get', 'dominant_group'],
+          'urgent',   '#F87171',
+          'warning',  '#FBBF24',
+          'infra',    '#60A5FA',
+          'positive', '#34D399',
+          '#94A3B8',
+        ],
+        'circle-opacity': 0.18,
+      },
+    });
+
+    // Main circle
+    m.addLayer({
+      id: DB_CLUSTER_CIRCLE,
+      type: 'circle',
+      source: DB_CLUSTER_SRC,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 16, 20, 26, 100, 40],
+        'circle-color': [
+          'match', ['get', 'dominant_group'],
+          'urgent',   '#F87171',
+          'warning',  '#FBBF24',
+          'infra',    '#60A5FA',
+          'positive', '#34D399',
+          '#94A3B8',
+        ],
+        'circle-opacity': 0.92,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-opacity': 0.95,
+      },
+    });
+
+    // Count label
+    m.addLayer({
+      id: DB_CLUSTER_LABEL,
+      type: 'symbol',
+      source: DB_CLUSTER_SRC,
+      layout: {
+        'text-field': ['get', 'count'],
+        'text-size': 12,
+        'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+      },
+      paint: { 'text-color': '#ffffff' },
+    });
+  }
 }
 
 export type MapViewProps = {
@@ -673,6 +739,7 @@ function MapView({
     setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
     setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords,
+    setMapViewport, dbClusters,
   } = useStore(useShallow((s) => ({
     pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
@@ -685,6 +752,8 @@ function MapView({
     setTripPrefill: s.setTripPrefill, setActiveTab: s.setActiveTab,
     departDragPin: s.departDragPin, setDepartDragPin: s.setDepartDragPin,
     newPinCoords: s.newPinCoords,
+    setMapViewport: s.setMapViewport,
+    dbClusters: s.dbClusters,
   })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -702,6 +771,7 @@ function MapView({
   const [filteredTransportPins, setFilteredTransportPins] = useState<Pin[]>([]);
   const [filteredRegularPins, setFilteredRegularPins] = useState<Pin[]>([]);
   const [labelsVisible, setLabelsVisible] = useState(false);
+  const [mapZoom, setMapZoom] = useState(13);
   const zoomRef = useRef(13);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -768,11 +838,32 @@ function MapView({
         store.setActiveSheet('report');
       }
     };
+    // ── Viewport emission (debounced 400ms) ──────────────────────────────────
+    let moveendTimer: ReturnType<typeof setTimeout> | null = null;
+    const emitViewport = () => {
+      if (!map.current) return;
+      const center = map.current.getCenter();
+      const zoom   = map.current.getZoom();
+      const bounds = map.current.getBounds();
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      const latSpan = Math.abs(ne.lat - sw.lat);
+      const lngSpan = Math.abs(ne.lng - sw.lng);
+      const radiusM = Math.sqrt(latSpan * latSpan + lngSpan * lngSpan) * 111320 / 2;
+      setMapViewport({ lat: center.lat, lng: center.lng, zoom, radiusM: Math.max(radiusM, 500) });
+      setMapZoom(Math.round(zoom));
+    };
+    const handleMoveEnd = () => {
+      if (moveendTimer) clearTimeout(moveendTimer);
+      moveendTimer = setTimeout(emitViewport, 400);
+    };
+
     const handleLoad = () => {
       hideBuiltinPOIDots(map.current!);
       addClusterLayers(map.current!);
       setLayersReady(true);
       setMapReady(true);
+      emitViewport();
     };
     const handleZoomEnd = () => {
       if (!map.current) return;
@@ -782,6 +873,7 @@ function MapView({
       // Only trigger re-render when crossing the label threshold
       const crossed = (prev < LABEL_ZOOM_THRESHOLD) !== (z < LABEL_ZOOM_THRESHOLD);
       if (crossed) setLabelsVisible(z >= LABEL_ZOOM_THRESHOLD);
+      emitViewport();
     };
 
     map.current.on('mousedown', handleMouseDown);
@@ -791,10 +883,12 @@ function MapView({
     map.current.on('contextmenu', handleContextMenu);
     map.current.on('load', handleLoad);
     map.current.on('zoomend', handleZoomEnd);
+    map.current.on('moveend', handleMoveEnd);
     const handleRotate = () => setBearing(map.current?.getBearing() ?? 0);
     map.current.on('rotate', handleRotate);
 
     return () => {
+      if (moveendTimer) clearTimeout(moveendTimer);
       map.current?.off('mousedown', handleMouseDown);
       map.current?.off('mouseup',   cancelLong);
       map.current?.off('mousemove', cancelLong);
@@ -802,6 +896,7 @@ function MapView({
       map.current?.off('contextmenu', handleContextMenu);
       map.current?.off('load', handleLoad);
       map.current?.off('zoomend', handleZoomEnd);
+      map.current?.off('moveend', handleMoveEnd);
       map.current?.off('rotate', handleRotate);
       map.current?.remove();
       map.current = null;
@@ -1385,7 +1480,10 @@ function MapView({
 
     const source = map.current.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
-      source.setData(buildGeoJSON(regularPins));
+      // At zoom < 10 DB clusters are shown instead — clear individual pins from GL source
+      source.setData(mapZoom < 10
+        ? { type: 'FeatureCollection', features: [] }
+        : buildGeoJSON(regularPins));
     }
 
     // Pin drop animation for newly arrived pins
@@ -1416,7 +1514,26 @@ function MapView({
     // Ghost trail cleanup (kept for legacy)
     ghostTrailRef.current.forEach((m) => m.remove());
     ghostTrailRef.current = [];
-  }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet]);
+  }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet, mapZoom]);
+
+  // ── DB spatial cluster layer update (zoom < 10) ───────────────────────────
+  useEffect(() => {
+    if (!map.current || !mapReady || !layersReady) return;
+    const clusterSrc = map.current.getSource(DB_CLUSTER_SRC) as mapboxgl.GeoJSONSource | undefined;
+    if (!clusterSrc) return;
+    if (mapZoom < 10 && dbClusters.length > 0) {
+      clusterSrc.setData({
+        type: 'FeatureCollection',
+        features: dbClusters.map((c) => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [c.lng, c.lat] },
+          properties: { count: c.count, dominant_group: c.dominant_group, cluster_id: c.cluster_id },
+        })),
+      });
+    } else {
+      clusterSrc.setData({ type: 'FeatureCollection', features: [] });
+    }
+  }, [dbClusters, mapZoom, mapReady, layersReady]);
 
   // Show / hide Paris transit station dots (Bus / Metro-RER split)
   useEffect(() => {
@@ -1784,7 +1901,7 @@ function MapView({
         </div>
       )}
 
-      {map.current && filteredRegularPins.map((pin) => (
+      {map.current && mapZoom >= 10 && filteredRegularPins.map((pin) => (
         <MapPin
           key={pin.id}
           map={map.current!}
@@ -1795,7 +1912,7 @@ function MapView({
         />
       ))}
 
-      {map.current && filteredTransportPins.map((pin) => (
+      {map.current && mapZoom >= 10 && filteredTransportPins.map((pin) => (
         <MapPin
           key={pin.id}
           map={map.current!}

@@ -38,6 +38,15 @@ export type Pin = {
   created_at: string;
 };
 
+export type DbCluster = {
+  cluster_id: number;
+  count: number;
+  dominant_category: string;
+  dominant_group: string;
+  lat: number;
+  lng: number;
+};
+
 export type PinEvidence = {
   id: string;
   pin_id: string;

@@ -16,6 +16,7 @@ import { usePullToDismiss } from '@/hooks/usePullToDismiss'
 import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
+import { haversineMetersRaw } from '@/lib/utils'
 import { T } from '@/lib/tokens'
 import { toast } from 'sonner'
 import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
@@ -109,7 +110,7 @@ function PinDetailSheet({
 }: PinDetailSheetProps) {
   const isDark = useTheme((s) => s.theme) === 'dark'
   const d = isDark
-  const { updatePin, pins, setSelectedPin, setActiveSheet } = useStore()
+  const { updatePin, pins, setSelectedPin, setActiveSheet, userLocation } = useStore()
   const { openCommunityDM } = useUiStore()
 
   type EvidenceItem = { type: 'photo' | 'video'; url: string; activity: string }
@@ -403,6 +404,14 @@ function PinDetailSheet({
                       }}>
                         <MapPin size={10} color={d ? T.textTertiary : T.textTertiaryL} strokeWidth={1.5} />
                         {pin.address ?? 'Position signalée'}
+                        {userLocation && (() => {
+                          const m = haversineMetersRaw(userLocation.lat, userLocation.lng, pin.lat, pin.lng)
+                          return (
+                            <span style={{ color: d ? T.textTertiary : T.textTertiaryL }}>
+                              · {m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`}
+                            </span>
+                          )
+                        })()}
                       </span>
                       <span style={{ width: 3, height: 3, borderRadius: '50%', background: d ? T.textTertiary : T.textTertiaryL }} />
                       <span style={{ fontSize: 11, color: d ? T.textSecondary : T.textSecondaryL }}>

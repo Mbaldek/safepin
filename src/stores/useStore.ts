@@ -243,6 +243,14 @@ type Store = {
   mapBottomPadding: number;
   setMapBottomPadding: (px: number) => void;
 
+  // Map viewport — written by MapView on moveend, read by loadPins for spatial queries
+  mapViewport: { lat: number; lng: number; zoom: number; radiusM: number } | null;
+  setMapViewport: (v: { lat: number; lng: number; zoom: number; radiusM: number } | null) => void;
+
+  // DB spatial clusters — populated at zoom < 10, cleared at zoom >= 10
+  dbClusters: import('@/types').DbCluster[];
+  setDbClusters: (c: import('@/types').DbCluster[]) => void;
+
 };
 
 export const useStore = create<Store>((set) => ({
@@ -405,5 +413,13 @@ export const useStore = create<Store>((set) => ({
   // Map bottom padding
   mapBottomPadding: 0,
   setMapBottomPadding: (px) => set({ mapBottomPadding: px }),
+
+  // Map viewport
+  mapViewport: null,
+  setMapViewport: (v) => set({ mapViewport: v }),
+
+  // DB spatial clusters
+  dbClusters: [],
+  setDbClusters: (c) => set({ dbClusters: c }),
 
 }));
