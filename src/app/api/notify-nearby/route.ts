@@ -75,11 +75,19 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Load all push subscriptions (except the pin creator)
+  // Spatial pre-filter: only users whose last_known location is within 10km of pin
+  // Uses PostGIS GIST index — avoids full table scan on push_subscriptions + profiles
+  const MAX_NOTIFY_RADIUS_M = 10_000;
+  const { data: nearbyUsers } = await admin
+    .rpc('user_ids_near_point', { p_lat: pin.lat, p_lng: pin.lng, p_max_radius_m: MAX_NOTIFY_RADIUS_M });
+  const nearbyUserIds = new Set((nearbyUsers ?? []).map((r: { user_id: string }) => r.user_id));
+
+  // Load push subscriptions only for spatially-nearby users (excluding pin creator)
   const { data: subs } = await admin
     .from('push_subscriptions')
     .select('user_id, subscription')
-    .neq('user_id', pin.user_id);
+    .neq('user_id', pin.user_id)
+    .in('user_id', nearbyUserIds.size > 0 ? [...nearbyUserIds] : ['00000000-0000-0000-0000-000000000000']);
 
   if (!subs?.length) return NextResponse.json({ sent: 0 });
 
@@ -92,7 +100,7 @@ export async function POST(req: NextRequest) {
 
   const settingsMap = Object.fromEntries((settingsRows ?? []).map((r) => [r.user_id, r]));
 
-  // Load last known locations for geo-filtering
+  // Load last known locations for per-user radius check (fine-grained, post spatial pre-filter)
   const { data: locationRows } = await admin
     .from('profiles')
     .select('id, last_known_lat, last_known_lng')
