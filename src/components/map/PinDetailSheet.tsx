@@ -74,15 +74,6 @@ const AVATAR_COLORS = ['#3BB4C1', '#7C3AED', '#DC2626', '#16A34A', '#D97706', '#
 const avatarColor = (name: string) =>
   AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 
-function calcDist(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 const THRESHOLD = 5
 
@@ -126,8 +117,6 @@ function PinDetailSheet({
   const [isResolved, setIsResolved] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [recentConfirmers, setRecentConfirmers] = useState<{ name: string }[]>([])
-  const [nearbyPins, setNearbyPins] = useState<Pin[]>([])
-  const [loadingNearby, setLoadingNearby] = useState(true)
   const [resolving, setResolving] = useState(false)
   const [showFalseReportConfirm, setShowFalseReportConfirm] = useState(false)
   const [pinHashtags, setPinHashtags] = useState<Hashtag[]>([])
@@ -168,24 +157,6 @@ function PinDetailSheet({
           }))
         )
       }
-
-      // Fetch nearby pins (client-side distance filter)
-      setLoadingNearby(true)
-      const { data: nearby } = await supabase
-        .from('pins')
-        .select('*')
-        .neq('id', pin.id)
-        .is('resolved_at', null)
-        .is('hidden_at', null)
-        .order('created_at', { ascending: false })
-        .limit(20)
-      if (nearby) {
-        const filtered = (nearby as Pin[])
-          .filter((p) => calcDist(pin.lat, pin.lng, p.lat, p.lng) < 0.5)
-          .slice(0, 3)
-        setNearbyPins(filtered)
-      }
-      setLoadingNearby(false)
 
       // Fetch hashtags for this pin
       const { data: chRows } = await supabase
@@ -259,12 +230,7 @@ function PinDetailSheet({
     }
   }
 
-  const handleNearbyTap = (p: Pin) => {
-    setSelectedPin(p)
-    setActiveSheet('detail')
-  }
-
-  // ─── Derived ───────────────────────────────────
+// ─── Derived ───────────────────────────────────
   if (!pin) return null
 
   const group = getCategoryGroup(pin.category)
@@ -689,106 +655,6 @@ function PinDetailSheet({
                 </button>
               </div>
 
-              {/* ── NEARBY SECTION ─────────────────── */}
-              <div style={{ padding: '12px 18px 8px' }}>
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center', marginBottom: 8,
-                }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: d ? T.textTertiary : 'rgba(15,23,42,0.4)',
-                  }}>
-                    Signalements proches
-                  </span>
-                </div>
-
-                {loadingNearby && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {[0, 1].map((i) => (
-                      <div key={i} style={{
-                        height: 44,
-                        background: d ? T.interactiveHover : T.interactiveHoverL,
-                        borderRadius: 12,
-                        animation: 'pulse 1.5s ease-in-out infinite',
-                      }} />
-                    ))}
-                  </div>
-                )}
-
-                {!loadingNearby && nearbyPins.length === 0 && (
-                  <div style={{
-                    textAlign: 'center', fontSize: 12,
-                    color: d ? T.textTertiary : T.textTertiaryL,
-                    padding: '8px 0',
-                  }}>
-                    Aucun incident proche
-                  </div>
-                )}
-
-                {!loadingNearby && nearbyPins.map((p) => {
-                  const pGroup = getCategoryGroup(p.category)
-                  const pCat = CAT[pGroup] ?? CAT.warning
-                  const PCatIcon = pCat.Icon
-                  const pDetails = CATEGORY_DETAILS[p.category]
-                  const distKm = calcDist(pin.lat, pin.lng, p.lat, p.lng)
-                  const distM = Math.round(distKm * 1000)
-
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => handleNearbyTap(p)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '8px 10px', borderRadius: 12,
-                        cursor: 'pointer', marginBottom: 2,
-                        transition: 'background 150ms cubic-bezier(0.16,1,0.3,1)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = d ? T.interactiveHover : T.interactiveHoverL
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent'
-                      }}
-                    >
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 9,
-                        background: pCat.colorSoft,
-                        border: `1px solid ${pCat.colorBorder}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <PCatIcon size={14} color={pCat.color} strokeWidth={1.5} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: 13, fontWeight: 500,
-                          color: d ? T.textPrimary : T.textPrimaryL,
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
-                          {pDetails?.label ?? p.category}
-                        </div>
-                        <div style={{
-                          fontSize: 10, color: d ? T.textSecondary : T.textSecondaryL,
-                        }}>
-                          {p.address ? `${p.address.substring(0, 30)}` : 'Proche'} · {p.confirmations ?? 0} confirmation{(p.confirmations ?? 0) > 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600,
-                        color: d ? T.textTertiary : T.textTertiaryL,
-                        whiteSpace: 'nowrap', marginLeft: 'auto',
-                      }}>
-                        {distM}m
-                      </span>
-                    </div>
-                  )
-                })}
-
-                {/* Spacer */}
-                <div style={{ height: 8 }} />
-              </div>
             </div>
             </motion.div>
           </motion.div>

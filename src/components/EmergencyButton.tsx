@@ -288,6 +288,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
 
   // ─── Countdown ────────────────────────────────────────────────────────────
   function startCountdown() {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     navigator.vibrate?.([100, 50, 100]);
     setPhase('count');
 
@@ -327,6 +328,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
   // ─── handleTap (called after FAB hold completes) ──────────────────────────
   function handleTap() {
     if (!userId) { toast.error(t('signInFirst')); return; }
+    if (phase !== 'idle') return;
     if (locationRef.current) { checkContactsAndStart(); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -347,11 +349,13 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
     }
     window.addEventListener('breveil:trigger-sos', onExternalSOS);
     return () => window.removeEventListener('breveil:trigger-sos', onExternalSOS);
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   // ─── FAB hold-to-activate (3 seconds) ────────────────────────────────────
   function handleFabPointerDown(e: React.PointerEvent) {
     if (phase !== 'idle') return;
+    if (fabHoldTimerRef.current) return; // already holding
     e.preventDefault();
     const start = Date.now();
     fabHoldAnimRef.current = requestAnimationFrame(function tick() {
@@ -743,9 +747,6 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         onPointerUp={handleFabPointerUp}
         onPointerLeave={handleFabPointerUp}
         onPointerCancel={handleFabPointerUp}
-        onTouchStart={(e) => { e.preventDefault(); handleFabPointerDown(e as unknown as React.PointerEvent); }}
-        onTouchEnd={() => handleFabPointerUp()}
-        onTouchCancel={() => handleFabPointerUp()}
         onContextMenu={(e) => e.preventDefault()}
 
         disabled={phase !== 'idle'}
