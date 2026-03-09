@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bookmark, Search, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTrendingHashtags } from "@/hooks/useHashtags";
@@ -55,13 +55,15 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [communityIds, setCommunityIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [sosTab, setSosTab] = useState<'active' | 'resolved' | 'notifs'>('active');
+  const [sosTab, setSosTab] = useState<'active' | 'resolved' | 'notifs' | null>(null);
   const [showFavoris, setShowFavoris] = useState(false);
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [activeHashtagFilter, setActiveHashtagFilter] = useState<string | null>(null);
   const [hashtagPinIds, setHashtagPinIds] = useState<Set<string>>(new Set());
   const [contentFilter, setContentFilter] = useState<Set<'post' | 'sos' | 'pin'>>(new Set(['post', 'sos', 'pin']));
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterBtnRef = useRef<HTMLButtonElement>(null);
+  const [filterPos, setFilterPos] = useState({ top: 0, left: 0 });
   const { trending } = useTrendingHashtags();
   const userLocation = useStore((s) => s.userLocation);
 
@@ -421,7 +423,14 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         {/* Filter pill */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <button
-            onClick={() => setShowFilterMenu(f => !f)}
+            ref={filterBtnRef}
+            onClick={() => {
+              if (filterBtnRef.current) {
+                const rect = filterBtnRef.current.getBoundingClientRect();
+                setFilterPos({ top: rect.bottom + 8, left: rect.left });
+              }
+              setShowFilterMenu(f => !f);
+            }}
             style={{
               width: 34, height: 34, minWidth: 34, borderRadius: 99,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -436,7 +445,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
           </button>
           {showFilterMenu && (
             <div style={{
-              position: 'absolute', top: 40, left: 0, zIndex: 50,
+              position: 'fixed', top: filterPos.top, left: filterPos.left, zIndex: 200,
               background: isDark ? '#1E293B' : '#FFFFFF',
               border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#E2E8F0'}`,
               borderRadius: 12, padding: '6px 0', minWidth: 160,
@@ -545,7 +554,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setSosTab(tab.key)}
+                  onClick={() => setSosTab(prev => prev === tab.key ? null : tab.key)}
                   style={{
                     flex: 1,
                     padding: '7px 4px',
@@ -589,7 +598,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
           ].sort((a, b) => new Date(b._createdAt).getTime() - new Date(a._createdAt).getTime());
 
           // Apply SOS tab filter when SOS posts exist
-          const filtered = sosPosts.length > 0
+          const filtered = sosPosts.length > 0 && sosTab !== null
             ? allPosts.filter(p => {
                 if (sosTab === 'active') {
                   return !p._isSos || p.status === 'active';

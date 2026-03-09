@@ -305,6 +305,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         bottom: 0,
         left: 0,
         right: 0,
+        height: '85dvh',
         maxHeight: '85dvh',
         paddingBottom: 0,
         zIndex: 50,
@@ -313,7 +314,6 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         borderTopRightRadius: 28,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
         boxShadow: '0 -4px 30px rgba(0,0,0,0.15)',
       }}
     >
@@ -454,7 +454,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'hidden', minHeight: 0, position: 'relative' }} className="scrollbar-hidden">
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, position: 'relative' }} className="scrollbar-hidden">
         {!ready ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: isDark ? '#64748B' : '#94A3B8', fontSize: 13 }}>
             Chargement…

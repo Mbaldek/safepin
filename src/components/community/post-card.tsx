@@ -262,10 +262,10 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         transform: cardPressed
           ? "scale(0.98)"
           : cardHovered
-          ? "translateY(-2px)"
+          ? "translateY(-1px)"
           : "none",
         boxShadow: cardHovered
-          ? "0 8px 28px rgba(0,0,0,0.12)"
+          ? (isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(0,0,0,0.06)')
           : "none",
       }}
     >
@@ -609,8 +609,9 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 10,
+        gap: 8,
         paddingTop: 2,
+        paddingLeft: 8,
         minWidth: 32,
       }}>
         <button onClick={handleLike} style={{
