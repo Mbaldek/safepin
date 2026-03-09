@@ -269,6 +269,7 @@ activeTrip, setActiveTrip,
       setShowSettings(false);
       setShowSearch(false);
       setShowCityContext(false);
+      setActiveTab('map');
     }
   }, [activeSheet]);
 
