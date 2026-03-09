@@ -8,7 +8,7 @@ import { ArrowLeft, Camera, Image, Trash2 } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { bToast } from '@/components/GlobalToast';
 import { springTransition, fadeSlideUp } from './types';
 
 function getColors(isDark: boolean) {
@@ -65,7 +65,7 @@ export default function ProfilePhotoScreen({ firstName, onBack }: ProfilePhotoSc
     if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
       fileInputRef.current?.click();
     } else {
-      toast.info('Fonctionnalité mobile uniquement');
+      bToast.info({ title: 'Fonctionnalité mobile uniquement' }, isDark);
     }
   }
 
@@ -81,11 +81,11 @@ export default function ProfilePhotoScreen({ firstName, onBack }: ProfilePhotoSc
 
     // Validate
     if (!file.type.startsWith('image/')) {
-      toast.error('Fichier invalide — image uniquement');
+      bToast.danger({ title: 'Fichier invalide — image uniquement' }, isDark);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image trop lourde — 5 Mo maximum');
+      bToast.danger({ title: 'Image trop lourde — 5 Mo maximum' }, isDark);
       return;
     }
 
@@ -103,7 +103,7 @@ export default function ProfilePhotoScreen({ firstName, onBack }: ProfilePhotoSc
       .upload(path, file, { upsert: true });
 
     if (upErr) {
-      toast.error('Erreur lors de l’upload');
+      bToast.danger({ title: 'Erreur lors de l\'upload' }, isDark);
       setPreview(null);
       setUploading(false);
       e.target.value = '';
@@ -121,7 +121,7 @@ export default function ProfilePhotoScreen({ firstName, onBack }: ProfilePhotoSc
 
     setPreview(null); // clear preview, real URL is now in store
     setUploading(false);
-    toast.success('Photo mise à jour');
+    bToast.success({ title: 'Photo mise à jour' }, isDark);
     e.target.value = '';
   }
 
@@ -151,7 +151,7 @@ export default function ProfilePhotoScreen({ firstName, onBack }: ProfilePhotoSc
 
     setPreview(null);
     setUploading(false);
-    toast.success('Photo supprimée');
+    bToast.success({ title: 'Photo supprimée' }, isDark);
   }
 
   return (

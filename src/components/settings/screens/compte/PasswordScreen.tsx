@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff, Check } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { bToast } from '@/components/GlobalToast';
 import { springTransition } from './types';
 
 function getColors(isDark: boolean) {
@@ -81,7 +81,7 @@ export default function PasswordScreen({ onBack }: PasswordScreenProps) {
 
     const { error } = await supabase.auth.updateUser({ password: newPw });
     if (error) {
-      toast.error(error.message || 'Erreur lors du changement de mot de passe');
+      bToast.danger({ title: error.message || 'Erreur lors du changement de mot de passe' }, isDark);
       setSaving(false);
       return;
     }

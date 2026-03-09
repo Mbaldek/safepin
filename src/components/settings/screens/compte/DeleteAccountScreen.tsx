@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, AlertTriangle, FileX, Users, MapPin, Ban } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { bToast } from '@/components/GlobalToast';
 import { springTransition, fadeSlideUp } from './types';
 
 function getColors(isDark: boolean) {
@@ -70,7 +70,7 @@ export default function DeleteAccountScreen({ onBack }: DeleteAccountScreenProps
     const { error } = await supabase.rpc('delete_account');
     if (error) {
       console.error('[delete_account]', error);
-      toast.error('Échec de la suppression. Réessayez ou contactez le support.');
+      bToast.danger({ title: 'Échec de la suppression. Réessayez ou contactez le support.' }, isDark);
       setDeleting(false);
       return;
     }
@@ -79,7 +79,7 @@ export default function DeleteAccountScreen({ onBack }: DeleteAccountScreenProps
     localStorage.clear();
     document.cookie = 'ob_done=;path=/;max-age=0';
 
-    toast.success('Compte supprimé');
+    bToast.success({ title: 'Compte supprimé' }, isDark);
     await supabase.auth.signOut();
     window.location.href = '/';
   }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTheme } from '@/stores/useTheme';
-import { toast } from 'sonner';
+import { bToast } from '@/components/GlobalToast';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -25,7 +25,7 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
     try {
       const res = await fetch('/api/export-data');
       if (!res.ok) {
-        toast.error('Erreur lors de l\'export');
+        bToast.danger({ title: 'Erreur lors de l\'export' }, isDark);
         return;
       }
       const blob = await res.blob();
@@ -37,9 +37,9 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Donnees exportees');
+      bToast.success({ title: 'Donnees exportees' }, isDark);
     } catch {
-      toast.error('Erreur reseau');
+      bToast.danger({ title: 'Erreur reseau' }, isDark);
     } finally {
       setExporting(false);
     }

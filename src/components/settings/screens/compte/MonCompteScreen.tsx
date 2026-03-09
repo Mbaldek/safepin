@@ -10,7 +10,7 @@ import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import SettingsSection from '../../components/SettingsSection';
 import SettingsRow from '../../components/SettingsRow';
-import { toast } from 'sonner';
+import { bToast } from '@/components/GlobalToast';
 import PersonalInfoScreen from './PersonalInfoScreen';
 import UsernameScreen from './UsernameScreen';
 import VisibilityScreen from './VisibilityScreen';
@@ -148,7 +148,7 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
       .eq('id', userId);
 
     if (error) {
-      toast.error('Erreur lors de la sauvegarde');
+      bToast.danger({ title: 'Erreur lors de la sauvegarde' }, isDark);
       return;
     }
 
@@ -156,7 +156,7 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
     if (store.userProfile) {
       store.setUserProfile({ ...store.userProfile, display_name: displayName });
     }
-    toast.success('Informations mises à jour');
+    bToast.success({ title: 'Informations mises à jour' }, isDark);
     goBack();
   }
 
@@ -172,7 +172,7 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
       .neq('id', userId);
 
     if (count && count > 0) {
-      toast.error('Ce nom d\'utilisateur est déjà pris');
+      bToast.danger({ title: 'Ce nom d\'utilisateur est déjà pris' }, isDark);
       return;
     }
 
@@ -182,12 +182,12 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
       .eq('id', userId);
 
     if (error) {
-      toast.error('Erreur lors de la sauvegarde');
+      bToast.danger({ title: 'Erreur lors de la sauvegarde' }, isDark);
       return;
     }
 
     setAccount({ ...account, username });
-    toast.success('Nom d\'utilisateur mis à jour');
+    bToast.success({ title: 'Nom d\'utilisateur mis à jour' }, isDark);
     goBack();
   }
 
@@ -201,12 +201,12 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
       .eq('id', userId);
 
     if (error) {
-      toast.error('Erreur lors de la sauvegarde');
+      bToast.danger({ title: 'Erreur lors de la sauvegarde' }, isDark);
       return;
     }
 
     setAccount({ ...account, visibility: v });
-    toast.success('Visibilité mise à jour');
+    bToast.success({ title: 'Visibilité mise à jour' }, isDark);
     goBack();
   }
 
@@ -216,12 +216,12 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
 
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     if (error) {
-      toast.error(error.message);
+      bToast.danger({ title: error.message }, isDark);
       return;
     }
 
     setAccount({ ...account, email: newEmail });
-    toast.success('Un email de confirmation a été envoyé');
+    bToast.success({ title: 'Un email de confirmation a été envoyé' }, isDark);
     goBack();
   }
 
