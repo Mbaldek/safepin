@@ -1202,7 +1202,7 @@ activeTrip, setActiveTrip,
         userLat={userLocation?.lat ?? 48.8566}
         userLng={userLocation?.lng ?? 2.3522}
         onNavigateTo={(lat, lng, label) => {
-          setTripPrefill({ destination: label, destCoords: [lng, lat] });
+          setTripPrefill({ destination: selectedPin?.address ?? label, destCoords: [lng, lat] });
           setActiveSheet('none');
           setSelectedPin(null);
           setActiveTab('trip');

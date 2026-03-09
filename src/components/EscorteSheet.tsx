@@ -98,6 +98,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       })
       setQuery(prefill.destination ?? '')
       setTripPrefill(null)
+      escorte.setView('trip-form')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

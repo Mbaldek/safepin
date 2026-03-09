@@ -468,9 +468,9 @@ function PinDetailSheet({
                         </strong>
                         {confirmCount > 1 ? ` et ${confirmCount - 1} autre${confirmCount > 2 ? 's' : ''} ont confirmé` : ' a confirmé'}
                       </>
-                    ) : (
+                    ) : confirmCount === 0 ? (
                       'Sois le premier à confirmer'
-                    )}
+                    ) : null}
                   </span>
                 </div>
               </div>
