@@ -1613,10 +1613,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
            escorte.circleMembers.some(m => m.status === 'vocal') && (
             <div style={{ margin: '6px 16px 0' }}>
               <AudioChannel
-                escorteId={escorte.activeEscorte.id}
+                roomName={`escorte-${escorte.activeEscorte.id}`}
                 userId={userId}
                 isDark={d}
-                circleMembers={escorte.circleMembers}
+                title="Canal audio actif"
+                participantNames={escorte.circleMembers
+                  .filter(m => m.status === 'vocal' || m.status === 'following')
+                  .map(m => m.profiles?.name)
+                  .filter((n): n is string => Boolean(n))
+                  .slice(0, 2)}
                 onEnd={() => escorte.endEscorte(false)}
               />
             </div>

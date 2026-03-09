@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Community } from "@/types";
 import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
+import dynamic from 'next/dynamic'
+const AudioChannel = dynamic(() => import('@/components/escorte/AudioChannel'), { ssr: false })
 
 interface GroupesTabProps {
   isDark: boolean;
@@ -50,6 +52,12 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [callState, setCallState] = useState<'idle' | 'connecting' | 'active' | 'muted' | 'error'>('idle')
+  const callActive = callState !== 'idle' && callState !== 'error'
+
+  useEffect(() => {
+    setCallState('idle')
+  }, [activeGroup])
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -260,10 +268,33 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
             </p>
           </div>
           <button
-            onClick={() => toast("Appel de groupe — bientôt disponible")}
+            onClick={() => {
+              if (callState === 'idle' || callState === 'error') {
+                setCallState('connecting')
+              } else {
+                setCallState('idle')
+              }
+            }}
             style={{
-              background: 'none', border: 'none', cursor: 'default',
-              color: isDark ? '#475569' : '#CBD5E1', padding: 4, opacity: 0.5,
+              background: callState === 'active' ? 'rgba(59,180,193,0.22)'
+                : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
+                : callState === 'muted' ? 'rgba(239,68,68,0.12)'
+                : 'none',
+              border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
+                : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
+                : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
+                : 'none',
+              boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
+                : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
+                : 'none',
+              animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
+                : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
+                : 'none',
+              transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+              cursor: 'pointer',
+              color: callState !== 'idle' ? '#3BB4C1' : (isDark ? '#475569' : '#CBD5E1'),
+              padding: 4, opacity: callState !== 'idle' ? 1 : 0.5,
+              borderRadius: '50%',
             }}
           >
             <Phone size={18} />
@@ -275,6 +306,24 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
             <MoreHorizontal size={18} />
           </button>
         </div>
+
+        {(callState !== 'idle' && callState !== 'error') && activeGroup && userId && (
+          <div style={{ padding: '8px 12px 0' }}>
+            <AudioChannel
+              roomName={`group-${activeGroup}`}
+              userId={userId}
+              isDark={isDark}
+              title={`Appel · ${activeGroupData?.name ?? 'Groupe'}`}
+              participantNames={[]}
+              onEnd={() => setCallState('idle')}
+              onStateChange={(s) => {
+                if (s === 'active') setCallState('active')
+                if (s === 'error') setCallState('error')
+                if (s === 'ended') setCallState('idle')
+              }}
+            />
+          </div>
+        )}
 
         {/* Messages */}
         <div

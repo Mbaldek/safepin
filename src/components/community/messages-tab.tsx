@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import ChatView from "@/components/chat/ChatView";
 import { useUiStore } from "@/stores/uiStore";
+import dynamic from 'next/dynamic'
+const AudioChannel = dynamic(() => import('@/components/escorte/AudioChannel'), { ssr: false })
 
 interface MessagesTabProps {
   isDark: boolean;
@@ -182,6 +184,13 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
   const [conversations, setConversations] = useState<DMRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConvo, setSelectedConvo] = useState<DMRow | null>(null);
+  const [callState, setCallState] = useState<'idle' | 'connecting' | 'active' | 'muted' | 'error'>('idle')
+  const callActive = callState !== 'idle' && callState !== 'error'
+
+  // Reset callState quand on change de conv
+  useEffect(() => {
+    setCallState('idle')
+  }, [selectedConvo?.id])
 
   // Auto-open conversation from circle tab
   useEffect(() => {
@@ -373,7 +382,59 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
               {selectedConvo.partner_name}
             </span>
           </div>
+          <motion.button
+            onClick={() => {
+              if (callState === 'idle' || callState === 'error') {
+                setCallState('connecting')
+              } else {
+                setCallState('idle')
+              }
+            }}
+            whileTap={{ scale: 0.92 }}
+            style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: callState === 'active' ? 'rgba(59,180,193,0.22)'
+                : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
+                : callState === 'muted' ? 'rgba(239,68,68,0.12)'
+                : 'rgba(59,180,193,0.10)',
+              border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
+                : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
+                : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
+                : '1px solid rgba(59,180,193,0.22)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+              boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
+                : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
+                : 'none',
+              animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
+                : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
+                : 'none',
+              transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+            </svg>
+          </motion.button>
         </div>
+
+        {(callState !== 'idle' && callState !== 'error') && selectedConvo && userId && (
+          <div style={{ padding: '8px 12px 0' }}>
+            <AudioChannel
+              roomName={`dm-${selectedConvo.id}`}
+              userId={userId}
+              isDark={isDark}
+              title={`Appel avec ${selectedConvo.partner_name ?? 'contact'}`}
+              participantNames={selectedConvo.partner_name ? [selectedConvo.partner_name] : []}
+              onEnd={() => setCallState('idle')}
+              onStateChange={(s) => {
+                if (s === 'active') setCallState('active')
+                if (s === 'error') setCallState('error')
+                if (s === 'ended') setCallState('idle')
+              }}
+            />
+          </div>
+        )}
 
         {/* ChatView */}
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>

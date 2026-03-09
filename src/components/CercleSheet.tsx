@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { toast } from 'sonner'
 import { useTheme } from '@/stores/useTheme'
 import { useStore } from '@/stores/useStore'
 import { useUiStore } from '@/stores/uiStore'
@@ -10,6 +9,8 @@ import { useCercle } from '@/hooks/useCercle'
 import CercleChat from '@/components/CercleChat'
 import AddCircleContactModal from '@/components/community/AddCircleContactModal'
 import type { CircleMember } from '@/types'
+import dynamic from 'next/dynamic'
+const AudioChannel = dynamic(() => import('@/components/escorte/AudioChannel'), { ssr: false })
 
 interface CercleSheetProps {
   open: boolean
@@ -57,9 +58,16 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   const { openCommunityDM } = useUiStore()
   const { members, messages, sendMessage, loading, onlineCount } = useCercle(userId)
 
+  const participantNames = members
+    .filter(m => m.status === 'online')
+    .map(m => m.name)
+    .slice(0, 3)
+
   const [showChat, setShowChat] = useState(false)
   const [pulsingId, setPulsingId] = useState<string | null>(null)
   const [showInvite, setShowInvite] = useState(false)
+  const [callState, setCallState] = useState<'idle' | 'connecting' | 'active' | 'muted' | 'error'>('idle')
+  const callActive = callState !== 'idle' && callState !== 'error'
 
   // tokens
   const t = useMemo(() => ({
@@ -94,6 +102,19 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   // ── render ─────────────────────────────────────────────
   return (
     <>
+    <style>{`
+      @keyframes bv-call-breath {
+        0%,100% { box-shadow: 0 0 0 0 rgba(59,180,193,0.2); }
+        50% { box-shadow: 0 0 0 5px rgba(59,180,193,0.07); }
+      }
+      @keyframes bv-call-muted {
+        0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.2); }
+        50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.07); }
+      }
+      @keyframes bv-call-spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
     <AnimatePresence>
       {open && (
         <>
@@ -134,6 +155,24 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
             {/* 1. DRAG HANDLE */}
             <div style={{ margin: '10px auto 4px', width: 36, height: 4, borderRadius: 2, background: t.border }} />
 
+            {callActive && (
+              <div style={{ marginBottom: 12 }}>
+                <AudioChannel
+                  roomName={`cercle-${userId}`}
+                  userId={userId}
+                  isDark={isDark}
+                  title="Appel groupe · Cercle"
+                  participantNames={participantNames}
+                  onEnd={() => setCallState('idle')}
+                  onStateChange={(s) => {
+                    if (s === 'active') setCallState('active')
+                    if (s === 'error') setCallState('error')
+                    if (s === 'ended') setCallState('idle')
+                  }}
+                />
+              </div>
+            )}
+
             {showChat ? (
               <CercleChat
                 messages={messages}
@@ -141,7 +180,13 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                 currentUserId={userId}
                 loading={loading}
                 onBack={() => setShowChat(false)}
-                onStartCall={() => toast('Appel audio bient\u00f4t disponible')}
+                onStartCall={() => {
+                  if (callState === 'idle' || callState === 'error') {
+                    setCallState('connecting')
+                  } else {
+                    setCallState('idle')
+                  }
+                }}
                 sendMessage={sendMessage}
               />
             ) : (
@@ -183,10 +228,30 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
 
                     {/* audio call */}
                     <button
-                      onClick={() => toast('Appel audio bient\u00f4t disponible')}
+                      onClick={() => {
+                        if (callState === 'idle' || callState === 'error') {
+                          setCallState('connecting')
+                        } else {
+                          setCallState('idle')
+                        }
+                      }}
                       style={{
                         width: 33, height: 33, borderRadius: '50%',
-                        background: `${t.teal}1a`, border: 'none',
+                        background: callState === 'active' ? 'rgba(59,180,193,0.22)'
+                          : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
+                          : callState === 'muted' ? 'rgba(239,68,68,0.12)'
+                          : `${t.teal}1a`,
+                        border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
+                          : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
+                          : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
+                          : 'none',
+                        boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
+                          : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
+                          : 'none',
+                        animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
+                          : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
+                          : 'none',
+                        transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', fontSize: 12,
                       }}

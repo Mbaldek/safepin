@@ -1,35 +1,51 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Mic, MicOff, X } from 'lucide-react'
-import {
-  Room,
-  RoomEvent,
-  Track,
-  type RemoteParticipant,
-  type LocalParticipant,
-} from 'livekit-client'
+import { Room, RoomEvent } from 'livekit-client'
 import { T, tok } from '@/lib/tokens'
-import type { EscorteCircleMember } from '@/types'
 
 interface Props {
-  escorteId: string
+  roomName: string
   userId: string
   isDark: boolean
-  circleMembers: EscorteCircleMember[]
+  title?: string
+  participantNames?: string[]
   onEnd: () => void
+  onStateChange?: (state: 'connecting' | 'active' | 'error' | 'ended') => void
 }
 
-export default function AudioChannel({ escorteId, userId, isDark, circleMembers, onEnd }: Props) {
-  const d = isDark
+export default function AudioChannel({
+  roomName,
+  userId,
+  isDark,
+  title = 'Canal audio actif',
+  participantNames = [],
+  onEnd,
+  onStateChange,
+}: Props) {
   const tk = tok(isDark)
   const roomRef = useRef<Room | null>(null)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState(false)
   const [muted, setMuted] = useState(false)
+  const [seconds, setSeconds] = useState(0)
 
-  // Connect to LiveKit room
+  // Timer
+  useEffect(() => {
+    if (!connected) return
+    const id = setInterval(() => setSeconds(s => s + 1), 1000)
+    return () => clearInterval(id)
+  }, [connected])
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60).toString().padStart(2, '0')
+    const sec = (s % 60).toString().padStart(2, '0')
+    return `${m}:${sec}`
+  }
+
+  // Connect
   useEffect(() => {
     let cancelled = false
     const room = new Room({
@@ -40,36 +56,39 @@ export default function AudioChannel({ escorteId, userId, isDark, circleMembers,
 
     ;(async () => {
       try {
+        onStateChange?.('connecting')
         const res = await fetch('/api/livekit-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            roomName: `escorte-${escorteId}`,
+            roomName,
             userId,
             displayName: null,
             canPublish: true,
           }),
         })
-
         if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`)
         const { token, url } = await res.json()
         if (cancelled) return
         if (!url || !token) throw new Error('Missing token or URL')
-
         await room.connect(url, token)
         if (cancelled) { room.disconnect(); return }
-
-        // Publish audio only
         await room.localParticipant.setMicrophoneEnabled(true)
         setConnected(true)
-      } catch (err) {
-        void err
-        if (!cancelled) setError(true)
+        onStateChange?.('active')
+      } catch {
+        if (!cancelled) {
+          setError(true)
+          onStateChange?.('error')
+        }
       }
     })()
 
     room.on(RoomEvent.Disconnected, () => {
-      if (!cancelled) setConnected(false)
+      if (!cancelled) {
+        setConnected(false)
+        onStateChange?.('ended')
+      }
     })
 
     return () => {
@@ -77,9 +96,8 @@ export default function AudioChannel({ escorteId, userId, isDark, circleMembers,
       room.disconnect()
       roomRef.current = null
     }
-  }, [escorteId, userId])
+  }, [roomName, userId])
 
-  // Toggle mute
   const toggleMute = useCallback(async () => {
     const room = roomRef.current
     if (!room?.localParticipant) return
@@ -88,38 +106,27 @@ export default function AudioChannel({ escorteId, userId, isDark, circleMembers,
     setMuted(next)
   }, [muted])
 
-  // Handle end
   const handleEnd = useCallback(() => {
     roomRef.current?.disconnect()
+    onStateChange?.('ended')
     onEnd()
-  }, [onEnd])
+  }, [onEnd, onStateChange])
 
-  // Vocal contact names
-  const vocalNames = circleMembers
-    .filter(m => m.status === 'vocal' || m.status === 'following')
-    .map(m => m.profiles?.name)
-    .filter(Boolean)
-    .slice(0, 2)
+  const bg = isDark ? 'rgba(15,23,42,0.90)' : 'rgba(255,255,255,0.94)'
+  const border = '1px solid rgba(59,180,193,0.28)'
+  const shadow = '0 8px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(59,180,193,0.08)'
 
-  const bg = d ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)'
-  const border = '1px solid rgba(59,180,193,0.30)'
-
-  // Error fallback
+  // Error state
   if (error) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 0.5, y: 0 }}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 0.6, y: 0 }}
         style={{
-          background: bg,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border,
-          borderRadius: 16,
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
+          background: bg, backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)', border,
+          borderRadius: 16, padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
         }}
       >
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94A3B8', flexShrink: 0 }} />
@@ -132,53 +139,62 @@ export default function AudioChannel({ escorteId, userId, isDark, circleMembers,
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
+      initial={{ opacity: 0, y: -12, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       style={{
-        background: bg,
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border,
-        borderRadius: 16,
-        padding: '10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
+        background: bg, backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)', border,
+        borderRadius: 18, padding: '11px 13px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        boxShadow: shadow, position: 'relative', overflow: 'hidden',
       }}
     >
-      {/* Pulsing green dot */}
-      <motion.div
-        animate={{ opacity: [1, 0.4, 1] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-        style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: connected ? T.semanticSuccess : '#94A3B8',
-          flexShrink: 0,
-        }}
-      />
-
-      {/* Label + names */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: T.gradientStart }}>
-          Canal audio actif
-        </div>
-        {vocalNames.length > 0 && (
-          <div style={{ fontSize: 10, color: tk.ts, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {vocalNames.join(' · ')} vous écoutent
-          </div>
-        )}
+      {/* Waveform */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 20, flexShrink: 0 }}>
+        {[0, 150, 300, 150, 0].map((delay, i) => (
+          <motion.div
+            key={i}
+            animate={connected ? { height: ['4px', '16px', '4px'] } : { height: '4px' }}
+            transition={{ duration: 1.1, delay: delay / 1000, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              width: 3, borderRadius: 2,
+              background: connected ? T.gradientStart : '#94A3B8',
+              minHeight: 4,
+            }}
+          />
+        ))}
       </div>
 
-      {/* Mute button */}
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: T.gradientStart, lineHeight: 1.2 }}>
+          {title}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          {participantNames.length > 0 && (
+            <span style={{ fontSize: 10, color: tk.ts, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>
+              {participantNames.slice(0, 2).join(' · ')}
+            </span>
+          )}
+          {connected && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: T.gradientStart, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+              {formatTime(seconds)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Mute */}
       <button
         onClick={toggleMute}
         style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: muted ? 'rgba(239,68,68,0.10)' : 'rgba(59,180,193,0.12)',
-          border: `1px solid ${muted ? T.semanticDanger + '35' : T.gradientStart + '35'}`,
+          width: 30, height: 30, borderRadius: 50,
+          background: muted ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.12)',
+          border: `1px solid ${muted ? T.semanticDanger + '40' : T.gradientStart + '40'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', padding: 0,
+          cursor: 'pointer', padding: 0, flexShrink: 0,
         }}
       >
         {muted
@@ -187,15 +203,15 @@ export default function AudioChannel({ escorteId, userId, isDark, circleMembers,
         }
       </button>
 
-      {/* End button */}
+      {/* End */}
       <button
         onClick={handleEnd}
         style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: 'rgba(239,68,68,0.10)',
-          border: `1px solid ${T.semanticDanger}35`,
+          width: 30, height: 30, borderRadius: 50,
+          background: 'rgba(239,68,68,0.12)',
+          border: `1px solid ${T.semanticDanger}40`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', padding: 0,
+          cursor: 'pointer', padding: 0, flexShrink: 0,
         }}
       >
         <X size={13} strokeWidth={2} color={T.semanticDanger} />
