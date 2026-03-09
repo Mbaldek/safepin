@@ -158,7 +158,7 @@ export default function SettingsSheet({ isOpen, onClose, initialScreen }: Settin
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             style={{
               position: 'fixed',
-              bottom: 0,
+              bottom: 64,
               left: 0,
               right: 0,
               height: '85%',

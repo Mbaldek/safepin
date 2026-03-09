@@ -53,7 +53,7 @@ export default function SoutienSheet({ postId, onClose }: SoutienSheetProps) {
       <div
         style={{
           position: 'fixed',
-          bottom: 0,
+          bottom: 64,
           left: 0,
           right: 0,
           background: 'var(--surface-elevated, #1E293B)',

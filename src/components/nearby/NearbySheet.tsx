@@ -173,7 +173,7 @@ export default function NearbySheet({ onClose }: Props) {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         position: 'fixed',
-        bottom: 0,
+        bottom: 64,
         left: 0,
         right: 0,
         backgroundColor: C.sheet,

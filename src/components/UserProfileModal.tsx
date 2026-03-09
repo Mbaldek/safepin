@@ -315,7 +315,7 @@ export default function UserProfileModal() {
             exit={{ y: "100%" }}
             transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              position: "fixed", bottom: 0, left: 0, right: 0,
+              position: "fixed", bottom: 64, left: 0, right: 0,
               zIndex: 200,
               borderTopLeftRadius: 28, borderTopRightRadius: 28,
               background: C.card,

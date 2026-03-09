@@ -623,7 +623,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 301,
+                  position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 301,
                   background: SC.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22,
                   boxShadow: "0 -10px 40px rgba(0,0,0,0.15)",
                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
