@@ -9,6 +9,7 @@ type UserRow = {
   display_name: string | null;
   city: string | null;
   is_admin: boolean | null;
+  verified: boolean | null;
   verification_status: string | null;
   created_at: string;
 };
@@ -30,16 +31,44 @@ const GRADIENTS = [
 export default function UsersPage() {
   const { theme } = useAdminTheme();
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
       .from('profiles')
-      .select('id, display_name, city, is_admin, verification_status, created_at')
+      .select('id, display_name, city, is_admin, verified, verification_status, created_at')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         if (data) setUsers(data as UserRow[]);
       });
   }, []);
+
+  async function toggleVerified(userId: string, current: boolean) {
+    setUpdating(userId + '-verified');
+    const { error } = await supabase.from('profiles').update({
+      verified: !current,
+      verification_status: !current ? 'approved' : 'declined',
+    }).eq('id', userId);
+    if (!error) {
+      setUsers((prev) => prev.map((u) =>
+        u.id === userId
+          ? { ...u, verified: !current, verification_status: !current ? 'approved' : 'declined' }
+          : u
+      ));
+    }
+    setUpdating(null);
+  }
+
+  async function toggleAdmin(userId: string, current: boolean) {
+    setUpdating(userId + '-admin');
+    const { error } = await supabase.from('profiles').update({ is_admin: !current }).eq('id', userId);
+    if (!error) {
+      setUsers((prev) => prev.map((u) =>
+        u.id === userId ? { ...u, is_admin: !current } : u
+      ));
+    }
+    setUpdating(null);
+  }
 
   const thStyle: React.CSSProperties = {
     background: theme.elevated,
@@ -83,11 +112,14 @@ export default function UsersPage() {
                 <th style={thStyle}>V&eacute;rification</th>
                 <th style={thStyle}>Admin</th>
                 <th style={thStyle}>Inscrit</th>
+                <th style={thStyle}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u, i) => {
                 const initials = (u.display_name ?? 'U').slice(0, 2).toUpperCase();
+                const isVerified = u.verified === true;
+                const isAdmin = u.is_admin === true;
                 return (
                   <tr key={u.id}>
                     <td style={tdStyle}>
@@ -145,19 +177,61 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td style={tdStyle}>
-                      {u.is_admin ? (
+                      {isAdmin ? (
                         <span style={{ fontSize: 10, fontWeight: 700, color: theme.danger }}>Admin</span>
                       ) : (
                         <span style={{ color: theme.t3 }}>&mdash;</span>
                       )}
                     </td>
                     <td style={tdStyle}>{fmt(u.created_at)}</td>
+                    <td style={{ ...tdStyle, verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {/* Toggle verified */}
+                        <button
+                          disabled={updating === u.id + '-verified'}
+                          onClick={() => toggleVerified(u.id, isVerified)}
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: '3px 10px',
+                            borderRadius: 100,
+                            border: 'none',
+                            cursor: 'pointer',
+                            opacity: updating === u.id + '-verified' ? 0.5 : 1,
+                            background: isVerified ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.12)',
+                            color: isVerified ? theme.danger : theme.cyan,
+                            transition: 'opacity 0.15s',
+                          }}
+                        >
+                          {isVerified ? '✗ Retirer' : '✓ Vérifier'}
+                        </button>
+                        {/* Toggle admin */}
+                        <button
+                          disabled={updating === u.id + '-admin'}
+                          onClick={() => toggleAdmin(u.id, isAdmin)}
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: '3px 10px',
+                            borderRadius: 100,
+                            border: 'none',
+                            cursor: 'pointer',
+                            opacity: updating === u.id + '-admin' ? 0.5 : 1,
+                            background: isAdmin ? 'rgba(239,68,68,0.08)' : 'rgba(245,195,65,0.10)',
+                            color: isAdmin ? theme.danger : theme.warning,
+                            transition: 'opacity 0.15s',
+                          }}
+                        >
+                          {isAdmin ? '⬇ Admin' : '⬆ Admin'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: 24, color: theme.t3 }}>
+                  <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', padding: 24, color: theme.t3 }}>
                     Aucun utilisateur
                   </td>
                 </tr>
