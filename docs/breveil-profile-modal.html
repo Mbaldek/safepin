@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breveil — Profile Modal S4</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;transition:background 0.4s;
+  --bg-page:#1a1a2e;--map-bg:#0d1520;--street:rgba(255,255,255,0.07);
+  --tb-bg:rgba(15,23,42,0.88);--tb-border:rgba(255,255,255,0.08);--brand-color:#F1F5F9;
+  --back-blur:rgba(10,16,30,0.55);
+  --modal-bg:#1E293B;--modal-border:rgba(255,255,255,0.1);--modal-shadow:0 -12px 48px rgba(0,0,0,0.4);
+  --handle-bg:rgba(255,255,255,0.18);
+  --icon-btn-bg:rgba(255,255,255,0.08);--icon-btn-border:rgba(255,255,255,0.12);--icon-stroke:rgba(255,255,255,0.55);
+  --name-color:#F1F5F9;--sub-color:#64748B;--bio-color:#94A3B8;
+  --stat-bg:rgba(255,255,255,0.04);--stat-border:rgba(255,255,255,0.07);--stat-num:#F1F5F9;--stat-lbl:#475569;
+  --sep-color:rgba(255,255,255,0.06);--ms-color:#475569;--contrib-lbl:#475569;
+  --primary-btn-bg:#F1F5F9;--primary-btn-color:#0F172A;--primary-btn-shadow:rgba(241,245,249,0.2);
+  --sec-btn-bg:rgba(255,255,255,0.07);--sec-btn-border:rgba(255,255,255,0.12);--sec-btn-stroke:rgba(255,255,255,0.7);
+  --verified-border:#1E293B;
+  --chip-teal-bg:rgba(59,180,193,0.12);--chip-teal-border:rgba(59,180,193,0.24);--chip-teal-color:#3BB4C1;
+  --chip-gold-bg:rgba(245,195,65,0.12);--chip-gold-border:rgba(245,195,65,0.30);--chip-gold-color:#F5C341;
+  --chip-green-bg:rgba(52,211,153,0.12);--chip-green-border:rgba(52,211,153,0.30);--chip-green-color:#34D399;
+  background:var(--bg-page);
+}
+body.light{
+  --bg-page:#dde4ed;--map-bg:#e8f0f8;--street:rgba(15,23,42,0.09);
+  --tb-bg:rgba(255,255,255,0.88);--tb-border:rgba(15,23,42,0.08);--brand-color:#0F172A;
+  --back-blur:rgba(180,195,215,0.45);
+  --modal-bg:#FFFFFF;--modal-border:rgba(15,23,42,0.08);--modal-shadow:0 -12px 48px rgba(15,23,42,0.12);
+  --handle-bg:rgba(15,23,42,0.14);
+  --icon-btn-bg:rgba(15,23,42,0.05);--icon-btn-border:rgba(15,23,42,0.10);--icon-stroke:rgba(15,23,42,0.5);
+  --name-color:#0F172A;--sub-color:#94A3B8;--bio-color:#475569;
+  --stat-bg:#F8FAFC;--stat-border:rgba(15,23,42,0.07);--stat-num:#0F172A;--stat-lbl:#94A3B8;
+  --sep-color:rgba(15,23,42,0.06);--ms-color:#94A3B8;--contrib-lbl:#94A3B8;
+  --primary-btn-bg:#0F172A;--primary-btn-color:#FFFFFF;--primary-btn-shadow:rgba(15,23,42,0.2);
+  --sec-btn-bg:#F1F5F9;--sec-btn-border:rgba(15,23,42,0.08);--sec-btn-stroke:rgba(15,23,42,0.6);
+  --verified-border:#FFFFFF;
+  --chip-gold-color:#B45309;--chip-green-color:#059669;
+  background:var(--bg-page);
+}
+
+/* TOGGLE */
+.toggle-wrap{position:fixed;top:16px;right:16px;z-index:999;background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);border-radius:24px;padding:4px;display:flex;gap:2px;border:1px solid rgba(255,255,255,0.1);}
+.tbtn{padding:6px 16px;border-radius:20px;border:none;background:transparent;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.25s;}
+.tbtn.active{background:rgba(255,255,255,0.15);color:#fff;}
+
+/* PHONE */
+.phone{width:390px;height:780px;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 40px 80px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.08);}
+.map-bg{position:absolute;inset:0;background:var(--map-bg);transition:background 0.4s;}
+.streets-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+
+/* user position dot */
+.user-dot{position:absolute;left:192px;top:338px;width:14px;height:14px;border-radius:50%;background:#3BB4C1;border:2.5px solid white;z-index:4;animation:dot-pulse 2.5s ease-in-out infinite;}
+@keyframes dot-pulse{0%,100%{box-shadow:0 0 0 5px rgba(59,180,193,0.18);}50%{box-shadow:0 0 0 10px rgba(59,180,193,0.05);}}
+
+/* TOPBAR */
+.topbar{position:absolute;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:5;background:var(--tb-bg);border-bottom:1px solid var(--tb-border);backdrop-filter:blur(12px);transition:background 0.4s,border-color 0.4s;}
+.brand{font-size:15px;font-weight:800;letter-spacing:0.06em;color:var(--brand-color);transition:color 0.4s;}
+.sos-btn{width:40px;height:40px;border-radius:50%;background:#EF4444;border:none;color:white;font-size:10px;font-weight:800;cursor:pointer;box-shadow:0 0 12px rgba(239,68,68,0.4);}
+.icon-tb{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--icon-btn-bg);transition:background 0.3s;}
+
+/* BACKDROP */
+.backdrop{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end;background:var(--back-blur);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:background 0.4s;}
+
+/* MODAL */
+.modal{width:100%;border-top-left-radius:28px;border-top-right-radius:28px;padding-bottom:24px;background:var(--modal-bg);border-top:1px solid var(--modal-border);box-shadow:var(--modal-shadow);transition:background 0.4s,border-color 0.4s;}
+.handle{width:36px;height:4px;border-radius:99px;margin:12px auto 0;background:var(--handle-bg);transition:background 0.4s;}
+
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;}
+.icon-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--icon-btn-border);background:var(--icon-btn-bg);transition:all 0.2s;}
+.icon-btn:hover{transform:scale(1.08);}
+.icon-btn:active{transform:scale(0.88);}
+
+.profile-section{padding:16px 18px 0;display:flex;align-items:center;gap:14px;}
+.avatar-wrap{position:relative;flex-shrink:0;}
+.avatar{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#3BB4C1 0%,#1E3A5F 60%,#4A2C5A 100%);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:white;border:3px solid rgba(255,255,255,0.15);}
+.vbadge{position:absolute;bottom:-1px;right:-2px;width:20px;height:20px;border-radius:50%;background:#F5C341;display:flex;align-items:center;justify-content:center;border:2px solid var(--verified-border);transition:border-color 0.4s;}
+.display-name{font-size:17px;font-weight:800;letter-spacing:-0.3px;color:var(--name-color);transition:color 0.4s;}
+.username{font-size:12px;font-weight:500;margin-top:2px;color:var(--sub-color);transition:color 0.4s;}
+.city-row{display:flex;align-items:center;gap:4px;margin-top:4px;}
+.city-txt{font-size:11px;font-weight:500;color:var(--sub-color);transition:color 0.4s;}
+
+.stats-row{display:flex;gap:8px;padding:14px 18px 0;}
+.stat-box{flex:1;padding:10px 8px;border-radius:14px;text-align:center;background:var(--stat-bg);border:1px solid var(--stat-border);transition:background 0.4s,border-color 0.4s,transform 0.15s;}
+.stat-box:hover{transform:scale(1.04);}
+.stat-num{font-size:17px;font-weight:800;line-height:1;color:var(--stat-num);transition:color 0.4s;}
+.stat-lbl{font-size:9px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;margin-top:3px;color:var(--stat-lbl);transition:color 0.4s;}
+
+.bio{padding:12px 18px 0;font-size:12px;line-height:1.55;color:var(--bio-color);transition:color 0.4s;}
+
+.cta-row{display:flex;gap:8px;padding:14px 18px 0;}
+
+/* Follow button — shimmer + glow pulse */
+.btn-follow{flex:1;height:40px;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--primary-btn-bg);color:var(--primary-btn-color);transition:background 0.4s,color 0.4s,transform 0.15s,box-shadow 0.4s;animation:follow-glow 3s ease-in-out infinite;position:relative;overflow:hidden;}
+@keyframes follow-glow{0%,100%{box-shadow:0 2px 8px var(--primary-btn-shadow);}50%{box-shadow:0 4px 20px var(--primary-btn-shadow), 0 0 0 4px rgba(255,255,255,0.04);}}
+.btn-follow::after{content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);animation:shimmer 3.5s ease-in-out infinite;pointer-events:none;}
+@keyframes shimmer{0%{left:-80%;}65%,100%{left:140%;}}
+.btn-follow:hover{transform:translateY(-1px);filter:brightness(1.05);}
+.btn-follow:active{transform:scale(0.94);}
+
+/* Icon buttons — gentle glow rings */
+.btn-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--sec-btn-border);background:var(--sec-btn-bg);transition:all 0.2s;position:relative;overflow:hidden;}
+.btn-icon.msg{animation:msg-breathe 4s ease-in-out infinite;}
+@keyframes msg-breathe{0%,100%{box-shadow:0 0 0 0 rgba(59,180,193,0);}50%{box-shadow:0 0 0 4px rgba(59,180,193,0.12);}}
+.btn-icon.share{animation:share-breathe 4s ease-in-out infinite 1.3s;}
+@keyframes share-breathe{0%,100%{box-shadow:0 0 0 0 rgba(165,139,250,0);}50%{box-shadow:0 0 0 4px rgba(165,139,250,0.12);}}
+.btn-icon:hover{transform:scale(1.1);}
+.btn-icon:active{transform:scale(0.88);transition:transform 0.08s;}
+
+.contrib-section{padding:14px 18px 0;}
+.contrib-lbl-txt{font-size:9px;font-weight:800;color:var(--contrib-lbl);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;transition:color 0.4s;}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;cursor:default;transition:transform 0.15s;}
+.chip:hover{transform:scale(1.04);}
+.chip-teal{background:var(--chip-teal-bg);border:1px solid var(--chip-teal-border);color:var(--chip-teal-color);}
+.chip-gold{background:var(--chip-gold-bg);border:1px solid var(--chip-gold-border);color:var(--chip-gold-color);}
+.chip-green{background:var(--chip-green-bg);border:1px solid var(--chip-green-border);color:var(--chip-green-color);}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:chip-pulse 2s ease-in-out infinite;}
+@keyframes chip-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.65);}}
+
+.sep{height:1px;margin:14px 18px 0;background:var(--sep-color);transition:background 0.4s;}
+.member-since{text-align:center;padding:12px 18px 0;font-size:10px;color:var(--ms-color);transition:color 0.4s;}
+</style>
+</head>
+<body>
+
+<div class="toggle-wrap">
+  <button class="tbtn active" id="btn-dark" onclick="setTheme('dark')">🌙 Dark</button>
+  <button class="tbtn" id="btn-light" onclick="setTheme('light')">☀️ Light</button>
+</div>
+
+<div class="phone">
+  <div class="map-bg"></div>
+
+  <svg class="streets-svg" viewBox="0 0 390 780">
+    <line x1="0" y1="200" x2="390" y2="195" stroke="rgba(255,255,255,0.07)" stroke-width="6"/>
+    <line x1="0" y1="380" x2="390" y2="375" stroke="rgba(255,255,255,0.09)" stroke-width="9"/>
+    <line x1="205" y1="0" x2="215" y2="780" stroke="rgba(255,255,255,0.09)" stroke-width="9"/>
+    <line x1="85" y1="0" x2="95" y2="780" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+    <circle cx="116" cy="280" r="6" fill="#3BB4C1" stroke="white" stroke-width="2"/>
+    <circle cx="248" cy="228" r="6" fill="#EF4444" stroke="white" stroke-width="2"/>
+  </svg>
+
+  <div class="user-dot"></div>
+
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:26px;height:26px;border-radius:8px;background:#3BB4C1;display:flex;align-items:center;justify-content:center;">
+        <svg width="12" height="12" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="white" opacity="0.9"/></svg>
+      </div>
+      <span class="brand">BREVEIL</span>
+    </div>
+    <button class="sos-btn">SOS</button>
+    <div style="display:flex;gap:8px;">
+      <div class="icon-tb"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--icon-stroke)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="icon-tb"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--icon-stroke)" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+    </div>
+  </div>
+
+  <div class="backdrop">
+    <div class="modal">
+      <div class="handle"></div>
+
+      <div class="modal-header">
+        <button class="icon-btn" onclick="this.animate([{transform:'scale(1)'},{transform:'scale(0.82)'},{transform:'scale(1)'}],{duration:220,easing:'cubic-bezier(0.34,1.56,0.64,1)'})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--icon-stroke)" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <button class="icon-btn" onclick="this.animate([{transform:'scale(1)'},{transform:'scale(0.82)'},{transform:'scale(1)'}],{duration:220,easing:'cubic-bezier(0.34,1.56,0.64,1)'})">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--icon-stroke)"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
+      </div>
+
+      <div class="profile-section">
+        <div class="avatar-wrap">
+          <div class="avatar">S</div>
+          <div class="vbadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div>
+          <div class="display-name">Sofia Marchand</div>
+          <div class="username">@sofia.m</div>
+          <div class="city-row">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--sub-color)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="city-txt">Paris, France</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num">47</div><div class="stat-lbl">Signalements</div></div>
+        <div class="stat-box"><div class="stat-num">128</div><div class="stat-lbl">Followers</div></div>
+        <div class="stat-box"><div class="stat-num">89</div><div class="stat-lbl">Following</div></div>
+      </div>
+
+      <div class="bio">"Cartographie la ville pour qu'elle soit plus sûre. Paris 9e + 10e."</div>
+
+      <div class="cta-row">
+        <button class="btn-follow" id="btn-follow" onclick="handleFollow(this)">
+          <svg id="follow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          <span id="follow-label">Suivre</span>
+        </button>
+        <button class="btn-icon msg" onclick="ripplePulse(this,'rgba(59,180,193,0.5)')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sec-btn-stroke)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button class="btn-icon share" onclick="ripplePulse(this,'rgba(165,139,250,0.5)')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sec-btn-stroke)" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
+
+      <div class="contrib-section">
+        <div class="contrib-lbl-txt">Contributions</div>
+        <div class="chip-row">
+          <div class="chip chip-teal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>47 signalements</div>
+          <div class="chip chip-gold"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Vérifiée</div>
+          <div class="chip chip-green"><div class="pulse-dot"></div>Cercle actif</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="member-since">Membre depuis mars 2025</div>
+      <div style="height:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let followed = false;
+
+function setTheme(t) {
+  if (t === 'light') {
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+  }
+  document.getElementById('btn-dark').classList.toggle('active', t === 'dark');
+  document.getElementById('btn-light').classList.toggle('active', t === 'light');
+}
+
+function handleFollow(btn) {
+  followed = !followed;
+  const label = document.getElementById('follow-label');
+  const icon = document.getElementById('follow-icon');
+  if (followed) {
+    label.textContent = 'Suivi ✓';
+    icon.innerHTML = '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>';
+    btn.style.animation = 'none';
+    btn.style.background = 'rgba(59,180,193,0.15)';
+    btn.style.color = '#3BB4C1';
+    btn.style.border = '1px solid rgba(59,180,193,0.3)';
+    btn.style.boxShadow = '0 0 0 0';
+    btn.animate([{transform:'scale(0.92)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:320,easing:'cubic-bezier(0.34,1.56,0.64,1)'});
+  } else {
+    label.textContent = 'Suivre';
+    icon.innerHTML = '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>';
+    btn.style.animation = '';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.border = '';
+    btn.style.boxShadow = '';
+    btn.animate([{transform:'scale(0.94)'},{transform:'scale(1)'}],{duration:200,easing:'ease-out'});
+  }
+}
+
+function ripplePulse(btn, color) {
+  btn.animate([
+    {transform:'scale(1)',    boxShadow:`0 0 0 0 ${color}`},
+    {transform:'scale(0.86)', boxShadow:`0 0 0 0 ${color}`},
+    {transform:'scale(1.06)', boxShadow:`0 0 0 12px ${color.replace('0.5','0')}`},
+    {transform:'scale(1)',    boxShadow:`0 0 0 0 ${color.replace('0.5','0')}`}
+  ],{duration:380, easing:'cubic-bezier(0.34,1.56,0.64,1)'});
+}
+</script>
+</body>
+</html>

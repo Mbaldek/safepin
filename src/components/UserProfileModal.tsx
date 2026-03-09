@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MoreHorizontal, MessageCircle, UserPlus, UserCheck, Heart, Pencil, Copy, Send, Mail, Share2 } from "lucide-react";
+import { X, MoreHorizontal, MessageCircle, UserPlus, UserCheck, Heart, Pencil, Copy, Send, Mail, Share2, Shield, MapPin, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/stores/useTheme";
 import { useUiStore } from "@/stores/uiStore";
-import { toast } from "sonner";
+import { bToast } from "@/components/GlobalToast";
 
 interface ProfileData {
   username: string | null;
@@ -72,7 +72,17 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-const SPRING = "cubic-bezier(0.16,1,0.3,1)";
+// ─── Keyframes ────────────────────────────────────────────────────────────────
+
+const PROFILE_KEYFRAMES = `
+  @keyframes bv-profile-follow-glow { 0%,100%{box-shadow:0 2px 8px rgba(241,245,249,0.15);} 50%{box-shadow:0 4px 20px rgba(241,245,249,0.2), 0 0 0 4px rgba(255,255,255,0.04);} }
+  @keyframes bv-profile-shimmer { 0%{left:-80%;} 65%,100%{left:140%;} }
+  @keyframes bv-profile-msg-breathe { 0%,100%{box-shadow:0 0 0 0 rgba(59,180,193,0);} 50%{box-shadow:0 0 0 4px rgba(59,180,193,0.12);} }
+  @keyframes bv-profile-share-breathe { 0%,100%{box-shadow:0 0 0 0 rgba(165,139,250,0);} 50%{box-shadow:0 0 0 4px rgba(165,139,250,0.12);} }
+  @keyframes bv-profile-chip-pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(0.65);} }
+`;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function UserProfileModal() {
   const userId = useUiStore((s) => s.activeProfileUserId);
@@ -83,16 +93,36 @@ export default function UserProfileModal() {
 
   const C = isDark
     ? {
-        bg: "#0F172A", card: "#1E293B", inputBg: "rgba(255,255,255,0.06)",
+        bg: "#0F172A", card: "#1E293B", elev: "#283548",
+        inputBg: "rgba(255,255,255,0.06)",
         text: "#FFFFFF", sub: "#94A3B8", muted: "#64748B",
         border: "rgba(255,255,255,0.08)", borderStrong: "rgba(255,255,255,0.20)",
         teal: "#3BB4C1", gold: "#F5C341",
+        statBg: "rgba(255,255,255,0.04)", statBorder: "rgba(255,255,255,0.07)",
+        primaryBtnBg: "#F1F5F9", primaryBtnColor: "#0F172A",
+        secBtnBg: "rgba(255,255,255,0.07)", secBtnBorder: "rgba(255,255,255,0.12)",
+        secBtnStroke: "rgba(255,255,255,0.7)",
+        backdropBg: "rgba(10,16,30,0.55)",
+        modalShadow: "0 -12px 48px rgba(0,0,0,0.4)",
+        chipTealBg: "rgba(59,180,193,0.12)", chipTealBorder: "rgba(59,180,193,0.24)",
+        chipGoldBg: "rgba(245,195,65,0.12)", chipGoldBorder: "rgba(245,195,65,0.30)",
+        chipGreenBg: "rgba(52,211,153,0.12)", chipGreenBorder: "rgba(52,211,153,0.30)",
       }
     : {
-        bg: "#FFFFFF", card: "#F8FAFC", inputBg: "rgba(15,23,42,0.04)",
-        text: "#0F172A", sub: "#475569", muted: "#94A3B8",
+        bg: "#FFFFFF", card: "#FFFFFF", elev: "#F1F5F9",
+        inputBg: "rgba(15,23,42,0.04)",
+        text: "#0F172A", sub: "#94A3B8", muted: "#94A3B8",
         border: "rgba(15,23,42,0.08)", borderStrong: "rgba(15,23,42,0.18)",
         teal: "#3BB4C1", gold: "#F5C341",
+        statBg: "#F8FAFC", statBorder: "rgba(15,23,42,0.07)",
+        primaryBtnBg: "#0F172A", primaryBtnColor: "#FFFFFF",
+        secBtnBg: "#F1F5F9", secBtnBorder: "rgba(15,23,42,0.08)",
+        secBtnStroke: "rgba(15,23,42,0.6)",
+        backdropBg: "rgba(180,195,215,0.45)",
+        modalShadow: "0 -12px 48px rgba(15,23,42,0.12)",
+        chipTealBg: "rgba(59,180,193,0.12)", chipTealBorder: "rgba(59,180,193,0.24)",
+        chipGoldBg: "rgba(245,195,65,0.12)", chipGoldBorder: "rgba(245,195,65,0.30)",
+        chipGreenBg: "rgba(52,211,153,0.12)", chipGreenBorder: "rgba(52,211,153,0.30)",
       };
 
   const [snapPoint, setSnapPoint] = useState<"peek" | "expanded">("peek");
@@ -193,17 +223,17 @@ export default function UserProfileModal() {
       setIsFollowing(false);
       setFollowersCount((c) => Math.max(0, c - 1));
       const { error } = await supabase.from("follows").delete().eq("id", followId);
-      if (error) { setIsFollowing(true); setFollowersCount((c) => c + 1); toast.error("Erreur"); }
+      if (error) { setIsFollowing(true); setFollowersCount((c) => c + 1); bToast.danger({ title: "Erreur" }, isDark); }
       else setFollowId(null);
     } else {
       setIsFollowing(true);
       setFollowersCount((c) => c + 1);
       const { data, error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: userId }).select("id").single();
-      if (error) { setIsFollowing(false); setFollowersCount((c) => Math.max(0, c - 1)); toast.error(error.code === "23505" ? "Deja abonne" : "Erreur"); }
+      if (error) { setIsFollowing(false); setFollowersCount((c) => Math.max(0, c - 1)); bToast.danger({ title: error.code === "23505" ? "Deja abonne" : "Erreur" }, isDark); }
       else setFollowId(data.id);
     }
     setFollowLoading(false);
-  }, [currentUserId, userId, followLoading, isFollowing, followId]);
+  }, [currentUserId, userId, followLoading, isFollowing, followId, isDark]);
 
   const handleMessage = useCallback(() => {
     if (!currentUserId || !userId) return;
@@ -238,11 +268,11 @@ export default function UserProfileModal() {
       });
 
       setCircleStatus("pending");
-      toast.success("Invitation envoyee");
+      bToast.success({ title: "Invitation envoyee" }, isDark);
     } catch {
-      toast.error("Erreur");
+      bToast.danger({ title: "Erreur" }, isDark);
     }
-  }, [currentUserId, userId, circleStatus, profile]);
+  }, [currentUserId, userId, circleStatus, profile, isDark]);
 
   if (!userId) return null;
 
@@ -260,7 +290,9 @@ export default function UserProfileModal() {
     <AnimatePresence>
       {userId && (
         <>
-          {/* BACKDROP */}
+          <style>{PROFILE_KEYFRAMES}</style>
+
+          {/* BACKDROP — blur overlay */}
           <motion.div
             key="profile-backdrop"
             initial={{ opacity: 0 }}
@@ -270,7 +302,8 @@ export default function UserProfileModal() {
             onClick={closeProfile}
             style={{
               position: "fixed", inset: 0, zIndex: 199,
-              background: "rgba(0,0,0,0.4)",
+              background: C.backdropBg,
+              backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)",
             }}
           />
 
@@ -284,8 +317,10 @@ export default function UserProfileModal() {
             style={{
               position: "fixed", bottom: 0, left: 0, right: 0,
               zIndex: 200,
-              borderTopLeftRadius: 22, borderTopRightRadius: 22,
+              borderTopLeftRadius: 28, borderTopRightRadius: 28,
               background: C.card,
+              borderTop: `1px solid ${C.border}`,
+              boxShadow: C.modalShadow,
               display: "flex", flexDirection: "column",
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
             }}
@@ -295,7 +330,7 @@ export default function UserProfileModal() {
               onClick={() => setSnapPoint((p) => p === "peek" ? "expanded" : "peek")}
               style={{
                 display: "flex", justifyContent: "center", cursor: "pointer",
-                paddingTop: 10, paddingBottom: 6,
+                paddingTop: 12, paddingBottom: 0,
               }}
             >
               <div style={{
@@ -307,34 +342,34 @@ export default function UserProfileModal() {
             {/* HEADER */}
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "0 18px 10px",
+              padding: "14px 18px 0",
             }}>
               <motion.button
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.88 }}
                 onClick={closeProfile}
                 style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: C.inputBg, border: "none", cursor: "pointer",
+                  width: 30, height: 30, borderRadius: "50%",
+                  background: C.inputBg, border: `1px solid ${C.border}`,
+                  cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: C.text, flexShrink: 0,
+                  color: C.muted, flexShrink: 0, padding: 0,
                 }}
               >
-                <X size={15} />
+                <X size={11} strokeWidth={2.5} />
               </motion.button>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1, textAlign: "center" }}>
-                {profile?.username ? `@${profile.username}` : "Profil"}
-              </span>
-              <button
+              <motion.button
+                whileTap={{ scale: 0.88 }}
                 onClick={() => setShowShare((v) => !v)}
                 style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: C.inputBg, border: "none", cursor: "pointer",
+                  width: 30, height: 30, borderRadius: "50%",
+                  background: C.inputBg, border: `1px solid ${C.border}`,
+                  cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: C.muted, flexShrink: 0,
+                  color: C.muted, flexShrink: 0, padding: 0,
                 }}
               >
-                <MoreHorizontal size={15} />
-              </button>
+                <MoreHorizontal size={13} />
+              </motion.button>
             </div>
 
             {/* SHARE SHEET */}
@@ -349,7 +384,7 @@ export default function UserProfileModal() {
                     onClick={() => setShowShare(false)}
                     style={{
                       position: "absolute", inset: 0, zIndex: 10,
-                      background: "rgba(0,0,0,0.25)", borderTopLeftRadius: 22, borderTopRightRadius: 22,
+                      background: "rgba(0,0,0,0.25)", borderTopLeftRadius: 28, borderTopRightRadius: 28,
                     }}
                   />
                   <motion.div
@@ -371,7 +406,7 @@ export default function UserProfileModal() {
                         icon: <Copy size={16} />, label: "Copier le lien",
                         action: () => {
                           const url = `${window.location.origin}/profil/@${profile?.username ?? userId}`;
-                          navigator.clipboard.writeText(url).then(() => toast.success("Lien copie !")).catch(() => toast.error("Erreur"));
+                          navigator.clipboard.writeText(url).then(() => bToast.success({ title: "Lien copie !" }, isDark)).catch(() => bToast.danger({ title: "Erreur" }, isDark));
                         },
                       },
                       {
@@ -401,9 +436,7 @@ export default function UserProfileModal() {
                       },
                       {
                         icon: <MessageCircle size={16} />, label: "Envoyer par message",
-                        action: () => {
-                          handleMessage();
-                        },
+                        action: () => { handleMessage(); },
                       },
                     ].map((item) => (
                       <button
@@ -433,7 +466,7 @@ export default function UserProfileModal() {
               style={{
                 flex: 1,
                 overflow: snapPoint === "expanded" ? "auto" : "hidden",
-                padding: "0 20px",
+                padding: "0 18px",
               }}
               className="scrollbar-hidden"
             >
@@ -443,16 +476,16 @@ export default function UserProfileModal() {
                 <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 13 }}>Profil introuvable</div>
               ) : (
                 <>
-                  {/* === PEEK CONTENT === */}
-
-                  {/* AVATAR + NAME */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 14 }}>
-                    <div style={{ position: "relative", marginBottom: 8 }}>
+                  {/* === PROFILE SECTION — horizontal layout (mockup) === */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 0 0" }}>
+                    {/* Avatar */}
+                    <div style={{ position: "relative", flexShrink: 0 }}>
                       <div style={{
-                        width: 64, height: 64, borderRadius: "50%",
-                        background: profile.avatar_url ? "none" : "linear-gradient(135deg, #3BB4C1, #06B6D4)",
+                        width: 68, height: 68, borderRadius: "50%",
+                        background: profile.avatar_url ? "none" : "linear-gradient(135deg, #3BB4C1 0%, #1E3A5F 60%, #4A2C5A 100%)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 22, fontWeight: 700, color: "#FFFFFF", overflow: "hidden",
+                        fontSize: 26, fontWeight: 800, color: "#FFFFFF", overflow: "hidden",
+                        border: "3px solid rgba(255,255,255,0.15)",
                       }}>
                         {profile.avatar_url ? (
                           <img src={profile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -462,105 +495,121 @@ export default function UserProfileModal() {
                         <div style={{
                           position: "absolute", bottom: -1, right: -2,
                           width: 20, height: 20, borderRadius: "50%",
-                          background: "#34D399", border: `2px solid ${C.card}`,
+                          background: C.gold, border: `2px solid ${C.card}`,
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 11, color: "#FFFFFF",
+                          fontSize: 10, color: "#0F172A", fontWeight: 800,
                         }}>
                           ✓
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: C.text, textAlign: "center" }}>{displayName}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      {profile.city && canSeeField(profile.visibility?.city, isOwnProfile, isFollowing, circleStatus === "member") && <><span>{profile.city}</span><span>·</span></>}
-                      <span>Membre depuis {formatMemberSince(profile.created_at)}</span>
+                    {/* Name + username + city */}
+                    <div>
+                      <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.3, color: C.text }}>{displayName}</div>
+                      {profile.username && (
+                        <div style={{ fontSize: 12, fontWeight: 500, marginTop: 2, color: C.sub }}>@{profile.username}</div>
+                      )}
+                      {profile.city && canSeeField(profile.visibility?.city, isOwnProfile, isFollowing, circleStatus === "member") && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                          <MapPin size={10} strokeWidth={2} color={C.sub} />
+                          <span style={{ fontSize: 11, fontWeight: 500, color: C.sub }}>{profile.city}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* STATS — 4 columns in a rounded block */}
-                  <div style={{
-                    display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                    borderRadius: 14, background: C.inputBg,
-                    padding: "10px 0", marginBottom: 14,
-                  }}>
+                  {/* STATS — separate rounded boxes */}
+                  <div style={{ display: "flex", gap: 8, padding: "14px 0 0" }}>
                     {[
-                      { label: "Abonnes", value: followersCount },
-                      { label: "Abonnements", value: followingCount },
-                      { label: "Cercle", value: circleCount },
                       { label: "Signalements", value: reportsCount },
-                    ].map((s, i) => (
-                      <div key={s.label} style={{
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
-                        borderRight: i < 3 ? `1px solid ${C.border}` : "none",
-                      }}>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{s.value}</span>
-                        <span style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>{s.label}</span>
-                      </div>
+                      { label: "Followers", value: followersCount },
+                      { label: "Following", value: followingCount },
+                    ].map((s) => (
+                      <motion.div
+                        key={s.label}
+                        whileHover={{ scale: 1.04 }}
+                        style={{
+                          flex: 1, padding: "10px 8px", borderRadius: 14, textAlign: "center",
+                          background: C.statBg, border: `1px solid ${C.statBorder}`,
+                        }}
+                      >
+                        <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, color: C.text }}>{s.value}</div>
+                        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", marginTop: 3, color: C.muted }}>{s.label}</div>
+                      </motion.div>
                     ))}
                   </div>
 
+                  {/* BIO */}
+                  {profile.bio && canSeeField(profile.visibility?.bio, isOwnProfile, isFollowing, circleStatus === "member") && (
+                    <div style={{ padding: "12px 0 0", fontSize: 12, lineHeight: 1.55, color: isDark ? "#94A3B8" : "#475569" }}>
+                      {profile.bio}
+                    </div>
+                  )}
+
                   {/* ACTION BUTTONS */}
                   {!isOwnProfile && (
-                    <div style={{ padding: "0 0 14px" }}>
+                    <div style={{ padding: "14px 0 0" }}>
                       <div style={{ display: "flex", gap: 8 }}>
-                        {/* Follow */}
+                        {/* Follow — shimmer + glow */}
                         <motion.button
-                          whileTap={{ scale: 0.96 }}
+                          whileTap={{ scale: 0.94 }}
                           onClick={handleFollow}
                           disabled={followLoading}
                           style={{
-                            flex: 1, height: 34, borderRadius: 10,
-                            border: isFollowing ? `1px solid ${C.border}` : "none",
-                            background: isFollowing ? "transparent" : C.teal,
-                            color: isFollowing ? C.text : "#FFFFFF",
-                            fontSize: 13, fontWeight: 600, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            flex: 1, height: 40, borderRadius: 12,
+                            border: isFollowing ? `1px solid rgba(59,180,193,0.3)` : "none",
+                            background: isFollowing ? "rgba(59,180,193,0.15)" : C.primaryBtnBg,
+                            color: isFollowing ? C.teal : C.primaryBtnColor,
+                            fontSize: 13, fontWeight: 700, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                             opacity: followLoading ? 0.6 : 1,
+                            position: "relative", overflow: "hidden",
+                            animation: isFollowing ? "none" : "bv-profile-follow-glow 3s ease-in-out infinite",
                           }}
                         >
+                          {/* Shimmer overlay */}
+                          {!isFollowing && (
+                            <div style={{
+                              position: "absolute", top: 0, left: "-80%", width: "55%", height: "100%",
+                              background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)",
+                              animation: "bv-profile-shimmer 3.5s ease-in-out infinite",
+                              pointerEvents: "none",
+                            }} />
+                          )}
                           {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
-                          {isFollowing ? "Abonne·e" : "Suivre"}
+                          {isFollowing ? "Suivi \u2713" : "Suivre"}
                         </motion.button>
 
-                        {/* Message */}
+                        {/* Message — breathe glow */}
                         <motion.button
-                          whileTap={{ scale: 0.96 }}
+                          whileTap={{ scale: 0.88 }}
                           onClick={handleMessage}
                           style={{
-                            flex: 1, height: 34, borderRadius: 10,
-                            border: `1px solid ${C.border}`,
-                            background: "transparent", color: C.text,
-                            fontSize: 13, fontWeight: 600, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                            border: `1px solid ${C.secBtnBorder}`,
+                            background: C.secBtnBg, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            padding: 0,
+                            animation: "bv-profile-msg-breathe 4s ease-in-out infinite",
                           }}
                         >
-                          <MessageCircle size={14} />
-                          Message
+                          <MessageCircle size={16} strokeWidth={2} color={C.secBtnStroke} />
                         </motion.button>
 
-                        {/* Circle heart */}
+                        {/* Share — breathe glow purple */}
                         <motion.button
-                          whileTap={circleStatus === "none" ? { scale: 0.92 } : undefined}
-                          onClick={circleStatus === "none" ? handleCircleInvite : undefined}
+                          whileTap={{ scale: 0.88 }}
+                          onClick={() => setShowShare((v) => !v)}
                           style={{
-                            width: 38, height: 34, borderRadius: 10, flexShrink: 0,
-                            border: circleStatus === "none"
-                              ? `1px solid ${C.border}`
-                              : `1px solid ${C.gold}`,
-                            background: circleStatus === "none"
-                              ? "transparent"
-                              : "rgba(245,195,65,0.10)",
-                            cursor: circleStatus === "none" ? "pointer" : "default",
+                            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                            border: `1px solid ${C.secBtnBorder}`,
+                            background: C.secBtnBg, cursor: "pointer",
                             display: "flex", alignItems: "center", justifyContent: "center",
+                            padding: 0,
+                            animation: "bv-profile-share-breathe 4s ease-in-out infinite 1.3s",
                           }}
                         >
-                          <Heart
-                            size={16}
-                            style={{
-                              color: circleStatus === "none" ? C.muted : C.gold,
-                              fill: circleStatus === "member" ? C.gold : "none",
-                            }}
-                          />
+                          <Share2 size={16} strokeWidth={2} color={C.secBtnStroke} />
                         </motion.button>
                       </div>
 
@@ -571,8 +620,9 @@ export default function UserProfileModal() {
                         </div>
                       )}
                       {circleStatus === "member" && (
-                        <div style={{ fontSize: 11, color: C.gold, textAlign: "center", marginTop: 6 }}>
-                          💛 Dans ton cercle
+                        <div style={{ fontSize: 11, color: C.gold, textAlign: "center", marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                          <Heart size={11} fill={C.gold} color={C.gold} />
+                          Dans ton cercle
                         </div>
                       )}
                     </div>
@@ -580,12 +630,12 @@ export default function UserProfileModal() {
 
                   {/* Own profile edit */}
                   {isOwnProfile && (
-                    <div style={{ padding: "0 0 14px" }}>
+                    <div style={{ padding: "14px 0 0" }}>
                       <motion.button
                         whileTap={{ scale: 0.96 }}
                         onClick={() => { closeProfile(); setOpenMyProfile(true); }}
                         style={{
-                          width: "100%", height: 34, borderRadius: 10,
+                          width: "100%", height: 40, borderRadius: 12,
                           border: `1px solid ${C.border}`, background: "transparent",
                           color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer",
                           display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
@@ -597,14 +647,62 @@ export default function UserProfileModal() {
                     </div>
                   )}
 
+                  {/* CONTRIBUTION CHIPS */}
+                  <div style={{ padding: "14px 0 0" }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
+                      Contributions
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {/* Reports chip */}
+                      <div style={{
+                        padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                        display: "flex", alignItems: "center", gap: 5,
+                        background: C.chipTealBg, border: `1px solid ${C.chipTealBorder}`, color: C.teal,
+                      }}>
+                        <Shield size={10} strokeWidth={2.5} color={C.teal} />
+                        {reportsCount} signalements
+                      </div>
+                      {/* Verified chip */}
+                      {profile.verified && (
+                        <div style={{
+                          padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          display: "flex", alignItems: "center", gap: 5,
+                          background: C.chipGoldBg, border: `1px solid ${C.chipGoldBorder}`, color: isDark ? "#F5C341" : "#B45309",
+                        }}>
+                          <Star size={10} strokeWidth={2.5} color={isDark ? "#F5C341" : "#B45309"} />
+                          Verifiee
+                        </div>
+                      )}
+                      {/* Circle chip */}
+                      {(profile.is_public || circleStatus === "member") && (
+                        <div style={{
+                          padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          display: "flex", alignItems: "center", gap: 5,
+                          background: C.chipGreenBg, border: `1px solid ${C.chipGreenBorder}`, color: isDark ? "#34D399" : "#059669",
+                        }}>
+                          <div style={{
+                            width: 6, height: 6, borderRadius: "50%", background: "currentColor",
+                            animation: "bv-profile-chip-pulse 2s ease-in-out infinite",
+                          }} />
+                          Cercle actif
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* === EXPANDED CONTENT === */}
 
                   {/* Divider */}
-                  <div style={{ height: 1, background: C.border, margin: "4px 0 16px" }} />
+                  <div style={{ height: 1, background: C.border, margin: "14px 0 0" }} />
+
+                  {/* Member since */}
+                  <div style={{ textAlign: "center", padding: "12px 0 0", fontSize: 10, color: C.muted }}>
+                    Membre depuis {formatMemberSince(profile.created_at)}
+                  </div>
 
                   {/* GROUPS */}
                   {groups.length > 0 && (
-                    <div style={{ marginBottom: 18 }}>
+                    <div style={{ marginTop: 16 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
                         Groupes ({groups.length})
                       </h4>
@@ -623,9 +721,9 @@ export default function UserProfileModal() {
                     </div>
                   )}
 
-                  {/* CONTRIBUTIONS */}
+                  {/* CONTRIBUTIONS LIST */}
                   {contributions.length > 0 && (
-                    <div style={{ marginBottom: 18 }}>
+                    <div style={{ marginTop: 16 }}>
                       <h4 style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
                         Contributions recentes
                       </h4>
@@ -654,7 +752,7 @@ export default function UserProfileModal() {
                   {/* PRIVATE NOTICE */}
                   {!profile.is_public && !isOwnProfile && circleStatus !== "member" && (
                     <div style={{ textAlign: "center", padding: "20px 16px", color: C.muted, fontSize: 13, borderTop: `1px solid ${C.border}`, marginTop: 4 }}>
-                      🔒 Ce profil est prive
+                      Ce profil est prive
                     </div>
                   )}
                 </>

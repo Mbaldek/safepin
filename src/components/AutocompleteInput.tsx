@@ -11,9 +11,10 @@ export interface ACSuggestion {
   sublabel?: string;
   coords?: [number, number]; // [lng, lat]
   icon?: string;
+  onClick?: () => void;
 }
 
-interface AutocompleteSection {
+export interface AutocompleteSection {
   title: string;
   items: ACSuggestion[];
 }
@@ -103,6 +104,7 @@ export default function AutocompleteInput({
   const hasDropdown = open && (localHasItems || loading || geoResults.length > 0);
 
   function select(item: ACSuggestion) {
+    item.onClick?.();
     onChange(item.label, item.coords);
     setOpen(false);
     setGeoResults([]);

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breveil — Historique Marches v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root{
+  --teal:#3BB4C1;--teal12:rgba(59,180,193,0.12);--teal24:rgba(59,180,193,0.24);
+  --green:#34D399;--green12:rgba(52,211,153,0.12);--green30:rgba(52,211,153,0.30);
+  --amber:#FBBF24;--red:#EF4444;--red12:rgba(239,68,68,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:#e8eaf0;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;}
+.toggle-wrap{position:fixed;top:16px;right:16px;z-index:999;display:flex;gap:8px;}
+.tbtn{padding:6px 14px;border-radius:20px;border:1px solid rgba(0,0,0,0.15);background:rgba(0,0,0,0.06);color:#333;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+.tbtn.active{background:var(--teal);border-color:var(--teal);color:white;}
+
+/* Phone frame */
+.phone{width:390px;height:780px;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 30px 70px rgba(0,0,0,0.18);border:1px solid rgba(0,0,0,0.08);background:#f0f2f5;display:flex;flex-direction:column;}
+
+/* Map stub */
+.map-stub{flex:1;min-height:0;position:relative;background:#dde8f0;}
+.map-stub svg{position:absolute;inset:0;width:100%;height:100%;}
+.user-dot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--teal);border:2.5px solid white;box-shadow:0 0 0 5px rgba(59,180,193,0.18);}
+
+/* Topbar */
+.topbar{position:absolute;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:10;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(15,23,42,0.08);}
+.brand{font-size:15px;font-weight:800;letter-spacing:0.06em;color:#0F172A;}
+.sos{width:40px;height:40px;border-radius:50%;background:var(--red);border:none;color:white;font-size:10px;font-weight:800;cursor:pointer;letter-spacing:0.04em;box-shadow:0 0 12px rgba(239,68,68,0.35);}
+.icon-wrap{width:32px;height:32px;border-radius:50%;background:rgba(15,23,42,0.06);display:flex;align-items:center;justify-content:center;}
+
+/* Sheet */
+.sheet{background:#FFFFFF;border-top-left-radius:28px;border-top-right-radius:28px;display:flex;flex-direction:column;max-height:78%;box-shadow:0 -4px 24px rgba(0,0,0,0.08);}
+.handle{width:36px;height:4px;border-radius:99px;background:rgba(15,23,42,0.12);margin:12px auto 0;flex-shrink:0;}
+
+/* Sheet header */
+.sh-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;flex-shrink:0;}
+.sh-icon{width:32px;height:32px;border-radius:10px;background:var(--teal12);border:1px solid var(--teal24);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sh-title{font-size:15px;font-weight:800;color:#0F172A;letter-spacing:-0.3px;}
+.sh-close{width:28px;height:28px;border-radius:50%;background:rgba(15,23,42,0.05);border:1px solid rgba(15,23,42,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+
+/* Scroll */
+.scroll{overflow-y:auto;flex:1;padding:14px 18px 24px;}
+.scroll::-webkit-scrollbar{width:3px;}
+.scroll::-webkit-scrollbar-thumb{background:rgba(15,23,42,0.1);border-radius:99px;}
+
+/* Section labels */
+.section-lbl{font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;margin-top:2px;}
+
+/* Notif entry card */
+.notif-card{background:#F8FAFC;border:1px solid rgba(15,23,42,0.07);border-radius:16px;padding:13px 14px;margin-bottom:16px;display:flex;gap:11px;align-items:flex-start;}
+.notif-icon{width:36px;height:36px;border-radius:10px;background:var(--teal12);border:1px solid var(--teal24);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.notif-title{font-size:13px;font-weight:700;color:#0F172A;margin-bottom:2px;}
+.notif-sub{font-size:11px;color:#475569;line-height:1.4;margin-bottom:6px;}
+.notif-cta{font-size:11px;font-weight:700;color:var(--teal);cursor:pointer;}
+
+/* Tabs */
+.tab-row{display:flex;gap:0;background:#F1F5F9;border-radius:12px;padding:3px;margin-bottom:14px;flex-shrink:0;}
+.tab-item{flex:1;padding:8px 0;border-radius:9px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:none;background:transparent;color:#64748B;transition:all 0.15s;}
+.tab-item.active{background:#FFFFFF;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+
+/* Session card */
+.sess-card{margin-bottom:10px;border-bottom:1px solid rgba(15,23,42,0.06);padding-bottom:14px;}
+.sess-card:last-child{border-bottom:none;}
+.sess-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;}
+.sess-meta{font-size:12px;font-weight:700;color:#0F172A;}
+.sess-sub{font-size:11px;color:#64748B;margin-top:1px;}
+.badge-arrive{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--green12);color:var(--green);border:1px solid var(--green30);}
+
+/* Audio player */
+.player{display:flex;align-items:center;gap:10px;background:#F8FAFC;border:1px solid rgba(15,23,42,0.07);border-radius:12px;padding:9px 12px;margin:8px 0;}
+.play-btn{width:28px;height:28px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;}
+.progress-wrap{flex:1;}
+.progress-bar-bg{height:3px;background:rgba(15,23,42,0.1);border-radius:99px;margin-bottom:4px;position:relative;overflow:hidden;}
+.progress-bar-fill{height:100%;width:35%;background:var(--teal);border-radius:99px;}
+.progress-time{font-size:9px;color:#94A3B8;font-weight:600;font-variant-numeric:tabular-nums;}
+.player-actions{display:flex;gap:6px;flex-shrink:0;}
+.p-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(15,23,42,0.08);background:white;}
+.p-btn-red{border-color:rgba(239,68,68,0.2);background:var(--red12);}
+
+/* Expire note */
+.expire-note{display:flex;align-items:center;gap:5px;font-size:10px;color:#94A3B8;margin-top:6px;}
+
+/* Footer */
+.hist-footer{text-align:center;padding:10px 0 2px;}
+.hist-footer-lock{font-size:10px;color:#94A3B8;line-height:1.5;margin-bottom:3px;}
+.hist-footer-link{font-size:10px;font-weight:700;color:var(--teal);cursor:pointer;}
+
+/* Dark mode */
+body.dark{background:#1a1a2e;}
+body.dark .phone{background:#0d1520;}
+body.dark .map-stub{background:#0a1220;}
+body.dark .topbar{background:rgba(15,23,42,0.92);border-color:rgba(255,255,255,0.08);}
+body.dark .brand{color:#F1F5F9;}
+body.dark .icon-wrap{background:rgba(255,255,255,0.08);}
+body.dark .sheet{background:#1E293B;box-shadow:0 -4px 24px rgba(0,0,0,0.3);}
+body.dark .handle{background:rgba(255,255,255,0.14);}
+body.dark .sh-title{color:#F1F5F9;}
+body.dark .sh-close{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.1);}
+body.dark .section-lbl{color:#475569;}
+body.dark .notif-card{background:#283548;border-color:rgba(255,255,255,0.08);}
+body.dark .notif-title{color:#F1F5F9;}
+body.dark .notif-sub{color:#94A3B8;}
+body.dark .tab-row{background:rgba(255,255,255,0.05);}
+body.dark .tab-item.active{background:rgba(255,255,255,0.1);color:#F1F5F9;box-shadow:none;}
+body.dark .tab-item{color:#64748B;}
+body.dark .sess-card{border-color:rgba(255,255,255,0.06);}
+body.dark .sess-meta{color:#F1F5F9;}
+body.dark .sess-sub{color:#64748B;}
+body.dark .player{background:#283548;border-color:rgba(255,255,255,0.08);}
+body.dark .progress-bar-bg{background:rgba(255,255,255,0.1);}
+body.dark .progress-time{color:#64748B;}
+body.dark .p-btn{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.1);}
+body.dark .p-btn-red{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.2);}
+body.dark .expire-note{color:#475569;}
+body.dark .hist-footer-lock{color:#475569;}
+body.dark .scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);}
+</style>
+</head>
+<body>
+
+<div class="toggle-wrap">
+  <button class="tbtn active" onclick="setTheme('light')">Light</button>
+  <button class="tbtn" onclick="setTheme('dark')">Dark</button>
+</div>
+
+<div class="phone">
+  <!-- Map stub -->
+  <div class="map-stub">
+    <svg viewBox="0 0 390 220">
+      <line x1="0" y1="70" x2="390" y2="68" stroke="rgba(15,23,42,0.12)" stroke-width="6"/>
+      <line x1="0" y1="140" x2="390" y2="138" stroke="rgba(15,23,42,0.15)" stroke-width="9"/>
+      <line x1="85" y1="0" x2="95" y2="220" stroke="rgba(15,23,42,0.1)" stroke-width="5"/>
+      <line x1="210" y1="0" x2="215" y2="220" stroke="rgba(15,23,42,0.15)" stroke-width="9"/>
+      <line x1="310" y1="0" x2="305" y2="220" stroke="rgba(15,23,42,0.08)" stroke-width="4"/>
+    </svg>
+    <div class="user-dot"></div>
+    <!-- Topbar -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:26px;height:26px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="white" opacity="0.9"/></svg>
+        </div>
+        <span class="brand">BREVEIL</span>
+      </div>
+      <button class="sos">SOS</button>
+      <div style="display:flex;gap:8px;">
+        <div class="icon-wrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(15,23,42,0.5)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="icon-wrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(15,23,42,0.5)" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sheet -->
+  <div class="sheet">
+    <div class="handle"></div>
+
+    <div class="sh-head">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div class="sh-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <span class="sh-title">Historique</span>
+      </div>
+      <div class="sh-close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(15,23,42,0.4)" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+
+    <div class="scroll">
+
+      <!-- POINT D'ENTRÉE — notif auto -->
+      <div class="section-lbl" style="margin-top:4px;">Point d'entrée — notification auto</div>
+      <div class="notif-card">
+        <div class="notif-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <div class="notif-title">Marche terminée · 24 min</div>
+          <div class="notif-sub">Châtelet → Oberkampf avec Sara et Léa.<br>Enregistrement disponible.</div>
+          <span class="notif-cta">Écouter l'enregistrement →</span>
+        </div>
+      </div>
+
+      <!-- DEPUIS LE PANEL -->
+      <div class="section-lbl">Depuis le panel Walk with me</div>
+
+      <!-- Tabs -->
+      <div class="tab-row">
+        <button class="tab-item active" onclick="switchTab('mes',this)">Mes marches</button>
+        <button class="tab-item" onclick="switchTab('rejointes',this)">Rejointes</button>
+      </div>
+
+      <!-- Session 1 — avec enregistrement -->
+      <div class="sess-card">
+        <div class="sess-top">
+          <div>
+            <div class="sess-meta">Dim. 9 mars · 22h14</div>
+            <div class="sess-sub">24 min · Châtelet → Oberkampf · Sara, Léa</div>
+          </div>
+          <span class="badge-arrive">✓ Arrivée</span>
+        </div>
+        <!-- Player -->
+        <div class="player">
+          <button class="play-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <div class="progress-wrap">
+            <div class="progress-bar-bg"><div class="progress-bar-fill"></div></div>
+            <div class="progress-time">8:24 / 24:07 · 18 Mo</div>
+          </div>
+          <div class="player-actions">
+            <button class="p-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(15,23,42,0.5)" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="p-btn p-btn-red">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session 2 — sans enregistrement, expiration -->
+      <div class="sess-card">
+        <div class="sess-top">
+          <div>
+            <div class="sess-meta">Sam. 8 mars · 20h03</div>
+            <div class="sess-sub">18 min · République → Nation</div>
+          </div>
+          <span class="badge-arrive">✓ Arrivée</span>
+        </div>
+        <div class="expire-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Expire dans 6 jours
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="hist-footer">
+        <div class="hist-footer-lock">🔒 Seules toi et les membres de la session peuvent accéder aux enregistrements.</div>
+        <span class="hist-footer-link">Suppression automatique après 30 jours.</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function setTheme(t){
+  document.body.className=t==='dark'?'dark':'';
+  document.querySelectorAll('.tbtn').forEach((b,i)=>b.classList.toggle('active',(t==='light'&&i===0)||(t==='dark'&&i===1)));
+}
+function switchTab(tab, el){
+  el.closest('.tab-row').querySelectorAll('.tab-item').forEach(b=>{
+    b.classList.toggle('active', b===el);
+  });
+}
+</script>
+</body>
+</html>
