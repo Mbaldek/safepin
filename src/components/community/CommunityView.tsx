@@ -467,7 +467,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              style={{ height: '100%', overflowY: 'auto' }}
+              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
               className="scrollbar-hidden"
             >
               {activeTab === 0 ? (

@@ -223,7 +223,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   // ─── Chat view ───────────────────────────────────────────────────────
   if (activeGroup) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         {/* Chat header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
