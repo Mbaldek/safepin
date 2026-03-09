@@ -204,6 +204,10 @@ type Store = {
   showWalkWithMe: boolean;
   setShowWalkWithMe: (v: boolean) => void;
 
+  // Walk History sheet
+  showWalkHistory: boolean;
+  setShowWalkHistory: (v: boolean) => void;
+
   // Safe Spaces (Sprint 40)
   safeSpaces: SafeSpace[];
   setSafeSpaces: (spaces: SafeSpace[]) => void;
@@ -371,6 +375,10 @@ export const useStore = create<Store>((set) => ({
   // Walk With Me panel
   showWalkWithMe: false,
   setShowWalkWithMe: (v) => set({ showWalkWithMe: v }),
+
+  // Walk History sheet
+  showWalkHistory: false,
+  setShowWalkHistory: (v) => set({ showWalkHistory: v }),
 
   // Safe Spaces
   safeSpaces: [],

@@ -18,7 +18,7 @@ import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
 import { ReportSheet } from '@/components/ReportSheet';
-import AddressSearch from '@/components/AddressSearch';
+import AutocompleteInput, { type AutocompleteSection } from '@/components/AutocompleteInput';
 import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
 import NearbySheet from '@/components/nearby/NearbySheet';
@@ -38,6 +38,7 @@ const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: f
 const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
+const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
 const CercleSheet = dynamic(() => import('@/components/CercleSheet'), { ssr: false });
@@ -96,6 +97,7 @@ export default function MapPage() {
 activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     showWalkWithMe, setShowWalkWithMe,
+    showWalkHistory, setShowWalkHistory,
     mapFilters, setMapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
@@ -241,6 +243,8 @@ activeTrip, setActiveTrip,
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSections, setSearchSections] = useState<AutocompleteSection[]>([]);
   const [showCityContext, setShowCityContext] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsInitialScreen, setSettingsInitialScreen] = useState<string | undefined>(undefined);
@@ -249,6 +253,61 @@ activeTrip, setActiveTrip,
 
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
   // showWalkWithMe is now in the Zustand store (shared with TripView)
+
+  // Debounced DB search — fires when searchQuery changes
+  useEffect(() => {
+    if (searchQuery.length < 2) { setSearchSections([]); return; }
+    const t = setTimeout(async () => {
+      const [pinsRes, usersRes, hashtagsRes, commRes] = await Promise.all([
+        supabase.rpc('search_pins',        { p_query: searchQuery, p_limit: 5 }),
+        supabase.rpc('search_users',       { p_query: searchQuery, p_limit: 4 }),
+        supabase.rpc('search_hashtags',    { p_query: searchQuery, p_limit: 4 }),
+        supabase.rpc('search_communities', { p_query: searchQuery, p_limit: 3 }),
+      ]);
+      const sections: AutocompleteSection[] = [];
+      if (pinsRes.data?.length) sections.push({
+        title: 'Signalements',
+        items: (pinsRes.data as import('@/types').Pin[]).map((p) => ({
+          label: p.category_label ?? p.category,
+          sublabel: p.address ?? undefined,
+          coords: [p.lng, p.lat] as [number, number],
+          icon: '📍',
+          onClick: () => {
+            useStore.getState().setSelectedPin(p);
+            setActiveSheet('detail');
+            useStore.getState().setMapFlyTo({ lat: p.lat, lng: p.lng, zoom: 16 });
+          },
+        })),
+      });
+      if (usersRes.data?.length) sections.push({
+        title: 'Utilisateurs',
+        items: (usersRes.data as { display_name: string | null; name: string | null; username: string | null; avatar_emoji: string | null }[]).map((u) => ({
+          label: u.display_name ?? u.name ?? u.username ?? '—',
+          sublabel: u.username ? `@${u.username}` : undefined,
+          icon: u.avatar_emoji ?? '👤',
+        })),
+      });
+      if (hashtagsRes.data?.length) sections.push({
+        title: 'Hashtags',
+        items: (hashtagsRes.data as { tag: string; uses_count: number | null }[]).map((h) => ({
+          label: `#${h.tag}`,
+          sublabel: h.uses_count ? `${h.uses_count} fois` : undefined,
+          icon: '#',
+        })),
+      });
+      if (commRes.data?.length) sections.push({
+        title: 'Communautés',
+        items: (commRes.data as { name: string; description: string | null }[]).map((c) => ({
+          label: c.name,
+          sublabel: c.description?.slice(0, 40) ?? undefined,
+          icon: '🏘',
+        })),
+      });
+      setSearchSections(sections);
+    }, 350);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const handleMapTap = useCallback(() => {
     setActiveSheet('none');
@@ -699,7 +758,7 @@ activeTrip, setActiveTrip,
             <>
               {/* Back arrow — exit search */}
               <button
-                onClick={() => setShowSearch(false)}
+                onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchSections([]); }}
                 aria-label="Close search"
                 className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition hover:opacity-80"
               >
@@ -707,7 +766,15 @@ activeTrip, setActiveTrip,
               </button>
               {/* Inline search — fills header */}
               <div className="flex-1 min-w-0">
-                <AddressSearch autoFocus />
+                <AutocompleteInput
+                  value={searchQuery}
+                  onChange={(text, coords) => {
+                    setSearchQuery(text);
+                    if (coords) useStore.getState().setMapFlyTo({ lng: coords[0], lat: coords[1], zoom: 15 });
+                  }}
+                  autoFocus
+                  localSections={searchSections}
+                />
               </div>
             </>
           ) : (
@@ -1314,6 +1381,17 @@ activeTrip, setActiveTrip,
             userId={userId}
             destination={activeTrip?.destination?.label ?? ''}
             onClose={() => setShowWalkWithMe(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Walk History sheet ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {showWalkHistory && userId && (
+          <WalkHistorySheet
+            key="walk-history"
+            userId={userId}
+            onClose={() => setShowWalkHistory(false)}
           />
         )}
       </AnimatePresence>
