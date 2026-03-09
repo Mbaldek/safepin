@@ -281,30 +281,55 @@ function PinDetailSheet({
         {isOpen && pin && (
           <motion.div
             key="pin-detail-sheet"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             style={{
               position: 'fixed',
-              bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
-              left: 0,
-              right: 0,
-              zIndex: 301,
-              background: d ? T.surfaceElevated : '#FFFFFF',
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
-              borderBottom: 'none',
-              boxShadow: T.shadowLg,
+              inset: 0,
               display: 'flex',
-              flexDirection: 'column',
-              maxHeight: 'calc(100vh - 70px - 100px)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 301,
+              padding: '20px 16px',
             }}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: pull.translateY, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            transition={pull.translateY > 0 ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
-            onTouchStart={pull.onTouchStart}
-            onTouchMove={pull.onTouchMove}
-            onTouchEnd={pull.onTouchEnd}
           >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={onClose}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+              }}
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                width: '100%',
+                maxWidth: 480,
+                maxHeight: '85vh',
+                borderRadius: 24,
+                background: d ? T.surfaceElevated : '#FFFFFF',
+                border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                boxShadow: T.shadowLg,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
             {/* ① HANDLE */}
             <div style={{
               width: 36, height: 4,
@@ -756,6 +781,7 @@ function PinDetailSheet({
                 <div style={{ height: 8 }} />
               </div>
             </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

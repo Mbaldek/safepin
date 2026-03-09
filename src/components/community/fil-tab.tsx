@@ -260,39 +260,30 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
         const pinSelect = 'id, user_id, lat, lng, category, severity, description, photo_url, address, confirmations, created_at';
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pinQueries: PromiseLike<{ data: any[] | null }>[] = [];
-
-        // A) Geo-nearby (5km radius)
         const lat = userLocation?.lat ?? 48.8566;
         const lng = userLocation?.lng ?? 2.3522;
-        const latDelta = 5 / 111;
-        const lngDelta = 5 / (111 * Math.cos(lat * Math.PI / 180));
-        pinQueries.push(
+        const latDelta = 0.0045;   // ~500m
+        const lngDelta = 0.0055;   // ~500m
+        const socialIds = [...followingSet, ...circleSet];
+
+        const [nearbyPinsRes, socialPinsRes] = await Promise.all([
           supabase.from('pins').select(pinSelect)
             .gte('created_at', sevenDaysAgo)
             .is('resolved_at', null)
             .gte('lat', lat - latDelta).lte('lat', lat + latDelta)
             .gte('lng', lng - lngDelta).lte('lng', lng + lngDelta)
             .order('created_at', { ascending: false })
-            .limit(30)
-        );
-
-        // B) Social graph (following + circle)
-        const socialIds = [...followingSet, ...circleSet];
-        if (socialIds.length > 0) {
-          pinQueries.push(
-            supabase.from('pins').select(pinSelect)
-              .gte('created_at', sevenDaysAgo)
-              .is('resolved_at', null)
-              .in('user_id', socialIds)
-              .order('created_at', { ascending: false })
-              .limit(20)
-          );
-        }
-
-        const pinResults = await Promise.all(pinQueries);
-        const allPins = pinResults.flatMap(r => r.data ?? []);
+            .limit(20),
+          socialIds.length > 0
+            ? supabase.from('pins').select(pinSelect)
+                .gte('created_at', sevenDaysAgo)
+                .is('resolved_at', null)
+                .in('user_id', socialIds)
+                .order('created_at', { ascending: false })
+                .limit(15)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+        const allPins = [...(nearbyPinsRes.data ?? []), ...(socialPinsRes.data ?? [])];
 
         // Deduplicate
         const seenPinIds = new Set<string>();

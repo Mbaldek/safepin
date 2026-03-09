@@ -269,6 +269,8 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
           : "none",
       }}
     >
+      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div
@@ -600,97 +602,38 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         </motion.div>
       )}
 
-      {/* Footer */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingTop: 12,
-          borderTop: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-        }}
-      >
-        {post.type === "alerte" ? (
-          <>
-            <span style={{ fontSize: 12, color: "#34D399" }}>
-              {confirmCount} confirmations ✓
-            </span>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleConfirm}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                backgroundColor: confirmed ? "rgba(59, 180, 193, 0.15)" : "transparent",
-                border: `1px solid ${confirmed ? "#3BB4C1" : isDark ? "#334155" : "#E2E8F0"}`,
-                color: confirmed ? "#3BB4C1" : isDark ? "#94A3B8" : "#64748B",
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              {confirmed ? "Confirmé ✓" : "Signaler aussi"}
-            </motion.button>
-          </>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleLike}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              <Heart
-                size={18}
-                style={{ color: liked ? "#EF4444" : isDark ? "#64748B" : "#94A3B8" }}
-                fill={liked ? "#EF4444" : "transparent"}
-              />
-              <span style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B" }}>
-                {likeCount}
-              </span>
-            </motion.button>
-            <button
-              onClick={() => { setCommentsOpen(!commentsOpen); if (!commentsLoaded) loadComments(); }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: commentsOpen ? "rgba(59,180,193,0.10)" : "none",
-                border: commentsOpen ? "1px solid rgba(59,180,193,0.22)" : "1px solid transparent",
-                borderRadius: 8,
-                padding: "4px 8px",
-                cursor: "pointer",
-              }}
-            >
-              <MessageCircle size={18} style={{ color: commentsOpen ? "#3BB4C1" : isDark ? "#64748B" : "#94A3B8" }} />
-              <span style={{ fontSize: 12, color: commentsOpen ? "#3BB4C1" : isDark ? "#94A3B8" : "#64748B" }}>
-                {commentsLoaded ? comments.length : (post.comments || 0)}
-              </span>
-            </button>
-          </div>
-        )}
-        <motion.button
-          whileTap={{ scale: 0.85 }}
-          onClick={handleBookmark}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 4,
-          }}
-        >
-          <Bookmark
-            size={18}
-            style={{ color: bookmarked ? "#F5C341" : isDark ? "#64748B" : "#94A3B8" }}
-            fill={bookmarked ? "#F5C341" : "transparent"}
-          />
+      </div>
+      {/* Action column */}
+      <div style={{
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 10,
+        paddingTop: 2,
+        minWidth: 32,
+      }}>
+        <button onClick={handleLike} style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+          border: "none", background: "none", cursor: "pointer", padding: 0,
+          transition: "transform 250ms cubic-bezier(0.34,1.56,0.64,1)",
+        }}>
+          <Heart size={15} style={{ color: liked ? "#F87171" : (isDark ? "#64748B" : "#94A3B8"), fill: liked ? "#F87171" : "none", transition: "all 150ms" }} />
+          <span style={{ fontSize: 10, color: liked ? "#F87171" : (isDark ? "#64748B" : "#94A3B8"), fontWeight: 600 }}>{likeCount}</span>
+        </button>
+        <button onClick={() => { setCommentsOpen(!commentsOpen); if (!commentsLoaded) loadComments(); }} style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+          border: "none", background: "none", cursor: "pointer", padding: 0,
+        }}>
+          <MessageCircle size={15} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
+          <span style={{ fontSize: 10, color: isDark ? "#64748B" : "#94A3B8", fontWeight: 600 }}>{commentsLoaded ? comments.length : (post.comments || 0)}</span>
+        </button>
+        <motion.button whileTap={{ scale: 0.85 }} onClick={handleBookmark} style={{
+          border: "none", background: "none", cursor: "pointer", padding: 0,
+        }}>
+          <Bookmark size={14} style={{ color: bookmarked ? "#FBBF24" : (isDark ? "#64748B" : "#94A3B8"), fill: bookmarked ? "#FBBF24" : "none" }} />
         </motion.button>
+      </div>
       </div>
 
       {/* Inline comments */}

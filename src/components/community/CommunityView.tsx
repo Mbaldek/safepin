@@ -454,40 +454,54 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="scrollbar-hidden">
+      <div style={{ flex: 1, overflowY: 'hidden', minHeight: 0, position: 'relative' }} className="scrollbar-hidden">
         {!ready ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: isDark ? '#64748B' : '#94A3B8', fontSize: 13 }}>
             Chargement…
           </div>
-        ) : activeTab === 0 ? (
-          <FilTab
-            isDark={isDark}
-            userId={userId}
-            onStoryClick={(i) => {
-              setStoryIndex(i);
-              setShowStoryViewer(true);
-            }}
-            onPublish={() => setShowStoryCompose(true)}
-            onSafetyFilter={onSafetyFilter}
-            searchQuery={searchQuery}
-            onHashtagClick={(tag) => {
-              setSearchQuery(tag);
-              setSearchOpen(true);
-            }}
-            onHashtagsReady={setFeedHashtags}
-            refreshKey={refreshKey}
-            onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
-            onPinClick={onPinClick}
-          />
-        ) : activeTab === 1 ? (
-          <GroupesTab
-            isDark={isDark}
-            userId={userId}
-            onCreateGroup={() => setShowCreateGroup(true)}
-          />
-        ) : activeTab === 2 ? (
-          <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />
-        ) : null}
+        ) : (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              style={{ height: '100%', overflowY: 'auto' }}
+              className="scrollbar-hidden"
+            >
+              {activeTab === 0 ? (
+                <FilTab
+                  isDark={isDark}
+                  userId={userId}
+                  onStoryClick={(i) => {
+                    setStoryIndex(i);
+                    setShowStoryViewer(true);
+                  }}
+                  onPublish={() => setShowStoryCompose(true)}
+                  onSafetyFilter={onSafetyFilter}
+                  searchQuery={searchQuery}
+                  onHashtagClick={(tag) => {
+                    setSearchQuery(tag);
+                    setSearchOpen(true);
+                  }}
+                  onHashtagsReady={setFeedHashtags}
+                  refreshKey={refreshKey}
+                  onSearchToggle={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); setShowDropdown(false); } }}
+                  onPinClick={onPinClick}
+                />
+              ) : activeTab === 1 ? (
+                <GroupesTab
+                  isDark={isDark}
+                  userId={userId}
+                  onCreateGroup={() => setShowCreateGroup(true)}
+                />
+              ) : activeTab === 2 ? (
+                <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       {showCompose && (
