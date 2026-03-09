@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conditions d'utilisation — Breveil</title>
+  <meta name="description" content="Conditions générales d'utilisation de Breveil. Règles du service, droits des utilisateurs, abonnement Pro.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gradient-primary: linear-gradient(180deg,#3BB4C1 0%,#1E3A5F 45%,#4A2C5A 75%,#5C3D5E 100%);
+      --gradient-text: linear-gradient(135deg,#3BB4C1 0%,#A78BFA 50%,#F5C341 100%);
+      --surface-base:#0F172A; --surface-card:#1E293B; --surface-elevated:#334155; --surface-glass:rgba(30,41,59,0.85);
+      --text-primary:#FFFFFF; --text-secondary:#94A3B8; --text-tertiary:#64748B; --text-inverse:#0F172A;
+      --accent-teal:#3BB4C1; --accent-purple:#A78BFA; --accent-gold:#F5C341;
+      --semantic-warning:#FBBF24; --semantic-warning-soft:rgba(251,191,36,0.10);
+      --semantic-danger:#EF4444; --semantic-danger-soft:rgba(239,68,68,0.10);
+      --semantic-success:#34D399; --semantic-success-soft:rgba(52,211,153,0.10);
+      --border-subtle:rgba(255,255,255,0.08); --border-default:rgba(255,255,255,0.12); --border-strong:rgba(255,255,255,0.22);
+      --interactive-hover:rgba(255,255,255,0.05); --interactive-active:rgba(255,255,255,0.10);
+      --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.25);
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --radius-2xl:32px; --radius-full:9999px;
+      --duration-fast:150ms; --duration-normal:250ms;
+    }
+    [data-theme="light"] {
+      --surface-base:#F8FAFC; --surface-card:#FFFFFF; --surface-elevated:#F1F5F9; --surface-glass:rgba(248,250,252,0.92);
+      --text-primary:#0F172A; --text-secondary:#475569; --text-tertiary:#94A3B8; --text-inverse:#FFFFFF;
+      --border-subtle:rgba(15,23,42,0.07); --border-default:rgba(15,23,42,0.11); --border-strong:rgba(15,23,42,0.22);
+      --interactive-hover:rgba(0,0,0,0.03); --interactive-active:rgba(0,0,0,0.07);
+      --shadow-sm:0 1px 2px rgba(0,0,0,0.06); --shadow-md:0 4px 12px rgba(0,0,0,0.08);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+    body{background:var(--surface-base);color:var(--text-primary);line-height:1.65;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer;border:none;background:none}
+
+    .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--surface-glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border-subtle)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:900px;margin:0 auto;padding:0 24px}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-0.02em}
+    .nav-logo-icon{width:30px;height:30px;border-radius:var(--radius-sm);background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:15px}
+    .nav-back{font-size:13px;font-weight:500;color:var(--text-secondary);display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-full);border:1px solid var(--border-default);transition:all var(--duration-fast) ease}
+    .nav-back:hover{background:var(--interactive-hover);color:var(--text-primary);border-color:var(--border-strong)}
+    .theme-toggle{width:36px;height:36px;border-radius:var(--radius-full);background:var(--interactive-hover);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all var(--duration-fast) ease;font-size:16px}
+    .theme-toggle:hover{background:var(--interactive-active);color:var(--text-primary)}
+    .nav-right{display:flex;align-items:center;gap:10px}
+
+    .page{padding:96px 24px 80px;max-width:900px;margin:0 auto}
+
+    .hero{margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid var(--border-subtle)}
+    .hero-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:var(--radius-full);background:rgba(167,139,250,0.10);border:1px solid rgba(167,139,250,0.25);font-size:11px;font-weight:700;color:var(--accent-purple);letter-spacing:.04em;text-transform:uppercase;margin-bottom:18px}
+    .hero h1{font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-0.03em;line-height:1.15;margin-bottom:14px}
+    .gradient-text{background:var(--gradient-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-meta{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .hero-meta-item{font-size:13px;color:var(--text-tertiary);display:flex;align-items:center;gap:6px}
+    .hero-meta-dot{width:4px;height:4px;border-radius:50%;background:var(--border-strong)}
+
+    .sections{display:flex;flex-direction:column;gap:16px}
+    .card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:28px 32px;transition:border-color var(--duration-fast) ease}
+    .card:hover{border-color:var(--border-default)}
+    .card-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+    .card-num{width:28px;height:28px;border-radius:var(--radius-sm);background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--accent-purple);flex-shrink:0}
+    .card h2{font-size:15px;font-weight:700;color:var(--text-primary)}
+    .card p{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:10px}
+    .card p:last-child{margin-bottom:0}
+    .card ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+    .card ul li{font-size:14px;color:var(--text-secondary);line-height:1.6;display:flex;align-items:flex-start;gap:10px}
+    .card ul li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent-purple);margin-top:8px;flex-shrink:0}
+    .card ul li strong{color:var(--text-primary);font-weight:600}
+    .card a{color:var(--accent-teal);text-decoration:underline;text-decoration-color:rgba(59,180,193,0.35);text-underline-offset:3px}
+    .card a:hover{text-decoration-color:var(--accent-teal)}
+
+    .alert{border-radius:var(--radius-md);padding:14px 18px;margin-top:14px;display:flex;align-items:flex-start;gap:12px}
+    .alert-warning{background:var(--semantic-warning-soft);border:1px solid rgba(251,191,36,0.25)}
+    .alert-danger{background:var(--semantic-danger-soft);border:1px solid rgba(239,68,68,0.25)}
+    .alert-success{background:var(--semantic-success-soft);border:1px solid rgba(52,211,153,0.2)}
+    .alert p{font-size:13px;color:var(--text-secondary);margin:0;line-height:1.6}
+    .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+    .footer{margin-top:60px;padding-top:32px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+    .footer-logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:4px}
+    .footer p{font-size:12px;color:var(--text-tertiary);line-height:1.6}
+    .footer a{color:var(--accent-teal)}
+    .footer-links{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+    .footer-link{font-size:12px;color:var(--text-tertiary);transition:color var(--duration-fast) ease}
+    .footer-link:hover{color:var(--text-secondary)}
+
+    @media(max-width:600px){.page{padding:80px 16px 60px}.card{padding:20px 20px}.nav-back span{display:none}}
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <div class="nav-logo-icon">🛡️</div>
+        Breveil
+      </a>
+      <div class="nav-right">
+        <a href="/" class="nav-back">← <span>Retour à l'app</span></a>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Changer le thème">🌙</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE -->
+  <main class="page">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge">📜 Document légal</div>
+      <h1>Conditions <span class="gradient-text">d'utilisation</span></h1>
+      <div class="hero-meta">
+        <span class="hero-meta-item">📅 Dernière mise à jour : février 2026</span>
+        <span class="hero-meta-dot"></span>
+        <span class="hero-meta-item">⚖️ Droit français</span>
+        <span class="hero-meta-dot"></span>
+        <span class="hero-meta-item">🔞 16 ans minimum</span>
+      </div>
+    </div>
+
+    <!-- SECTIONS -->
+    <div class="sections">
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">1</div><h2>Acceptation</h2></div>
+        <p>En accédant ou en utilisant Breveil (« le Service »), vous acceptez les présentes Conditions d'utilisation. Si vous n'acceptez pas ces conditions, n'utilisez pas le Service. Le Service est opéré par <strong>DBEK</strong>, 75 rue de Lourmel, 75015 Paris, France.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">2</div><h2>Description du Service</h2></div>
+        <p>Breveil est une plateforme communautaire de sécurité urbaine permettant aux utilisateurs de signaler des incidents, de naviguer avec des itinéraires sécurisés, de déclencher des alertes d'urgence et de communiquer avec leur communauté.</p>
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <p>Breveil <strong>ne remplace pas les services d'urgence</strong>. En cas de danger immédiat, appelez toujours le numéro d'urgence local (15, 17, 18 ou 112 en France/UE).</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">3</div><h2>Création de compte</h2></div>
+        <ul>
+          <li>Vous devez avoir au moins <strong>16 ans</strong> pour créer un compte.</li>
+          <li>Vous devez fournir des informations exactes et maintenir la sécurité de votre compte.</li>
+          <li>Vous êtes responsable de toutes les activités effectuées sous votre compte.</li>
+          <li>Un compte par personne. Les comptes en double ou fictifs peuvent être résiliés.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">4</div><h2>Utilisation acceptable</h2></div>
+        <p>Vous vous engagez à <strong>ne pas</strong> :</p>
+        <ul>
+          <li>Soumettre des signalements de sécurité faux, trompeurs ou malveillants.</li>
+          <li>Utiliser le système SOS à des fins non urgentes.</li>
+          <li>Harceler, menacer ou cibler d'autres utilisateurs.</li>
+          <li>Publier du contenu illégal, haineux, discriminatoire ou sexuellement explicite.</li>
+          <li>Tenter d'accéder aux comptes ou données privées d'autres utilisateurs.</li>
+          <li>Utiliser des outils automatisés pour scraper des données ou abuser du Service.</li>
+          <li>Contourner la modération, les bannissements ou les mesures de sécurité.</li>
+        </ul>
+        <div class="alert alert-danger">
+          <span class="alert-icon">🚫</span>
+          <p>Les violations peuvent entraîner la suppression du contenu, la suspension ou le bannissement définitif du compte.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">5</div><h2>Contenu généré par les utilisateurs</h2></div>
+        <ul>
+          <li>Vous conservez la propriété du contenu que vous créez (signalements, photos, messages).</li>
+          <li>En publiant, vous accordez à Breveil une licence mondiale, libre de redevances, pour afficher, distribuer et traiter votre contenu dans le cadre du Service.</li>
+          <li>Breveil peut supprimer le contenu qui enfreint ces Conditions ou les règles communautaires.</li>
+          <li>Les signalements peuvent être anonymisés et utilisés de manière agrégée pour améliorer la sécurité communautaire.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">6</div><h2>Abonnement Breveil Pro</h2></div>
+        <ul>
+          <li>Breveil Pro est disponible en abonnement mensuel ou annuel.</li>
+          <li>Le paiement est traité par Stripe. Les prix sont affichés avant l'achat.</li>
+          <li>Les abonnements se renouvellent automatiquement sauf annulation avant la date de renouvellement.</li>
+          <li>Vous pouvez gérer ou annuler votre abonnement dans Paramètres → Facturation.</li>
+          <li>Les remboursements sont traités conformément à la politique de remboursement de Stripe et aux lois applicables de protection des consommateurs.</li>
+          <li>En vertu du droit européen, vous disposez d'un droit de rétractation de 14 jours pour les abonnements numériques, que vous renoncez à exercer dès l'accès aux fonctionnalités Pro.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">7</div><h2>Avertissement fonctionnalités d'urgence</h2></div>
+        <p>Breveil fournit des outils pour alerter vos contacts et partager votre localisation en cas d'urgence. Cependant, <strong>Breveil n'est pas un service d'urgence</strong>. Nous ne garantissons pas les délais de réponse, la disponibilité ou l'exactitude des données de sécurité générées par les utilisateurs.</p>
+        <div class="alert alert-warning">
+          <span class="alert-icon">🆘</span>
+          <p>Contactez toujours les services d'urgence officiels (<strong>112, 15, 17, 18</strong>) en cas de danger.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">8</div><h2>Vérification d'identité</h2></div>
+        <p>La vérification d'identité optionnelle est fournie par Veriff. La vérification confirme que vous êtes une personne réelle mais n'implique pas d'approbation ni de vérification des antécédents. Breveil n'est pas responsable des actes des utilisateurs vérifiés.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">9</div><h2>Limitation de responsabilité</h2></div>
+        <p>Dans la limite permise par la loi, Breveil et DBEK ne sont pas responsables de : (a) l'exactitude des signalements de sécurité générés par les utilisateurs, (b) tout préjudice résultant de l'utilisation du Service, (c) les interruptions de service ou pertes de données, (d) les actions d'autres utilisateurs. Le Service est fourni « en l'état » sans garantie d'aucune sorte.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">10</div><h2>Propriété intellectuelle</h2></div>
+        <p>Le nom Breveil, le logo, le design et le logiciel sont la propriété de DBEK. Vous ne pouvez pas copier, modifier ou distribuer toute partie du Service sans autorisation écrite.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">11</div><h2>Résiliation</h2></div>
+        <p>Vous pouvez supprimer votre compte à tout moment (Paramètres → Confidentialité → Supprimer le compte). Nous pouvons suspendre ou résilier les comptes qui enfreignent ces Conditions. Lors de la résiliation, vos données seront supprimées conformément à notre Politique de confidentialité.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">12</div><h2>Droit applicable & litiges</h2></div>
+        <p>Les présentes Conditions sont régies par le <strong>droit français</strong>. Tout litige sera soumis aux tribunaux compétents de Paris. Pour les consommateurs de l'UE, les lois impératives de protection des consommateurs de votre pays de résidence peuvent également s'appliquer.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">13</div><h2>Modifications</h2></div>
+        <p>Nous pouvons mettre à jour ces Conditions. Les modifications importantes seront notifiées dans l'application ou par e-mail. La poursuite de l'utilisation vaut acceptation des nouvelles conditions.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">14</div><h2>Contact</h2></div>
+        <p><strong>DBEK</strong>, 75 rue de Lourmel, 75015 Paris, France.<br>E-mail : <a href="mailto:brumeapp@pm.me">brumeapp@pm.me</a></p>
+      </div>
+
+    </div><!-- /sections -->
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-logo"><span>🛡️</span> Breveil</div>
+      <p>DBEK · 75 rue de Lourmel, 75015 Paris, France</p>
+      <p><a href="mailto:brumeapp@pm.me">brumeapp@pm.me</a></p>
+      <div class="footer-links">
+        <a href="/privacy.html" class="footer-link">Confidentialité</a>
+        <a href="/cookies.html" class="footer-link">Cookies</a>
+        <a href="/data-export.html" class="footer-link">Exporter mes données</a>
+      </div>
+      <p style="margin-top:12px;font-size:11px;color:var(--text-tertiary)">© 2026 Breveil by DBEK. Tous droits réservés.</p>
+    </div>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
+      try { localStorage.setItem('breveil-legal-theme', isDark ? 'light' : 'dark'); } catch(e) {}
+    }
+    try {
+      const saved = localStorage.getItem('breveil-legal-theme') || localStorage.getItem('brume-theme');
+      if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.querySelector('.theme-toggle').textContent = '☀️';
+      }
+    } catch(e) {}
+  </script>
+</body>
+</html>

@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import { useTheme } from '@/stores/useTheme';
-import { bToast } from '@/components/GlobalToast';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -13,37 +11,11 @@ interface Props {
 
 export default function PrivacyScreen({ onBack, onNavigate }: Props) {
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const [exporting, setExporting] = useState(false);
 
   const txt1 = isDark ? '#FFFFFF' : '#0F172A';
   const txt2 = isDark ? '#94A3B8' : '#64748B';
   const bg2 = isDark ? '#334155' : '#F1F5F9';
   const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const res = await fetch('/api/export-data');
-      if (!res.ok) {
-        bToast.danger({ title: 'Erreur lors de l\'export' }, isDark);
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `breveil-data-${Date.now()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      bToast.success({ title: 'Donnees exportees' }, isDark);
-    } catch {
-      bToast.danger({ title: 'Erreur reseau' }, isDark);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -74,7 +46,7 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
             iconColor="#3BB4C1"
             label="Politique de confidentialite"
             subtitle="Collecte, utilisation, droits"
-            onPress={() => window.open('/privacy', '_blank')}
+            onPress={() => window.open('/privacy.html', '_blank')}
           />
           <div style={divider} />
           <SettingsRow
@@ -82,7 +54,7 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
             iconColor="#A78BFA"
             label="Conditions d'utilisation"
             subtitle="Regles du service"
-            onPress={() => window.open('/terms', '_blank')}
+            onPress={() => window.open('/terms.html', '_blank')}
           />
           <div style={divider} />
           <SettingsRow
@@ -90,7 +62,7 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
             iconColor="#F59E0B"
             label="Politique cookies"
             subtitle="Cookies essentiels uniquement"
-            onPress={() => window.open('/cookies', '_blank')}
+            onPress={() => window.open('/cookies.html', '_blank')}
           />
         </SettingsSection>
 
@@ -99,9 +71,9 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
           <SettingsRow
             icon="Download"
             iconColor="#22C55E"
-            label={exporting ? 'Export en cours...' : 'Exporter mes donnees'}
-            subtitle="Telecharger toutes vos donnees (JSON)"
-            onPress={exporting ? undefined : handleExport}
+            label="Exporter mes donnees"
+            subtitle="Recevoir toutes vos donnees par e-mail"
+            onPress={() => window.open('/data-export.html', '_blank')}
           />
           <div style={divider} />
           <SettingsRow

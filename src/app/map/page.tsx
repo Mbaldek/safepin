@@ -12,6 +12,7 @@ import { useTheme } from '@/stores/useTheme';
 import { Pin } from '@/types';
 import { bToast } from '@/components/GlobalToast';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
+import { updateStreak } from '@/lib/streaks';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, SlidersHorizontal } from 'lucide-react';
 import MapView from '@/components/MapView';
@@ -378,6 +379,7 @@ activeTrip, setActiveTrip,
         setUserId(uid);
         setUserEmail(session.user.email ?? '');
         setLoading(false);
+        updateStreak(supabase, uid).catch(() => {});
 
         supabase.from('profiles').select('*').eq('id', uid).single().then(({ data }) => {
           if (data) {

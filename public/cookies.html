@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Politique de cookies — Breveil</title>
+  <meta name="description" content="Politique de cookies de Breveil. Cookies essentiels uniquement, aucun tracking publicitaire.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gradient-primary: linear-gradient(180deg,#3BB4C1 0%,#1E3A5F 45%,#4A2C5A 75%,#5C3D5E 100%);
+      --gradient-text: linear-gradient(135deg,#3BB4C1 0%,#A78BFA 50%,#F5C341 100%);
+      --surface-base:#0F172A; --surface-card:#1E293B; --surface-elevated:#334155; --surface-glass:rgba(30,41,59,0.85);
+      --text-primary:#FFFFFF; --text-secondary:#94A3B8; --text-tertiary:#64748B; --text-inverse:#0F172A;
+      --accent-teal:#3BB4C1; --accent-purple:#A78BFA; --accent-gold:#F5C341;
+      --semantic-success:#34D399; --semantic-success-soft:rgba(52,211,153,0.10);
+      --border-subtle:rgba(255,255,255,0.08); --border-default:rgba(255,255,255,0.12); --border-strong:rgba(255,255,255,0.22);
+      --interactive-hover:rgba(255,255,255,0.05); --interactive-active:rgba(255,255,255,0.10);
+      --shadow-sm:0 1px 2px rgba(0,0,0,0.2); --shadow-md:0 4px 12px rgba(0,0,0,0.25);
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --radius-2xl:32px; --radius-full:9999px;
+      --duration-fast:150ms; --duration-normal:250ms;
+    }
+    [data-theme="light"] {
+      --surface-base:#F8FAFC; --surface-card:#FFFFFF; --surface-elevated:#F1F5F9; --surface-glass:rgba(248,250,252,0.92);
+      --text-primary:#0F172A; --text-secondary:#475569; --text-tertiary:#94A3B8; --text-inverse:#FFFFFF;
+      --border-subtle:rgba(15,23,42,0.07); --border-default:rgba(15,23,42,0.11); --border-strong:rgba(15,23,42,0.22);
+      --interactive-hover:rgba(0,0,0,0.03); --interactive-active:rgba(0,0,0,0.07);
+      --shadow-sm:0 1px 2px rgba(0,0,0,0.06); --shadow-md:0 4px 12px rgba(0,0,0,0.08);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+    body{background:var(--surface-base);color:var(--text-primary);line-height:1.65;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer;border:none;background:none}
+
+    .nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--surface-glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border-subtle)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:900px;margin:0 auto;padding:0 24px}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-0.02em}
+    .nav-logo-icon{width:30px;height:30px;border-radius:var(--radius-sm);background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:15px}
+    .nav-back{font-size:13px;font-weight:500;color:var(--text-secondary);display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-full);border:1px solid var(--border-default);transition:all var(--duration-fast) ease}
+    .nav-back:hover{background:var(--interactive-hover);color:var(--text-primary);border-color:var(--border-strong)}
+    .theme-toggle{width:36px;height:36px;border-radius:var(--radius-full);background:var(--interactive-hover);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all var(--duration-fast) ease;font-size:16px}
+    .theme-toggle:hover{background:var(--interactive-active);color:var(--text-primary)}
+    .nav-right{display:flex;align-items:center;gap:10px}
+
+    .page{padding:96px 24px 80px;max-width:900px;margin:0 auto}
+
+    .hero{margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid var(--border-subtle)}
+    .hero-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:var(--radius-full);background:rgba(245,195,65,0.10);border:1px solid rgba(245,195,65,0.25);font-size:11px;font-weight:700;color:var(--accent-gold);letter-spacing:.04em;text-transform:uppercase;margin-bottom:18px}
+    .hero h1{font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-0.03em;line-height:1.15;margin-bottom:14px}
+    .gradient-text{background:var(--gradient-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-meta{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .hero-meta-item{font-size:13px;color:var(--text-tertiary);display:flex;align-items:center;gap:6px}
+    .hero-meta-dot{width:4px;height:4px;border-radius:50%;background:var(--border-strong)}
+
+    /* SUMMARY PILL */
+    .summary-pills{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+    .pill{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:var(--radius-full);font-size:12px;font-weight:600}
+    .pill-green{background:var(--semantic-success-soft);border:1px solid rgba(52,211,153,0.2);color:var(--semantic-success)}
+    .pill-teal{background:rgba(59,180,193,0.10);border:1px solid rgba(59,180,193,0.2);color:var(--accent-teal)}
+    .pill-red{background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.2);color:#F87171}
+
+    .sections{display:flex;flex-direction:column;gap:16px}
+    .card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:28px 32px;transition:border-color var(--duration-fast) ease}
+    .card:hover{border-color:var(--border-default)}
+    .card-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+    .card-num{width:28px;height:28px;border-radius:var(--radius-sm);background:rgba(245,195,65,0.12);border:1px solid rgba(245,195,65,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--accent-gold);flex-shrink:0}
+    .card h2{font-size:15px;font-weight:700;color:var(--text-primary)}
+    .card p{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:10px}
+    .card p:last-child{margin-bottom:0}
+    .card ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+    .card ul li{font-size:14px;color:var(--text-secondary);line-height:1.6;display:flex;align-items:flex-start;gap:10px}
+    .card ul li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent-gold);margin-top:8px;flex-shrink:0}
+    .card ul li strong{color:var(--text-primary);font-weight:600}
+    .card a{color:var(--accent-teal);text-decoration:underline;text-decoration-color:rgba(59,180,193,0.35);text-underline-offset:3px}
+    .card a:hover{text-decoration-color:var(--accent-teal)}
+    code{font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:12px;background:var(--surface-elevated);padding:2px 6px;border-radius:4px;color:var(--accent-teal)}
+
+    /* COOKIE TABLE */
+    .table-wrap{overflow-x:auto;margin-top:14px;border-radius:var(--radius-md);border:1px solid var(--border-subtle)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead tr{background:var(--surface-elevated)}
+    th{text-align:left;padding:11px 16px;font-weight:700;color:var(--text-primary);font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border-default)}
+    td{padding:11px 16px;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);vertical-align:top;line-height:1.5}
+    tr:last-child td{border-bottom:none}
+    tbody tr:hover td{background:var(--interactive-hover)}
+    .tag{display:inline-block;padding:2px 9px;border-radius:var(--radius-full);font-size:11px;font-weight:600;white-space:nowrap}
+    .tag-essential{background:var(--semantic-success-soft);color:var(--semantic-success);border:1px solid rgba(52,211,153,0.2)}
+    .tag-functional{background:rgba(59,180,193,0.10);color:var(--accent-teal);border:1px solid rgba(59,180,193,0.2)}
+
+    .highlight{background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.18);border-radius:var(--radius-md);padding:15px 20px;margin-top:14px}
+    .highlight p{font-size:13px;color:var(--text-secondary);margin:0;line-height:1.6}
+    .highlight strong{color:var(--semantic-success)}
+
+    .footer{margin-top:60px;padding-top:32px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+    .footer-logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:4px}
+    .footer p{font-size:12px;color:var(--text-tertiary);line-height:1.6}
+    .footer a{color:var(--accent-teal)}
+    .footer-links{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+    .footer-link{font-size:12px;color:var(--text-tertiary);transition:color var(--duration-fast) ease}
+    .footer-link:hover{color:var(--text-secondary)}
+
+    @media(max-width:600px){.page{padding:80px 16px 60px}.card{padding:20px 20px}.nav-back span{display:none}}
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <div class="nav-logo-icon">🛡️</div>
+        Breveil
+      </a>
+      <div class="nav-right">
+        <a href="/" class="nav-back">← <span>Retour à l'app</span></a>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Changer le thème">🌙</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE -->
+  <main class="page">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge">🍪 Politique cookies</div>
+      <h1>Politique de <span class="gradient-text">cookies</span></h1>
+      <div class="hero-meta">
+        <span class="hero-meta-item">📅 Dernière mise à jour : février 2026</span>
+        <span class="hero-meta-dot"></span>
+        <span class="hero-meta-item">🇫🇷 ePrivacy Directive</span>
+      </div>
+      <div class="summary-pills">
+        <span class="pill pill-green">✓ Zéro tracking publicitaire</span>
+        <span class="pill pill-teal">✓ Cookies essentiels uniquement</span>
+        <span class="pill pill-red">✗ Aucun Google Analytics</span>
+      </div>
+    </div>
+
+    <!-- SECTIONS -->
+    <div class="sections">
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">1</div><h2>Qu'est-ce qu'un cookie ?</h2></div>
+        <p>Les cookies sont de petits fichiers texte stockés sur votre appareil lorsque vous visitez un site web. Ils permettent au site de mémoriser vos préférences et d'améliorer votre expérience. Breveil utilise des cookies au strict minimum — uniquement ce qui est nécessaire au fonctionnement du Service.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">2</div><h2>Cookies utilisés</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cookie</th>
+                <th>Finalité</th>
+                <th>Type</th>
+                <th>Durée</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>sb-*-auth-token</code></td>
+                <td>Session d'authentification (Supabase)</td>
+                <td><span class="tag tag-essential">Essentiel</span></td>
+                <td>Session</td>
+              </tr>
+              <tr>
+                <td><code>NEXT_LOCALE</code></td>
+                <td>Mémorise votre préférence de langue</td>
+                <td><span class="tag tag-essential">Essentiel</span></td>
+                <td>1 an</td>
+              </tr>
+              <tr>
+                <td><code>breveil_theme</code></td>
+                <td>Mémorise votre préférence de thème clair/sombre</td>
+                <td><span class="tag tag-functional">Fonctionnel</span></td>
+                <td>1 an</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="highlight">
+          <p><strong>Pas de bannière cookies</strong> — Conformément à la directive ePrivacy, le consentement n'est pas requis pour les cookies strictement nécessaires à la fourniture du Service.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">3</div><h2>Stockage local (localStorage)</h2></div>
+        <p>En complément des cookies, Breveil utilise le stockage local du navigateur pour les fonctionnalités de l'application :</p>
+        <ul>
+          <li><strong><code>breveil_active_trip</code> :</strong> maintient l'état de navigation de trajet actif.</li>
+          <li><strong><code>breveil_last_session_ts</code> :</strong> date de la dernière visite (pour le résumé de session).</li>
+          <li><strong><code>breveil_notifications_enabled</code> :</strong> préférence de notification push.</li>
+          <li><strong>File d'attente hors-ligne (IndexedDB) :</strong> stocke les signalements créés hors connexion pour synchronisation ultérieure.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">4</div><h2>Cookies tiers</h2></div>
+        <p>Breveil n'utilise <strong>aucun</strong> cookie de suivi, analytique ou publicitaire tiers. Nous n'utilisons pas Google Analytics, Facebook Pixel ni aucun outil de tracking similaire.</p>
+        <p>Les seuls services tiers susceptibles de déposer des cookies sont :</p>
+        <ul>
+          <li><strong>Supabase :</strong> cookies d'authentification (essentiels, équivalent premier parti).</li>
+          <li><strong>Stripe :</strong> cookies de prévention de la fraude lors du paiement (uniquement si vous initiez un paiement).</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">5</div><h2>Gestion des cookies</h2></div>
+        <p>Breveil n'utilisant que des cookies essentiels et fonctionnels, nous n'affichons pas de bandeau de consentement aux cookies.</p>
+        <p>Vous pouvez supprimer les cookies à tout moment via les paramètres de votre navigateur. Notez que la suppression des cookies d'authentification vous déconnectera, et la suppression du stockage local réinitialisera vos préférences.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">6</div><h2>Modifications</h2></div>
+        <p>Nous pouvons mettre à jour cette Politique de cookies si nous introduisons de nouvelles fonctionnalités nécessitant des cookies supplémentaires. Toute modification sera reflétée sur cette page avec une date mise à jour.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-num">7</div><h2>Contact</h2></div>
+        <p>Pour toute question sur notre utilisation des cookies, contactez-nous à <a href="mailto:brumeapp@pm.me">brumeapp@pm.me</a>.</p>
+      </div>
+
+    </div><!-- /sections -->
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-logo"><span>🛡️</span> Breveil</div>
+      <p>DBEK · 75 rue de Lourmel, 75015 Paris, France</p>
+      <p><a href="mailto:brumeapp@pm.me">brumeapp@pm.me</a></p>
+      <div class="footer-links">
+        <a href="/privacy.html" class="footer-link">Confidentialité</a>
+        <a href="/terms.html" class="footer-link">Conditions d'utilisation</a>
+        <a href="/data-export.html" class="footer-link">Exporter mes données</a>
+      </div>
+      <p style="margin-top:12px;font-size:11px;color:var(--text-tertiary)">© 2026 Breveil by DBEK. Tous droits réservés.</p>
+    </div>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
+      try { localStorage.setItem('breveil-legal-theme', isDark ? 'light' : 'dark'); } catch(e) {}
+    }
+    try {
+      const saved = localStorage.getItem('breveil-legal-theme') || localStorage.getItem('brume-theme');
+      if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.querySelector('.theme-toggle').textContent = '☀️';
+      }
+    } catch(e) {}
+  </script>
+</body>
+</html>
