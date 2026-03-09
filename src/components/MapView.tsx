@@ -845,6 +845,7 @@ function MapView({
       const center = map.current.getCenter();
       const zoom   = map.current.getZoom();
       const bounds = map.current.getBounds();
+      if (!bounds) return;
       const ne = bounds.getNorthEast();
       const sw = bounds.getSouthWest();
       const latSpan = Math.abs(ne.lat - sw.lat);
