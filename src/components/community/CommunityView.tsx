@@ -306,7 +306,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         left: 0,
         right: 0,
         maxHeight: '85dvh',
-        paddingBottom: 64,
+        paddingBottom: 0,
         zIndex: 50,
         backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
         borderTopLeftRadius: 28,
@@ -365,7 +365,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 13,
+                fontSize: 12,
                 color: isDark ? '#FFFFFF' : '#0F172A',
                 flex: 1,
                 minWidth: 0,
@@ -433,9 +433,9 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
                         borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
                       }}
                     >
-                      {isSafety && <span style={{ fontSize: 13, flexShrink: 0 }}>⚠️</span>}
-                      <span style={{ fontSize: 14, fontWeight: 700, color: tagColor }}>#</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: isDark ? '#FFFFFF' : '#0F172A', flex: 1 }}>
+                      {isSafety && <span style={{ fontSize: 12, flexShrink: 0 }}>⚠️</span>}
+                      <span style={{ fontSize: 12, fontWeight: 700, color: tagColor }}>#</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#FFFFFF' : '#0F172A', flex: 1 }}>
                         {s.tag.replace(/^#/, '')}
                       </span>
                       <span style={{
@@ -456,7 +456,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="scrollbar-hidden">
         {!ready ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: 12 }}>
             Chargement…
           </div>
         ) : activeTab === 0 ? (
@@ -532,6 +532,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
           />
         )}
       </AnimatePresence>
+      <div style={{ flexShrink: 0, height: 'env(safe-area-inset-bottom, 0px)' }} />
     </motion.div>
   );
 }

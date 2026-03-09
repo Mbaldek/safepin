@@ -1,7 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Plus, X } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 import type { CircleMember, CircleMessage } from '@/types'
 
 interface CercleChatProps {
@@ -11,7 +14,7 @@ interface CercleChatProps {
   loading?: boolean
   onBack: () => void
   onStartCall: () => void
-  sendMessage: (content: string) => void
+  sendMessage: (content: string, type?: string, media_url?: string) => void
 }
 
 const AVATAR_PALETTE = ['#A78BFA', '#34D399', '#F87171', '#F5C341', '#3BB4C1', '#F97316']
@@ -35,8 +38,12 @@ export default function CercleChat({
   const isDark = theme === 'dark'
 
   const [message, setMessage] = useState('')
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const t = useMemo(() => ({
     surfaceCard: isDark ? '#1E293B' : '#FFFFFF',
@@ -60,15 +67,48 @@ export default function CercleChat({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  const handleSend = useCallback(() => {
+  const handleFilePick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Fichier trop lourd (max 10 Mo)')
+      return
+    }
+    setPendingFile(file)
+    setPendingPreview(URL.createObjectURL(file))
+    if (e.target) e.target.value = ''
+  }, [])
+
+  const clearPending = useCallback(() => {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    setPendingFile(null)
+    setPendingPreview(null)
+  }, [pendingPreview])
+
+  const handleSend = useCallback(async () => {
     const trimmed = message.trim()
-    if (!trimmed) return
-    sendMessage(trimmed)
+    if (!trimmed && !pendingFile) return
+
+    let mediaUrl: string | undefined
+    if (pendingFile) {
+      setUploading(true)
+      const ext = pendingFile.name.split('.').pop() || 'bin'
+      const path = `cercle/${currentUserId}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('media').upload(path, pendingFile)
+      setUploading(false)
+      if (error) { toast.error("Erreur d'upload"); return }
+      const { data: pub } = supabase.storage.from('media').getPublicUrl(path)
+      mediaUrl = pub.publicUrl
+      clearPending()
+    }
+
+    const type = mediaUrl ? (pendingFile?.type.startsWith('video') ? 'video' : 'image') : 'text'
+    sendMessage(trimmed || '', type, mediaUrl)
     setMessage('')
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
-  }, [message, sendMessage])
+  }, [message, sendMessage, pendingFile, currentUserId, clearPending])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -92,7 +132,7 @@ export default function CercleChat({
     return Math.abs(new Date(curr.created_at).getTime() - new Date(prev.created_at).getTime()) < 60000
   }, [messages])
 
-  const hasTrimmed = message.trim().length > 0
+  const hasTrimmed = message.trim().length > 0 || !!pendingFile
 
   // stacked avatars — first 3 members
   const stackedMembers = members.slice(0, 3)
@@ -114,7 +154,7 @@ export default function CercleChat({
           style={{
             width: 32, height: 32, borderRadius: '50%',
             background: 'transparent', border: 'none',
-            cursor: 'pointer', fontSize: 16, color: t.textPrimary,
+            cursor: 'pointer', fontSize: 13, color: t.textPrimary,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -151,7 +191,7 @@ export default function CercleChat({
 
         {/* title */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: t.textPrimary }}>Mon Cercle</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary }}>Mon Cercle</div>
           <div style={{ fontSize: 10, color: t.green }}>{onlineCount} actives</div>
         </div>
 
@@ -162,7 +202,7 @@ export default function CercleChat({
             width: 32, height: 32, borderRadius: '50%',
             background: 'transparent',
             border: `1px solid ${t.teal}`,
-            cursor: 'pointer', fontSize: 15,
+            cursor: 'pointer', fontSize: 13,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -174,7 +214,7 @@ export default function CercleChat({
           style={{
             width: 32, height: 32, borderRadius: '50%',
             background: 'transparent', border: 'none',
-            cursor: 'pointer', fontSize: 16, color: t.textTertiary,
+            cursor: 'pointer', fontSize: 13, color: t.textTertiary,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -192,7 +232,7 @@ export default function CercleChat({
         {loading ? (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            height: '100%', color: t.textTertiary, fontSize: 12,
+            height: '100%', color: t.textTertiary, fontSize: 11,
           }}>
             Chargement…
           </div>
@@ -202,7 +242,7 @@ export default function CercleChat({
             height: '100%', gap: 8, padding: '0 24px', textAlign: 'center',
           }}>
             <div style={{ fontSize: 32, opacity: 0.5 }}>{'\uD83D\uDCAC'}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Aucun message</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>Aucun message</div>
             <div style={{ fontSize: 11, color: t.textTertiary, lineHeight: 1.4 }}>
               Envoie un premier message à ton cercle de confiance
             </div>
@@ -258,7 +298,7 @@ export default function CercleChat({
                 <div style={{
                   maxWidth: '75%',
                   padding: '7px 11px',
-                  fontSize: 12.5,
+                  fontSize: 11,
                   lineHeight: 1.45,
                   ...(safeArrival ? {
                     background: 'rgba(52,211,153,0.14)',
@@ -276,6 +316,13 @@ export default function CercleChat({
                     borderRadius: '14px 14px 14px 4px',
                   }),
                 }}>
+                  {msg.media_url && (
+                    /\.(mp4|mov|webm)(\?|$)/i.test(msg.media_url) ? (
+                      <video src={msg.media_url} controls playsInline style={{ maxWidth: 220, borderRadius: 10, display: 'block', marginBottom: msg.content ? 4 : 0 }} />
+                    ) : (
+                      <img src={msg.media_url} alt="" style={{ maxWidth: 220, borderRadius: 10, display: 'block', marginBottom: msg.content ? 4 : 0 }} />
+                    )
+                  )}
                   {safeArrival && '\u2705 '}{msg.content}
                   <div style={{
                     fontSize: 9.5,
@@ -294,6 +341,26 @@ export default function CercleChat({
       </div>
 
       {/* 3. INPUT BAR */}
+      {/* Preview strip */}
+      {pendingPreview && (
+        <div style={{
+          padding: '6px 12px',
+          borderTop: `1px solid ${t.border}`,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {pendingFile?.type.startsWith('video') ? (
+            <video src={pendingPreview} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+          ) : (
+            <img src={pendingPreview} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+          )}
+          <span style={{ fontSize: 11, color: t.textSecondary, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {pendingFile?.name}
+          </span>
+          <button onClick={clearPending} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+            <X size={14} style={{ color: t.textTertiary }} />
+          </button>
+        </div>
+      )}
       <div style={{
         flexShrink: 0,
         padding: '8px 10px 14px',
@@ -302,14 +369,27 @@ export default function CercleChat({
         alignItems: 'flex-end',
         gap: 6,
       }}>
-        {/* emoji placeholder */}
-        <button style={{
-          width: 34, height: 34, borderRadius: '50%',
-          background: 'transparent', border: 'none',
-          cursor: 'pointer', fontSize: 18,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {'\uD83D\uDE0A'}
+        {/* + attachment */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFilePick}
+          style={{ display: 'none' }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: t.surfaceElevated, border: 'none',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: uploading ? 0.4 : 0.7,
+            flexShrink: 0,
+          }}
+        >
+          <Plus size={16} style={{ color: t.textSecondary }} />
         </button>
 
         {/* textarea */}
@@ -328,11 +408,14 @@ export default function CercleChat({
             padding: '8px 13px',
             border: 'none',
             outline: 'none',
-            fontSize: 16,
+            fontSize: 13,
             color: t.textPrimary,
+            WebkitTextFillColor: t.textPrimary,
+            caretColor: t.teal,
             resize: 'none',
             lineHeight: 1.4,
             maxHeight: 100,
+            overflow: 'hidden' as const,
           }}
         />
 
@@ -344,7 +427,7 @@ export default function CercleChat({
               width: 34, height: 34, borderRadius: '50%',
               border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16,
+              fontSize: 13,
               background: t.teal,
               color: '#fff',
               transition: 'background 0.15s',

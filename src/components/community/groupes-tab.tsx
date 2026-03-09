@@ -224,13 +224,13 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
             width: 36, height: 36, borderRadius: '50%',
             background: 'linear-gradient(135deg, #3BB4C1, #06B6D4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, flexShrink: 0,
+            fontSize: 13, flexShrink: 0,
           }}>
             {activeGroupData?.avatar_emoji || '\uD83D\uDC65'}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
-              fontSize: 14, fontWeight: 700, margin: 0,
+              fontSize: 12, fontWeight: 700, margin: 0,
               color: isDark ? '#FFFFFF' : '#0F172A',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -266,16 +266,16 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
           }}
         >
           {chatLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: 13 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: 12 }}>
               Chargement&hellip;
             </div>
           ) : messages.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0', gap: 8 }}>
               <span style={{ fontSize: 32 }}>{'\uD83D\uDCAC'}</span>
-              <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? '#94A3B8' : '#64748B' }}>
+              <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? '#94A3B8' : '#64748B' }}>
                 Aucun message
               </p>
-              <p style={{ fontSize: 12, color: isDark ? '#64748B' : '#94A3B8' }}>
+              <p style={{ fontSize: 11, color: isDark ? '#64748B' : '#94A3B8' }}>
                 Envoyez le premier message !
               </p>
             </div>
@@ -307,7 +307,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                         display: 'flex', alignItems: 'center', gap: 4,
                         marginBottom: 2, paddingLeft: 4,
                       }}>
-                        <span style={{ fontSize: 12 }}>{msg.avatar_emoji || '\uD83D\uDC64'}</span>
+                        <span style={{ fontSize: 11 }}>{msg.avatar_emoji || '\uD83D\uDC64'}</span>
                         <span style={{ fontSize: 10, fontWeight: 600, color: isDark ? '#64748B' : '#94A3B8' }}>
                           {msg.display_name}
                         </span>
@@ -320,7 +320,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                       background: isMe ? '#3BB4C1' : (isDark ? '#1E293B' : '#F1F5F9'),
                       border: isMe ? 'none' : `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
                       color: isMe ? '#FFFFFF' : (isDark ? '#E2E8F0' : '#334155'),
-                      fontSize: 13, lineHeight: 1.5,
+                      fontSize: 12, lineHeight: 1.5,
                       wordBreak: 'break-word',
                     }}>
                       {msg.content}
@@ -356,7 +356,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
               border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
               background: isDark ? '#1E293B' : '#F8FAFC',
               color: isDark ? '#FFFFFF' : '#0F172A',
-              fontSize: 13, outline: 'none', fontFamily: 'inherit',
+              fontSize: 12, outline: 'none', fontFamily: 'inherit',
             }}
           />
           <button
@@ -381,7 +381,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
   // ─── Group list view ─────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)", fontSize: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)", fontSize: 12 }}>
         Chargement&hellip;
       </div>
     );
@@ -406,7 +406,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
             flex: 1, border: "none", background: "transparent",
-            fontSize: 15, color: isDark ? "#FFFFFF" : "#0F172A", outline: "none",
+            fontSize: 13, color: isDark ? "#FFFFFF" : "#0F172A", outline: "none",
           }}
         />
       </div>
@@ -418,7 +418,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
         style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           padding: "14px 16px", borderRadius: 12, backgroundColor: "#3BB4C1", border: "none",
-          color: "#FFFFFF", fontSize: 14, fontWeight: 600, cursor: "pointer", marginBottom: 24,
+          color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 24,
         }}
       >
         <Plus size={18} strokeWidth={1.5} />
@@ -428,7 +428,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
       {/* Mes Groupes */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{
-          fontSize: 13, fontWeight: 600, color: isDark ? "#64748B" : "#94A3B8",
+          fontSize: 12, fontWeight: 600, color: isDark ? "#64748B" : "#94A3B8",
           textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16,
         }}>
           Mes Groupes
@@ -436,7 +436,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
         {filteredMy.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 0", gap: 8 }}>
             <span style={{ fontSize: 32 }}>{'\uD83D\uDC65'}</span>
-            <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
               Aucun groupe rejoint
             </p>
           </div>
@@ -462,7 +462,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                   width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                   background: 'linear-gradient(135deg, #3BB4C1, #06B6D4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, overflow: 'hidden',
+                  fontSize: 13, overflow: 'hidden',
                 }}>
                   {group.avatar_url ? (
                     <img src={group.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -472,7 +472,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
-                    fontSize: 13, fontWeight: 700, margin: 0,
+                    fontSize: 12, fontWeight: 700, margin: 0,
                     color: isDark ? '#FFFFFF' : '#0F172A',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
@@ -507,7 +507,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
       {filteredDiscover.length > 0 && (
         <div>
           <h3 style={{
-            fontSize: 13, fontWeight: 600, color: isDark ? "#64748B" : "#94A3B8",
+            fontSize: 12, fontWeight: 600, color: isDark ? "#64748B" : "#94A3B8",
             textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16,
           }}>
             D&eacute;couvrir
@@ -528,19 +528,19 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                 <div style={{ height: 48, background: "linear-gradient(135deg, #3BB4C1, #06B6D4)" }} />
                 <div style={{ padding: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 18 }}>
+                    <span style={{ fontSize: 13 }}>
                       {group.avatar_url ? (
                         <img src={group.avatar_url} alt=""
                           style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", verticalAlign: "middle" }} />
                       ) : (group.avatar_emoji || '\uD83D\uDC65')}
                     </span>
-                    <h4 style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                    <h4 style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
                       {group.name}
                     </h4>
                   </div>
                   {group.description && (
                     <p style={{
-                      fontSize: 13, color: isDark ? "#94A3B8" : "#64748B", marginBottom: 12,
+                      fontSize: 12, color: isDark ? "#94A3B8" : "#64748B", marginBottom: 12,
                       display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                     }}>
                       {group.description}
@@ -549,7 +549,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <Users size={14} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-                      <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                      <span style={{ fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
                         {group.member_count || 0} membres
                       </span>
                     </div>
@@ -558,7 +558,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                       onClick={() => handleJoin(group.id)}
                       style={{
                         padding: "8px 16px", borderRadius: 8, backgroundColor: "#3BB4C1",
-                        border: "none", color: "#FFFFFF", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        border: "none", color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer",
                       }}
                     >
                       Rejoindre

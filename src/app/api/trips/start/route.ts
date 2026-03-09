@@ -4,12 +4,33 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 const MODE_EMOJI: Record<string, string> = {
   walk: '🚶', bike: '🚲', drive: '🚗', transit: '🚇',
 };
 
 export async function POST(req: NextRequest) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options));
+        },
+      },
+    },
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json() as {
     user_id: string;
     from_label: string;
@@ -24,14 +45,14 @@ export async function POST(req: NextRequest) {
     distance_m: number;
   };
 
-  if (!body.user_id || !body.to_label) {
+  if (!body.to_label) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   const admin = createAdminClient();
 
   const { data, error } = await admin.from('trip_log').insert({
-    user_id: body.user_id,
+    user_id: user.id,
     from_label: body.from_label,
     to_label: body.to_label,
     mode: body.mode,
@@ -52,10 +73,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Set active_trip_id on profile
-  await admin.from('profiles').update({ active_trip_id: data.id }).eq('id', body.user_id);
+  await admin.from('profiles').update({ active_trip_id: data.id }).eq('id', user.id);
 
   // ── Notify trusted circle (fire-and-forget) ────────────────────────────────
-  notifyCircle(admin, body, data.id).catch(() => {});
+  notifyCircle(admin, { user_id: user.id, to_label: body.to_label, mode: body.mode }, data.id).catch(() => {});
 
   return NextResponse.json({ trip_id: data.id });
 }

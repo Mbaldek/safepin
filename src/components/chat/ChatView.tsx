@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 import EmojiPickerButton from '@/components/ui/EmojiPickerButton';
 import { sendSupportMessage, markConversationRead, notifyDmRecipient } from '@/lib/support';
 import ChatBubble, { type ChatColors } from './ChatBubble';
@@ -39,8 +40,12 @@ export default function ChatView({
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Determine read position for this user
   const readPosition = useCallback(
@@ -119,15 +124,49 @@ export default function ChatView({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
 
+  const handleFilePick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Fichier trop lourd (max 10 Mo)');
+      return;
+    }
+    setPendingFile(file);
+    setPendingPreview(URL.createObjectURL(file));
+    if (e.target) e.target.value = '';
+  }, []);
+
+  const clearPending = useCallback(() => {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingPreview(null);
+  }, [pendingPreview]);
+
   const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed && !pendingFile) return;
+    if (sending || uploading) return;
+
+    let mediaUrl: string | undefined;
+    let contentType: 'text' | 'image' | 'video' = 'text';
+
+    if (pendingFile) {
+      setUploading(true);
+      const ext = pendingFile.name.split('.').pop() || 'bin';
+      const path = `dm/${sendAsUserId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('media').upload(path, pendingFile);
+      setUploading(false);
+      if (error) { toast.error("Erreur d'upload"); return; }
+      const { data: pub } = supabase.storage.from('media').getPublicUrl(path);
+      mediaUrl = pub.publicUrl;
+      contentType = pendingFile.type.startsWith('video') ? 'video' : 'image';
+      clearPending();
+    }
 
     setSending(true);
     try {
-      await sendSupportMessage(conversationId, sendAsUserId, trimmed);
-      // Push notification to recipient (fire-and-forget)
-      notifyDmRecipient(conversationId, sendAsUserId, trimmed);
+      await sendSupportMessage(conversationId, sendAsUserId, trimmed, mediaUrl ? { media_url: mediaUrl, content_type: contentType } : undefined);
+      notifyDmRecipient(conversationId, sendAsUserId, mediaUrl ? (trimmed || '📎 Media') : trimmed);
       setText('');
       inputRef.current?.focus();
     } finally {
@@ -171,9 +210,33 @@ export default function ChatView({
             time={msg.created_at}
             isMine={msg.sender_id === sendAsUserId}
             colors={colors}
+            mediaUrl={msg.media_url}
+            contentType={msg.content_type}
           />
         ))}
       </div>
+
+      {/* Preview strip */}
+      {pendingPreview && (
+        <div style={{
+          padding: '6px 12px',
+          borderTop: `1px solid ${inputBorder}`,
+          background: inputBg,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {pendingFile?.type.startsWith('video') ? (
+            <video src={pendingPreview} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+          ) : (
+            <img src={pendingPreview} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+          )}
+          <span style={{ fontSize: 11, color: colors.timestamp, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {pendingFile?.name}
+          </span>
+          <button onClick={clearPending} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+            <X size={14} style={{ color: colors.timestamp }} />
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div
@@ -186,6 +249,27 @@ export default function ChatView({
           background: inputBg,
         }}
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFilePick}
+          style={{ display: 'none' }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: isDark ? '#334155' : '#F8FAFC', border: 'none',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: uploading ? 0.4 : 0.7,
+            flexShrink: 0,
+          }}
+        >
+          <Plus size={16} style={{ color: isDark ? '#94A3B8' : '#475569' }} />
+        </button>
         <EmojiPickerButton onSelect={e => setText(p => p + e)} isDark={isDark} />
         <input
           ref={inputRef}
@@ -207,18 +291,18 @@ export default function ChatView({
         />
         <button
           onClick={handleSend}
-          disabled={!text.trim() || sending}
+          disabled={(!text.trim() && !pendingFile) || sending || uploading}
           style={{
             width: 38,
             height: 38,
             borderRadius: '50%',
             border: 'none',
-            background: text.trim() ? buttonBg : 'transparent',
-            color: text.trim() ? '#FFFFFF' : colors.timestamp,
+            background: (text.trim() || pendingFile) ? buttonBg : 'transparent',
+            color: (text.trim() || pendingFile) ? '#FFFFFF' : colors.timestamp,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: text.trim() ? 'pointer' : 'default',
+            cursor: (text.trim() || pendingFile) ? 'pointer' : 'default',
             transition: 'background 150ms',
           }}
         >

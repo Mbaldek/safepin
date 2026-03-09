@@ -6,7 +6,6 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import ThemeProvider from '@/components/ThemeProvider';
-import SimulationTicker from '@/components/SimulationTicker';
 import GlobalToast from '@/components/GlobalToast';
 import GlobalModals from '@/components/GlobalModals';
 
@@ -51,7 +50,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('brume-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('breveil_theme');if(!t){t=localStorage.getItem('brume-theme');if(t){localStorage.setItem('breveil_theme',t);localStorage.removeItem('brume-theme')}}if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`,
           }}
         />
       </head>
@@ -60,7 +59,6 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             {children}
-            <SimulationTicker />
           </ThemeProvider>
         </NextIntlClientProvider>
         <GlobalModals />

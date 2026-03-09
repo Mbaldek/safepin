@@ -273,7 +273,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: 600,
               color: "#FFFFFF",
               overflow: "hidden",
@@ -290,7 +290,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <span
                 style={{
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: isDark ? "#FFFFFF" : "#0F172A",
                 }}
@@ -301,7 +301,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                 <CheckCircle size={14} style={{ color: "#3BB4C1" }} fill="#3BB4C1" />
               )}
             </div>
-            <span style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+            <span style={{ fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
               {post.time}
             </span>
           </div>
@@ -382,7 +382,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                       border: "none",
                       borderRadius: 8,
                       cursor: "pointer",
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: 500,
                       color: (item as any).danger ? "#EF4444" : isDark ? "#E2E8F0" : "#334155",
                       fontFamily: "inherit",
@@ -409,7 +409,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         {post.title && (
           <p
             style={{
-              fontSize: 15,
+              fontSize: 13,
               fontWeight: 600,
               color: isDark ? "#FFFFFF" : "#0F172A",
               marginBottom: 4,
@@ -420,7 +420,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         )}
         <p
           style={{
-            fontSize: 14,
+            fontSize: 12,
             color: isDark ? "#94A3B8" : "#475569",
             lineHeight: 1.5,
           }}
@@ -534,11 +534,11 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                 backgroundColor: "rgba(245, 195, 65, 0.2)",
               }}
             >
-              <span style={{ fontSize: 12, color: "#F5C341", fontWeight: 600 }}>
+              <span style={{ fontSize: 11, color: "#F5C341", fontWeight: 600 }}>
                 {post.date}
               </span>
             </div>
-            <span style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748B" }}>
+            <span style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B" }}>
               {participantCount} participantes
             </span>
           </div>
@@ -551,7 +551,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
               backgroundColor: participating ? "transparent" : "#3BB4C1",
               border: participating ? "1px solid #3BB4C1" : "none",
               color: participating ? "#3BB4C1" : "#FFFFFF",
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
             }}
@@ -595,7 +595,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
       >
         {post.type === "alerte" ? (
           <>
-            <span style={{ fontSize: 13, color: "#34D399" }}>
+            <span style={{ fontSize: 12, color: "#34D399" }}>
               {confirmCount} confirmations ✓
             </span>
             <motion.button
@@ -607,7 +607,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                 backgroundColor: confirmed ? "rgba(59, 180, 193, 0.15)" : "transparent",
                 border: `1px solid ${confirmed ? "#3BB4C1" : isDark ? "#334155" : "#E2E8F0"}`,
                 color: confirmed ? "#3BB4C1" : isDark ? "#94A3B8" : "#64748B",
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 500,
                 cursor: "pointer",
               }}
@@ -634,7 +634,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                 style={{ color: liked ? "#EF4444" : isDark ? "#64748B" : "#94A3B8" }}
                 fill={liked ? "#EF4444" : "transparent"}
               />
-              <span style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#64748B" }}>
+              <span style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B" }}>
                 {likeCount}
               </span>
             </motion.button>
@@ -652,7 +652,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
               }}
             >
               <MessageCircle size={18} style={{ color: commentsOpen ? "#3BB4C1" : isDark ? "#64748B" : "#94A3B8" }} />
-              <span style={{ fontSize: 13, color: commentsOpen ? "#3BB4C1" : isDark ? "#94A3B8" : "#64748B" }}>
+              <span style={{ fontSize: 12, color: commentsOpen ? "#3BB4C1" : isDark ? "#94A3B8" : "#64748B" }}>
                 {commentsLoaded ? comments.length : (post.comments || 0)}
               </span>
             </button>
@@ -700,11 +700,11 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
             >
               {/* Comments list */}
               {!commentsLoaded ? (
-                <div style={{ textAlign: "center", padding: "12px 0", fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                <div style={{ textAlign: "center", padding: "12px 0", fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
                   Chargement…
                 </div>
               ) : comments.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "12px 0", fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                <div style={{ textAlign: "center", padding: "12px 0", fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
                   Aucun commentaire — sois le premier !
                 </div>
               ) : (
@@ -723,7 +723,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontSize: 13,
+                            fontSize: 12,
                             flexShrink: 0,
                           }}
                         >
@@ -731,14 +731,14 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#E2E8F0" : "#334155" }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: isDark ? "#E2E8F0" : "#334155" }}>
                               {name}
                             </span>
                             <span style={{ fontSize: 10, color: isDark ? "#64748B" : "#94A3B8" }}>
                               {commentTimeAgo(c.created_at)}
                             </span>
                           </div>
-                          <p style={{ fontSize: 13, color: isDark ? "#94A3B8" : "#475569", lineHeight: 1.4, margin: "2px 0 0" }}>
+                          <p style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#475569", lineHeight: 1.4, margin: "2px 0 0" }}>
                             {c.content}
                           </p>
                         </div>
@@ -782,7 +782,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                       border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
                       background: isDark ? "rgba(255,255,255,0.05)" : "#FFFFFF",
                       color: isDark ? "#E2E8F0" : "#0F172A",
-                      fontSize: 13,
+                      fontSize: 12,
                       fontFamily: "inherit",
                       outline: "none",
                     }}

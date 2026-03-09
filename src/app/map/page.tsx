@@ -18,7 +18,6 @@ import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
 import { ReportSheet } from '@/components/ReportSheet';
-import ThemeToggle from '@/components/ThemeToggle';
 import AddressSearch from '@/components/AddressSearch';
 import EmergencyButton from '@/components/EmergencyButton';
 import BottomNav from '@/components/BottomNav';
@@ -681,7 +680,6 @@ activeTrip, setActiveTrip,
                     </span>
                   )}
                 </button>
-                <ThemeToggle />
                 {/* Settings / burger menu */}
                 <button
                   aria-label="Settings"

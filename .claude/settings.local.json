@@ -84,7 +84,15 @@
       "Bash(python3:*)",
       "Bash(npx vercel ls)",
       "Bash(taskkill //F //PID 92476)",
-      "Bash(npx kill-port 3000 3001)"
+      "Bash(npx kill-port 3000 3001)",
+      "Bash(npx kill-port 3000)",
+      "Bash(rm -rf .next/dev/lock)",
+      "Bash(git -C /c/Users/mathi/Desktop/safepin log --oneline)",
+      "Bash(lsof -ti:3000,3001)",
+      "Bash(npx next dev --turbopack -p 3000)",
+      "WebFetch(domain:docs.mapbox.com)",
+      "Bash(git log --all -p --source --remotes=* -- \"*admin*notif*\")",
+      "Bash(head -100 /c/Users/mathi/Desktop/safepin/supabase/migrations/*.sql)"
     ]
   }
 }

@@ -9,6 +9,10 @@ import {
 } from '@/lib/simulation-data';
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not available' }, { status: 403 });
+  }
+
   try {
     const admin = createAdminClient();
 

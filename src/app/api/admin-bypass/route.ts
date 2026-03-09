@@ -62,7 +62,7 @@ h2{margin:0 0 12px;font-size:20px}p{color:#94A3B8;font-size:14px;line-height:1.5
 <p style="margin-top:16px"><a href="/onboarding" style="color:#3BB4C1">Go to onboarding →</a></p>
 </div>
 <script>
-localStorage.setItem('brume_onboarding_done','1');
+localStorage.setItem('breveil_onboarding_done','1');
 document.cookie='ob_done=1;path=/;max-age=31536000';
 </script>
 </body></html>`;

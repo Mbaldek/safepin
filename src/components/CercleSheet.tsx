@@ -184,7 +184,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                   flexShrink: 0,
                 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: t.textPrimary }}>Mon Cercle</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary }}>Mon Cercle</div>
                     <div style={{ fontSize: 11, color: t.green }}>
                       {loading ? '...' : `${onlineCount} disponibles \u00b7 ${members.length} membres`}
                     </div>
@@ -197,7 +197,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                         width: 33, height: 33, borderRadius: '50%',
                         border: `1px solid ${t.border}`, background: 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', position: 'relative', fontSize: 13,
+                        cursor: 'pointer', position: 'relative', fontSize: 12,
                       }}
                     >
                       {'\uD83D\uDCAC'}
@@ -217,7 +217,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                         width: 33, height: 33, borderRadius: '50%',
                         background: `${t.teal}1a`, border: 'none',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', fontSize: 13,
+                        cursor: 'pointer', fontSize: 12,
                       }}
                     >
                       {'\uD83D\uDCDE'}
@@ -262,7 +262,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                         }} />
                       )}
                     </div>
-                    <span style={{ fontSize: 14, color: t.textTertiary }}>{'\u203A'}</span>
+                    <span style={{ fontSize: 12, color: t.textTertiary }}>{'\u203A'}</span>
                   </div>
                   {messages.slice(-2).map(msg => (
                     <div key={msg.id} style={{ fontSize: 11, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
@@ -323,7 +323,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                   )}
 
                   {!loading && members.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '32px 0', color: t.textTertiary, fontSize: 13 }}>
+                    <div style={{ textAlign: 'center', padding: '32px 0', color: t.textTertiary, fontSize: 12 }}>
                       Aucun membre dans ton cercle
                     </div>
                   )}
@@ -391,7 +391,7 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
           width: 40, height: 40, borderRadius: '50%',
           background: bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 700, color: '#fff',
+          fontSize: 13, fontWeight: 700, color: '#fff',
           boxShadow: `0 0 0 3px ${dot}3a`,
           overflow: 'hidden',
         }}>
@@ -411,8 +411,8 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
       {/* info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary }}>{m.name}</span>
-          {m.is_verified && <span style={{ color: t.green, fontSize: 12 }}>{'\u2713'}</span>}
+          <span style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary }}>{m.name}</span>
+          {m.is_verified && <span style={{ color: t.green, fontSize: 11 }}>{'\u2713'}</span>}
         </div>
         {m.status === 'trip' && m.trip ? (
           <>
@@ -444,7 +444,7 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
           style={{
             width: 30, height: 30, borderRadius: '50%',
             border: `1px solid ${t.border}`, background: 'transparent',
-            cursor: 'pointer', fontSize: 14,
+            cursor: 'pointer', fontSize: 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -455,7 +455,7 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
           style={{
             width: 30, height: 30, borderRadius: '50%',
             border: `1px solid ${t.border}`, background: 'transparent',
-            cursor: 'pointer', fontSize: 14,
+            cursor: 'pointer', fontSize: 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -497,7 +497,7 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
           width: 30, height: 30, borderRadius: '50%',
           background: bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 12, fontWeight: 700, color: '#fff',
+          fontSize: 11, fontWeight: 700, color: '#fff',
           overflow: 'hidden',
         }}>
           {m.avatar_url
@@ -515,7 +515,7 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
 
       {/* info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: t.textPrimary }}>{m.name}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary }}>{m.name}</span>
         {m.last_seen && (
           <span style={{ fontSize: 10.5, color: t.textTertiary, marginLeft: 6 }}>
             {timeAgo(m.last_seen)}
@@ -529,7 +529,7 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
         style={{
           width: 26, height: 26, borderRadius: '50%',
           border: `1px solid ${t.border}`, background: 'transparent',
-          cursor: 'pointer', fontSize: 12,
+          cursor: 'pointer', fontSize: 11,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >

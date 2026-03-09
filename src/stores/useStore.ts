@@ -70,9 +70,23 @@ const DEFAULT_MAP_FILTERS: MapFilters = {
   showPositive: true,
 };
 
-function loadLS<T>(key: string, fallback: T): T {
+function migrateKey(oldKey: string, newKey: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const v = localStorage.getItem(newKey);
+  if (v !== null) return v;
+  const legacy = localStorage.getItem(oldKey);
+  if (legacy !== null) {
+    localStorage.setItem(newKey, legacy);
+    localStorage.removeItem(oldKey);
+  }
+  return legacy;
+}
+function loadLS<T>(key: string, fallback: T, legacyKey?: string): T {
   if (typeof window === 'undefined') return fallback;
-  try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback; } catch { return fallback; }
+  try {
+    const raw = legacyKey ? migrateKey(legacyKey, key) : localStorage.getItem(key);
+    return JSON.parse(raw ?? 'null') ?? fallback;
+  } catch { return fallback; }
 }
 function saveLS(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
@@ -177,10 +191,6 @@ type Store = {
   addLiveSession: (session: LiveSession) => void;
   removeLiveSession: (sessionId: string) => void;
   updateLiveSession: (session: LiveSession) => void;
-
-  // Achieved milestones (Sprint 16) — locally cached to avoid re-notifying
-  achievedMilestones: string[];
-  addAchievedMilestone: (key: string) => void;
 
   // Offline queue count
   offlineQueueCount: number;
@@ -342,16 +352,6 @@ export const useStore = create<Store>((set) => ({
   updateLiveSession: (session) =>
     set((state) => ({ liveSessions: state.liveSessions.map((s) => s.id === session.id ? session : s) })),
 
-  // Achieved milestones
-  achievedMilestones: loadLS<string[]>('brume_milestones', []),
-  addAchievedMilestone: (key) =>
-    set((state) => {
-      if (state.achievedMilestones.includes(key)) return {};
-      const next = [...state.achievedMilestones, key];
-      saveLS('brume_milestones', next);
-      return { achievedMilestones: next };
-    }),
-
   // Offline queue count
   offlineQueueCount: 0,
   setOfflineQueueCount: (n) => set({ offlineQueueCount: n }),
@@ -371,12 +371,12 @@ export const useStore = create<Store>((set) => ({
   setShowSafeSpaces: (v) => set({ showSafeSpaces: v }),
 
   // Pin labels toggle (persisted)
-  showPinLabels: loadLS('brume_show_pin_labels', false),
-  setShowPinLabels: (v) => { saveLS('brume_show_pin_labels', v); set({ showPinLabels: v }); },
+  showPinLabels: loadLS('breveil_show_pin_labels', false, 'brume_show_pin_labels'),
+  setShowPinLabels: (v) => { saveLS('breveil_show_pin_labels', v); set({ showPinLabels: v }); },
 
   // Simulation toggle (persisted so it survives page navigation)
-  showSimulated: loadLS('brume_show_simulated', false),
-  setShowSimulated: (v) => { saveLS('brume_show_simulated', v); set({ showSimulated: v }); },
+  showSimulated: loadLS('breveil_show_simulated', false, 'brume_show_simulated'),
+  setShowSimulated: (v) => { saveLS('breveil_show_simulated', v); set({ showSimulated: v }); },
 
   // Pins version counter
   pinsVersion: 0,
@@ -387,10 +387,10 @@ export const useStore = create<Store>((set) => ({
   setMyBreveilInitialTab: (tab) => set({ myBreveilInitialTab: tab }),
 
   // Active trip session (Live Safety Escort)
-  activeTrip: loadLS<TripSession | null>('brume_active_trip', null),
+  activeTrip: loadLS<TripSession | null>('breveil_active_trip', null, 'brume_active_trip'),
   setActiveTrip: (t) => {
-    if (t) saveLS('brume_active_trip', t);
-    else { try { localStorage.removeItem('brume_active_trip'); } catch { /* */ } }
+    if (t) saveLS('breveil_active_trip', t);
+    else { try { localStorage.removeItem('breveil_active_trip'); } catch { /* */ } }
     set({ activeTrip: t });
   },
   // Streaks

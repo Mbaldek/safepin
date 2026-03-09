@@ -64,7 +64,7 @@ export default function OnboardingGatePage() {
 
     if (profile?.onboarding_completed) {
       document.cookie = 'ob_done=1;path=/;max-age=31536000';
-      localStorage.setItem('brume_onboarding_done', '1');
+      localStorage.setItem('breveil_onboarding_done', '1');
       router.replace('/map');
     }
     // If not onboarded, the funnel will advance to step 3 via its own logic

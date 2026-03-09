@@ -71,7 +71,7 @@ export function haversineMetersLngLat(
 }
 
 /**
- * Haversine using raw lat/lng numbers (for expertise.ts compatibility).
+ * Haversine using raw lat/lng numbers.
  */
 export function haversineMetersRaw(
   lat1: number, lng1: number,

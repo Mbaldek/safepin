@@ -13,6 +13,8 @@ interface ChatBubbleProps {
   time: string;
   isMine: boolean;
   colors: ChatColors;
+  mediaUrl?: string | null;
+  contentType?: string;
 }
 
 function formatTime(iso: string) {
@@ -20,7 +22,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function ChatBubble({ content, time, isMine, colors }: ChatBubbleProps) {
+export default function ChatBubble({ content, time, isMine, colors, mediaUrl, contentType }: ChatBubbleProps) {
   return (
     <div
       style={{
@@ -43,6 +45,13 @@ export default function ChatBubble({ content, time, isMine, colors }: ChatBubble
           wordBreak: 'break-word',
         }}
       >
+        {mediaUrl && (
+          contentType === 'video' ? (
+            <video src={mediaUrl} controls playsInline style={{ maxWidth: 220, borderRadius: 10, display: 'block', marginBottom: content ? 4 : 0 }} />
+          ) : (
+            <img src={mediaUrl} alt="" style={{ maxWidth: 220, borderRadius: 10, display: 'block', marginBottom: content ? 4 : 0 }} />
+          )
+        )}
         {content}
         <div
           style={{

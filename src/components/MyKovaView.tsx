@@ -20,13 +20,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import VerificationView from '@/components/VerificationView';
 import SettingsSheet from '@/components/settings/SettingsSheet';
-import CommunityHub from '@/components/community/CommunityHub';
-import { computeExpertiseTags } from '@/lib/expertise';
-import { Level, LEVELS, getLevel, computeScore } from '@/lib/levels';
-import LocationHistoryViewer from '@/components/LocationHistoryViewer';
-import ChallengesSection from '@/components/ChallengesSection';
-import ReferralSection from '@/components/ReferralSection';
-import TrendSparkline from '@/components/TrendSparkline';
 import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
 import { useTheme } from '@/stores/useTheme';
 
@@ -56,10 +49,6 @@ const MODE_EMOJI: Record<string, string> = {
 const PERSONA_ICONS: Record<string, string> = {
   commuter: '🚇', student: '📚', nightowl: '🌙', runner: '🏃',
   parent: '👨‍👩‍👦', traveler: '✈️', freelance: '💻', nightlife: '🎉', everything: '🌈',
-};
-
-const LEVEL_FR: Record<string, string> = {
-  Watcher: 'Veilleur', Reporter: 'Explorateur', Guardian: 'Gardien', Sentinel: 'Sentinelle',
 };
 
 const TAB_VARIANTS = {
@@ -163,7 +152,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
   // ─── Sub-tab state ──────────────────────────────────────────────────────
   const [activeSubTab, setActiveSubTab] = useState<MyKovaTab>('activity');
-  const [showCommunity, setShowCommunity] = useState(false);
 
   // Consume deep-link on mount
   useEffect(() => {
@@ -205,7 +193,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const [editDesc, setEditDesc] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
-  const [showLocationHistory, setShowLocationHistory] = useState(false);
 
   // ─── New profile/circle/communities state ────────────────────────────
   const [showSettings, setShowSettings] = useState(false);
@@ -320,15 +307,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   );
   const myReports = myPins.filter((p) => !p.is_emergency);
   const myAlerts  = myPins.filter((p) => p.is_emergency);
-
-  const trustScore = computeScore(myReports.length, myAlerts.length, confirmedVotes, commentsMade);
-  const level      = getLevel(trustScore);
-  const progress   = level.next === Infinity ? 1 : (trustScore - level.min) / (level.next - level.min);
-
-  const expertiseTags = useMemo(() =>
-    computeExpertiseTags(pins, userId, userProfile?.verification_status === 'approved', level.label),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [pins.length, userId, userProfile?.verification_status, level.label]);
 
   const now = Date.now();
   function isPinActive(pin: Pin) {
@@ -575,25 +553,6 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                 </span>
               </div>
 
-              {/* Niveau */}
-              <div
-                className="flex flex-col items-center rounded-xl py-3"
-                style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-              >
-                <span className="font-serif text-[18px] font-medium leading-none" style={{ color: '#8B7EC8' }}>
-                  {LEVEL_FR[level.label] ?? level.label}
-                </span>
-                <span className="mt-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  {t('level')}
-                </span>
-                <div className="mt-2 h-[3px] w-3/4 overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(100, progress * 100)}%`, backgroundColor: '#8B7EC8' }}
-                  />
-                </div>
-              </div>
-
               {/* Merci */}
               <div
                 className="flex flex-col items-center rounded-xl py-3"
@@ -628,7 +587,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {/* ── Communities card ─────────────────────────────────────── */}
             <button
               type="button"
-              onClick={() => setShowCommunity(true)}
+              onClick={() => {}}
               className="mt-2 flex w-full items-center justify-between rounded-2xl p-3.5 text-left transition-colors hover:brightness-110"
               style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
@@ -739,32 +698,13 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
             {/* ═══ STATS TAB ═══ */}
             {activeSubTab === 'stats' && (
               <motion.div key="stats" variants={TAB_VARIANTS} initial="initial" animate="animate" exit="exit" className="space-y-4 pb-2">
-                {/* Trust Score bar */}
-                <div className="rounded-2xl p-4 flex flex-col gap-2.5" style={{ backgroundColor: c.bgCard, border: `1px solid ${level.color}33` }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{level.emoji}</span>
-                      <div>
-                        <p className="text-sm font-black" style={{ color: level.color }}>{level.label}</p>
-                        <p className="text-[0.6rem]" style={{ color: c.textMuted }}>
-                          {level.next === Infinity ? 'Max level reached' : `${level.next - trustScore} pts to ${LEVELS[LEVELS.findIndex(l => l.label === level.label) + 1]?.label ?? ''}`}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-2xl font-black" style={{ color: c.textPrimary, fontVariantNumeric: 'tabular-nums' }}>{trustScore}</span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: c.bgSecondary }}>
-                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, progress * 100)}%`, backgroundColor: level.color }} />
-                  </div>
-                </div>
-
                 {/* Weekly activity sparkline */}
                 <div className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}>
                   <div>
                     <p className="text-[0.65rem] font-black uppercase tracking-widest" style={{ color: c.textMuted }}>7-day activity</p>
                     <p className="text-xs mt-0.5" style={{ color: c.textMuted }}>{myPins.length} total pins</p>
                   </div>
-                  <TrendSparkline pins={myPins} />
+                  <span className="text-xs font-semibold" style={{ color: c.textMuted }}>{myPins.length}</span>
                 </div>
 
                 {/* Impact grid */}
@@ -784,35 +724,8 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
                       </div>
                     ))}
                   </div>
-                  {trustScore === 0 && (
-                    <button
-                      onClick={() => setActiveTab('map')}
-                      className="w-full mt-2 py-2.5 rounded-xl text-xs font-bold transition hover:opacity-80"
-                      style={{ backgroundColor: c.accent, color: '#fff' }}
-                    >
-                      Report your first incident to earn points
-                    </button>
-                  )}
                 </div>
 
-                {/* Weekly Challenges — S48 */}
-                <div className="rounded-2xl p-4" style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}>
-                  <ChallengesSection userId={userId} />
-                </div>
-
-                {/* Referral — S49 */}
-                <ReferralSection userId={userId} />
-
-                {/* ── Location History ─────────────────────────── */}
-                <button
-                  onClick={() => setShowLocationHistory(true)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition active:scale-[0.98]"
-                  style={{ backgroundColor: c.bgCard, border: `1px solid ${c.border}` }}
-                >
-                  <span className="text-sm">📍</span>
-                  <span className="flex-1 text-xs font-bold text-left" style={{ color: c.textPrimary }}>{t('locationHistory')}</span>
-                  <ChevronRight size={14} style={{ color: c.textMuted }} />
-                </button>
 
                 {/* ── Collapsible: My Pins ─────────────────────── */}
                 <div>
@@ -1069,17 +982,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
       <SettingsSheet isOpen={showSettings} onClose={() => setShowSettings(false)} />
       {showVerification && <VerificationView onClose={() => setShowVerification(false)} />}
 
-      <AnimatePresence>
-        {showLocationHistory && (
-          <LocationHistoryViewer userId={userId} onClose={() => setShowLocationHistory(false)} />
-        )}
-      </AnimatePresence>
 
-      <AnimatePresence>
-        {showCommunity && (
-          <CommunityHub key="community-overlay" onClose={() => setShowCommunity(false)} onViewAllGroups={() => {}} />
-        )}
-      </AnimatePresence>
-    </>
+</>
   );
 }

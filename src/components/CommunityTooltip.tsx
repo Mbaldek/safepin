@@ -12,8 +12,14 @@ function getColors(isDark: boolean) {
   return { accent: isDark ? '#3BB4C1' : '#C48A1E' };
 }
 
-const LS_KEY = 'brume_community_tooltip_shown';
+const LS_KEY = 'breveil_community_tooltip_shown';
 const SHOW_DELAY_MS = 2000;
+
+// Migrate legacy key
+if (typeof window !== 'undefined' && localStorage.getItem(LS_KEY) === null) {
+  const legacy = localStorage.getItem('brume_community_tooltip_shown');
+  if (legacy !== null) { localStorage.setItem(LS_KEY, legacy); localStorage.removeItem('brume_community_tooltip_shown'); }
+}
 const AUTO_DISMISS_MS = 6000;
 
 type Props = {

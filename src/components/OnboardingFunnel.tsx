@@ -13,14 +13,26 @@ import PaywallScreen from '@/components/subscription/PaywallScreen';
 
 // ─── Exports ────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'brume_onboarding_done';
-const ONBOARDING_STATE_KEY = 'brume_onboarding_state';
+const STORAGE_KEY = 'breveil_onboarding_done';
+const ONBOARDING_STATE_KEY = 'breveil_onboarding_state';
+
+function migrateLS(oldKey: string, newKey: string) {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem(newKey) !== null) return;
+  const legacy = localStorage.getItem(oldKey);
+  if (legacy !== null) {
+    localStorage.setItem(newKey, legacy);
+    localStorage.removeItem(oldKey);
+  }
+}
 
 export function useOnboardingDone(
   profile: { onboarding_completed?: boolean } | null,
 ): [boolean, () => void] {
   const [done, setDone] = useState(() => {
     if (typeof window === 'undefined') return true;
+    migrateLS('brume_onboarding_done', STORAGE_KEY);
+    migrateLS('brume_onboarding_state', ONBOARDING_STATE_KEY);
     if (localStorage.getItem(STORAGE_KEY) === '1') return true;
     return profile?.onboarding_completed === true;
   });
@@ -330,7 +342,7 @@ export function OnboardingFunnel({
       }).eq('id', userId);
 
       document.cookie = 'ob_done=1;path=/;max-age=31536000';
-      localStorage.setItem('brume_onboarding_done', '1');
+      localStorage.setItem(STORAGE_KEY, '1');
 
       // Welcome email — fire and forget
       fetch('/api/send-welcome', {
@@ -429,7 +441,7 @@ export function OnboardingFunnel({
           if (profile?.onboarding_completed) {
             // Already onboarded — go to map
             document.cookie = 'ob_done=1;path=/;max-age=31536000';
-            localStorage.setItem('brume_onboarding_done', '1');
+            localStorage.setItem(STORAGE_KEY, '1');
             onComplete?.();
           } else {
             setStep(3); // Continue onboarding

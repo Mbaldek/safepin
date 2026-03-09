@@ -7,13 +7,27 @@ type ThemeStore = {
   toggleTheme: () => void;
 };
 
+function readTheme(): 'dark' | 'light' {
+  if (typeof window === 'undefined') return 'dark';
+  let v = localStorage.getItem('breveil_theme');
+  if (v === null) {
+    const legacy = localStorage.getItem('brume-theme');
+    if (legacy !== null) {
+      localStorage.setItem('breveil_theme', legacy);
+      localStorage.removeItem('brume-theme');
+      v = legacy;
+    }
+  }
+  return v === 'light' ? 'light' : 'dark';
+}
+
 export const useTheme = create<ThemeStore>((set) => ({
-  theme: (typeof window !== 'undefined' && localStorage.getItem('brume-theme') === 'light') ? 'light' : 'dark',
+  theme: readTheme(),
   toggleTheme: () =>
     set((state) => {
       const next = state.theme === 'dark' ? 'light' : 'dark';
       if (typeof window !== 'undefined') {
-        localStorage.setItem('brume-theme', next);
+        localStorage.setItem('breveil_theme', next);
       }
       return { theme: next };
     }),

@@ -38,14 +38,16 @@ export async function sendSupportMessage(
   conversationId: string,
   senderId: string,
   content: string,
+  opts?: { media_url?: string; content_type?: 'text' | 'image' | 'video' },
 ) {
   const now = new Date().toISOString();
 
   const { error: msgErr } = await supabase.from('direct_messages').insert({
     conversation_id: conversationId,
     sender_id: senderId,
-    content,
-    content_type: 'text',
+    content: content || null,
+    content_type: opts?.content_type ?? 'text',
+    ...(opts?.media_url ? { media_url: opts.media_url } : {}),
   });
   if (msgErr) throw msgErr;
 
@@ -53,7 +55,7 @@ export async function sendSupportMessage(
   await supabase
     .from('dm_conversations')
     .update({
-      last_message: content,
+      last_message: opts?.media_url ? (content || '📎 Media') : content,
       last_message_sender_id: senderId,
       last_message_at: now,
     })

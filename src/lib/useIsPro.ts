@@ -6,12 +6,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 
-const LS_KEY = 'brume_is_pro';
+const LS_KEY = 'breveil_is_pro';
 
 export function useIsPro(): { isPro: boolean; plan: string | null; loading: boolean } {
   const userId = useStore((s) => s.userId);
   const [isPro, setIsPro] = useState(() => {
     if (typeof window === 'undefined') return false;
+    if (localStorage.getItem(LS_KEY) === null) {
+      const legacy = localStorage.getItem('brume_is_pro');
+      if (legacy !== null) { localStorage.setItem(LS_KEY, legacy); localStorage.removeItem('brume_is_pro'); }
+    }
     try { return JSON.parse(localStorage.getItem(LS_KEY) ?? 'false'); } catch { return false; }
   });
   const [plan, setPlan] = useState<string | null>(null);

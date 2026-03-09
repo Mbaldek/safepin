@@ -28,9 +28,21 @@ const FIXED = {
   accentGold: '#F5C341', semanticDanger: '#EF4444',
 };
 
-const LS_DISMISSED = 'brume_install_dismissed';
-const LS_SESSION_COUNT = 'brume_session_count';
+const LS_DISMISSED = 'breveil_install_dismissed';
+const LS_SESSION_COUNT = 'breveil_session_count';
 const MIN_SESSIONS = 3;
+
+// Migrate legacy keys
+if (typeof window !== 'undefined') {
+  if (localStorage.getItem(LS_DISMISSED) === null) {
+    const l = localStorage.getItem('brume_install_dismissed');
+    if (l !== null) { localStorage.setItem(LS_DISMISSED, l); localStorage.removeItem('brume_install_dismissed'); }
+  }
+  if (localStorage.getItem(LS_SESSION_COUNT) === null) {
+    const l = localStorage.getItem('brume_session_count');
+    if (l !== null) { localStorage.setItem(LS_SESSION_COUNT, l); localStorage.removeItem('brume_session_count'); }
+  }
+}
 
 export default function InstallPrompt() {
   const isDark = useTheme((s) => s.theme) === 'dark';

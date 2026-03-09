@@ -10,7 +10,7 @@ import { CATEGORY_DETAILS } from "@/types";
 import StoriesRow from "./stories-row";
 import PostCard from "./post-card";
 import PinFeedCard from "./pin-feed-card";
-import { SOSPostCard } from "./CommunityHub";
+import { SOSPostCard } from "./SOSPostCard";
 
 interface FilTabProps {
   isDark: boolean;
@@ -392,7 +392,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)", fontSize: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)", fontSize: 12 }}>
         Chargement…
       </div>
     );
@@ -471,14 +471,14 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       width: '100%', padding: '8px 14px', border: 'none',
-                      background: 'transparent', cursor: 'pointer', fontSize: 12.5,
+                      background: 'transparent', cursor: 'pointer', fontSize: 11,
                       fontWeight: active ? 600 : 400, fontFamily: 'inherit',
                       color: active ? (isDark ? '#FFFFFF' : '#0F172A') : (isDark ? '#64748B' : '#94A3B8'),
                     }}
                   >
-                    <span style={{ fontSize: 14 }}>{opt.icon}</span>
+                    <span style={{ fontSize: 12 }}>{opt.icon}</span>
                     <span style={{ flex: 1, textAlign: 'left' }}>{opt.label}</span>
-                    {active && <span style={{ color: '#3BB4C1', fontSize: 14, fontWeight: 700 }}>✓</span>}
+                    {active && <span style={{ color: '#3BB4C1', fontSize: 12, fontWeight: 700 }}>✓</span>}
                   </button>
                 );
               })}
@@ -492,7 +492,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '6px 14px', borderRadius: 99, whiteSpace: 'nowrap',
-            fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+            fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
             cursor: 'pointer', transition: 'all 0.15s ease',
             background: showFavoris
               ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
@@ -525,7 +525,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               }}
               style={{
                 padding: '6px 12px', borderRadius: 99, whiteSpace: 'nowrap',
-                fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
                 cursor: 'pointer', transition: 'all 0.15s ease',
                 background: isActive ? `${tagColor}15` : (isDark ? '#1E293B' : '#F1F5F9'),
                 border: `1px solid ${isActive ? tagColor : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
@@ -666,10 +666,10 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               return (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
                   <span style={{ fontSize: 32 }}>🔖</span>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                     Aucun favori pour l&apos;instant
                   </p>
-                  <p style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                  <p style={{ fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
                     Ajoutez des posts en favoris avec le bouton 🔖
                   </p>
                 </div>
@@ -679,7 +679,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               return (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
                   <span style={{ fontSize: 32 }}>🔍</span>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                     Aucun post pour &quot;{searchQuery.trim()}&quot;
                   </p>
                   <button
@@ -688,7 +688,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
                       marginTop: 4, padding: "6px 16px", borderRadius: 20,
                       background: isDark ? "#243050" : "#F1F5F9",
                       border: "none", cursor: "pointer",
-                      fontSize: 13, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B",
+                      fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B",
                     }}
                   >
                     Effacer
@@ -699,10 +699,10 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             return (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
                 <span style={{ fontSize: 32 }}>{sosPosts.length > 0 ? '🔍' : '📝'}</span>
-                <p style={{ fontSize: 14, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
+                <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                   {sosPosts.length > 0 ? 'Aucun post dans ce filtre' : 'Aucun post pour l\u0027instant'}
                 </p>
-                <p style={{ fontSize: 12, color: isDark ? "#64748B" : "#94A3B8" }}>
+                <p style={{ fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
                   {sosPosts.length > 0 ? 'Changez d\u0027onglet pour voir d\u0027autres posts' : 'Rejoignez un groupe et publiez !'}
                 </p>
               </div>

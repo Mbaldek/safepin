@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Search, ArrowLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { Search, ArrowLeft, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import ChatView from "@/components/chat/ChatView";
 import { useUiStore } from "@/stores/uiStore";
@@ -32,6 +32,137 @@ function timeAgo(d: string) {
   if (s < 3600) return `${Math.floor(s / 60)}min`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}j`;
+}
+
+/* ── Swipeable conversation row (Apple Mail style) ─────────── */
+function SwipeableConvoRow({
+  convo, index, isDark, onSelect, onDelete,
+}: {
+  convo: DMRow; index: number; isDark: boolean;
+  onSelect: () => void; onDelete: () => void;
+}) {
+  const x = useMotionValue(0);
+  const trashOpacity = useTransform(x, [-80, -30], [1, 0]);
+  const [swiped, setSwiped] = useState(false);
+
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (info.offset.x < -120 || (info.offset.x < -50 && info.velocity.x < -500)) {
+      // Full swipe → delete immediately
+      onDelete();
+    } else if (info.offset.x < -50) {
+      setSwiped(true);
+    } else {
+      setSwiped(false);
+    }
+  };
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, height: "auto" }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+      style={{ position: "relative", overflow: "hidden", borderRadius: 12 }}
+    >
+      {/* Red trash background */}
+      <motion.div
+        style={{
+          position: "absolute",
+          top: 0, right: 0, bottom: 0,
+          width: 80,
+          background: "#EF4444",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "0 12px 12px 0",
+          cursor: "pointer",
+          opacity: trashOpacity,
+        }}
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+      >
+        <Trash2 size={20} color="#FFFFFF" />
+      </motion.div>
+
+      {/* Draggable row */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleDragEnd}
+        animate={{ x: swiped ? -80 : 0 }}
+        style={{
+          x,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: 12,
+          borderRadius: 12,
+          cursor: "pointer",
+          backgroundColor: isDark ? "transparent" : "transparent",
+          position: "relative",
+          zIndex: 1,
+          background: isDark ? "#0F172A" : "#FFFFFF",
+        }}
+        whileHover={!swiped ? { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" } : undefined}
+        onClick={() => { if (!swiped) onSelect(); else setSwiped(false); }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+      >
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #3BB4C1, #06B6D4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#FFFFFF",
+            flexShrink: 0,
+            overflow: "hidden",
+          }}
+        >
+          {convo.partner_avatar ? (
+            <img
+              src={convo.partner_avatar}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            convo.partner_name.charAt(0).toUpperCase()
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, fontWeight: convo.is_unread ? 700 : 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
+              {convo.partner_name}
+            </span>
+            <span style={{ fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
+              {timeAgo(convo.last_message_at)}
+            </span>
+          </div>
+          <p style={{
+            fontSize: 12,
+            color: isDark ? "#94A3B8" : "#64748B",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            marginTop: 2,
+          }}>
+            {convo.last_message || "Nouvelle conversation"}
+          </p>
+        </div>
+        {convo.is_unread && (
+          <div style={{
+            width: 10, height: 10, borderRadius: "50%",
+            backgroundColor: "#3BB4C1", flexShrink: 0,
+          }} />
+        )}
+      </motion.div>
+    </motion.div>
+  );
 }
 
 export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmConsumed }: MessagesTabProps) {
@@ -140,6 +271,12 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
+  const handleDeleteConvo = useCallback(async (convoId: string) => {
+    setConversations((prev) => prev.filter((c) => c.id !== convoId));
+    await supabase.from("direct_messages").delete().eq("conversation_id", convoId);
+    await supabase.from("dm_conversations").delete().eq("id", convoId);
+  }, []);
+
   // If a conversation is selected, show ChatView
   if (selectedConvo && userId) {
     return (
@@ -194,7 +331,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: 600,
                 color: "#FFFFFF",
                 flexShrink: 0,
@@ -217,7 +354,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
             </div>
             <span
               style={{
-                fontSize: 16,
+                fontSize: 13,
                 fontWeight: 600,
                 color: isDark ? "#FFFFFF" : "#0F172A",
               }}
@@ -261,7 +398,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           justifyContent: "center",
           padding: 40,
           color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)",
-          fontSize: 13,
+          fontSize: 12,
         }}
       >
         Chargement…
@@ -302,7 +439,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
             flex: 1,
             border: "none",
             background: "transparent",
-            fontSize: 15,
+            fontSize: 13,
             color: isDark ? "#FFFFFF" : "#0F172A",
             outline: "none",
           }}
@@ -323,7 +460,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           <span style={{ fontSize: 32 }}>💬</span>
           <p
             style={{
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: 500,
               color: isDark ? "#94A3B8" : "#64748B",
             }}
@@ -332,7 +469,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           </p>
           <p
             style={{
-              fontSize: 12,
+              fontSize: 11,
               color: isDark ? "#64748B" : "#94A3B8",
             }}
           >
@@ -343,7 +480,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
         <div>
           <h3
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               color: isDark ? "#64748B" : "#94A3B8",
               textTransform: "uppercase",
@@ -360,117 +497,18 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
               gap: 4,
             }}
           >
+            <AnimatePresence initial={false}>
             {filtered.map((convo, index) => (
-              <motion.div
+              <SwipeableConvoRow
                 key={convo.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedConvo(convo)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 12,
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  backgroundColor: "transparent",
-                  transition: "background-color 0.2s",
-                }}
-                whileHover={{
-                  backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
-                }}
-              >
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    background:
-                      "linear-gradient(135deg, #3BB4C1, #06B6D4)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: "#FFFFFF",
-                    flexShrink: 0,
-                    overflow: "hidden",
-                  }}
-                >
-                  {convo.partner_avatar ? (
-                    <img
-                      src={convo.partner_avatar}
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    convo.partner_name.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 15,
-                        fontWeight: convo.is_unread ? 700 : 600,
-                        color: isDark ? "#FFFFFF" : "#0F172A",
-                      }}
-                    >
-                      {convo.partner_name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: isDark ? "#64748B" : "#94A3B8",
-                      }}
-                    >
-                      {timeAgo(convo.last_message_at)}
-                    </span>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: isDark ? "#94A3B8" : "#64748B",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      marginTop: 2,
-                    }}
-                  >
-                    {convo.last_message || "Nouvelle conversation"}
-                  </p>
-                </div>
-                {convo.is_unread && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 25,
-                    }}
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      backgroundColor: "#3BB4C1",
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-              </motion.div>
+                convo={convo}
+                index={index}
+                isDark={isDark}
+                onSelect={() => setSelectedConvo(convo)}
+                onDelete={() => handleDeleteConvo(convo.id)}
+              />
             ))}
+            </AnimatePresence>
           </div>
         </div>
       )}

@@ -162,14 +162,15 @@ export function useCercle(userId: string) {
 
   // ── SEND MESSAGE ───────────────────────────────────────
   const sendMessage = useCallback(
-    async (content: string, type: string = 'text') => {
-      if (!userId || !content.trim()) return
+    async (content: string, type: string = 'text', media_url?: string) => {
+      if (!userId || (!content.trim() && !media_url)) return
 
       try {
         const { error } = await supabase.from('circle_messages').insert({
           sender_id: userId,
           content: content.trim(),
           type,
+          ...(media_url ? { media_url } : {}),
         })
         if (error && isDev) console.error('[useCercle] sendMessage', error)
       } catch (err) {

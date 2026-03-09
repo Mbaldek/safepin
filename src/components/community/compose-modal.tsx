@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, Image } from "lucide-react";
-import { useState, useEffect } from "react";
+import { X, Image as ImageIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
@@ -43,6 +43,10 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string>("");
   const [postTags, setPostTags] = useState<Hashtag[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   // Fetch user's communities for the publish target
   useEffect(() => {
@@ -66,6 +70,24 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
 
   const activeColor = postTypes.find((t) => t.id === selectedType)?.color || "#3BB4C1";
 
+  const handleMediaPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Fichier trop lourd (max 10 Mo)");
+      return;
+    }
+    setMediaFile(file);
+    setMediaPreview(URL.createObjectURL(file));
+  };
+
+  const clearMedia = () => {
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    setMediaFile(null);
+    setMediaPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handlePublish = async () => {
     if (!content.trim() || !selectedCommunityId || !userId) return;
     setPublishing(true);
@@ -77,12 +99,31 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
       .eq("id", userId)
       .single();
 
+    // Upload media if selected
+    let mediaUrl: string | null = null;
+    if (mediaFile) {
+      setUploadingMedia(true);
+      const ext = mediaFile.name.split(".").pop() || "jpg";
+      const path = `posts/${userId}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("media").upload(path, mediaFile);
+      setUploadingMedia(false);
+      if (upErr) {
+        toast.error("Erreur upload média");
+        setPublishing(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+      mediaUrl = urlData.publicUrl;
+    }
+
+    // NOTE: media_url column must exist on community_messages table
     const { data: inserted, error } = await supabase.from("community_messages").insert({
       community_id: selectedCommunityId,
       user_id: userId,
       display_name: profile?.display_name || null,
       content: content.trim(),
       visibility: audience,
+      ...(mediaUrl ? { media_url: mediaUrl } : {}),
     }).select("id").single();
 
     if (error) {
@@ -99,6 +140,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
       toast.success("Publié !");
       setContent("");
       setPostTags([]);
+      clearMedia();
       onClose();
     }
     setPublishing(false);
@@ -110,26 +152,31 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        zIndex: 50,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        zIndex: 300,
         display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-end",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
       }}
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
-          borderRadius: "24px 24px 0 0",
-          height: "88dvh",
+          borderRadius: 24,
+          width: "100%",
+          maxWidth: 480,
+          maxHeight: "85dvh",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -195,7 +242,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
               opacity: publishing ? 0.6 : 1,
             }}
           >
-            {publishing ? "…" : "Publier"}
+            {uploadingMedia ? "Upload…" : publishing ? "…" : "Publier"}
           </motion.button>
         </div>
 
@@ -327,27 +374,73 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
             })}
           </div>
 
-          {/* Add photo */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              width: "100%",
-              padding: "12px 16px",
-              backgroundColor: "transparent",
-              borderRadius: 12,
-              border: `1px dashed ${isDark ? "#334155" : "#E2E8F0"}`,
-              color: isDark ? "#64748B" : "#94A3B8",
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            <Image size={18} />
-            <span>Ajouter une photo</span>
-          </motion.button>
+          {/* Add photo / video */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleMediaPick}
+            style={{ display: "none" }}
+          />
+
+          {mediaPreview ? (
+            <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
+              {mediaFile?.type.startsWith("video") ? (
+                <video
+                  src={mediaPreview}
+                  style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12 }}
+                />
+              ) : (
+                <img
+                  src={mediaPreview}
+                  alt=""
+                  style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 12 }}
+                />
+              )}
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={clearMedia}
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={14} color="#FFFFFF" />
+              </motion.button>
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                width: "100%",
+                padding: "12px 16px",
+                backgroundColor: "transparent",
+                borderRadius: 12,
+                border: `1px dashed ${isDark ? "#334155" : "#E2E8F0"}`,
+                color: isDark ? "#64748B" : "#94A3B8",
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              <ImageIcon size={18} />
+              <span>Ajouter une photo</span>
+            </motion.button>
+          )}
         </div>
 
         </div>{/* end scrollable content */}

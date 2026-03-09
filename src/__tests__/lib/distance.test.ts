@@ -1,7 +1,7 @@
 // src/__tests__/lib/distance.test.ts — Test the computeTrend distance helper
 
 import { describe, it, expect } from 'vitest';
-import { computeTrend } from '@/components/TrendSparkline';
+import { computeTrend } from '@/lib/trend';
 import type { Pin } from '@/types';
 
 function makePin(lat: number, lng: number, daysAgo: number): Pin {
