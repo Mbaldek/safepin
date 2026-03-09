@@ -150,7 +150,7 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
           {/* ── Header ──────────────────────────────────────────── */}
           <div style={{ padding: '14px 14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: textPrimary }}>Notifications</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: textPrimary }}>Notifications</span>
               {unreadCount > 0 && (
                 <span style={{
                   minWidth: 18, height: 18, borderRadius: 9,
@@ -206,7 +206,7 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
                 padding: '32px 0', gap: 8,
               }}>
                 <span style={{ fontSize: 28 }}>🔔</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: textSecondary }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: textSecondary }}>
                   {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
                 </span>
               </div>
@@ -251,7 +251,7 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
                       {/* Title row: title + timestamp + dot */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{
-                          fontSize: 11.5,
+                          fontSize: 11,
                           fontWeight: isUnread ? 700 : 500,
                           color: textPrimary,
                           flex: 1, minWidth: 0,
@@ -260,7 +260,7 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
                           {n.title ?? (n.type === 'circle_invitation' ? 'Invitation au cercle' : 'Notification')}
                         </span>
                         <span style={{
-                          fontSize: 9.5, fontWeight: 500, color: textTertiary,
+                          fontSize: 9, fontWeight: 500, color: textTertiary,
                           flexShrink: 0, whiteSpace: 'nowrap' as const,
                         }}>
                           {timeAgo(n.created_at)}

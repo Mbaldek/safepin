@@ -156,7 +156,7 @@ function SwipeableConvoRow({
             </span>
           </div>
           <p style={{
-            fontSize: 12,
+            fontSize: 11,
             color: isDark ? "#94A3B8" : "#64748B",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -351,8 +351,8 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: 13,
+                fontWeight: 700,
                 color: "#FFFFFF",
                 flexShrink: 0,
                 overflow: "hidden",
@@ -470,7 +470,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           justifyContent: "center",
           padding: 40,
           color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)",
-          fontSize: 12,
+          fontSize: 11,
         }}
       >
         Chargement…
@@ -532,7 +532,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           <span style={{ fontSize: 32 }}>💬</span>
           <p
             style={{
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 500,
               color: isDark ? "#94A3B8" : "#64748B",
             }}
@@ -552,8 +552,8 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
         <div>
           <h3
             style={{
-              fontSize: 12,
-              fontWeight: 600,
+              fontSize: 10,
+              fontWeight: 700,
               color: isDark ? "#64748B" : "#94A3B8",
               textTransform: "uppercase",
               letterSpacing: 0.5,

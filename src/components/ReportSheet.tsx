@@ -375,7 +375,7 @@ export function ReportSheet() {
               </div>
 
               {/* Establishment type */}
-              <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: c.muted, marginBottom: 8 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: c.muted, marginBottom: 8 }}>
                 Type d&apos;établissement
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
@@ -551,7 +551,7 @@ export function ReportSheet() {
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(52,211,153,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                 <Check size={26} color="#34D399" />
               </div>
-              <h3 style={{ fontSize: 14, fontWeight: 500, color: c.text, marginBottom: 6 }}>Merci !</h3>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 6 }}>Merci !</h3>
               <p style={{ fontSize: 13, color: c.muted }}>Ton signalement aide la communauté.</p>
             </div>
           )}

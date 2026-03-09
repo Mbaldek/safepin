@@ -1,6 +1,6 @@
 # BREVEIL — Audit Diagnostic
 
-> **Date** : 2026-03-07 | **Version app** : 0.1.0 | **Auteur** : Claude Opus 4.6 + Mathieu
+> **Date** : 2026-03-09 | **Version app** : 0.1.0 | **Auteur** : Claude Opus 4.6 + Mathieu
 
 ---
 
@@ -101,9 +101,10 @@
 | **Push notifications** | web-push (VAPID) | 3.6.7 |
 | **Audio/Video temps reel** | LiveKit | 2.17.2 |
 | **Verification identite** | Veriff | API externe |
-| **Toasts** | Sonner | 2.0.7 |
+| **Toasts** | Sonner 2.0.7 + `bToast` wrapper (`GlobalToast.tsx`) — migration en cours |
 | **Emoji** | @emoji-mart/react + @emoji-mart/data | 1.1.1 / 1.2.1 |
 | **Tests** | Vitest + @testing-library | 4.0.18 |
+| **PostGIS** | postgis, unaccent, moddatetime (schema: extensions) | — |
 
 ---
 
@@ -113,7 +114,7 @@
 src/
   app/                          # Next.js App Router
     admin/                     # Dashboard admin (12 sous-pages)
-    api/                       # 22 routes API
+    api/                       # 23 routes API
     auth/                      # OAuth callback
     login/                     # Page login
     map/                       # Page principale (map)
@@ -124,7 +125,7 @@ src/
     globals.css                # 201 design tokens + animations
     tailwind-theme.css         # Extension theme Tailwind
 
-  components/                   # 104 composants
+  components/                   # ~106 composants
     admin/          (12)       # Panel admin
     chat/           (2)        # ChatView, ChatBubble
     community/      (16)       # Hub social complet
@@ -132,22 +133,22 @@ src/
     hashtags/       (4)        # Systeme hashtags
     map/            (1)        # PinDetailSheet
     nearby/         (1)        # NearbySheet
-    settings/       (20)       # Parametres complets (4 composants + 16 screens)
+    settings/       (20)       # Parametres complets (5 composants + 15 screens)
     subscription/   (1)        # PaywallScreen
     trip/           (3)        # TripView, FavorisSheet, RouteCard
     ui/             (2)        # Avatar, EmojiPicker
-    [root]          (39)       # Composants principaux
+    [root]          (41)       # Composants principaux (+WalkHistorySheet, WalkWithMePanel)
 
   stores/           (4)        # useStore, useTheme, uiStore, notificationStore
   hooks/            (9)        # Custom hooks React
-  lib/              (31)       # Utilitaires (dont route-scoring.ts NOUVEAU)
+  lib/              (31)       # Utilitaires (dont route-scoring.ts, geocode.ts)
   types/            (1)        # Types TypeScript centraux (60+ types exportes)
   messages/         (2)        # en.json, fr.json
   i18n/             (2)        # Config i18n
   __tests__/        (8)        # Tests unitaires
 
 supabase/
-  migrations/       (11)       # Migrations SQL
+  migrations/       (15)       # Migrations SQL
   functions/        (4)        # Edge Functions (emergency-dispatch, on-new-pin, send-push, weekly-digest)
 
 public/
@@ -169,6 +170,7 @@ public/
 | CSS z-index | Tailwind scale : `z-600` pas `z-[600]` |
 | i18n | Pas de `t(variable)` — lookup maps (Record) |
 | Styles composants | Inline `style={}` (pas de Tailwind dans les composants) |
+| Toasts | `bToast.success/danger/info/warning({ title }, isDark)` via `GlobalToast.tsx` |
 
 ---
 
@@ -199,31 +201,37 @@ public/
 | 19 | PWA | ACTIF | `manifest.json`, `InstallPrompt.tsx`, `OfflineBanner.tsx` |
 | 20 | i18n | ACTIF | `next-intl` — en+fr complets, 28 locales squelettes |
 | 21 | Verification identite | PARTIEL | `/api/verify/*`, Veriff — UI "coming soon" |
-| 22 | RGPD / Export donnees | PARTIEL | Menu dans Securite, backend incomplet |
-| 23 | Route scoring & alternatives | NOUVEAU | `route-scoring.ts`, `fetchDirectionsMulti()`, `RouteCard.tsx` |
+| 22 | RGPD / Export donnees | **ACTIF** | `PrivacyScreen.tsx`, `DeleteAccountScreen.tsx`, `/api/export-data`, RPC `delete_account` |
+| 23 | Route scoring & alternatives | ACTIF | `route-scoring.ts`, `fetchDirectionsMulti()`, `RouteCard.tsx` |
+| 24 | Walk With Me | **NOUVEAU** | `WalkWithMePanel.tsx`, `WalkHistorySheet.tsx`, audio player |
+| 25 | Viewport clustering | **NOUVEAU** | RPCs `pins_nearby`, `pins_clustered`, `mapViewport` Zustand, `DB_CLUSTER_SRC` layers |
 
-### Changements depuis dernier audit (2026-03-06)
+### Changements depuis dernier audit (2026-03-07)
 
 | Element | Avant | Apres |
 |---------|-------|-------|
-| `PushOptInModal.tsx` | ACTIF | **SUPPRIME** |
-| `route-scoring.ts` | N'existait pas | **CREE** — algo danger scoring |
-| `RouteCard.tsx` | N'existait pas | **CREE** — composant route card |
-| `directions.ts` | fetchDirections() seulement | **+ fetchDirectionsMulti()** avec alternatives |
-| `uiStore.ts` | ContextMenuUser sans displayName | **+ displayName** champ optionnel |
-| `useStore.ts` | Pas de selectedRouteIdx | **+ selectedRouteIdx** + setter |
-| `fil-tab.tsx` | post.user.name = display_name | **= username** (pseudo) + displayName separe |
-| `post-card.tsx` | Pas de displayName sur Post | **+ displayName** dans interface Post |
-| `OnboardingFunnelV2.tsx` | Mentionne en memoire | **N'EXISTE PAS** — V2 = OnboardingFunnel.tsx |
-| `CoachMark.tsx` | Mentionne en memoire | **N'EXISTE PAS** — tour supprime |
-| `useTour.ts` | Mentionne en memoire | **N'EXISTE PAS** — tour supprime |
-| Composants total | ~95 | **104** |
-| Libs total | ~28 | **31** |
-| Stores total | 3 | **4** (+ notificationStore) |
+| Feature #22 RGPD | PARTIEL (menu seul) | **ACTIF** — PrivacyScreen + export JSON + delete_account RPC |
+| `/api/export-data` | N'existait pas | **CREE** — export profil, pins, comments, votes, contacts, messages |
+| `delete_account` RPC | Non tracke | **Migration creee** (`20260309_delete_account_rpc.sql`) — documentaire |
+| Toast settings (5 fichiers) | `import { toast } from 'sonner'` | **Migre vers `bToast`** (GlobalToast wrapper) |
+| PostGIS extensions | Non documentees | **postgis, unaccent, moddatetime** actifs en prod |
+| `pins.location` | Texte lat/lng | **GEOGRAPHY(POINT,4326)** + index GIST |
+| RPCs spatiales | Aucune | **pins_nearby, pins_clustered, user_ids_near_point** |
+| 122 RLS policies | `auth.uid()` direct | **`(select auth.uid())`** (init-plan per-query) |
+| GIN+trgm indexes | Aucun | **pins.address, hashtags, profiles, communities** |
+| `pins.expires_at` | N'existait pas | **Colonne + trigger** mirroring DECAY_HOURS par categorie |
+| `mapViewport` Zustand | N'existait pas | **{lat,lng,zoom,radiusM}** — MapView emet sur moveend (debounce 400ms) |
+| DB clusters | N'existait pas | **`dbClusters`** dans Zustand, layers Mapbox GL `DB_CLUSTER_SRC` a zoom<10 |
+| `WalkHistorySheet` | N'existait pas | **CREE** — historique marches Walk With Me + player audio |
+| `UserProfileModal` | Version initiale | **Redesign** — bottom sheet snap points, share menu |
+| `AutocompleteInput` | Bug onChange | **Fix** — API `(text, coords?)` correcte |
+| Migrations total | 11 | **15** (+circle_messages, delete_account, story_mentions, story_visibility) |
+| Routes API total | 22 | **23** (+export-data) |
+| Composants total | 104 | **~106** |
 
 ### Detail features cles
 
-#### 8. Trajet / Escorte (NOUVEAU : route scoring)
+#### 8. Trajet / Escorte
 - **Modes** : marche, velo, voiture (+ transports dans EscorteSheet)
 - **Directions** : Mapbox Directions API + `alternatives=true` (jusqu'a 3 routes)
 - **Route scoring** : `scoreRoute(coords, pins)` — corridor 200m, severity * decay * confirmations
@@ -233,11 +241,30 @@ public/
 - **HUD** : TripHUD en cours de trajet, checkpoints, session briefing
 - **danger_score** : envoye a `/api/trips/start` (etait hardcode a 0)
 
-#### 17. Profil (AMELIORE : displayName)
+#### 17. Profil (AMELIORE : redesign UserProfileModal)
 - **UserProfileModal** : bottom sheet avec snap points 50%/86%, share menu (copier lien, WhatsApp, Telegram, Email, message in-app)
 - **UserContextMenu** : bottom sheet avec Follow, Message, Voir profil, Inviter cercle
 - **displayName** : champ separe du username, utilise pour affichage reel (prenom nom) vs @pseudo
 - **Wiring global** : via `uiStore` + `GlobalModals.tsx`
+
+#### 22. RGPD / Export donnees (COMPLETE)
+- **PrivacyScreen** : 3 documents legaux (confidentialite, CGU, cookies) + export + suppression
+- **Export** : `/api/export-data` → JSON (profil, pins, comments, votes, contacts, notifications, messages, routes)
+- **Delete** : RPC `delete_account` (SECURITY DEFINER, SET search_path = '') → anonymise profil + supprime contacts, location_history, direct_messages, push_subscriptions
+- **UI** : 2-step DeleteAccountScreen (checkbox "irréversible" → taper "SUPPRIMER")
+- **Footer** : DBEK, 75 rue de Lourmel 75015 Paris, brumeapp@pm.me, CNIL
+
+#### 24. Walk With Me (NOUVEAU)
+- **WalkWithMePanel** : panneau accompagnement marche temps reel
+- **WalkHistorySheet** : historique des marches avec player audio integre
+- **Toasts** : migre vers bToast
+
+#### 25. Viewport clustering (NOUVEAU)
+- **mapViewport** : `{lat,lng,zoom,radiusM}` dans Zustand, emis par MapView sur moveend+load (debounce 400ms)
+- **loadPins** : zoom>=10 → `pins_nearby` (radius*1.3, cap 15km) ; zoom<10 → `pins_clustered` (eps adaptatif) ; fallback → global
+- **DB clusters** : `dbClusters` dans Zustand, layers `DB_CLUSTER_SRC` rendus a zoom<10
+- **MapPin hide** : `mapZoom` state dans MapView — masque `<MapPin>` a zoom<10 (affiche clusters DB)
+- **Distance** : PinDetailSheet affiche `haversineMetersRaw(userLocation, pin)` inline
 
 ---
 
@@ -247,8 +274,8 @@ public/
 
 | Table | Usage |
 |-------|-------|
-| `profiles` | Profils utilisateurs |
-| `pins` | Signalements carte |
+| `profiles` | Profils utilisateurs (+ GEOGRAPHY location/home_location) |
+| `pins` | Signalements carte (+ GEOGRAPHY location, expires_at) |
 | `pin_votes` | Votes sur pins |
 | `pin_comments` | Commentaires pins |
 | `pin_evidence` | Preuves/medias pins |
@@ -312,7 +339,16 @@ public/
 | `waitlist` | Liste attente generale |
 | `route_upvotes` | Votes routes |
 
-### Migrations appliquees (11)
+### RPCs spatiales (NOUVEAU)
+
+| RPC | Signature | Usage |
+|-----|-----------|-------|
+| `pins_nearby` | `(lat, lng, radius_m)` → SETOF pins | Pins dans rayon via GIST index |
+| `pins_clustered` | `(lat, lng, radius_m, eps_m)` → clusters | ST_ClusterDBSCAN, centroids |
+| `user_ids_near_point` | `(lat, lng, max_radius_m)` → user IDs | Pre-filtre spatial pour notify-nearby |
+| `delete_account` | `()` → void | Anonymise profil + supprime donnees sensibles (SECURITY DEFINER) |
+
+### Migrations appliquees (15)
 
 | # | Fichier | Tables/Actions |
 |---|---------|----------------|
@@ -327,6 +363,19 @@ public/
 | 9 | `20260302_pin_evidence.sql` | pin_evidence (report/confirmation/rejection) |
 | 10 | `20260303_profile_language.sql` | profiles.language (default 'fr') |
 | 11 | `20260305_trip_sheet_schema.sql` | trips (+dest_*, status, walk_with_me, eta), trusted_contacts.is_watching |
+| 12 | `20260308_circle_messages.sql` | Messages de cercle |
+| 13 | `20260309_delete_account_rpc.sql` | RPC delete_account (documentaire — deja en prod) |
+| 14 | `20260309_story_mentions.sql` | Mentions dans stories |
+| 15 | `20260309_story_visibility.sql` | Visibilite stories |
+
+### PostGIS & indexes (appliques en prod, non migres)
+
+- `postgis`, `unaccent`, `moddatetime` extensions (schema: extensions)
+- `pins.location` + `profiles.location/home_location` → GEOGRAPHY(POINT,4326) + GIST indexes
+- `pins.expires_at` colonne + trigger mirroring DECAY_HOURS par categorie
+- Partial indexes: `idx_pins_active_expires`, `idx_pins_user_created`
+- GIN+trgm indexes sur pins.address, hashtags, profiles, communities (fuzzy search FR)
+- 122 RLS policies corrigees: `auth.uid()` → `(select auth.uid())` (init-plan per-query)
 
 ### Edge Functions Supabase (4)
 
@@ -339,7 +388,7 @@ public/
 
 ---
 
-## 6. API ROUTES (22 endpoints)
+## 6. API ROUTES (23 endpoints)
 
 ### Auth & Verification
 
@@ -401,6 +450,12 @@ public/
 | `/api/send-welcome` | POST | Email bienvenue |
 | `/api/cron/lifecycle-emails` | GET | Emails automatiques (cron) |
 
+### RGPD (NOUVEAU)
+
+| Route | Methode | Usage |
+|-------|---------|-------|
+| `/api/export-data` | GET | Export donnees utilisateur (JSON) — profil, pins, comments, votes, contacts, messages, routes |
+
 ### LiveKit & Admin
 
 | Route | Methode | Usage |
@@ -434,6 +489,7 @@ public/
 | SettingsSheet | `components/settings/SettingsSheet.tsx` | map/page.tsx (lazy) |
 | TripHUD | `components/TripHUD.tsx` | map/page.tsx (lazy) |
 | WalkWithMePanel | `components/WalkWithMePanel.tsx` | map/page.tsx (lazy) |
+| WalkHistorySheet | `components/WalkHistorySheet.tsx` | map/page.tsx (lazy) |
 | MyKovaView | `components/MyKovaView.tsx` | map/page.tsx (lazy) |
 | OnboardingFunnel | `components/OnboardingFunnel.tsx` | map/page.tsx |
 | InstallPrompt | `components/InstallPrompt.tsx` | map/page.tsx |
@@ -468,15 +524,6 @@ public/
 | ProGate | `components/ProGate.tsx` | 84 |
 | ReferralSection | `components/ReferralSection.tsx` | 143 |
 | ChallengesSection | `components/ChallengesSection.tsx` | ~40 |
-
-### Fichiers supprimes (depuis dernier audit)
-
-| Fichier | Raison |
-|---------|--------|
-| `PushOptInModal.tsx` | Modal "Stay safe with alerts" en anglais, supprime |
-| `OnboardingFunnelV2.tsx` | N'a jamais existe — V2 = OnboardingFunnel.tsx |
-| `CoachMark.tsx` | Tour spotlight supprime |
-| `useTour.ts` | Hook tour 5 etapes supprime |
 
 ---
 
@@ -536,6 +583,41 @@ Emplacements edge functions :
 | 12 localStorage keys | `brume_*` | `breveil_*` |
 | Theme key | `brume-theme` | `breveil_theme` |
 | 2 localStorage keys | `breveil_*` | OK |
+
+### 8.6 Migration toast Sonner → bToast (NOUVEAU)
+
+| Statut | Fichiers | Details |
+|--------|----------|---------|
+| **Migre (bToast)** | **8 fichiers** | map/page.tsx, UserProfileModal, WalkWithMePanel, PrivacyScreen, DeleteAccountScreen, MonCompteScreen, PasswordScreen, ProfilePhotoScreen |
+| **Encore sur Sonner** | **14 fichiers** | Voir liste ci-dessous |
+| **GlobalToast.tsx** | Definit `bToast` | Importe `toast` de Sonner en interne (normal) |
+
+**Fichiers restants sur Sonner (14) :**
+
+| Fichier | Nombre d'appels toast |
+|---------|-----------------------|
+| `EmergencyButton.tsx` | 5 |
+| `ConfirmIncidentModal.tsx` | 2 |
+| `SafeSpaceDetailSheet.tsx` | 4 |
+| `CercleChat.tsx` | 2 |
+| `chat/ChatView.tsx` | 2 |
+| `map/PinDetailSheet.tsx` | 6 |
+| `MyKovaView.tsx` | 8 |
+| `VerificationView.tsx` | 1 |
+| `EscorteSheet.tsx` | 1 |
+| `trip/FavorisSheet.tsx` | 3 |
+| `community/SoutienSheet.tsx` | import seul (0 appels?) |
+| `settings/screens/SecuriteScreen.tsx` | 1 |
+| `settings/screens/SessionsSecurityScreen.tsx` | 3 |
+| `settings/screens/MyProfileScreen.tsx` | ~10 |
+
+### 8.7 DB — dette non-migree
+
+| Element | Statut |
+|---------|--------|
+| 58 FK columns sans index | A indexer (batch suivant) |
+| 22 fonctions sans `SET search_path = ''` | `function_search_path_mutable` |
+| RPCs search (search_pins, search_users, search_hashtags, search_communities) | Crees en DB, pas wirees a l'UI |
 
 ---
 
@@ -634,7 +716,7 @@ Emplacements edge functions :
 |---|--------|--------|--------|
 | 1 | Migrer `brume_*` → `breveil_*` localStorage (avec fallback migration) | Brand coherence | Moyen |
 | 2 | Supprimer les 9 composants orphelins (1,566 lignes de code mort) | Nettoyage | Faible |
-| 3 | Supprimer `CommunityHub.tsx` (677 lignes, deprecated) | Nettoyage | Faible |
+| 3 | Migrer les 14 fichiers restants Sonner → bToast | Coherence toasts | Moyen |
 
 ### PRIORITE MOYENNE
 
@@ -644,17 +726,19 @@ Emplacements edge functions :
 | 5 | Refactor MapView.tsx (1,771 lignes) | Maintenabilite | Eleve |
 | 6 | Centraliser les couleurs inline → CSS vars ou objet partage | Coherence design | Moyen |
 | 7 | Consolider globals.css + tailwind-theme.css + colors.ts | DX | Moyen |
-| 8 | Ajouter highlight route selectionnee sur map (line-width dynamique) | UX trajet | Faible |
+| 8 | Wirer search RPCs a l'UI (search_pins, search_users, search_hashtags, search_communities) | UX recherche | Moyen |
+| 9 | Indexer les 58 FK columns non-indexes | Perf DB | Moyen |
+| 10 | Corriger 22 fonctions `function_search_path_mutable` | Securite DB | Faible |
 
 ### PRIORITE BASSE
 
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
-| 9 | Completer traductions 28 locales restantes | i18n | Eleve |
-| 10 | Ajouter tests unitaires (couverture actuelle faible) | Qualite | Eleve |
-| 11 | Documenter les Edge Functions Supabase | DX | Faible |
-| 12 | Ajouter layer danger zones sur map pendant planification trajet | UX trajet | Moyen |
-| 13 | Supprimer tables DB a 0 rows inutilisees | Nettoyage DB | Faible |
+| 11 | Completer traductions 28 locales restantes | i18n | Eleve |
+| 12 | Ajouter tests unitaires (couverture actuelle faible) | Qualite | Eleve |
+| 13 | Documenter les Edge Functions Supabase | DX | Faible |
+| 14 | Ajouter layer danger zones sur map pendant planification trajet | UX trajet | Moyen |
+| 15 | Supprimer tables DB a 0 rows inutilisees | Nettoyage DB | Faible |
 
 ---
 
@@ -662,17 +746,18 @@ Emplacements edge functions :
 
 | Metrique | Valeur |
 |----------|--------|
-| Fichiers TS/TSX | ~208 |
-| Composants React | 104 |
+| Fichiers TS/TSX | ~210 |
+| Composants React | ~106 |
 | Composants orphelins | 9 |
-| Routes API | 22 |
+| Routes API | 23 |
 | Pages publiques | 8 |
 | Pages admin | 12 |
 | Custom hooks | 9 |
 | Zustand stores | 4 |
 | Libs utilitaires | 31 |
 | Types exportes | 60+ |
-| Migrations DB | 11 |
+| Migrations DB | 15 |
+| RPCs spatiales | 4 (pins_nearby, pins_clustered, user_ids_near_point, delete_account) |
 | Tables Supabase | 62 |
 | Edge Functions | 4 |
 | Dependencies npm (prod) | 26 |
@@ -680,8 +765,10 @@ Emplacements edge functions :
 | Variables env | 22 |
 | Locales i18n | 30 (2 completes) |
 | CSS custom properties | 201 |
-| Lignes code estimees | ~48,800 |
+| Lignes code estimees | ~50,000 |
 | Plus gros fichier | TripView.tsx (1,944 lignes) |
 | `as any` | 0 |
 | console.log client | 0 |
+| Toast bToast migres | 8 fichiers (36%) |
+| Toast Sonner restants | 14 fichiers (64%) |
 | Services tiers | 7 (Supabase, Mapbox, Stripe, Resend, Veriff, LiveKit, Web Push) |

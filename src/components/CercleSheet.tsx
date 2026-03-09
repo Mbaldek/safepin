@@ -84,8 +84,8 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
     chatStripBg: isDark ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.03)',
   }), [isDark])
 
-  const available = useMemo(() => members.filter(m => m.status !== 'offline'), [members])
-  const offline = useMemo(() => members.filter(m => m.status === 'offline'), [members])
+  const available = useMemo(() => members.filter(m => m.status !== 'offline' && m.id !== userId), [members, userId])
+  const offline = useMemo(() => members.filter(m => m.status === 'offline' && m.id !== userId), [members, userId])
 
   const hasUnread = messages.length > 0 // simplified for now
 
@@ -200,7 +200,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                   flexShrink: 0,
                 }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: t.textPrimary }}>Mon Cercle</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary }}>Mon Cercle</div>
                     <div style={{ fontSize: 11, color: t.green }}>
                       {loading ? '...' : `${onlineCount} disponibles \u00b7 ${members.length} membres`}
                     </div>
@@ -288,7 +288,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10.5, color: t.textSecondary, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+                      <span style={{ fontSize: 10, color: t.textSecondary, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
                         Discussion du cercle
                       </span>
                       {hasUnread && (
@@ -553,7 +553,7 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary }}>{m.name}</span>
         {m.last_seen && (
-          <span style={{ fontSize: 10.5, color: t.textTertiary, marginLeft: 6 }}>
+          <span style={{ fontSize: 10, color: t.textTertiary, marginLeft: 6 }}>
             {timeAgo(m.last_seen)}
           </span>
         )}

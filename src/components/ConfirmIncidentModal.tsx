@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
 import { T } from '@/lib/tokens'
-import { toast } from 'sonner'
+import { bToast } from '@/components/GlobalToast'
 
 // ─── Category config ─────────────────────────────
 const CATEGORY_CONFIG: Record<string, { color: string; colorSoft: string }> = {
@@ -165,10 +165,10 @@ export function ConfirmIncidentModal({
 
     if (error) {
       if (error.message?.includes('already_confirmed')) {
-        toast('Tu as déjà confirmé cet incident')
+        bToast.info({ title: 'Tu as déjà confirmé cet incident' }, isDark)
         setAlreadyConfirmed(true)
       } else {
-        toast.error('Confirmation échouée')
+        bToast.danger({ title: 'Confirmation échouée' }, isDark)
       }
       setConfirming(false)
       return
@@ -177,7 +177,7 @@ export function ConfirmIncidentModal({
     if (data) updatePin(data)
     const newCount = (pin.confirmations ?? 0) + 1
     setConfirmCount(newCount)
-    toast.success('Confirmation envoyée')
+    bToast.success({ title: 'Confirmation envoyée' }, isDark)
     setConfirming(false)
     onConfirmed(pin.id)
     onClose()

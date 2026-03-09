@@ -261,7 +261,7 @@ export default function CercleChat({
                 marginTop: grouped ? 1 : 8,
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: own ? 'flex-end' : 'flex-start',
+                width: '100%',
               }}
             >
               {/* sender label */}
@@ -277,7 +277,7 @@ export default function CercleChat({
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, justifyContent: own ? 'flex-end' : 'flex-start' }}>
                 {/* avatar or spacer for other */}
                 {!own && !grouped && (
                   <div style={{
@@ -300,6 +300,7 @@ export default function CercleChat({
                   padding: '7px 11px',
                   fontSize: 11,
                   lineHeight: 1.45,
+                  wordBreak: 'break-word',
                   ...(safeArrival ? {
                     background: 'rgba(52,211,153,0.14)',
                     border: '1px solid rgba(52,211,153,0.28)',

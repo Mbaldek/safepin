@@ -272,7 +272,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             }}>
               <Users size={14} strokeWidth={2.5} color={TEAL} />
             </div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: C.tp }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.tp }}>
               {t('title')}
             </span>
           </div>
@@ -300,7 +300,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 width: '100%', padding: '14px 18px', borderRadius: 16,
                 background: loading ? `linear-gradient(135deg,#1e6e77,#155a62)` : `linear-gradient(135deg,${TEAL} 0%,#2a96a2 100%)`,
                 border: 'none',
-                color: '#FFFFFF', fontSize: 14, fontWeight: 700,
+                color: '#FFFFFF', fontSize: 13, fontWeight: 700,
                 cursor: loading ? 'default' : 'pointer',
                 position: 'relative', overflow: 'hidden',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
@@ -371,7 +371,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             </div>
 
             {/* Niveaux — compact avec glow */}
-            <div style={{ fontSize: 9, fontWeight: 800, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 7 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 7 }}>
               Si tu ne réponds pas
             </div>
             {[
@@ -396,10 +396,10 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: n.color, letterSpacing: '.05em', textTransform: 'uppercase' as const }}>{n.tag}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: n.color, letterSpacing: '.05em', textTransform: 'uppercase' as const }}>{n.tag}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: C.tp }}>{t(n.nameKey)}</span>
                     {n.soon && (
-                      <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 5, background: TEAL12, color: TEAL, border: `1px solid ${TEAL24}` }}>Bientôt</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 5, background: TEAL12, color: TEAL, border: `1px solid ${TEAL24}` }}>Bientôt</span>
                     )}
                   </div>
                   <div style={{ fontSize: 10, color: C.ts, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
@@ -422,7 +422,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
             {/* Participants */}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 9, fontWeight: 800, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 7 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 7 }}>
                 Participants
               </div>
               {/* Host */}
@@ -623,7 +623,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             </div>
 
             {/* ── Protection active ── */}
-            <div style={{ fontSize: 9, fontWeight: 800, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 6 }}>
               Protection active
             </div>
             {/* N1 — done */}

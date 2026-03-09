@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/stores/useTheme";
 import { useStore } from "@/stores/useStore";
 import { useUiStore } from "@/stores/uiStore";
-import { toast } from "sonner";
+import { bToast } from "@/components/GlobalToast";
+import { getStreakEmoji } from "@/lib/streaks";
 import SettingsToggle from "../components/SettingsToggle";
 import AddCircleContactModal from "@/components/community/AddCircleContactModal";
 
@@ -106,6 +107,12 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
   const [pendingCount, setPendingCount] = useState(0);
   const [showAddCircle, setShowAddCircle] = useState(false);
 
+  // Streak + contributions
+  const [streakData, setStreakData] = useState({
+    currentStreak: 0, longestStreak: 0, lastActiveDate: null as string | null,
+    pinCount: 0, voteCount: 0, commentCount: 0, escortCount: 0,
+  });
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Load profile ──
@@ -114,7 +121,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     (async () => {
       setLoading(true);
       const [profileRes, followersRes, followingRes, circleRes] = await Promise.all([
-        supabase.from("profiles").select("username, display_name, city, bio, avatar_url, is_public").eq("id", userId).single(),
+        supabase.from("profiles").select("username, display_name, city, bio, avatar_url, is_public, current_streak, longest_streak, last_active_date, pin_count, vote_count, comment_count, escort_count").eq("id", userId).single(),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
         supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted"),
@@ -128,6 +135,15 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
           bio: p.bio ?? "",
           avatar_url: p.avatar_url ?? null,
           is_public: p.is_public ?? true,
+        });
+        setStreakData({
+          currentStreak: p.current_streak ?? 0,
+          longestStreak: p.longest_streak ?? 0,
+          lastActiveDate: p.last_active_date ?? null,
+          pinCount: p.pin_count ?? 0,
+          voteCount: p.vote_count ?? 0,
+          commentCount: p.comment_count ?? 0,
+          escortCount: p.escort_count ?? 0,
         });
       }
       setFollowersCount(followersRes.count ?? 0);
@@ -148,8 +164,8 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
       bio: fields.bio || null,
       is_public: fields.is_public,
     }).eq("id", userId);
-    if (error) toast.error("Erreur lors de la sauvegarde");
-    else { toast.success("Profil mis a jour"); setDirty(false); }
+    if (error) bToast.danger({ title: "Erreur lors de la sauvegarde" }, isDark);
+    else { bToast.success({ title: "Profil mis a jour" }, isDark); setDirty(false); }
     setSaving(false);
   }, [userId, fields, dirty, saving]);
 
@@ -157,24 +173,24 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
   const handleAvatarChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
-    if (!file.type.startsWith("image/")) { toast.error("Format invalide"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 5 Mo)"); return; }
+    if (!file.type.startsWith("image/")) { bToast.danger({ title: "Format invalide" }, isDark); return; }
+    if (file.size > 5 * 1024 * 1024) { bToast.danger({ title: "Fichier trop volumineux (max 5 Mo)" }, isDark); return; }
 
     const ext = file.name.split(".").pop();
     const path = `${userId}/avatar_${Date.now()}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (uploadErr) { toast.error("Erreur upload"); return; }
+    if (uploadErr) { bToast.danger({ title: "Erreur upload" }, isDark); return; }
 
     const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const url = urlData.publicUrl;
 
     const { error: updateErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", userId);
-    if (updateErr) { toast.error("Erreur mise a jour"); return; }
+    if (updateErr) { bToast.danger({ title: "Erreur mise a jour" }, isDark); return; }
 
     setFields((f) => ({ ...f, avatar_url: url }));
     const store = useStore.getState();
     if (store.userProfile) store.setUserProfile({ ...store.userProfile, avatar_url: url });
-    toast.success("Photo mise a jour");
+    bToast.success({ title: "Photo mise a jour" }, isDark);
   }, [userId]);
 
   // ── Field updater ──
@@ -293,11 +309,11 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
       .delete()
       .eq("follower_id", userId)
       .eq("following_id", targetId);
-    if (error) { toast.error("Erreur"); return; }
+    if (error) { bToast.danger({ title: "Erreur" }, isDark); return; }
     setFollowing((prev) => prev.filter((u) => u.id !== targetId));
     setFollowingCount((c) => Math.max(0, c - 1));
     setUnfollowConfirm(null);
-    toast.success("Desabonne");
+    bToast.success({ title: "Desabonne" }, isDark);
   }, [userId]);
 
   // ── Follow from followers tab ──
@@ -305,8 +321,8 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     if (!userId) return;
     const { error } = await supabase.from("follows").insert({ follower_id: userId, following_id: targetId });
     if (error) {
-      if (error.code === "23505") toast.error("Deja abonne");
-      else toast.error("Erreur");
+      if (error.code === "23505") bToast.danger({ title: "Deja abonne" }, isDark);
+      else bToast.danger({ title: "Erreur" }, isDark);
       return;
     }
     setMutualIds((prev) => new Set([...prev, targetId]));
@@ -530,6 +546,9 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
           👁 Voir mon profil public
         </motion.button>
 
+        {/* ── Streak card + Week dots + Contributions ── */}
+        {renderStreakBlock()}
+
         {/* Editable fields */}
         {renderField("Nom d'utilisateur", fields.username, (v) => updateField("username", v), "@pseudo")}
         {renderField("Nom complet", fields.display_name, (v) => updateField("display_name", v), "Votre nom")}
@@ -547,6 +566,112 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
           </div>
           <SettingsToggle value={fields.is_public} onChange={(v) => updateField("is_public", v)} />
         </div>
+      </div>
+    );
+  }
+
+  function renderStreakBlock() {
+    const { currentStreak, longestStreak, lastActiveDate, pinCount, voteCount, commentCount, escortCount } = streakData;
+    const emoji = getStreakEmoji(currentStreak);
+
+    // Week dots: 7 days L M M J V S D
+    const dayLabels = ["L", "M", "M", "J", "V", "S", "D"];
+    const today = new Date();
+    const todayDow = today.getDay(); // 0=Sun
+    // Map to Mon=0 ... Sun=6
+    const todayIdx = todayDow === 0 ? 6 : todayDow - 1;
+
+    // Build 7-day activity based on streak
+    const dots = dayLabels.map((label, i) => {
+      const daysAgo = todayIdx - i;
+      let state: "done" | "today" | "empty" = "empty";
+      if (daysAgo === 0) {
+        state = "today";
+      } else if (daysAgo > 0 && daysAgo <= currentStreak - (lastActiveDate === today.toISOString().slice(0, 10) ? 0 : 1)) {
+        state = "done";
+      }
+      return { label, state };
+    });
+
+    const contribs = [
+      { label: "Signalements", value: pinCount, color: "#EF4444" },
+      { label: "Votes", value: voteCount, color: "#3BB4C1" },
+      { label: "Trajets accompagnes", value: escortCount, color: "#A78BFA" },
+      { label: "Commentaires", value: commentCount, color: "#F5C341" },
+    ];
+
+    return (
+      <div style={{ marginBottom: 24 }}>
+        {/* Streak card */}
+        <div style={{
+          borderRadius: 16,
+          background: isDark ? "rgba(59,180,193,0.08)" : "rgba(59,180,193,0.06)",
+          border: `1px solid ${isDark ? "rgba(59,180,193,0.18)" : "rgba(59,180,193,0.15)"}`,
+          padding: "16px 18px",
+          marginBottom: 12,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.t2, marginBottom: 2 }}>
+                Streak actuelle
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: C.teal, lineHeight: 1.1 }}>
+                {currentStreak} <span style={{ fontSize: 14, fontWeight: 500, color: C.t3 }}>jour{currentStreak !== 1 ? "s" : ""}</span>
+              </div>
+            </div>
+            <div style={{ fontSize: 32 }}>{emoji}</div>
+          </div>
+          {longestStreak > 0 && (
+            <div style={{ fontSize: 11, color: C.t3, marginTop: 6 }}>
+              Record : {longestStreak} jour{longestStreak !== 1 ? "s" : ""}
+            </div>
+          )}
+        </div>
+
+        {/* Week dots */}
+        <div style={{
+          display: "flex", justifyContent: "space-between",
+          padding: "0 8px", marginBottom: 16,
+        }}>
+          {dots.map((d, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: C.t3 }}>{d.label}</span>
+              <div style={{
+                width: 10, height: 10, borderRadius: "50%",
+                background: d.state === "done" ? C.teal
+                  : d.state === "today" ? C.gold
+                  : isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+                boxShadow: d.state === "today" ? `0 0 6px ${C.gold}` : "none",
+                animation: d.state === "today" ? "dottoday 2s ease-in-out infinite" : "none",
+              }} />
+            </div>
+          ))}
+        </div>
+
+        {/* 2x2 Contribution grid */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8,
+        }}>
+          {contribs.map((c) => (
+            <div key={c.label} style={{
+              borderRadius: 12,
+              background: C.inputBg,
+              padding: "12px 14px",
+              display: "flex", flexDirection: "column", gap: 2,
+            }}>
+              <span style={{ fontSize: 20, fontWeight: 800, color: c.color }}>{c.value}</span>
+              <span style={{ fontSize: 10, fontWeight: 500, color: C.t3 }}>{c.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Keyframe for today dot pulse */}
+        <style>{`
+          @keyframes dottoday {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.7; }
+          }
+        `}</style>
       </div>
     );
   }

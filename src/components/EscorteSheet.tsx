@@ -408,7 +408,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
             Mon trajet
           </div>
           <div style={{ fontSize: 12, color: tk.tt, display: 'flex', alignItems: 'center', gap: 4 }}>

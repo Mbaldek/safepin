@@ -257,7 +257,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
-              fontSize: 12, fontWeight: 700, margin: 0,
+              fontSize: 13, fontWeight: 700, margin: 0,
               color: isDark ? '#FFFFFF' : '#0F172A',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -388,7 +388,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                       background: isMe ? '#3BB4C1' : (isDark ? '#1E293B' : '#F1F5F9'),
                       border: isMe ? 'none' : `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
                       color: isMe ? '#FFFFFF' : (isDark ? '#E2E8F0' : '#334155'),
-                      fontSize: 12, lineHeight: 1.5,
+                      fontSize: 11, lineHeight: 1.5,
                       wordBreak: 'break-word',
                     }}>
                       {msg.content}
@@ -496,7 +496,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       {/* Mes Groupes */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{
-          fontSize: 12, fontWeight: 600, color: isDark ? "#64748B" : "#94A3B8",
+          fontSize: 10, fontWeight: 700, color: isDark ? "#64748B" : "#94A3B8",
           textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16,
         }}>
           Mes Groupes
@@ -560,7 +560,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
-                    fontSize: 12, fontWeight: 700, margin: 0,
+                    fontSize: 13, fontWeight: 700, margin: 0,
                     color: isDark ? '#FFFFFF' : '#0F172A',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
@@ -595,7 +595,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       {filteredDiscover.length > 0 && (
         <div>
           <h3 style={{
-            fontSize: 12, fontWeight: 600, color: isDark ? "#64748B" : "#94A3B8",
+            fontSize: 10, fontWeight: 700, color: isDark ? "#64748B" : "#94A3B8",
             textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16,
           }}>
             D&eacute;couvrir
@@ -622,7 +622,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                           style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", verticalAlign: "middle" }} />
                       ) : (group.avatar_emoji || '\uD83D\uDC65')}
                     </span>
-                    <h4 style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                    <h4 style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#FFFFFF" : "#0F172A" }}>
                       {group.name}
                     </h4>
                   </div>
