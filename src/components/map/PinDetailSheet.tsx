@@ -762,6 +762,8 @@ function PinDetailSheet({
           setAlreadyConfirmed(true)
           setConfirmCount((c) => c + 1)
           setShowConfirmModal(false)
+          // Laisser 700ms pour voir le compteur monter, puis fermer tout → retour carte
+          setTimeout(() => onClose(), 700)
         }}
         userId={userId}
         alreadyConfirmed={alreadyConfirmed}
