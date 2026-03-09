@@ -234,7 +234,7 @@ export function ConfirmIncidentModal({
               alignItems: 'center',
               justifyContent: 'center',
               padding: 20,
-              zIndex: 300,
+              zIndex: 600,
             }}
           >
             {/* ── MODAL ────────────────────────────── */}
