@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ThumbsUp, Check, ChevronRight, MapPin } from 'lucide-react'
+import { ThumbsUp, Check, MapPin as MapPinIcon, Navigation } from 'lucide-react'
 import { Pin } from '@/types'
 
 interface PinFeedCardProps {
@@ -72,20 +72,11 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
 
   return (
     <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setPressed(false) }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
       style={{
         background: cfg.getGrad(isDark),
         border: `1px solid ${hovered ? cfg.border : (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)')}`,
         borderRadius: 16,
-        padding: '12px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        cursor: 'pointer',
+        overflow: 'hidden',
         transition: 'all 220ms cubic-bezier(0.16,1,0.3,1)',
         transform: pressed
           ? 'scale(0.97)'
@@ -97,118 +88,133 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
           : '0 2px 10px rgba(0,0,0,0.08)',
       }}
     >
-      {/* Emoji icon */}
+      {/* Card body */}
       <div
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setPressed(false) }}
+        onMouseDown={() => setPressed(true)}
+        onMouseUp={() => setPressed(false)}
         style={{
-          width: 42,
-          height: 42,
-          borderRadius: 12,
-          flexShrink: 0,
-          background: cfg.iconBg,
+          padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 20,
-          transition: 'transform 220ms',
-          transform: hovered ? 'scale(1.12) rotate(-4deg)' : 'scale(1)',
+          gap: 12,
+          cursor: 'pointer',
         }}
       >
-        {emoji}
-      </div>
-
-      {/* Center */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Emoji icon */}
         <div
           style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: textPrimary,
-            marginBottom: 5,
-            lineHeight: 1.2,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            width: 42,
+            height: 42,
+            borderRadius: 12,
+            flexShrink: 0,
+            background: cfg.iconBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 20,
+            transition: 'transform 220ms',
+            transform: hovered ? 'scale(1.12) rotate(-4deg)' : 'scale(1)',
           }}
         >
-          {pin.category_label ?? pin.category ?? 'Signalement'}
+          {emoji}
         </div>
-        <span
-          style={{
-            fontSize: 9,
-            fontWeight: 800,
-            letterSpacing: '0.07em',
-            background: cfg.chip,
-            color: '#fff',
-            padding: '2px 8px',
-            borderRadius: 20,
-            display: 'inline-block',
-          }}
-        >
-          {cfg.label}
-        </span>
-      </div>
 
-      {/* Right */}
-      <div
-        style={{
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: 3,
-        }}
-      >
-        {pin.address && (
+        {/* Center */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 10,
-              color: textSecondary,
-              textAlign: 'right',
-              maxWidth: 115,
+              fontSize: 13,
+              fontWeight: 700,
+              color: textPrimary,
+              marginBottom: 5,
+              lineHeight: 1.2,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
           >
-            {pin.address}
+            {pin.category_label ?? pin.category ?? 'Signalement'}
           </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {pin.username && (
-            <>
-              <div
-                style={{
-                  width: 15,
-                  height: 15,
-                  borderRadius: '50%',
-                  background: avatarBg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 8,
-                  fontWeight: 700,
-                  color: textSecondary,
-                }}
-              >
-                {pin.username[0].toUpperCase()}
-              </div>
-              <span style={{ fontSize: 10, color: textSecondary }}>{pin.username}</span>
-              <span style={{ fontSize: 10, color: textTertiary }}>·</span>
-            </>
-          )}
-          {pin.created_at && (
-            <span style={{ fontSize: 10, color: textTertiary, whiteSpace: 'nowrap' }}>
-              {timeAgoFn(pin.created_at)}
-            </span>
-          )}
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: '0.07em',
+              background: cfg.chip,
+              color: '#fff',
+              padding: '2px 8px',
+              borderRadius: 20,
+              display: 'inline-block',
+            }}
+          >
+            {cfg.label}
+          </span>
         </div>
 
-        {onLocate && (
+        {/* Right */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 3,
+          }}
+        >
+          {pin.address && (
+            <div
+              style={{
+                fontSize: 10,
+                color: textSecondary,
+                textAlign: 'right',
+                maxWidth: 115,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {pin.address}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {pin.username && (
+              <>
+                <div
+                  style={{
+                    width: 15,
+                    height: 15,
+                    borderRadius: '50%',
+                    background: avatarBg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 8,
+                    fontWeight: 700,
+                    color: textSecondary,
+                  }}
+                >
+                  {pin.username[0].toUpperCase()}
+                </div>
+                <span style={{ fontSize: 10, color: textSecondary }}>{pin.username}</span>
+                <span style={{ fontSize: 10, color: textTertiary }}>·</span>
+              </>
+            )}
+            {pin.created_at && (
+              <span style={{ fontSize: 10, color: textTertiary, whiteSpace: 'nowrap' }}>
+                {timeAgoFn(pin.created_at)}
+              </span>
+            )}
+          </div>
+
           <button
             onClick={(e) => {
               e.stopPropagation()
-              onLocate()
+              setVoted(!voted)
+              setVotes((v) => (voted ? v - 1 : v + 1))
             }}
             style={{
               display: 'flex',
@@ -220,45 +226,64 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 600,
-              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              color: '#3BB4C1',
+              background: voted
+                ? 'rgba(59,180,193,0.15)'
+                : isDark
+                ? 'rgba(255,255,255,0.06)'
+                : 'rgba(0,0,0,0.04)',
+              color: voted ? '#3BB4C1' : textTertiary,
               transition: 'all 150ms cubic-bezier(0.34,1.56,0.64,1)',
+              transform: voted ? 'scale(1.05)' : 'scale(1)',
             }}
           >
-            <MapPin size={9} />
-            <span>Voir</span>
+            {voted ? <Check size={9} /> : <ThumbsUp size={9} />}
+            <span>{votes}</span>
           </button>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setVoted(!voted)
-            setVotes((v) => (voted ? v - 1 : v + 1))
-          }}
+        </div>
+      </div>
+
+      {/* Bottom bar — "Voir sur la carte" */}
+      {onLocate && (
+        <div
+          onClick={(e) => { e.stopPropagation(); onLocate() }}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '2px 8px',
-            borderRadius: 20,
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 10,
-            fontWeight: 600,
-            background: voted
+            justifyContent: 'center',
+            gap: 6,
+            padding: '7px 14px',
+            background: isDark
+              ? 'rgba(59,180,193,0.08)'
+              : 'rgba(59,180,193,0.06)',
+            borderTop: `1px solid ${isDark
               ? 'rgba(59,180,193,0.15)'
-              : isDark
-              ? 'rgba(255,255,255,0.06)'
-              : 'rgba(0,0,0,0.04)',
-            color: voted ? '#3BB4C1' : textTertiary,
-            transition: 'all 150ms cubic-bezier(0.34,1.56,0.64,1)',
-            transform: voted ? 'scale(1.05)' : 'scale(1)',
+              : 'rgba(59,180,193,0.10)'}`,
+            cursor: 'pointer',
+            transition: 'background 180ms',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = isDark
+              ? 'rgba(59,180,193,0.15)'
+              : 'rgba(59,180,193,0.10)'
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = isDark
+              ? 'rgba(59,180,193,0.08)'
+              : 'rgba(59,180,193,0.06)'
           }}
         >
-          {voted ? <Check size={9} /> : <ThumbsUp size={9} />}
-          <span>{votes}</span>
-        </button>
-      </div>
+          <MapPinIcon size={11} style={{ color: '#3BB4C1', flexShrink: 0 }} />
+          <span style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#3BB4C1',
+            letterSpacing: '0.01em',
+          }}>
+            Voir sur la carte
+          </span>
+          <Navigation size={10} style={{ color: 'rgba(59,180,193,0.5)', marginLeft: 2 }} />
+        </div>
+      )}
     </div>
   )
 }

@@ -496,6 +496,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
                   userId={userId}
                   onCreateGroup={() => setShowCreateGroup(true)}
                   refreshKey={refreshKey}
+                  onJoined={() => setRefreshKey((k) => k + 1)}
                 />
               ) : activeTab === 2 ? (
                 <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />
@@ -506,7 +507,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
       </div>
 
       {showCompose && (
-        <ComposeModal isDark={isDark} userId={userId} onClose={() => setShowCompose(false)} />
+        <ComposeModal isDark={isDark} userId={userId} onClose={() => setShowCompose(false)} onPublished={() => setRefreshKey((k) => k + 1)} />
       )}
 
       {showStoryViewer && (

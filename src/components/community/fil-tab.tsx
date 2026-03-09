@@ -334,7 +334,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
 
       setLoading(false);
     })();
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   // Realtime for new posts
   useEffect(() => {

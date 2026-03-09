@@ -297,6 +297,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           flexDirection: "column",
           flex: 1,
           minHeight: 0,
+          paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
         }}
       >
         {/* Chat header */}
@@ -376,7 +377,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
         </div>
 
         {/* ChatView */}
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           <ChatView
             conversationId={selectedConvo.id}
             currentUserId={userId}

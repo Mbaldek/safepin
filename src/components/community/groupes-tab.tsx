@@ -13,6 +13,7 @@ interface GroupesTabProps {
   userId: string | null;
   onCreateGroup: () => void;
   refreshKey?: number;
+  onJoined?: () => void;
 }
 
 interface ChatMessage {
@@ -42,7 +43,7 @@ function dateDivider(d: string) {
   return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 }
 
-export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey }: GroupesTabProps) {
+export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, onJoined }: GroupesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [myGroups, setMyGroups] = useState<Community[]>([]);
   const [discoverGroups, setDiscoverGroups] = useState<Community[]>([]);
@@ -167,6 +168,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey }
     if (joined) setMyGroups((p) => [...p, joined]);
     setDiscoverGroups((p) => p.filter((c) => c.id !== communityId));
     toast.success("Groupe rejoint !");
+    onJoined?.();
   };
 
   const handleSend = useCallback(async () => {
@@ -205,7 +207,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey }
   // ─── Chat view ───────────────────────────────────────────────────────
   if (activeGroup) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
         {/* Chat header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,

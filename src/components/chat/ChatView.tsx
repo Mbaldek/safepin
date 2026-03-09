@@ -182,7 +182,7 @@ export default function ChatView({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', paddingTop: 12, paddingBottom: 8 }}>
         {messages.length === 0 && (
