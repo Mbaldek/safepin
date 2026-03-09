@@ -151,7 +151,16 @@ export default function StoriesRow({ isDark, userId, communityIds, onStoryClick,
                 ? "transparent"
                 : `linear-gradient(135deg, ${story.gradientColors[0]}, ${story.gradientColors[1]})`,
               border: story.isAdd ? "2px dashed #3BB4C1" : "none",
+              animation: story.isAdd ? "storyRing 3s linear infinite" : undefined,
+              transition: "box-shadow 200ms",
+              cursor: story.isAdd ? "pointer" : undefined,
             }}
+            onMouseEnter={story.isAdd ? (e) => {
+              (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 6px rgba(59,180,193,0.2)";
+            } : undefined}
+            onMouseLeave={story.isAdd ? (e) => {
+              (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 0 rgba(59,180,193,0)";
+            } : undefined}
           >
             <div
               style={{

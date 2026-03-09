@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Bookmark, Search, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTrendingHashtags } from "@/hooks/useHashtags";
@@ -61,9 +61,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [activeHashtagFilter, setActiveHashtagFilter] = useState<string | null>(null);
   const [hashtagPinIds, setHashtagPinIds] = useState<Set<string>>(new Set());
   const [contentFilter, setContentFilter] = useState<Set<'post' | 'sos' | 'pin'>>(new Set(['post', 'sos', 'pin']));
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const filterBtnRef = useRef<HTMLButtonElement>(null);
-  const [filterPos, setFilterPos] = useState({ top: 0, left: 0 });
+  const [filterMode, setFilterMode] = useState(false);
   const { trending } = useTrendingHashtags();
   const userLocation = useStore((s) => s.userLocation);
 
@@ -421,128 +419,126 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         </button>
 
         {/* Filter pill */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <button
-            ref={filterBtnRef}
-            onClick={() => {
-              if (filterBtnRef.current) {
-                const rect = filterBtnRef.current.getBoundingClientRect();
-                const dropdownHeight = 160;
-                const spaceBelow = window.innerHeight - rect.bottom;
-                const showAbove = spaceBelow < dropdownHeight + 16;
-                setFilterPos({
-                  top: showAbove ? rect.top - dropdownHeight - 8 : rect.bottom + 8,
-                  left: rect.left,
-                });
-              }
-              setShowFilterMenu(f => !f);
-            }}
-            style={{
-              width: 34, height: 34, minWidth: 34, borderRadius: 99,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: contentFilter.size < 3
-                ? (isDark ? 'rgba(59,180,193,0.15)' : 'rgba(59,180,193,0.10)')
-                : (isDark ? '#1E293B' : '#F1F5F9'),
-              border: `1px solid ${contentFilter.size < 3 ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
-              cursor: 'pointer',
-            }}
-          >
-            <SlidersHorizontal size={15} style={{ color: contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
-          </button>
-          {showFilterMenu && (
-            <div style={{
-              position: 'fixed', top: filterPos.top, left: filterPos.left, zIndex: 200,
-              background: isDark ? '#1E293B' : '#FFFFFF',
-              border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#E2E8F0'}`,
-              borderRadius: 12, padding: '6px 0', minWidth: 200,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            }}>
-              {([
-                { key: 'post' as const, label: 'Publications', icon: '📝' },
-                { key: 'sos' as const, label: 'Alertes SOS', icon: '🚨' },
-                { key: 'pin' as const, label: 'Signalements', icon: '📍' },
-              ]).map(opt => {
-                const active = contentFilter.has(opt.key);
-                return (
-                  <button
-                    key={opt.key}
-                    onClick={() => {
-                      setContentFilter(prev => {
-                        const next = new Set(prev);
-                        if (active && next.size > 1) next.delete(opt.key);
-                        else next.add(opt.key);
-                        return next;
-                      });
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      width: '100%', padding: '8px 14px', border: 'none',
-                      background: 'transparent', cursor: 'pointer', fontSize: 11,
-                      fontWeight: active ? 600 : 400, fontFamily: 'inherit',
-                      color: active ? (isDark ? '#FFFFFF' : '#0F172A') : (isDark ? '#64748B' : '#94A3B8'),
-                    }}
-                  >
-                    <span style={{ fontSize: 12 }}>{opt.icon}</span>
-                    <span style={{ flex: 1, textAlign: 'left' }}>{opt.label}</span>
-                    {active && <span style={{ color: '#3BB4C1', fontSize: 12, fontWeight: 700 }}>✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Favoris pill */}
         <button
-          onClick={() => setShowFavoris(f => !f)}
+          onClick={() => setFilterMode(f => !f)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '6px 14px', borderRadius: 99, whiteSpace: 'nowrap',
-            fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-            cursor: 'pointer', transition: 'all 0.15s ease',
-            background: showFavoris
-              ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
-              : (isDark ? '#1E293B' : '#F1F5F9'),
-            border: `1px solid ${showFavoris
-              ? 'rgba(251,191,36,0.3)'
-              : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
-            color: showFavoris ? '#FBBF24' : (isDark ? '#94A3B8' : '#64748B'),
+            width: 34, height: 34, minWidth: 34, borderRadius: 99,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: filterMode ? 'rgba(59,180,193,0.15)' : (isDark ? '#1E293B' : '#F1F5F9'),
+            border: `1px solid ${filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+            color: filterMode ? '#3BB4C1' : (isDark ? '#64748B' : '#94A3B8'),
+            cursor: 'pointer',
+            transition: 'all 200ms',
           }}
         >
-          <Bookmark size={13} fill={showFavoris ? '#FBBF24' : 'none'} />
-          <span>Favoris</span>
+          <SlidersHorizontal size={15} style={{ color: filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
         </button>
 
-        {/* Trending hashtag pills */}
-        {trending.map((t) => {
-          const isActive = activeHashtagFilter === t.tag;
-          const tagColor = t.color || '#3BB4C1';
-          return (
+        {filterMode ? (
+          <>
+            {[
+              { key: 'all',          label: 'Tout',            color: '#3BB4C1' },
+              { key: 'publications', label: '\uD83D\uDCAC Publications', color: '#A78BFA' },
+              { key: 'sos',          label: '\uD83D\uDEA8 Alertes SOS',  color: '#EF4444' },
+              { key: 'pins',         label: '\uD83D\uDCCD Signalements', color: '#F59E0B' },
+            ].map(({ key, label, color }) => {
+              const isAll = key === 'all';
+              const active = isAll
+                ? contentFilter.size === 3
+                : contentFilter.has(key === 'publications' ? 'post' : key === 'sos' ? 'sos' : 'pin');
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    if (isAll) {
+                      setContentFilter(new Set(['post', 'sos', 'pin']));
+                    } else {
+                      const mapped = key === 'publications' ? 'post' as const : key === 'sos' ? 'sos' as const : 'pin' as const;
+                      setContentFilter(prev => {
+                        const next = new Set(prev);
+                        if (next.has(mapped) && next.size > 1) next.delete(mapped);
+                        else next.add(mapped);
+                        return next;
+                      });
+                    }
+                    setFilterMode(false);
+                  }}
+                  style={{
+                    flexShrink: 0,
+                    padding: '7px 14px',
+                    borderRadius: 20,
+                    border: `1px solid ${active ? color : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')}`,
+                    background: active ? color : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
+                    color: active ? '#fff' : (isDark ? '#94A3B8' : '#475569'),
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: active ? `0 4px 16px ${color}55` : 'none',
+                    transform: active ? 'translateY(-1px)' : 'translateY(0)',
+                    transition: 'all 220ms cubic-bezier(0.34,1.56,0.64,1)',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            {/* Favoris pill */}
             <button
-              key={t.id}
-              onClick={() => {
-                if (isActive) {
-                  setActiveHashtagFilter(null);
-                  onHashtagClick?.('');
-                } else {
-                  setActiveHashtagFilter(t.tag);
-                  onHashtagClick?.(`#${t.tag}`);
-                }
-              }}
+              onClick={() => setShowFavoris(f => !f)}
               style={{
-                padding: '6px 12px', borderRadius: 99, whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '6px 14px', borderRadius: 99, whiteSpace: 'nowrap',
                 fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
                 cursor: 'pointer', transition: 'all 0.15s ease',
-                background: isActive ? `${tagColor}15` : (isDark ? '#1E293B' : '#F1F5F9'),
-                border: `1px solid ${isActive ? tagColor : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
-                color: isActive ? tagColor : (isDark ? '#94A3B8' : '#64748B'),
-                animation: t.count > 10 ? 'hashtag-pulse 2s infinite' : undefined,
+                background: showFavoris
+                  ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
+                  : (isDark ? '#1E293B' : '#F1F5F9'),
+                border: `1px solid ${showFavoris
+                  ? 'rgba(251,191,36,0.3)'
+                  : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+                color: showFavoris ? '#FBBF24' : (isDark ? '#94A3B8' : '#64748B'),
               }}
             >
-              #{t.tag} · {t.count}
+              <Bookmark size={13} fill={showFavoris ? '#FBBF24' : 'none'} />
+              <span>Favoris</span>
             </button>
-          );
-        })}
+
+            {/* Trending hashtag pills */}
+            {trending.map((t) => {
+              const isActive = activeHashtagFilter === t.tag;
+              const tagColor = t.color || '#3BB4C1';
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (isActive) {
+                      setActiveHashtagFilter(null);
+                      onHashtagClick?.('');
+                    } else {
+                      setActiveHashtagFilter(t.tag);
+                      onHashtagClick?.(`#${t.tag}`);
+                    }
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 99, whiteSpace: 'nowrap',
+                    fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+                    cursor: 'pointer', transition: 'all 0.15s ease',
+                    background: isActive ? `${tagColor}15` : (isDark ? '#1E293B' : '#F1F5F9'),
+                    border: `1px solid ${isActive ? tagColor : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+                    color: isActive ? tagColor : (isDark ? '#94A3B8' : '#64748B'),
+                    animation: t.count > 10 ? 'hashtag-pulse 2s infinite' : undefined,
+                  }}
+                >
+                  #{t.tag} · {t.count}
+                </button>
+              );
+            })}
+          </>
+        )}
       </div>
 
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 16 }}>

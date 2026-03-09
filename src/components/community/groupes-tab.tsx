@@ -449,6 +449,22 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => setActiveGroup(group.id)}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.06)' : 'rgba(59,180,193,0.04)';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateX(3px)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = isDark ? '#1E293B' : '#FFFFFF';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
+                }}
+                onMouseDown={(e) => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(59,180,193,0.25)';
+                  (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)';
+                }}
+                onMouseUp={(e) => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLElement).style.transform = 'translateX(3px)';
+                }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11,
                   background: isDark ? '#1E293B' : '#FFFFFF',
@@ -456,6 +472,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                   border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
                   cursor: 'pointer', width: '100%', textAlign: 'left',
                   fontFamily: 'inherit',
+                  transition: 'all 180ms cubic-bezier(0.16,1,0.3,1)',
                 }}
               >
                 <div style={{

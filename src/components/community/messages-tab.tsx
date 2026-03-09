@@ -105,6 +105,14 @@ function SwipeableConvoRow({
           background: isDark ? "#0F172A" : "#FFFFFF",
         }}
         whileHover={!swiped ? { backgroundColor: isDark ? "#1E293B" : "#F1F5F9", x: 3 } : undefined}
+        onMouseDown={(e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(59,180,193,0.25)';
+          (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)';
+        }}
+        onMouseUp={(e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+          (e.currentTarget as HTMLElement).style.transform = '';
+        }}
         onClick={() => { if (!swiped) onSelect(); else setSwiped(false); }}
         transition={{ type: "spring", stiffness: 400, damping: 35 }}
       >
