@@ -1006,6 +1006,36 @@ activeTrip, setActiveTrip,
                 </span>
               )}
             </button>
+            {/* Walk With Me */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowWalkWithMe(true)}
+                style={{
+                  position: 'fixed',
+                  bottom: 200,
+                  right: 20,
+                  width: 48, height: 48, borderRadius: '50%', border: 'none',
+                  background: 'linear-gradient(145deg, #8B6B9A 0%, #5C3D5E 55%, #3d2245 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', overflow: 'hidden', zIndex: 50,
+                  animation: 'wwm-glow 2.8s ease-in-out infinite',
+                }}
+                title="Marche avec moi"
+              >
+                <span style={{
+                  position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)',
+                  animation: 'wwm-shimmer 3s ease-in-out infinite',
+                }} />
+                <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </button>
+            </div>
+
             {/* Report button — stacked above SOS on the right */}
             <motion.button
               onClick={() => {
