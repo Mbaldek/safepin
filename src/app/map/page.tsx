@@ -105,6 +105,7 @@ activeTrip, setActiveTrip,
   const escorte = useEscorte(userId ?? '');
   const { communityDMTarget, closeCommunityDM } = useUiStore();
   const [dmTarget, setDmTarget] = useState<{ userId: string; userName: string } | null>(null);
+  const [pendingPinId, setPendingPinId] = useState<string | null>(null);
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
   const justCompletedOnboardingRef = useRef(false);
@@ -132,6 +133,18 @@ activeTrip, setActiveTrip,
     setActiveTab('community');
     closeCommunityDM();
   }, [communityDMTarget, closeCommunityDM, setActiveTab]);
+
+
+  // Listen for locate-pin events from community cards
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { lat, lng } = (e as CustomEvent).detail;
+      useStore.getState().setMapFlyTo({ lat, lng, zoom: 16 });
+      setActiveTab('map');
+    };
+    window.addEventListener('breveil:locate-pin', handler);
+    return () => window.removeEventListener('breveil:locate-pin', handler);
+  }, [setActiveTab]);
 
   // Clear pending route options whenever the user leaves the trip tab
   useEffect(() => {
@@ -1075,14 +1088,21 @@ activeTrip, setActiveTrip,
         />
 
         {/* Community tab — trusted circle, groups, messages */}
-        <AnimatePresence>
-          {activeTab === 'community' && userId && (
-            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} onPinClick={async (pinId) => {
-              setActiveTab('map');
-              setActiveSheet('none');
-              await new Promise(resolve => setTimeout(resolve, 350));
+        <AnimatePresence onExitComplete={() => {
+          if (pendingPinId) {
+            const pinId = pendingPinId;
+            setPendingPinId(null);
+            (async () => {
               const { data: pin } = await supabase.from('pins').select('*').eq('id', pinId).single();
               if (pin) { useStore.getState().setSelectedPin(pin); setActiveSheet('detail'); }
+            })();
+          }
+        }}>
+          {activeTab === 'community' && userId && (
+            <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} onPinClick={(pinId) => {
+              setPendingPinId(pinId);
+              setActiveTab('map');
+              setActiveSheet('none');
             }} />
           )}
         </AnimatePresence>

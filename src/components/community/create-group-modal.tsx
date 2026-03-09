@@ -105,7 +105,7 @@ export default function CreateGroupModal({
         ...(reverseContacts || []).map((c) => c.user_id),
       ].filter(Boolean);
 
-      const uniqueIds = [...new Set(contactIds)];
+      const uniqueIds = [...new Set(contactIds)].filter((id) => id !== userId);
 
       if (uniqueIds.length === 0) {
         setCercleContacts([]);
@@ -250,11 +250,11 @@ export default function CreateGroupModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         backgroundColor: "rgba(0,0,0,0.6)",
         backdropFilter: "blur(4px)",
-        zIndex: 50,
+        zIndex: 400,
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",

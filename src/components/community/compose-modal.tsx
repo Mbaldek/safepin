@@ -14,6 +14,7 @@ interface ComposeModalProps {
   isDark: boolean;
   userId: string | null;
   onClose: () => void;
+  onPublished?: () => void;
 }
 
 const postTypes = [
@@ -35,7 +36,7 @@ interface CommunityOption {
   name: string;
 }
 
-export default function ComposeModal({ isDark, userId, onClose }: ComposeModalProps) {
+export default function ComposeModal({ isDark, userId, onClose, onPublished }: ComposeModalProps) {
   const [selectedType, setSelectedType] = useState("post");
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState<"public" | "followers" | "cercle">("public");
@@ -141,6 +142,7 @@ export default function ComposeModal({ isDark, userId, onClose }: ComposeModalPr
       setContent("");
       setPostTags([]);
       clearMedia();
+      onPublished?.();
       onClose();
     }
     setPublishing(false);

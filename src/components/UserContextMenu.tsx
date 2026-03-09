@@ -96,7 +96,7 @@ export function UserContextMenu() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div style={{ position:'fixed', inset:0, zIndex:400 }}>
+        <div style={{ position:'fixed', inset:0, zIndex:600 }}>
           {/* Backdrop */}
           <motion.div
             initial={{ opacity:0 }}

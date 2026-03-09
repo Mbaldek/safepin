@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { ThumbsUp, Check, ChevronRight } from 'lucide-react'
+import { ThumbsUp, Check, ChevronRight, MapPin } from 'lucide-react'
 import { Pin } from '@/types'
 
 interface PinFeedCardProps {
   pin: Pin
   isDark: boolean
   onClick?: () => void
+  onLocate?: () => void
 }
 
 const SEV_CONFIG = {
@@ -53,7 +54,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   default: '📍',
 }
 
-export default function PinFeedCard({ pin, isDark, onClick }: PinFeedCardProps) {
+export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedCardProps) {
   const [hovered, setHovered] = useState(false)
   const [pressed, setPressed] = useState(false)
   const [votes, setVotes] = useState(pin.confirmations ?? 0)
@@ -203,6 +204,31 @@ export default function PinFeedCard({ pin, isDark, onClick }: PinFeedCardProps) 
           )}
         </div>
 
+        {onLocate && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onLocate()
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              borderRadius: 20,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 10,
+              fontWeight: 600,
+              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              color: '#3BB4C1',
+              transition: 'all 150ms cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+          >
+            <MapPin size={9} />
+            <span>Voir</span>
+          </button>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation()

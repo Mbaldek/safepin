@@ -495,6 +495,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
                   isDark={isDark}
                   userId={userId}
                   onCreateGroup={() => setShowCreateGroup(true)}
+                  refreshKey={refreshKey}
                 />
               ) : activeTab === 2 ? (
                 <MessagesTab isDark={isDark} userId={userId} pendingDm={pendingDm} onPendingDmConsumed={() => setPendingDm(null)} />

@@ -12,6 +12,7 @@ interface GroupesTabProps {
   isDark: boolean;
   userId: string | null;
   onCreateGroup: () => void;
+  refreshKey?: number;
 }
 
 interface ChatMessage {
@@ -41,7 +42,7 @@ function dateDivider(d: string) {
   return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 }
 
-export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTabProps) {
+export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey }: GroupesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [myGroups, setMyGroups] = useState<Community[]>([]);
   const [discoverGroups, setDiscoverGroups] = useState<Community[]>([]);
@@ -88,7 +89,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
       setDiscoverGroups(all.filter((c) => !memberSet.has(c.id)));
       setLoading(false);
     })();
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   // Fetch messages when a group is opened
   useEffect(() => {
@@ -450,19 +451,22 @@ export default function GroupesTab({ isDark, userId, onCreateGroup }: GroupesTab
                 transition={{ delay: index * 0.05 }}
                 onClick={() => setActiveGroup(group.id)}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.06)' : 'rgba(59,180,193,0.04)';
+                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.05)';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(3px)';
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = isDark ? '#1E293B' : '#FFFFFF';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                 }}
                 onMouseDown={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(59,180,193,0.25)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 4px rgba(59,180,193,0.25)';
+                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)';
                   (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)';
                 }}
                 onMouseUp={(e) => {
                   (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.05)';
                   (e.currentTarget as HTMLElement).style.transform = 'translateX(3px)';
                 }}
                 style={{

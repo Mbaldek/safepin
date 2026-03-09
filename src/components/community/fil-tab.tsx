@@ -419,20 +419,30 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         </button>
 
         {/* Filter pill */}
-        <button
-          onClick={() => setFilterMode(f => !f)}
-          style={{
-            width: 34, height: 34, minWidth: 34, borderRadius: 99,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: filterMode ? 'rgba(59,180,193,0.15)' : (isDark ? '#1E293B' : '#F1F5F9'),
-            border: `1px solid ${filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
-            color: filterMode ? '#3BB4C1' : (isDark ? '#64748B' : '#94A3B8'),
-            cursor: 'pointer',
-            transition: 'all 200ms',
-          }}
-        >
-          <SlidersHorizontal size={15} style={{ color: filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setFilterMode(f => !f)}
+            style={{
+              width: 34, height: 34, minWidth: 34, borderRadius: 99,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: filterMode ? 'rgba(59,180,193,0.15)' : (isDark ? '#1E293B' : '#F1F5F9'),
+              border: `1px solid ${filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
+              color: filterMode ? '#3BB4C1' : (isDark ? '#64748B' : '#94A3B8'),
+              cursor: 'pointer',
+              transition: 'all 200ms',
+            }}
+          >
+            <SlidersHorizontal size={15} style={{ color: filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
+          </button>
+          {contentFilter.size < 3 && (
+            <div style={{
+              position: 'absolute', top: -2, right: -2,
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#3BB4C1',
+              border: `2px solid ${isDark ? '#0F172A' : '#FFFFFF'}`,
+            }} />
+          )}
+        </div>
 
         {filterMode ? (
           <>
@@ -461,16 +471,15 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
                         return next;
                       });
                     }
-                    setFilterMode(false);
                   }}
                   style={{
                     flexShrink: 0,
-                    padding: '7px 14px',
+                    padding: '5px 11px',
                     borderRadius: 20,
                     border: `1px solid ${active ? color : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')}`,
                     background: active ? color : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
                     color: active ? '#fff' : (isDark ? '#94A3B8' : '#475569'),
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: 600,
                     cursor: 'pointer',
                     fontFamily: 'inherit',
@@ -720,7 +729,9 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               style={{ animation: `cardIn ${index * 70}ms cubic-bezier(0.16,1,0.3,1) both` }}
             >
               {post._isPin ? (
-                <PinFeedCard pin={post} isDark={isDark} onClick={() => onPinClick?.(post.id)} />
+                <PinFeedCard pin={post} isDark={isDark} onClick={() => onPinClick?.(post.id)} onLocate={() => {
+                  window.dispatchEvent(new CustomEvent('breveil:locate-pin', { detail: { lat: post.lat, lng: post.lng } }));
+                }} />
               ) : post._isSos ? (
                 <SOSPostCard post={post} currentUserId={userId} />
               ) : (
