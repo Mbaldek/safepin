@@ -9,7 +9,7 @@ import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { bToast } from '@/components/GlobalToast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Users, Clock, Shield, Phone } from 'lucide-react';
+import { X, Copy, Users, Clock, Shield, Phone, Bell, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { WalkSession } from '@/types';
 
@@ -327,15 +327,40 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               </button>
             </div>
 
-            {/* Waiting slot avatars */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 2 }}>
-              {[0, 1, 2].map((i) => (
+            {/* Niveaux d'escalade */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: C.ts2, letterSpacing: '0.07em', textTransform: 'uppercase' as const, marginBottom: 2 }}>
+                Si tu ne réponds pas
+              </div>
+              {[
+                { color: AMBER, bg: AMBER10, border: AMBER30, tag: 'N1', icon: <Bell size={13} strokeWidth={2} color={AMBER} />, nameKey: 'level1Name', descKey: 'level1Desc' },
+                { color: TEAL, bg: TEAL12, border: TEAL24, tag: 'N2', icon: <Phone size={13} strokeWidth={2} color={TEAL} />, nameKey: 'level2Name', descKey: 'level2Desc' },
+                { color: '#A78BFA', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.22)', tag: 'N3', icon: <Sparkles size={13} strokeWidth={2} color="#A78BFA" />, nameKey: 'level3Name', descKey: 'level3Desc', soon: true },
+              ].map((n, i) => (
                 <div key={i} style={{
-                  width: 28, height: 28, borderRadius: '50%',
-                  background: C.card, border: `1.5px dashed ${C.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '8px 11px', borderRadius: 12,
+                  background: C.card, border: `1px solid ${C.border}`,
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.ts2, display: 'block', opacity: 0.4 }} />
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 9,
+                    background: n.bg, border: `1px solid ${n.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    {n.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: n.color, letterSpacing: '0.05em', textTransform: 'uppercase' as const }}>{n.tag}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.tp }}>{t(n.nameKey as any)}</span>
+                      {n.soon && (
+                        <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 5, background: TEAL12, color: TEAL, border: `1px solid ${TEAL24}` }}>Bientôt</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.ts, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                      {t(n.descKey as any)}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -366,6 +391,37 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 ))}
               </div>
             </div>
+
+            {/* Audio CTA */}
+            <button
+              onClick={() => setCallState(callActive ? 'idle' : 'connecting')}
+              style={{
+                width: '100%', padding: '11px 14px', borderRadius: 13,
+                background: callActive ? 'rgba(59,180,193,0.18)' : TEAL12,
+                border: `1px solid ${TEAL24}`,
+                color: TEAL, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                animation: !callActive ? 'bv-walk-audiocta 3s ease-in-out infinite' : undefined,
+              }}
+            >
+              <Phone size={14} strokeWidth={2} color={TEAL} />
+              {callActive ? 'Canal audio actif' : 'Démarrer le canal audio'}
+            </button>
+            {callActive && (
+              <AudioChannel
+                roomName={`walk-${session!.id}`}
+                userId={userId}
+                isDark={isDark}
+                title="Canal vocal — Marche"
+                participantNames={[]}
+                onEnd={() => setCallState('idle')}
+                onStateChange={(s) => {
+                  if (s === 'active') setCallState('active');
+                  else if (s === 'error') setCallState('error');
+                  else if (s === 'ended') setCallState('idle');
+                }}
+              />
+            )}
 
             {/* Invite code */}
             <div style={{
@@ -451,6 +507,22 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                 <span style={{ fontWeight: 700, color: C.tp }}>{destination}</span>
               </div>
             )}
+
+            {/* Audio CTA */}
+            <button
+              onClick={() => setCallState(callActive ? 'idle' : 'connecting')}
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: 13,
+                background: callActive ? 'rgba(59,180,193,0.18)' : TEAL12,
+                border: `1px solid ${TEAL24}`,
+                color: TEAL, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                animation: !callActive ? 'bv-walk-audiocta 3s ease-in-out infinite' : undefined,
+              }}
+            >
+              <Phone size={14} strokeWidth={2} color={TEAL} />
+              {callActive ? 'Canal audio actif' : 'Rejoindre le canal audio'}
+            </button>
 
             {/* Safety check-in */}
             <AnimatePresence>
