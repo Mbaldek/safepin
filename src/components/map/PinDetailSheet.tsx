@@ -495,11 +495,11 @@ function PinDetailSheet({
                       transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px)'
-                      e.currentTarget.style.boxShadow = T.shadowMd
+                      e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)'
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.22)'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)'
                       e.currentTarget.style.boxShadow = 'none'
                     }}
                   >

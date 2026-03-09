@@ -759,18 +759,21 @@ export function ConfirmIncidentModal({
                     gap: 8,
                     cursor: (confirming || alreadyConfirmed) ? 'not-allowed' : 'pointer',
                     opacity: (confirming || alreadyConfirmed) ? 0.5 : 1,
-                    transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1)',
+                    animation: (!confirming && !alreadyConfirmed) ? 'confirmCTAPulse 2s ease-out infinite' : undefined,
+                    transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1)',
                     fontFamily: 'inherit',
                   }}
                   onMouseEnter={(e) => {
                     if (!confirming && !alreadyConfirmed) {
-                      e.currentTarget.style.transform = 'translateY(-1px)'
-                      e.currentTarget.style.boxShadow = T.shadowMd
+                      e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)'
+                      e.currentTarget.style.animation = 'none'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = 'none'
+                    if (!confirming && !alreadyConfirmed) {
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)'
+                      e.currentTarget.style.animation = 'confirmCTAPulse 2s ease-out infinite'
+                    }
                   }}
                 >
                   {alreadyConfirmed ? (

@@ -487,6 +487,12 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
                     transform: active ? 'translateY(-1px)' : 'translateY(0)',
                     transition: 'all 220ms cubic-bezier(0.34,1.56,0.64,1)',
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = active ? 'translateY(-2px) scale(1.05)' : 'translateY(-1px) scale(1.03)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = active ? 'translateY(-1px)' : 'translateY(0)'
+                  }}
                 >
                   {label}
                 </button>

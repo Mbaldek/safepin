@@ -57,6 +57,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedCardProps) {
   const [hovered, setHovered] = useState(false)
   const [pressed, setPressed] = useState(false)
+  const [locateHovered, setLocateHovered] = useState(false)
   const [votes, setVotes] = useState(pin.confirmations ?? 0)
   const [voted, setVoted] = useState(false)
 
@@ -262,11 +263,13 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
             transition: 'background 180ms',
           }}
           onMouseEnter={(e) => {
+            setLocateHovered(true);
             (e.currentTarget as HTMLElement).style.background = isDark
               ? 'rgba(59,180,193,0.15)'
               : 'rgba(59,180,193,0.10)'
           }}
           onMouseLeave={(e) => {
+            setLocateHovered(false);
             (e.currentTarget as HTMLElement).style.background = isDark
               ? 'rgba(59,180,193,0.08)'
               : 'rgba(59,180,193,0.06)'
@@ -278,10 +281,11 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
             fontWeight: 600,
             color: '#3BB4C1',
             letterSpacing: '0.01em',
+            transition: 'opacity 120ms',
           }}>
-            Voir sur la carte
+            {locateHovered ? 'Y aller →' : 'Voir sur la carte'}
           </span>
-          <Navigation size={10} style={{ color: 'rgba(59,180,193,0.5)', marginLeft: 2 }} />
+          <Navigation size={10} style={{ color: 'rgba(59,180,193,0.5)', marginLeft: 2, opacity: locateHovered ? 0 : 1, transition: 'opacity 120ms' }} />
         </div>
       )}
     </div>
