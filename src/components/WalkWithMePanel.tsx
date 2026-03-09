@@ -115,6 +115,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
   const [session, setSession]       = useState<WalkSession | null>(null);
   const [loading, setLoading]       = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [joinCode, setJoinCode]     = useState('');
   const [elapsed, setElapsed]       = useState(0);
   const [nextCheckin, setNextCheckin] = useState<number | null>(null);
@@ -139,6 +140,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
       .limit(1)
       .then(({ data }) => {
         if (data?.[0]) setSession(data[0] as WalkSession);
+        setInitialLoading(false);
       });
   }, [userId]);
 
@@ -240,6 +242,28 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
   const sheetH = !session ? '55vh' : session.status === 'waiting' ? '55vh' : '65vh';
 
   // ── Render ──────────────────────────────────────────────────────────────
+
+  if (initialLoading) {
+    return (
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0, height: '55vh' }}
+        exit={{ y: '100%' }}
+        transition={springConfig}
+        style={{
+          position: 'absolute', bottom: 64, left: 0, right: 0,
+          background: C.surface, backdropFilter: C.blur, WebkitBackdropFilter: C.blur,
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          border: `1px solid ${C.borderM}`, borderBottom: 'none',
+          boxShadow: C.shadow, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', zIndex: 200,
+        }}
+      >
+        <style>{KEYFRAMES}</style>
+        <div style={{ width: 24, height: 24, border: '2.5px solid', borderColor: `${TEAL} transparent transparent`, borderRadius: '50%', animation: 'bv-walk-spin 0.8s linear infinite' }} />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
