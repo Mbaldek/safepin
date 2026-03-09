@@ -64,6 +64,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const departSearch = useDestinationSearch(userLat, userLng)
   const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill } = useStore()
   const pins = useStore((s) => s.pins)
+  const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe)
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -427,7 +428,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       {/* CTA 1 — Marche avec moi */}
       <motion.button
         whileTap={{ scale: 0.98 }}
-        onClick={() => escorte.setView('escorte-intro')}
+        onClick={() => setShowWalkWithMe(true)}
         style={{
           width:          '100%',
           background:     d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',

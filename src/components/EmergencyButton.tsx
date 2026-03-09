@@ -418,6 +418,9 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
           0%   { opacity: 0.6; }
           100% { opacity: 0;   }
         }
+        @keyframes sos-compact-spin {
+          to { transform: rotate(360deg); }
+        }
       `}</style>
 
       {/* ── Hold progress — centered overlay, above the thumb ──────── */}
@@ -754,8 +757,8 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         style={{
           position: 'fixed',
           ...(compact
-            ? { top: 14, left: '50%', transform: 'translateX(-50%)', width: 40, height: 40, fontSize: 10, zIndex: 150, boxShadow: '0 2px 10px rgba(239,68,68,0.4)' }
-            : { bottom: 80, right: 20, width: 52, height: 52, fontSize: 13, zIndex: 200, boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }
+            ? { top: 8, left: '50%', transform: 'translateX(-50%)', width: 40, height: 40, fontSize: 10, zIndex: 150, boxShadow: '0 2px 10px rgba(239,68,68,0.4)', opacity: 0.8 }
+            : { bottom: 80, right: 20, width: 50, height: 50, fontSize: 13, zIndex: 200, boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }
           ),
           borderRadius: '50%',
           background: 'linear-gradient(135deg, #EF4444, #DC2626)',
@@ -774,16 +777,27 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         }}
       >
         {fabHoldProgress > 0 && (
-          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 52 52" fill="none">
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 50 50" fill="none">
             <circle
-              cx="26" cy="26" r="24"
+              cx="25" cy="25" r="23"
               stroke="white" strokeWidth="1.5"
-              strokeDasharray={`${fabHoldProgress * 150.8} 150.8`}
+              strokeDasharray={`${fabHoldProgress * 144.5} 144.5`}
               strokeLinecap="round"
-              transform="rotate(-90 26 26)"
+              transform="rotate(-90 25 25)"
               opacity="0.35"
             />
           </svg>
+        )}
+        {compact && (
+          <span style={{
+            position: 'absolute',
+            top: -3, right: -3, bottom: -3, left: -3,
+            borderRadius: '50%',
+            border: '2px solid transparent',
+            borderTopColor: '#F59E0B',
+            animation: 'sos-compact-spin 1.2s linear infinite',
+            pointerEvents: 'none',
+          }} />
         )}
         SOS
       </button>
