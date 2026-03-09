@@ -92,7 +92,12 @@
       "Bash(npx next dev --turbopack -p 3000)",
       "WebFetch(domain:docs.mapbox.com)",
       "Bash(git log --all -p --source --remotes=* -- \"*admin*notif*\")",
-      "Bash(head -100 /c/Users/mathi/Desktop/safepin/supabase/migrations/*.sql)"
+      "Bash(head -100 /c/Users/mathi/Desktop/safepin/supabase/migrations/*.sql)",
+      "Bash(powershell -Command \"Get-Content src\\\\app\\\\map\\\\page.tsx | Select-String -Pattern ''PinDetailSheet|selectedPin|activeSheet.*detail'' | Select-Object LineNumber, Line | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"Get-Content src\\\\app\\\\map\\\\page.tsx | Select-Object -Index \\(1145..1185\\)\")",
+      "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(115..125\\)\")",
+      "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(278..292\\)\")",
+      "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(480..512\\)\")"
     ]
   }
 }
