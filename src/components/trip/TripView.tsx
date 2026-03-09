@@ -79,8 +79,7 @@ const noScrollbar: React.CSSProperties = {
   msOverflowStyle: "none",
 };
 
-type AppState = "idle" | "walk" | "planifier" | "active" | "arrived" | "favoris" | "history";
-type WalkSubState = "intro" | "notifying" | "responding" | "active";
+type AppState = "idle" | "planifier" | "active" | "arrived" | "favoris" | "history";
 
 interface TripViewProps {
   onClose: () => void;
@@ -93,19 +92,17 @@ export default function TripView({ onClose }: TripViewProps) {
   const setIsSharingLocation = useStore((s) => s.setIsSharingLocation);
   const setPendingRoutes = useStore((s) => s.setPendingRoutes);
   const setActiveRoute = useStore((s) => s.setActiveRoute);
+  const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
   const [state, setState] = useState<AppState>("idle");
-  const [walkSubState, setWalkSubState] = useState<WalkSubState>("intro");
   const [circleEnabled, setCircleEnabled] = useState(false);
   const [destination, setDestination] = useState("");
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
   const [tripId, setTripId] = useState<string | null>(null);
-  const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
   const [tripSummary, setTripSummary] = useState<{ duration_s: number; distance_m: number; score: number } | null>(null);
   const [favAddMode, setFavAddMode] = useState(false);
-  const [sharingStoppedLocal, setSharingStoppedLocal] = useState(false);
   const [plannedDurationS, setPlannedDurationS] = useState(0);
   const [distanceM, setDistanceM] = useState(0);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
@@ -137,8 +134,7 @@ export default function TripView({ onClose }: TripViewProps) {
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const routeFetchRef = useRef(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [countdownSeconds, setCountdownSeconds] = useState(107);
-  const [contactStatuses, setContactStatuses] = useState<Record<string, string>>({});
+  const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
 
   const theme = isDark ? "dark" : "light";
   const CONTACT_COLORS = [colors.purple, colors.cyan, colors.gold, colors.success, "#60A5FA", "#F97316"];
@@ -153,15 +149,7 @@ export default function TripView({ onClose }: TripViewProps) {
     }
   }, [state]);
 
-  // Countdown for notifying state
-  useEffect(() => {
-    if (walkSubState === "notifying" || walkSubState === "responding") {
-      const interval = setInterval(() => {
-        setCountdownSeconds((s) => Math.max(0, s - 1));
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [walkSubState]);
+
 
   // Fetch circle contacts
   useEffect(() => {
@@ -205,27 +193,6 @@ export default function TripView({ onClose }: TripViewProps) {
     return () => clearInterval(id);
   }, []);
 
-  // Simulate contact responses (using real circle contact IDs)
-  useEffect(() => {
-    if (walkSubState !== "notifying" || circleContacts.length === 0) return;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    if (circleContacts[0]) {
-      timers.push(
-        setTimeout(() => {
-          setContactStatuses((prev) => ({ ...prev, [circleContacts[0].id]: "following" }));
-        }, 1500)
-      );
-    }
-    if (circleContacts[1]) {
-      timers.push(
-        setTimeout(() => {
-          setContactStatuses((prev) => ({ ...prev, [circleContacts[1].id]: "vocal" }));
-          setWalkSubState("responding");
-        }, 3000)
-      );
-    }
-    return () => timers.forEach(clearTimeout);
-  }, [walkSubState, circleContacts]);
 
   // Fetch routes when destination or transport mode changes
   useEffect(() => {
@@ -376,60 +343,7 @@ export default function TripView({ onClose }: TripViewProps) {
     setTripId(null);
   };
 
-  const handleWalkCTA = async () => {
-    if (walkSubState === "intro") {
-      setWalkSubState("notifying");
-      setCountdownSeconds(107);
-      const initial: Record<string, string> = {};
-      circleContacts.forEach((c) => { initial[c.id] = "waiting"; });
-      setContactStatuses(initial);
-    } else if (walkSubState === "notifying" || walkSubState === "responding") {
-      setWalkSubState("active");
-      setElapsedSeconds(0);
-      if (userId) {
-        try {
-          const origin = await getCurrentPosition();
-          const toLabel = destination || "Marche accompagnée";
-          const dLat = destCoords ? destCoords[1] : origin.lat;
-          const dLng = destCoords ? destCoords[0] : origin.lng;
-          const dist = destCoords ? haversineDistance(origin.lat, origin.lng, dLat, dLng) : 0;
-          const estDuration = dist > 0 ? Math.round(dist / 1.39) : 1800;
-          setDistanceM(Math.round(dist));
-          setPlannedDurationS(estDuration);
-          const res = await fetch("/api/trips/start", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: userId,
-              from_label: "Ma position",
-              to_label: toLabel,
-              mode: "walk",
-              origin_lat: origin.lat,
-              origin_lng: origin.lng,
-              dest_lat: dLat,
-              dest_lng: dLng,
-              planned_duration_s: estDuration,
-              danger_score: 0,
-              distance_m: Math.round(dist),
-            }),
-          });
-          const data = await res.json();
-          if (data.trip_id) setTripId(data.trip_id);
-        } catch (e) {
-          console.error("Failed to start walk trip:", e);
-        }
-      }
-    }
-  };
 
-  const resetWalk = () => {
-    setWalkSubState("intro");
-    const initial: Record<string, string> = {};
-    circleContacts.forEach((c) => { initial[c.id] = "waiting"; });
-    setContactStatuses(initial);
-    setCountdownSeconds(107);
-    setSharingStoppedLocal(false);
-  };
 
   // Save / remove favorite place
   const refreshSavedPlaces = async () => {
@@ -527,7 +441,7 @@ export default function TripView({ onClose }: TripViewProps) {
 
       {/* Hero CTA - Marche avec moi */}
       <motion.button
-        onClick={() => setState("walk")}
+        onClick={() => setShowWalkWithMe(true)}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
         style={{
@@ -752,577 +666,6 @@ export default function TripView({ onClose }: TripViewProps) {
       </div>
     </motion.div>
   );
-
-  // Render State 2 - Walk (with sub-states)
-  const renderWalk = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={spring}
-      style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px" }}
-    >
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => {
-            setState("idle");
-            resetWalk();
-          }}
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            backgroundColor: colors.card[theme],
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          <ChevronLeft size={20} color={colors.textPrimary[theme]} />
-        </motion.button>
-        <div style={{ minWidth: 0 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>
-            Marche avec moi
-          </h1>
-          <p style={{ fontSize: 12, color: colors.textSecondary[theme], margin: 0 }}>
-            Votre cercle est alerté instantanément
-          </p>
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {walkSubState === "intro" && (
-          <motion.div
-            key="intro"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={spring}
-          >
-            {/* Icon */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-              <div
-                style={{
-                  width: 70,
-                  height: 70,
-                  borderRadius: 20,
-                  backgroundColor: `${colors.gold}20`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Users size={32} color={colors.gold} />
-              </div>
-            </div>
-
-            <h2
-              style={{
-                fontSize: 18,
-                fontWeight: 300,
-                color: colors.textPrimary[theme],
-                textAlign: "center",
-                margin: "0 0 6px",
-              }}
-            >
-              Marchez ensemble en sécurité
-            </h2>
-            <p
-              style={{
-                fontSize: 12,
-                color: colors.textSecondary[theme],
-                textAlign: "center",
-                lineHeight: 1.6,
-                margin: "0 0 14px",
-                padding: "0 10px",
-              }}
-            >
-              Votre cercle reçoit une notification push. Ils peuvent vous suivre ou vous rejoindre en vocal.
-            </p>
-
-            {/* Explanation cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-              {[
-                {
-                  emoji: "🔔",
-                  level: "NIVEAU 1",
-                  levelColor: colors.gold,
-                  title: "Notification téléphone",
-                  desc: "Tout le cercle reçoit une alerte push. En 1 tap, ils vous suivent.",
-                },
-                {
-                  emoji: "🎙",
-                  level: "NIVEAU 2",
-                  levelColor: colors.cyan,
-                  title: "Chat vocal dans l'app",
-                  desc: "Ils rejoignent une room audio privée. Parlez en direct.",
-                },
-                {
-                  emoji: "✨",
-                  level: "SI PERSONNE (2 min)",
-                  levelColor: colors.purple,
-                  title: "Julia vous rejoint",
-                  desc: "L'IA Julia reste avec vous jusqu'à votre arrivée.",
-                  badge: "BIENTÔT",
-                },
-              ].map((card, i) => (
-                <div key={i} style={{ ...cardStyle, padding: "12px 14px", display: "flex", gap: 12 }}>
-                  <div style={{ fontSize: 22, flexShrink: 0 }}>{card.emoji}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: card.levelColor, letterSpacing: 0.5 }}>
-                        {card.level}
-                      </span>
-                      {card.badge && (
-                        <span
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 600,
-                            color: colors.purple,
-                            backgroundColor: `${colors.purple}20`,
-                            padding: "1px 5px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          {card.badge}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: colors.textPrimary[theme], marginBottom: 1 }}>
-                      {card.title}
-                    </div>
-                    <div style={{ fontSize: 11, color: colors.textSecondary[theme], lineHeight: 1.4 }}>{card.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Circle preview */}
-            {circleContacts.length > 0 && (
-              <div
-                style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, justifyContent: "center", flexWrap: "wrap" }}
-              >
-                <span style={{ fontSize: 12, color: colors.textSecondary[theme] }}>
-                  Votre cercle ({circleContacts.length}) :
-                </span>
-                <div style={{ display: "flex", marginLeft: -6 }}>
-                  {circleContacts.map((c, i) => (
-                    <div key={c.id} style={{ marginLeft: i > 0 ? -8 : 0 }}>
-                      <Avatar name={c.name} color={CONTACT_COLORS[i % CONTACT_COLORS.length]} size={30} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {circleContacts.length === 0 && (
-              <p style={{ fontSize: 12, color: colors.textTertiary[theme], textAlign: "center", marginBottom: 14 }}>
-                Ajoutez des contacts à votre cercle pour utiliser cette fonctionnalité
-              </p>
-            )}
-
-            {/* CTA */}
-            <motion.button
-              onClick={handleWalkCTA}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: 14,
-                background: "linear-gradient(135deg, #F5C341, #E8A800)",
-                boxShadow: "0 4px 20px rgba(245,195,65,0.3)",
-                border: "none",
-                fontSize: 15,
-                fontWeight: 700,
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              Notifier mon cercle →
-            </motion.button>
-          </motion.div>
-        )}
-
-        {(walkSubState === "notifying" || walkSubState === "responding") && (
-          <motion.div
-            key="notifying"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={spring}
-          >
-            {/* Pulsing icon */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, position: "relative", height: 80 }}>
-              <motion.div
-                animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                style={{
-                  position: "absolute",
-                  width: 70,
-                  height: 70,
-                  borderRadius: "50%",
-                  backgroundColor: colors.gold,
-                  top: 5,
-                }}
-              />
-              <div
-                style={{
-                  width: 70,
-                  height: 70,
-                  borderRadius: "50%",
-                  backgroundColor: `${colors.gold}20`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "relative",
-                  zIndex: 1,
-                  marginTop: 5,
-                }}
-              >
-                <Users size={32} color={colors.gold} />
-              </div>
-            </div>
-
-            <h2
-              style={{
-                fontSize: 17,
-                fontWeight: 600,
-                color: colors.textPrimary[theme],
-                textAlign: "center",
-                margin: "0 0 4px",
-              }}
-            >
-              Notification envoyée
-            </h2>
-            <p style={{ fontSize: 13, color: colors.textSecondary[theme], textAlign: "center", margin: "0 0 10px" }}>
-              En attente de réponse de votre cercle
-            </p>
-
-            {/* Countdown */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-              <div
-                style={{
-                  backgroundColor: countdownSeconds < 30 ? `${colors.purple}20` : `${colors.gold}20`,
-                  color: countdownSeconds < 30 ? colors.purple : colors.gold,
-                  padding: "6px 14px",
-                  borderRadius: 16,
-                  fontSize: 12,
-                  fontWeight: 500,
-                }}
-              >
-                Julia rejoint dans{" "}
-                <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
-                  {formatTime(countdownSeconds)}
-                </span>
-              </div>
-            </div>
-
-            {/* Audio room banner */}
-            {walkSubState === "responding" && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  backgroundColor: `${colors.cyan}15`,
-                  border: `1px solid ${colors.cyan}40`,
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  marginBottom: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <motion.div
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    backgroundColor: colors.success,
-                    flexShrink: 0,
-                  }}
-                />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: colors.cyan }}>Room vocale active</div>
-                  <div style={{ fontSize: 11, color: colors.textSecondary[theme] }}>
-                    {circleContacts.find((c) => contactStatuses[c.id] === "vocal")?.name || "Quelqu'un"} vous écoute · Parlez librement
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Contacts list */}
-            <div style={{ ...cardStyle, borderRadius: 14, overflow: "hidden", marginBottom: 12 }}>
-              {circleContacts.map((contact, i, arr) => {
-                const status = contactStatuses[contact.id] || "waiting";
-                const contactColor = CONTACT_COLORS[i % CONTACT_COLORS.length];
-                return (
-                  <div
-                    key={contact.id}
-                    style={{
-                      padding: "12px 14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      borderBottom: i < arr.length - 1 ? `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` : "none",
-                    }}
-                  >
-                    <div style={{ position: "relative", flexShrink: 0 }}>
-                      <Avatar name={contact.name} color={contactColor} size={34} />
-                      {status !== "waiting" && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={spring}
-                          style={{
-                            position: "absolute",
-                            bottom: -1,
-                            right: -1,
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            backgroundColor: status === "following" ? colors.success : colors.cyan,
-                            border: `2px solid ${colors.card[theme]}`,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: colors.textPrimary[theme], minWidth: 0 }}>
-                      {contact.name}
-                    </span>
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={status}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        transition={spring}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 500,
-                          padding: "3px 8px",
-                          borderRadius: 8,
-                          backgroundColor:
-                            status === "waiting"
-                              ? colors.elevated[theme]
-                              : status === "following"
-                                ? `${colors.success}20`
-                                : `${colors.cyan}20`,
-                          color:
-                            status === "waiting"
-                              ? colors.textTertiary[theme]
-                              : status === "following"
-                                ? colors.success
-                                : colors.cyan,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {status === "waiting" ? "En attente" : status === "following" ? "Suit" : "🎙 Vocal"}
-                      </motion.span>
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* CTA */}
-            <motion.button
-              onClick={handleWalkCTA}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: 14,
-                background: "linear-gradient(135deg, #F5C341, #E8A800)",
-                boxShadow: "0 4px 20px rgba(245,195,65,0.3)",
-                border: "none",
-                fontSize: 15,
-                fontWeight: 700,
-                color: "white",
-                cursor: "pointer",
-                marginBottom: 8,
-              }}
-            >
-              Démarrer le trajet →
-            </motion.button>
-
-            <button
-              onClick={() => resetWalk()}
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: 14,
-                backgroundColor: "transparent",
-                border: "none",
-                fontSize: 13,
-                fontWeight: 500,
-                color: colors.textSecondary[theme],
-                cursor: "pointer",
-              }}
-            >
-              Annuler
-            </button>
-          </motion.div>
-        )}
-
-        {walkSubState === "active" && (
-          <motion.div
-            key="active"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={spring}
-            style={{ textAlign: "center" }}
-          >
-            {/* Success icon */}
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: [0, 1.2, 1] }}
-              transition={{ duration: 0.5 }}
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                backgroundColor: `${colors.success}20`,
-                border: `2px solid ${colors.success}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 14px",
-              }}
-            >
-              <Check size={28} color={colors.success} />
-            </motion.div>
-
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: colors.textPrimary[theme], margin: "0 0 4px" }}>
-              Votre cercle vous accompagne
-            </h2>
-            <p style={{ fontSize: 13, color: colors.textSecondary[theme], margin: "0 0 20px" }}>
-              {Object.values(contactStatuses).filter((s) => s !== "waiting").length} contacts actifs sur {circleContacts.length}
-            </p>
-
-            {/* Active contacts — hidden when sharing stopped */}
-            {!sharingStoppedLocal && (
-              <div style={{ ...cardStyle, borderRadius: 14, overflow: "hidden", marginBottom: 20, textAlign: "left" }}>
-                {circleContacts.filter((c) => contactStatuses[c.id] && contactStatuses[c.id] !== "waiting").map((contact, i, arr) => {
-                  const status = contactStatuses[contact.id];
-                  const contactColor = CONTACT_COLORS[circleContacts.indexOf(contact) % CONTACT_COLORS.length];
-                  return (
-                  <div
-                    key={contact.id}
-                    style={{
-                      padding: "12px 14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      borderBottom: i < arr.length - 1 ? `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` : "none",
-                    }}
-                  >
-                    <div style={{ position: "relative", flexShrink: 0 }}>
-                      <Avatar name={contact.name} color={contactColor} size={34} />
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: -1,
-                          right: -1,
-                          width: 10,
-                          height: 10,
-                          borderRadius: "50%",
-                          backgroundColor: status === "following" ? colors.success : colors.cyan,
-                          border: `2px solid ${colors.card[theme]}`,
-                        }}
-                      />
-                    </div>
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: colors.textPrimary[theme] }}>
-                      {contact.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        padding: "3px 8px",
-                        borderRadius: 8,
-                        backgroundColor: status === "following" ? `${colors.success}20` : `${colors.cyan}20`,
-                        color: status === "following" ? colors.success : colors.cyan,
-                      }}
-                    >
-                      {status === "following" ? "● Suit" : "🎙 Vocal"}
-                    </span>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {sharingStoppedLocal && (
-              <div style={{ ...cardStyle, padding: "16px 14px", marginBottom: 20, textAlign: "center" }}>
-                <div style={{ fontSize: 13, color: colors.textTertiary[theme] }}>
-                  Partage avec le cercle arrêté
-                </div>
-              </div>
-            )}
-
-            {/* Stop sharing button (does NOT end trip) */}
-            <button
-              onClick={() => {
-                setIsSharingLocation(false);
-                setSharingStoppedLocal(true);
-              }}
-              disabled={sharingStoppedLocal}
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: 14,
-                backgroundColor: sharingStoppedLocal ? colors.card[theme] : `${colors.warning}15`,
-                border: "none",
-                fontSize: 14,
-                fontWeight: 600,
-                color: sharingStoppedLocal ? colors.textTertiary[theme] : colors.warning,
-                cursor: sharingStoppedLocal ? "default" : "pointer",
-                opacity: sharingStoppedLocal ? 0.6 : 1,
-                marginBottom: 8,
-              }}
-            >
-              {sharingStoppedLocal ? "Partage arrêté" : "Arrêter le partage"}
-            </button>
-
-            {/* End trip button */}
-            <button
-              onClick={async () => {
-                await endTrip();
-                setState("idle");
-                resetWalk();
-                setSharingStoppedLocal(false);
-                setIsSharingLocation(false);
-              }}
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: 14,
-                backgroundColor: `${colors.danger}15`,
-                border: "none",
-                fontSize: 14,
-                fontWeight: 600,
-                color: colors.danger,
-                cursor: "pointer",
-              }}
-            >
-              Terminer le trajet
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-
   // Render State 3 - Planifier
   const TRANSPORT_MODES = [
     { id: "walk" as const, label: "À pied", emoji: "\uD83D\uDEB6" },
@@ -1966,7 +1309,6 @@ export default function TripView({ onClose }: TripViewProps) {
       <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
         <AnimatePresence mode="wait">
           {state === "idle" && renderIdle()}
-          {state === "walk" && renderWalk()}
           {state === "planifier" && renderPlanifier()}
           {state === "active" && renderActive()}
           {state === "arrived" && renderArrived()}
