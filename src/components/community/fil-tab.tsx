@@ -427,7 +427,13 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             onClick={() => {
               if (filterBtnRef.current) {
                 const rect = filterBtnRef.current.getBoundingClientRect();
-                setFilterPos({ top: rect.bottom + 8, left: rect.left });
+                const dropdownHeight = 160;
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const showAbove = spaceBelow < dropdownHeight + 16;
+                setFilterPos({
+                  top: showAbove ? rect.top - dropdownHeight - 8 : rect.bottom + 8,
+                  left: rect.left,
+                });
               }
               setShowFilterMenu(f => !f);
             }}
@@ -448,7 +454,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               position: 'fixed', top: filterPos.top, left: filterPos.left, zIndex: 200,
               background: isDark ? '#1E293B' : '#FFFFFF',
               border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#E2E8F0'}`,
-              borderRadius: 12, padding: '6px 0', minWidth: 160,
+              borderRadius: 12, padding: '6px 0', minWidth: 200,
               boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             }}>
               {([

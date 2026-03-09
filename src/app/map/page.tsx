@@ -1078,6 +1078,7 @@ activeTrip, setActiveTrip,
         <AnimatePresence>
           {activeTab === 'community' && userId && (
             <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} onPinClick={async (pinId) => {
+              setActiveSheet('none');
               const { data: pin } = await supabase.from('pins').select('*').eq('id', pinId).single();
               if (pin) { useStore.getState().setSelectedPin(pin); setActiveSheet('detail'); }
             }} />

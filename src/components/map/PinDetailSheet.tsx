@@ -11,6 +11,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
 import { useStore } from '@/stores/useStore'
+import { useUiStore } from '@/stores/uiStore'
 import { usePullToDismiss } from '@/hooks/usePullToDismiss'
 import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
@@ -118,6 +119,7 @@ function PinDetailSheet({
   const isDark = useTheme((s) => s.theme) === 'dark'
   const d = isDark
   const { updatePin, pins, setSelectedPin, setActiveSheet } = useStore()
+  const { openCommunityDM } = useUiStore()
 
   const [confirmCount, setConfirmCount] = useState(0)
   const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
@@ -639,7 +641,14 @@ function PinDetailSheet({
 
                 {/* Contact author */}
                 <button
-                  onClick={() => onContact(pin.id)}
+                  onClick={() => {
+                    if (pin?.user_id && pin?.username) {
+                      openCommunityDM({ userId: pin.user_id, userName: pin.username });
+                      onClose?.();
+                    } else {
+                      onContact(pin.id);
+                    }
+                  }}
                   style={{
                     flex: 1,
                     background: d ? T.interactiveHover : 'rgba(15,23,42,0.03)',

@@ -273,6 +273,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
       <div style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
         <div
           onClick={(e) => { e.stopPropagation(); if (post.userId) { if (post.userId === currentUserId) openProfile(post.userId); else openContextMenu({ userId: post.userId, username: post.username || "", displayName: post.displayName || post.user.name }); } }}
           style={{
@@ -280,7 +281,6 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
             alignItems: "center",
             gap: 10,
             cursor: post.userId ? "pointer" : "default",
-            flex: 1,
           }}
         >
           <div
@@ -325,6 +325,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
             </span>
           </div>
         </div>
+        </div>{/* end flex-1 wrapper */}
         {post.location && (
           <div
             style={{
