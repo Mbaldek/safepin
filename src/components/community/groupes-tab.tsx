@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Users, Plus, ArrowLeft, Send, MoreHorizontal, Phone } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Community } from "@/types";
@@ -204,10 +204,26 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
 
   const activeGroupData = myGroups.find(g => g.id === activeGroup);
 
+  const GROUP_PLACEHOLDERS = [
+    "Un truc à partager ? 👀",
+    "Quoi de neuf dans le quartier ?",
+    "Partagez un bon plan ! 🗺️",
+    "Dites bonjour au groupe 👋",
+    "Une info utile ? On est tout ouïe…",
+    "Ça se passe comment par ici ? 🌿",
+    "Signalez, discutez, entraidez 💬",
+    "Le quartier vous écoute…",
+  ];
+  const chatPlaceholder = useMemo(
+    () => GROUP_PLACEHOLDERS[Math.floor(Math.random() * GROUP_PLACEHOLDERS.length)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeGroup]
+  );
+
   // ─── Chat view ───────────────────────────────────────────────────────
   if (activeGroup) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Chat header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -353,7 +369,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
             value={msgInput}
             onChange={(e) => setMsgInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="Message\u2026"
+            placeholder={chatPlaceholder}
             style={{
               flex: 1, padding: '10px 14px', borderRadius: 99,
               border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,

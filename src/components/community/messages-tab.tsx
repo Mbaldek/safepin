@@ -297,7 +297,6 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           flexDirection: "column",
           flex: 1,
           minHeight: 0,
-          paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
         }}
       >
         {/* Chat header */}

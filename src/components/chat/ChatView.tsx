@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -46,6 +46,18 @@ export default function ChatView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const chatPlaceholder = useMemo(() => {
+    const phrases = [
+      `Écrivez à ${partnerName}…`,
+      `Un mot pour ${partnerName} ? 💬`,
+      `Dites quelque chose de sympa à ${partnerName} 😊`,
+      `${partnerName} attend votre message…`,
+      `Envoyez un signe à ${partnerName} 👋`,
+      `Quoi de neuf, ${partnerName} ? 🌟`,
+    ];
+    return phrases[Math.floor(Math.random() * phrases.length)];
+  }, [partnerName]);
 
   // Determine read position for this user
   const readPosition = useCallback(
@@ -277,7 +289,7 @@ export default function ChatView({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${partnerName}...`}
+          placeholder={chatPlaceholder}
           style={{
             flex: 1,
             padding: '10px 14px',
