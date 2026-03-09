@@ -99,6 +99,7 @@ activeTrip, setActiveTrip,
     mapFilters, setMapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
+    setTripPrefill,
   } = useStore();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const tMap = useTranslations('map');
@@ -1200,6 +1201,12 @@ activeTrip, setActiveTrip,
         userId={userId ?? ''}
         userLat={userLocation?.lat ?? 48.8566}
         userLng={userLocation?.lng ?? 2.3522}
+        onNavigateTo={(lat, lng, label) => {
+          setTripPrefill({ destination: label, destCoords: [lng, lat] });
+          setActiveSheet('none');
+          setSelectedPin(null);
+          setActiveTab('trip');
+        }}
       />
 
       {/* ── New Report Sheet (v2) ── */}

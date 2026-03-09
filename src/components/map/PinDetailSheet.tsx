@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Check, CheckCircle2, MapPin, Users,
   AlertTriangle, Wrench, Share2, ThumbsDown,
-  MessageCircle, MoreHorizontal, ClipboardCheck,
+  MessageCircle, Route, ClipboardCheck,
   RefreshCw,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -653,7 +653,7 @@ function PinDetailSheet({
                     fontFamily: 'inherit',
                   }}
                 >
-                  <MoreHorizontal size={13} strokeWidth={1.5} /> Plus
+                  <Route size={13} strokeWidth={1.5} /> Itinéraire
                 </button>
               </div>
 

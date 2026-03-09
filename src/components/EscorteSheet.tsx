@@ -62,7 +62,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
-  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes } = useStore()
+  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill } = useStore()
   const pins = useStore((s) => s.pins)
 
   // ── Local state ────────────────────────────────
@@ -84,6 +84,23 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const routeFetchRef = useRef(0)
   const [fetchedRoutes, setFetchedRoutes] = useState<RouteOption[]>([])
   const [selectedIdx, setSelectedIdx]     = useState(0)
+
+  // ── Consume tripPrefill from store (set when navigating from PinDetailSheet) ──
+  useEffect(() => {
+    const prefill = useStore.getState().tripPrefill
+    if (prefill?.destCoords) {
+      setSelectedDest({
+        id: 'prefill',
+        place_name: prefill.destination ?? '',
+        text: prefill.destination ?? '',
+        center: prefill.destCoords,
+        place_type: ['place'],
+      })
+      setQuery(prefill.destination ?? '')
+      setTripPrefill(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Reverse geocode user position ────────────
   useEffect(() => {
