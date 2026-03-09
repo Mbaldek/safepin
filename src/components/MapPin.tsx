@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { CATEGORY_DETAILS, CATEGORY_GROUPS } from '@/types';
 
 interface MapPinProps {
   map: mapboxgl.Map;
@@ -242,7 +243,13 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1 }: Ma
 
   // Create marker once on mount (key={pin.id} in parent handles identity)
   useEffect(() => {
-    const config = CATEGORY_CONFIG[pin.category] || CATEGORY_CONFIG.unsafe;
+    const catDetails = CATEGORY_DETAILS[pin.category];
+    const config = CATEGORY_CONFIG[pin.category] ?? (catDetails ? {
+      color: CATEGORY_GROUPS[catDetails.group]?.color.text ?? '#64748B',
+      emoji: catDetails.emoji ?? '📍',
+      label: catDetails.label ?? pin.category,
+      group: catDetails.group ?? 'infra',
+    } : CATEGORY_CONFIG.unsafe);
     const size = getSize(pin.confirmations || 1);
     const isUrgent = config.group === 'urgent';
     const isTransport = pin.is_transport;

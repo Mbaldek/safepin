@@ -258,7 +258,7 @@ function PinDetailSheet({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 301,
+              zIndex: 500,
               padding: '20px 16px',
             }}
           >
@@ -275,6 +275,7 @@ function PinDetailSheet({
                 background: 'rgba(0,0,0,0.5)',
                 backdropFilter: 'blur(6px)',
                 WebkitBackdropFilter: 'blur(6px)',
+                pointerEvents: 'all',
               }}
             />
             {/* Panel */}
@@ -285,7 +286,7 @@ function PinDetailSheet({
               transition={{ type: 'spring', stiffness: 350, damping: 30 }}
               style={{
                 position: 'relative',
-                zIndex: 1,
+                zIndex: 501,
                 width: '100%',
                 maxWidth: 480,
                 maxHeight: '85vh',
@@ -490,6 +491,7 @@ function PinDetailSheet({
                       border: 'none', width: '100%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       cursor: 'pointer', fontFamily: 'inherit',
+                      position: 'relative', zIndex: 1, pointerEvents: 'auto',
                       transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1)',
                     }}
                     onMouseEnter={(e) => {
