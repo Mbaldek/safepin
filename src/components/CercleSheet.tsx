@@ -118,11 +118,10 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             style={{
               position: 'fixed',
-              bottom: 0,
+              bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
               left: 0,
               right: 0,
               height: '65%',
-              paddingBottom: 64,
               background: t.sheetBg,
               borderTopLeftRadius: 26,
               borderTopRightRadius: 26,
@@ -147,34 +146,6 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
               />
             ) : (
               <>
-                {/* 2. SOS PILL */}
-                <div style={{
-                  margin: '2px 14px 10px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: 11, color: t.textSecondary }}>
-                    {"Besoin d'aide urgente ?"}
-                  </span>
-                  <button
-                    onClick={() => toast('SOS activ\u00e9')}
-                    style={{
-                      background: 'rgba(239,68,68,0.1)',
-                      border: '1px solid rgba(239,68,68,0.22)',
-                      borderRadius: 20,
-                      color: t.red,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '5px 12px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {'\uD83C\uDD98 SOS'}
-                  </button>
-                </div>
-
                 {/* 3. HEADER ROW */}
                 <div style={{
                   padding: '0 16px 8px',

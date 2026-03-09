@@ -1,7 +1,6 @@
 // src/app/layout.tsx
 
 import type { Metadata, Viewport } from 'next';
-import { Toaster } from 'sonner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
@@ -63,18 +62,6 @@ export default async function RootLayout({
         </NextIntlClientProvider>
         <GlobalModals />
         <GlobalToast />
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: '#1E293B',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: '#FFFFFF',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 600,
-            },
-          }}
-        />
       </body>
     </html>
   );

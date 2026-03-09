@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { Pin } from '@/types';
-import { toast } from 'sonner';
+import { bToast } from '@/components/GlobalToast';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, SlidersHorizontal } from 'lucide-react';
@@ -342,7 +342,7 @@ activeTrip, setActiveTrip,
             body: JSON.stringify({ code: pendingCode }),
           })
             .then((r) => r.json())
-            .then((d) => { if (d.success) toast.success(`Welcome! You joined via ${d.organization_name}`); })
+            .then((d) => { if (d.success) bToast.success({ title: 'Bienvenue sur Breveil 🎉', desc: `Vous avez rejoint via ${d.organization_name}` }, isDark); })
             .catch(() => {});
         }
 
@@ -414,7 +414,7 @@ activeTrip, setActiveTrip,
         .select('*')
         .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
         .order('created_at', { ascending: false });
-      if (error) { toast.error('Could not load reports. Try refreshing.'); return; }
+      if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
       let result = (data as Pin[]) || [];
       if (!showSimulated) {
         result = result.filter((p) => !p.is_simulated);
@@ -447,7 +447,7 @@ activeTrip, setActiveTrip,
     if (!('serviceWorker' in navigator)) return;
     function onMessage(event: MessageEvent) {
       if (event.data?.type === 'BREVEIL_SYNC_COMPLETE') {
-        toast.success(`Synced ${event.data.synced} offline report${event.data.synced > 1 ? 's' : ''}`);
+        bToast.success({ title: 'Synchronisation terminée', desc: `${event.data.synced} signalement${event.data.synced > 1 ? 's' : ''} mis à jour` }, isDark);
         // Refresh pins from server
         supabase
           .from('pins')
@@ -520,7 +520,14 @@ activeTrip, setActiveTrip,
         const now = new Date().toTimeString().slice(0, 5);
         inQuiet = qh.start > qh.end ? (now >= qh.start || now < qh.end) : (now >= qh.start && now < qh.end);
       }
-      if (!inQuiet) toast('📍 New report nearby');
+      if (!inQuiet) bToast.info(
+        {
+          title: 'Nouveau signalement à proximité',
+          desc: 'Un incident vient d\'être signalé près de vous',
+          cta: 'Voir sur la carte →',
+        },
+        isDark
+      );
     }
     // Notify nearby users (server-side push) — only triggered by the pin creator
     if (pin.user_id === useStore.getState().userId) {
@@ -1178,8 +1185,8 @@ activeTrip, setActiveTrip,
         onClose={() => { setActiveSheet('none'); setSelectedPin(null); }}
         onContact={async (pinId) => {
           const pin = pins.find((p) => p.id === pinId);
-          if (!pin?.user_id || !userId) { toast.error('Contact impossible'); return; }
-          if (pin.user_id === userId) { toast('C\u2019est votre signalement'); return; }
+          if (!pin?.user_id || !userId) { bToast.danger({ title: 'Contact impossible', duration: 2500 }, isDark); return; }
+          if (pin.user_id === userId) { bToast.info({ title: 'C\'est votre signalement', duration: 2500 }, isDark); return; }
           const { data: existing } = await supabase
             .from('dm_conversations')
             .select('*')
@@ -1189,14 +1196,14 @@ activeTrip, setActiveTrip,
           if (existing) {
             setActiveSheet('none'); setSelectedPin(null);
             setActiveTab('community');
-            toast.success('Conversation ouverte');
+            bToast.success({ title: 'Conversation ouverte', cta: 'Voir le message →', onCta: () => {} }, isDark);
             return;
           }
           const { error } = await supabase.from('dm_conversations').insert({ user1_id: userId, user2_id: pin.user_id });
-          if (error) { toast.error('Impossible d\u2019ouvrir la conversation'); return; }
+          if (error) { bToast.danger({ title: 'Impossible d\'ouvrir la conversation', duration: 3000 }, isDark); return; }
           setActiveSheet('none'); setSelectedPin(null);
           setActiveTab('community');
-          toast.success('Conversation ouverte');
+          bToast.success({ title: 'Conversation ouverte', cta: 'Voir le message →', onCta: () => {} }, isDark);
         }}
         userId={userId ?? ''}
         userLat={userLocation?.lat ?? 48.8566}

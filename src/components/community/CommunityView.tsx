@@ -302,7 +302,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
       style={{
         willChange: 'transform',
         position: 'fixed',
-        bottom: 0,
+        bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
         left: 0,
         right: 0,
         height: '85dvh',
