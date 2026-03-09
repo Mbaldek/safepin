@@ -1080,6 +1080,7 @@ activeTrip, setActiveTrip,
             <CommunityView key="community-tab" onClose={() => setActiveTab('map')} onSafetyFilter={(tag) => { setSafetyFilter(tag); setActiveTab('map'); }} dmTarget={dmTarget} onDMOpened={() => setDmTarget(null)} onPinClick={async (pinId) => {
               setActiveTab('map');
               setActiveSheet('none');
+              await new Promise(resolve => setTimeout(resolve, 280));
               const { data: pin } = await supabase.from('pins').select('*').eq('id', pinId).single();
               if (pin) { useStore.getState().setSelectedPin(pin); setActiveSheet('detail'); }
             }} />

@@ -13,7 +13,7 @@ export function UserContextMenu() {
   const activeUser = useUiStore((s) => s.activeContextMenuUser)
   const closeContextMenu = useUiStore((s) => s.closeContextMenu)
   const openProfile = useUiStore((s) => s.openProfile)
-  const setCommunityDMTarget = useUiStore((s) => s.setCommunityDMTarget)
+  const openCommunityDM = useUiStore((s) => s.openCommunityDM)
 
   const isOpen = !!activeUser
   const userId = activeUser?.userId ?? ''
@@ -63,7 +63,7 @@ export function UserContextMenu() {
   }
 
   const handleMessage = () => {
-    if (setCommunityDMTarget) setCommunityDMTarget({ userId, userName: displayName ?? username })
+    openCommunityDM({ userId, userName: displayName ?? username })
     closeContextMenu()
   }
 

@@ -17,6 +17,10 @@ export function useCercle(userId: string) {
     if (!userId) return
 
     try {
+      // Guard: check session is available before querying
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
       const { data: contacts, error } = await supabase
         .from('trusted_contacts')
         .select('id, user_id, contact_id, is_watching, status')
@@ -101,6 +105,9 @@ export function useCercle(userId: string) {
     if (!userId) return
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
       const { data, error } = await supabase
         .from('circle_messages')
         .select('*, profiles!circle_messages_sender_id_fkey(name, display_name)')
