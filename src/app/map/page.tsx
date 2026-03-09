@@ -409,16 +409,33 @@ activeTrip, setActiveTrip,
 
   useEffect(() => {
     async function loadPins() {
-      const { data, error } = await supabase
+      const now = new Date().toISOString();
+
+      // Q1: active public pins not yet expired (uses idx_pins_active_expires)
+      const q1 = supabase
         .from('pins')
         .select('*')
-        .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
+        .is('hidden_at', null)
+        .gt('expires_at', now)
         .order('created_at', { ascending: false });
+
+      // Q2: user's own pins regardless of expiry/visibility (uses idx_pins_user_created)
+      const q2 = userId
+        ? supabase.from('pins').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+        : null;
+
+      const [{ data: publicPins, error }, { data: ownPins } = { data: [] }] =
+        await Promise.all([q1, q2 ?? Promise.resolve({ data: [] })]);
+
       if (error) { bToast.danger({ title: 'Chargement échoué', desc: 'Les signalements n\'ont pas pu être chargés', cta: 'Réessayer →' }, isDark); return; }
-      let result = (data as Pin[]) || [];
-      if (!showSimulated) {
-        result = result.filter((p) => !p.is_simulated);
-      }
+
+      // Merge: own pins override public entries (dedup by id)
+      const merged = new Map<string, Pin>();
+      for (const p of (publicPins as Pin[] ?? [])) merged.set(p.id, p);
+      for (const p of (ownPins as Pin[] ?? [])) merged.set(p.id, p);
+
+      let result = [...merged.values()];
+      if (!showSimulated) result = result.filter((p) => !p.is_simulated);
       setPins(result);
     }
     loadPins();
@@ -448,11 +465,12 @@ activeTrip, setActiveTrip,
     function onMessage(event: MessageEvent) {
       if (event.data?.type === 'BREVEIL_SYNC_COMPLETE') {
         bToast.success({ title: 'Synchronisation terminée', desc: `${event.data.synced} signalement${event.data.synced > 1 ? 's' : ''} mis à jour` }, isDark);
-        // Refresh pins from server
+        // Refresh pins from server (same filtered query as loadPins)
         supabase
           .from('pins')
           .select('*')
-          .or(`hidden_at.is.null${userId ? `,user_id.eq.${userId}` : ''}`)
+          .is('hidden_at', null)
+          .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: false })
           .then(({ data }) => { if (data) setPins(data as Pin[]); });
         // Reset offline queue count
