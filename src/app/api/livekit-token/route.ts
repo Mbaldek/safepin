@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'roomName and userId required' }, { status: 400 });
   }
 
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
+  const apiKey = process.env.LIVEKIT_API_KEY?.trim();
+  const apiSecret = process.env.LIVEKIT_API_SECRET?.trim();
 
   if (!apiKey || !apiSecret) {
     return NextResponse.json({ error: 'Livekit not configured' }, { status: 500 });
@@ -36,5 +36,5 @@ export async function POST(req: NextRequest) {
   });
 
   const token = await at.toJwt();
-  return NextResponse.json({ token, url: process.env.LIVEKIT_URL });
+  return NextResponse.json({ token, url: process.env.LIVEKIT_URL?.trim() });
 }
