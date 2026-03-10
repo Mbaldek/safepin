@@ -9,6 +9,13 @@ import { bToast } from "@/components/GlobalToast";
 import type { Community } from "@/types";
 import { useAudioCall } from '@/stores/useAudioCall'
 
+type LastMessage = {
+  community_id: string;
+  content: string | null;
+  created_at: string | null;
+  display_name: string | null;
+};
+
 interface GroupesTabProps {
   isDark: boolean;
   userId: string | null;
@@ -61,6 +68,9 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
   const callActive = globalSource === 'group' && globalSourceId === activeGroup && globalCallState !== 'idle'
 
+  // Last messages for group list preview
+  const [lastMessages, setLastMessages] = useState<Record<string, LastMessage>>({});
+
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -101,6 +111,24 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       const all = (items || []).map(c => ({ ...c, member_count: countMap.get(c.id) || 0 }));
       setMyGroups(all.filter((c) => memberSet.has(c.id)));
       setDiscoverGroups(all.filter((c) => !memberSet.has(c.id)));
+
+      // Fetch last message per community
+      const communityIds = all.map(c => c.id);
+      if (communityIds.length > 0) {
+        const { data: lastMsgs } = await supabase
+          .from('community_messages')
+          .select('community_id, content, created_at, display_name')
+          .in('community_id', communityIds)
+          .order('created_at', { ascending: false });
+        if (lastMsgs) {
+          const map: Record<string, LastMessage> = {};
+          lastMsgs.forEach((msg: LastMessage) => {
+            if (!map[msg.community_id]) map[msg.community_id] = msg;
+          });
+          setLastMessages(map);
+        }
+      }
+
       setLoading(false);
     })();
   }, [userId, refreshKey]);
@@ -473,14 +501,20 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
     '#3BB4C1': '59,180,193', '#8B5CF6': '139,92,246',
     '#F59E0B': '245,158,11', '#10B981': '16,185,129',
   };
-  const MOCK_TS = ['maintenant', '14 min', '1h', '2h'];
-  const MOCK_UNREADS = [7, 3, 0, 2];
-  const MOCK_PREVIEWS: ({ author: string; content: string } | null)[] = [
-    { author: 'Léa', content: 'Attention signalement rue Daguerre \u26A0\uFE0F' },
-    { author: 'Mehdi', content: 'RAS ce soir, bonne soirée !' },
-    null,
-    { author: 'Camille', content: 'Quelqu\'un pour un covoiturage ?' },
-  ];
+
+  const getPreview = (communityId: string): { author: string; content: string } | null => {
+    const msg = lastMessages[communityId];
+    if (!msg || !msg.content) return null;
+    const author = msg.display_name ? msg.display_name.split(' ')[0] : 'Inconnu';
+    const text = msg.content.length > 40 ? msg.content.slice(0, 40) + '\u2026' : msg.content;
+    return { author, content: text };
+  };
+
+  const getTimestamp = (communityId: string): string => {
+    const msg = lastMessages[communityId];
+    if (!msg || !msg.created_at) return '';
+    return timeAgo(msg.created_at);
+  };
   const text = isDark ? '#F1F5F9' : '#0F172A';
   const text2 = isDark ? '#94A3B8' : '#64748B';
   const text3 = isDark ? '#64748B' : '#94A3B8';
@@ -576,10 +610,9 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           {filteredMy.map((group, index) => {
             const accent = ACCENTS[index % 4];
             const rgb = ACCENT_RGB[accent];
-            const hasOnline = index === 0 || index === 3;
-            const isHighlighted = index === 0 || index === 1 || index === 3;
-            const mockPreview = index < MOCK_PREVIEWS.length ? MOCK_PREVIEWS[index] : null;
-            const mockUnread = index < MOCK_UNREADS.length ? MOCK_UNREADS[index] : 0;
+            const preview = getPreview(group.id);
+            const timestamp = getTimestamp(group.id);
+            const hasMessage = !!lastMessages[group.id];
             const initial = group.name?.charAt(0)?.toUpperCase() || '?';
 
             return (
@@ -617,15 +650,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                   fontSize: 22, color: accent,
                 }}>
                   {group.avatar_emoji || initial}
-                  {hasOnline && (
-                    <div style={{
-                      position: 'absolute', bottom: 2, right: 2,
-                      width: 11, height: 11, borderRadius: '50%',
-                      background: '#34D399',
-                      border: `2px solid ${isDark ? '#0F172A' : '#FFFFFF'}`,
-                      animation: 'onlinePulse 2s infinite',
-                    }} />
-                  )}
                 </div>
 
                 {/* Content */}
@@ -638,11 +662,11 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                       {group.name}
                     </span>
                     <span style={{
-                      fontSize: 11, fontWeight: isHighlighted ? 700 : 500,
-                      color: isHighlighted ? '#3BB4C1' : text3,
+                      fontSize: 11, fontWeight: hasMessage ? 700 : 500,
+                      color: hasMessage ? '#3BB4C1' : text3,
                       flexShrink: 0, marginLeft: 8,
                     }}>
-                      {MOCK_TS[index % MOCK_TS.length]}
+                      {timestamp}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
@@ -650,28 +674,15 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                       flex: 1, fontSize: 12, color: text2, margin: 0,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
-                      {mockPreview ? (
+                      {preview ? (
                         <>
-                          <span style={{ fontWeight: 600, color: text }}>{mockPreview.author}</span>
-                          {' : '}{mockPreview.content}
+                          <span style={{ fontWeight: 600, color: text }}>{preview.author}</span>
+                          {' : '}{preview.content}
                         </>
                       ) : (
                         <span style={{ color: text3 }}>Aucun message</span>
                       )}
                     </p>
-                    {mockUnread > 0 && (
-                      <span style={{
-                        minWidth: 20, height: 20, borderRadius: 10,
-                        paddingLeft: 6, paddingRight: 6,
-                        fontSize: 11, fontWeight: 800, color: '#FFFFFF',
-                        background: accent,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                        animation: 'badgePop 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-                      }}>
-                        {mockUnread}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
