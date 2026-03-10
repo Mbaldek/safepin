@@ -12,8 +12,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 import crypto from 'crypto';
 
-const supabaseAdmin = createAdminClient();
-
 function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!secret) return false;
   if (!signature) return false;
@@ -26,6 +24,7 @@ function verifySignature(rawBody: string, signature: string | null, secret: stri
 }
 
 export async function POST(req: NextRequest) {
+  const supabaseAdmin = createAdminClient();
   const rawBody = await req.text();
   const sig = req.headers.get('x-hmac-signature');
   const secret = process.env.VERIFF_SECRET_KEY ?? '';

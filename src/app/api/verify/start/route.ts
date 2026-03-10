@@ -10,10 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 import crypto from 'crypto';
 
-const supabaseAdmin = createAdminClient();
-
 export async function POST(req: NextRequest) {
   const { userId } = await req.json();
+  const supabaseAdmin = createAdminClient();
   if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
 
   const apiKey   = process.env.VERIFF_API_KEY;
