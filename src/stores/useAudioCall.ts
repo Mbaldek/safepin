@@ -30,8 +30,6 @@ interface AudioCallStore {
   toggleCallSheet: () => void
   setCallSheetOpen: (v: boolean) => void
   setShowConfirmEnd: (v: boolean) => void
-  groupPanelOpen: boolean
-  setGroupPanelOpen: (v: boolean) => void
 }
 
 export const useAudioCall = create<AudioCallStore>((set) => ({
@@ -79,6 +77,4 @@ export const useAudioCall = create<AudioCallStore>((set) => ({
   toggleCallSheet: () => set((st) => ({ callSheetOpen: !st.callSheetOpen })),
   setCallSheetOpen: (v) => set({ callSheetOpen: v }),
   setShowConfirmEnd: (v) => set({ showConfirmEnd: v }),
-  groupPanelOpen: false,
-  setGroupPanelOpen: (v) => set({ groupPanelOpen: v }),
 }))

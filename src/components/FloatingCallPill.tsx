@@ -32,7 +32,6 @@ export default function FloatingCallPill() {
   const setMuted = useAudioCall((s) => s.setMuted)
   const tick = useAudioCall((s) => s.tick)
   const toggleCallSheet = useAudioCall((s) => s.toggleCallSheet)
-  const groupPanelOpen = useAudioCall((s) => s.groupPanelOpen)
 
   const roomRef = useRef<Room | null>(null)
   const cancelledRef = useRef(false)
@@ -102,9 +101,6 @@ export default function FloatingCallPill() {
     roomRef.current?.disconnect()
     endCall()
   }, [endCall])
-
-  // Hide pill when group chat panel is open (layoutId shared animation)
-  if (groupPanelOpen) return null
 
   const bg = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.95)'
   const borderColor = callState === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(59,180,193,0.25)'

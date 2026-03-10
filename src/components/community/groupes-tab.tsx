@@ -61,8 +61,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const endCallGlobal = useAudioCall((s) => s.endCall)
   const muted = useAudioCall((s) => s.muted)
   const setMuted = useAudioCall((s) => s.setMuted)
-  const seconds = useAudioCall((s) => s.seconds)
-  const setGroupPanelOpen = useAudioCall((s) => s.setGroupPanelOpen)
   const callActive = globalSource === 'group' && globalSourceId === activeGroup && globalCallState !== 'idle'
 
   // Chat state
@@ -175,12 +173,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [activeGroup]);
-
-  // Sync floating pill visibility with group panel
-  useEffect(() => {
-    if (callActive) setGroupPanelOpen(true)
-    return () => setGroupPanelOpen(false)
-  }, [callActive])
 
   const handleJoin = async (communityId: string) => {
     if (!userId) return;
@@ -314,29 +306,54 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
               {activeGroupData?.member_count || 0} membres
             </p>
           </div>
-          <button
-            onClick={() => {
-              if (!callActive && activeGroup) {
-                startCall({ roomName: `group-${activeGroup}`, source: 'group', sourceId: activeGroup, title: `Appel · ${activeGroupData?.name ?? 'Groupe'}` })
-              } else {
-                endCallGlobal()
-              }
-            }}
-            style={{
-              width: 34, height: 34,
-              background: callActive ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.10)',
-              border: callActive ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(59,180,193,0.25)',
-              color: callActive ? '#EF4444' : '#3BB4C1',
-              animation: callActive ? 'callPulse 2s ease-in-out infinite' : 'none',
-              transition: 'background 0.2s, transform 0.15s',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: 0,
-              borderRadius: '50%',
-            }}
-          >
-            {callActive ? <PhoneOff size={16} /> : <Phone size={16} />}
-          </button>
+          {/* Start call — only when not in call */}
+          {!callActive && (
+            <button
+              onClick={() => { if (activeGroup) startCall({ roomName: `group-${activeGroup}`, source: 'group', sourceId: activeGroup, title: `Appel · ${activeGroupData?.name ?? 'Groupe'}` }) }}
+              style={{
+                width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
+                background: 'rgba(59,180,193,0.10)',
+                border: '1px solid rgba(59,180,193,0.25)',
+                color: '#3BB4C1',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Phone size={15} />
+            </button>
+          )}
+          {/* Mic toggle + end call — only when in call */}
+          {callActive && (
+            <>
+              <button
+                onClick={() => setMuted(!muted)}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
+                  background: muted ? 'rgba(239,68,68,0.10)' : 'rgba(59,180,193,0.12)',
+                  border: muted ? '1px solid rgba(239,68,68,0.22)' : '1px solid rgba(59,180,193,0.25)',
+                  color: muted ? '#EF4444' : '#3BB4C1',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {muted ? <MicOff size={15} /> : <Mic size={15} />}
+              </button>
+              <button
+                onClick={endCallGlobal}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
+                  background: 'rgba(239,68,68,0.12)',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                  color: '#EF4444',
+                  animation: 'callPulse 2s ease-in-out infinite',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <PhoneOff size={15} />
+              </button>
+            </>
+          )}
           <button style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: isDark ? '#64748B' : '#94A3B8', padding: 4,
@@ -435,76 +452,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
             })
           )}
         </div>
-
-        {/* Inline call pill — shown when a group call is active */}
-        <style dangerouslySetInnerHTML={{ __html: '@keyframes liveDot{0%,100%{opacity:1}50%{opacity:.35}}' }} />
-        {callActive && (
-          <motion.div
-            layoutId="active-call-pill"
-            layout
-            transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.9 }}
-            style={{
-              margin: '0 10px 6px',
-              background: isDark ? 'rgba(59,180,193,0.10)' : 'rgba(59,180,193,0.07)',
-              border: '1px solid rgba(59,180,193,0.22)',
-              borderLeft: '2.5px solid #3BB4C1',
-              borderRadius: 14,
-              padding: '8px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Live dot */}
-            <div style={{ flexShrink: 0 }}>
-              <div style={{
-                width: 7, height: 7, borderRadius: '50%',
-                background: '#3BB4C1',
-                animation: 'liveDot 1.4s ease-in-out infinite',
-              }} />
-            </div>
-            {/* Info */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: isDark ? '#F1F5F9' : '#0F172A' }}>
-                Groupe · En appel
-              </div>
-              <div style={{ fontSize: 10, color: isDark ? '#94A3B8' : '#64748B', marginTop: 1 }}>
-                Vous parlez
-              </div>
-            </div>
-            {/* Timer */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#3BB4C1', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-              {`${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`}
-            </div>
-            {/* Mic toggle */}
-            <button
-              onClick={() => setMuted(!muted)}
-              style={{
-                width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: muted ? 'rgba(239,68,68,0.10)' : 'rgba(59,180,193,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}
-            >
-              {muted
-                ? <MicOff size={13} strokeWidth={1.8} color="#EF4444" />
-                : <Mic size={13} strokeWidth={1.8} color="#3BB4C1" />
-              }
-            </button>
-            {/* End call */}
-            <button
-              onClick={endCallGlobal}
-              style={{
-                width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'rgba(239,68,68,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}
-            >
-              <PhoneOff size={13} strokeWidth={1.8} color="#EF4444" />
-            </button>
-          </motion.div>
-        )}
 
         {/* Input bar */}
         <ChatTextBar
