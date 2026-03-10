@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, ChevronDown, UserPlus } from 'lucide-react'
+import { Mic, MicOff, ChevronDown, UserPlus, Volume2, PhoneOff } from 'lucide-react'
 import { useAudioCall } from '@/stores/useAudioCall'
 import { useTheme } from '@/stores/useTheme'
 import { avatarColor } from '@/lib/escorteHelpers'
@@ -44,6 +44,8 @@ const KEYFRAMES = `
 @keyframes call-sheet-ring-pulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.04)} }
 @keyframes call-sheet-mic-ripple { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.07);opacity:.2} }
 @keyframes call-sheet-spinner { to{transform:rotate(360deg)} }
+@keyframes call-sheet-call-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.18)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0.08)} }
+@keyframes call-sheet-morph-in { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
 `
 
 export default function CallSheet() {
@@ -256,6 +258,9 @@ export default function CallSheet() {
           width: 68, height: 68, borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative', cursor: 'pointer',
+          opacity: confirmingEnd ? 0.4 : 1,
+          filter: confirmingEnd ? 'grayscale(1)' : 'none',
+          transition: 'opacity 0.25s, filter 0.25s',
           ...((!muted && !isConnecting) ? {
             background: 'radial-gradient(circle,rgba(59,180,193,0.22) 0%,rgba(59,180,193,0.04) 70%)',
           } : {}),
@@ -293,57 +298,84 @@ export default function CallSheet() {
           }
         </div>
       </motion.div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: C.txts, textAlign: 'center' }}>
-        {!confirmingEnd && (
-          isConnecting ? 'Connexion en cours...'
+      <div style={{ fontSize: 11, fontWeight: 600, color: confirmingEnd ? RED : C.txts, textAlign: 'center', transition: 'color 0.2s' }}>
+        {confirmingEnd
+          ? (isDM ? "Terminer l'appel ?" : "Quitter l'appel ?")
+          : isConnecting ? 'Connexion en cours...'
           : muted ? 'Micro coupé — appuyer pour réactiver'
           : 'Appuyer pour couper le micro'
-        )}
+        }
       </div>
     </div>
   )
 
   const renderActionRow = () => (
     !confirmingEnd ? (
-      <div
-        onClick={() => setConfirmingEnd(true)}
-        style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 12px', cursor: 'pointer' }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 600, color: RED }}>
-          {isDM ? "Terminer l'appel ?" : "Quitter l'appel ?"}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44, padding: '4px 0 20px' }}>
+        {/* Speaker */}
+        <div
+          onClick={() => bToast.info({ title: 'Fonctionnalité bientôt disponible' }, isDark)}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: C.el, border: `1px solid ${C.border}`,
+          }}>
+            <Volume2 size={18} strokeWidth={2} color={C.txts} />
+          </div>
+          <span style={{ fontSize: 10.5, fontWeight: 500, color: C.txts }}>Haut-parleur</span>
+        </div>
+        {/* Quit */}
+        <div
+          onClick={() => setConfirmingEnd(true)}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(239,68,68,0.12)', border: `1.5px solid ${RED}`,
+            animation: 'call-sheet-call-pulse 2s ease-in-out infinite',
+          }}>
+            <PhoneOff size={18} strokeWidth={2} color={RED} />
+          </div>
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: RED }}>Quitter</span>
+        </div>
+        {/* Duration */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(59,180,193,0.10)', border: `1.5px solid ${TEAL}`,
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: TEAL }}>{formatTime(seconds)}</span>
+          </div>
+          <span style={{ fontSize: 10.5, fontWeight: 500, color: TEAL }}>Durée</span>
+        </div>
       </div>
     ) : (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '4px 16px 20px' }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: RED }}>
-          {isDM ? "Terminer l'appel ?" : "Quitter l'appel ?"}
-        </span>
-        <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 280 }}>
-          <button
-            onClick={() => setConfirmingEnd(false)}
-            style={{
-              flex: 1, height: 44, borderRadius: 999,
-              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
-              border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(15,23,42,0.10)',
-              color: isDark ? '#F1F5F9' : '#0F172A',
-              fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Annuler
-          </button>
-          <button
-            onClick={() => { handleConfirmEnd(); setConfirmingEnd(false) }}
-            style={{
-              flex: 1, height: 44, borderRadius: 999,
-              background: RED, border: 'none',
-              color: 'white', fontSize: 14, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-              boxShadow: '0 4px 14px rgba(239,68,68,0.35)',
-            }}
-          >
-            {isDM ? 'Terminer' : 'Quitter'}
-          </button>
-        </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 16px 20px',
+        animation: 'call-sheet-morph-in 0.2s ease-out',
+      }}>
+        <button
+          onClick={() => setConfirmingEnd(false)}
+          style={{
+            flex: 1, maxWidth: 130, height: 44, borderRadius: 999,
+            background: C.el, border: `1px solid ${C.borderM}`, color: C.txt,
+            fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Annuler
+        </button>
+        <button
+          onClick={() => { handleConfirmEnd(); setConfirmingEnd(false) }}
+          style={{
+            flex: 1, maxWidth: 130, height: 44, borderRadius: 999,
+            background: RED, border: 'none', color: 'white',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: '0 4px 14px rgba(239,68,68,0.35)',
+          }}
+        >
+          {isDM ? 'Terminer' : 'Quitter'}
+        </button>
       </div>
     )
   )
@@ -356,8 +388,19 @@ export default function CallSheet() {
       <style dangerouslySetInnerHTML={{ __html: KEYFRAMES }} />
       <AnimatePresence>
         {active && callSheetOpen && (
-          <motion.div
-            key="call-sheet"
+          <>
+            {/* Backdrop — tap to collapse */}
+            <motion.div
+              key="call-sheet-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={handleCollapse}
+              style={{ position: 'fixed', inset: 0, zIndex: 699, background: 'transparent' }}
+            />
+            <motion.div
+              key="call-sheet"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -400,6 +443,7 @@ export default function CallSheet() {
             </div>
 
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
