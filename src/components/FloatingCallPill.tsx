@@ -111,128 +111,137 @@ export default function FloatingCallPill() {
   return (
     <AnimatePresence>
       {active && (
-        <motion.div
-          key="floating-call-pill"
-          initial={{ opacity: 0, y: -12, scale: 0.92, filter: 'blur(4px)' }}
-          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, y: -8, scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+        <div
           style={{
             position: 'fixed',
-            top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-            left: 16,
-            zIndex: 999,
-            width: 272,
+            top: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            height: 52,
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '7px 10px 7px 10px',
-            borderRadius: 999,
-            background: bg,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: `1px solid ${borderColor}`,
-            boxShadow: `0 4px 16px rgba(0,0,0,${isDark ? '0.3' : '0.08'}), ${glow}`,
-            cursor: 'pointer',
-            overflow: 'hidden',
-          }}
-          onClick={(e) => {
-            // Don't navigate if clicking buttons
-            if ((e.target as HTMLElement).closest('button')) return
-            toggleCallSheet()
+            zIndex: 999,
           }}
         >
-          {/* Error state */}
-          {callState === 'error' ? (
-            <>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94A3B8', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#94A3B8' : '#475569' }}>
-                Audio indisponible
-              </span>
-              <button
-                onClick={handleEnd}
-                style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: 'rgba(239,68,68,0.12)',
-                  border: `1px solid ${RED}40`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0, flexShrink: 0,
-                }}
-              >
-                <X size={11} strokeWidth={2} color={RED} />
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Waveform */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 1.5, height: 18, flexShrink: 0 }}>
-                {[0, 120, 240, 120, 0].map((delay, i) => (
-                  <motion.div
-                    key={i}
-                    animate={(callState === 'active' && !muted) ? { height: ['3px', '14px', '3px'] } : { height: '3px' }}
-                    transition={{ duration: 1.1, delay: delay / 1000, repeat: Infinity, ease: 'easeInOut' }}
-                    style={{
-                      width: 2.5, borderRadius: 2,
-                      background: (callState === 'active' && !muted) ? TEAL : '#94A3B8',
-                      minHeight: 3,
-                      opacity: muted ? 0.3 : 1,
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Title + timer (stacked) */}
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{
-                  fontSize: 11.5, fontWeight: 600, color: isDark ? '#F1F5F9' : '#0F172A', lineHeight: 1.2,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  maxWidth: 160,
-                }}>
-                  {title}
+          <motion.div
+            key="floating-call-pill"
+            initial={{ opacity: 0, y: -12, scale: 0.92, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            style={{
+              width: 272,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 10px 7px 10px',
+              borderRadius: 999,
+              background: bg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: `1px solid ${borderColor}`,
+              boxShadow: `0 4px 16px rgba(0,0,0,${isDark ? '0.3' : '0.08'}), ${glow}`,
+              cursor: 'pointer',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => {
+              // Don't navigate if clicking buttons
+              if ((e.target as HTMLElement).closest('button')) return
+              toggleCallSheet()
+            }}
+          >
+            {/* Error state */}
+            {callState === 'error' ? (
+              <>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94A3B8', flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#94A3B8' : '#475569' }}>
+                  Audio indisponible
                 </span>
-                {callState === 'active' && (
+                <button
+                  onClick={handleEnd}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: 'rgba(239,68,68,0.12)',
+                    border: `1px solid ${RED}40`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0, flexShrink: 0,
+                  }}
+                >
+                  <X size={11} strokeWidth={2} color={RED} />
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Waveform */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 1.5, height: 18, flexShrink: 0 }}>
+                  {[0, 120, 240, 120, 0].map((delay, i) => (
+                    <motion.div
+                      key={i}
+                      animate={(callState === 'active' && !muted) ? { height: ['3px', '14px', '3px'] } : { height: '3px' }}
+                      transition={{ duration: 1.1, delay: delay / 1000, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        width: 2.5, borderRadius: 2,
+                        background: (callState === 'active' && !muted) ? TEAL : '#94A3B8',
+                        minHeight: 3,
+                        opacity: muted ? 0.3 : 1,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Title + timer (stacked) */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <span style={{
-                    fontSize: 10.5, fontWeight: 500, color: TEAL,
-                    fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
+                    fontSize: 11.5, fontWeight: 600, color: isDark ? '#F1F5F9' : '#0F172A', lineHeight: 1.2,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    maxWidth: 160,
                   }}>
-                    {formatTime(seconds)}
+                    {title}
                   </span>
-                )}
-              </div>
+                  {callState === 'active' && (
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 500, color: TEAL,
+                      fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
+                    }}>
+                      {formatTime(seconds)}
+                    </span>
+                  )}
+                </div>
 
-              {/* Mute */}
-              <button
-                onClick={handleToggleMute}
-                style={{
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: muted ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.12)',
-                  border: `1px solid ${muted ? RED + '40' : TEAL + '40'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0, flexShrink: 0,
-                }}
-              >
-                {muted
-                  ? <MicOff size={11} strokeWidth={1.5} color={RED} />
-                  : <Mic size={11} strokeWidth={1.5} color={TEAL} />
-                }
-              </button>
+                {/* Mute */}
+                <button
+                  onClick={handleToggleMute}
+                  style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: muted ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.12)',
+                    border: `1px solid ${muted ? RED + '40' : TEAL + '40'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0, flexShrink: 0,
+                  }}
+                >
+                  {muted
+                    ? <MicOff size={11} strokeWidth={1.5} color={RED} />
+                    : <Mic size={11} strokeWidth={1.5} color={TEAL} />
+                  }
+                </button>
 
-              {/* End */}
-              <button
-                onClick={handleEnd}
-                style={{
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: 'rgba(239,68,68,0.12)',
-                  border: `1px solid ${RED}40`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0, flexShrink: 0,
-                }}
-              >
-                <X size={11} strokeWidth={2} color={RED} />
-              </button>
-            </>
-          )}
-        </motion.div>
+                {/* End */}
+                <button
+                  onClick={handleEnd}
+                  style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: 'rgba(239,68,68,0.12)',
+                    border: `1px solid ${RED}40`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', padding: 0, flexShrink: 0,
+                  }}
+                >
+                  <X size={11} strokeWidth={2} color={RED} />
+                </button>
+              </>
+            )}
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   )
