@@ -3,10 +3,12 @@ import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { welcomeEmail } from '@/lib/email-templates';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req: Request) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ error: 'Resend not configured' }, { status: 500 });
+    }
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { userId } = (await req.json()) as { userId?: string };
     if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
 
