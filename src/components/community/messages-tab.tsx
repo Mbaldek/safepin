@@ -188,6 +188,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
   const globalSourceId = useAudioCall((s) => s.sourceId)
   const startCall = useAudioCall((s) => s.startCall)
   const endCallGlobal = useAudioCall((s) => s.endCall)
+  const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
   const callActive = globalSource === 'dm' && globalSourceId === selectedConvo?.id && globalCallState !== 'idle'
 
   // Auto-open conversation from circle tab
@@ -384,6 +385,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
             onClick={() => {
               if (!callActive && selectedConvo) {
                 startCall({ roomName: `dm-${selectedConvo.id}`, source: 'dm', sourceId: selectedConvo.id, title: `Appel avec ${selectedConvo.partner_name ?? 'contact'}`, participantNames: selectedConvo.partner_name ? [selectedConvo.partner_name] : [] })
+                setCallSheetOpen(true)
               } else {
                 endCallGlobal()
               }

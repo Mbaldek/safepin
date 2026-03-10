@@ -61,6 +61,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const endCallGlobal = useAudioCall((s) => s.endCall)
   const muted = useAudioCall((s) => s.muted)
   const setMuted = useAudioCall((s) => s.setMuted)
+  const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
   const callActive = globalSource === 'group' && globalSourceId === activeGroup && globalCallState !== 'idle'
 
   // Chat state
@@ -309,7 +310,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           {/* Start call — only when not in call */}
           {!callActive && (
             <button
-              onClick={() => { if (activeGroup) startCall({ roomName: `group-${activeGroup}`, source: 'group', sourceId: activeGroup, title: `Appel · ${activeGroupData?.name ?? 'Groupe'}` }) }}
+              onClick={() => { if (activeGroup) { startCall({ roomName: `group-${activeGroup}`, source: 'group', sourceId: activeGroup, title: `Appel · ${activeGroupData?.name ?? 'Groupe'}` }); setCallSheetOpen(true) } }}
               style={{
                 width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
                 background: 'rgba(59,180,193,0.10)',

@@ -474,11 +474,11 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
           style={{
             width: 30, height: 30, borderRadius: '50%',
             border: `1px solid ${t.border}`, background: 'transparent',
-            cursor: 'pointer', fontSize: 12,
+            cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {'\uD83D\uDCAC'}
+          <MessageCircle size={13} color={t.textSecondary} />
         </button>
       </div>
     </motion.div>
@@ -548,11 +548,11 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
         style={{
           width: 26, height: 26, borderRadius: '50%',
           border: `1px solid ${t.border}`, background: 'transparent',
-          cursor: 'pointer', fontSize: 11,
+          cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        {'\uD83D\uDCAC'}
+        <MessageCircle size={12} color={t.textTertiary} />
       </button>
     </motion.div>
   )

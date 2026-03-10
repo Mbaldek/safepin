@@ -97,7 +97,28 @@
       "Bash(powershell -Command \"Get-Content src\\\\app\\\\map\\\\page.tsx | Select-Object -Index \\(1145..1185\\)\")",
       "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(115..125\\)\")",
       "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(278..292\\)\")",
-      "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(480..512\\)\")"
+      "Bash(powershell -Command \"Get-Content src\\\\components\\\\map\\\\PinDetailSheet.tsx | Select-Object -Index \\(480..512\\)\")",
+      "Bash(node cleanup-tripview.mjs)",
+      "Bash(sed -n '245,350p' src/components/WalkWithMePanel.tsx)",
+      "Bash(sed -n '345,420p' src/components/WalkWithMePanel.tsx)",
+      "Bash(sed -n '417,500p' src/components/WalkWithMePanel.tsx)",
+      "Bash(sed -n '220,255p' src/components/WalkWithMePanel.tsx)",
+      "Bash(git ls-tree -r HEAD supabase/migrations/)",
+      "Bash(npx vercel env ls)",
+      "Bash(npx vercel login)",
+      "Bash(npx vercel env add LIVEKIT_URL production preview development)",
+      "Bash(npx vercel env add LIVEKIT_URL production)",
+      "Bash(npx vercel link --yes)",
+      "Bash(npx vercel env add LIVEKIT_URL preview)",
+      "Bash(npx vercel env add LIVEKIT_URL development)",
+      "Bash(npx vercel env add LIVEKIT_URL preview --value \"wss://safepin-2n4uia5y.livekit.cloud\" --yes)",
+      "Bash(npx vercel env add LIVEKIT_URL development --value \"wss://safepin-2n4uia5y.livekit.cloud\" --yes)",
+      "Bash(npx vercel env add LIVEKIT_API_KEY production)",
+      "Bash(npx vercel env add LIVEKIT_API_SECRET production)",
+      "Bash(npx vercel --prod)",
+      "Bash(__NEW_LINE_a393238d3ab77969__ echo \"\")",
+      "Bash(__NEW_LINE_faae292b3cff14ab__ echo \"\")",
+      "Bash(__NEW_LINE_ac91a0cc096028cc__ echo \"\")"
     ]
   }
 }

@@ -480,10 +480,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             textAlign:      'left',
           }}
         >
-          <div style={{
-            width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-            background: 'rgba(59,180,193,0.14)', border: `1px solid ${T.gradientStart}40`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          <div className="escorte-ico-teal" style={{
+            width: 44, height: 44, flexShrink: 0,
+            background: 'rgba(59,180,193,0.12)',
           }}>
             <Users size={20} strokeWidth={1.5} color={T.gradientStart} />
           </div>
@@ -506,7 +505,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         <button
           onClick={(e) => { e.stopPropagation(); setShowWalkHistory(true); }}
           style={{
-            width: 44, flexShrink: 0,
+            width: 62, flexShrink: 0,
             borderRadius: 12,
             background: 'rgba(59,180,193,0.08)',
             border: '1px solid rgba(59,180,193,0.20)',
@@ -519,7 +518,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(59,180,193,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
           <History size={15} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
           <span style={{ fontSize: 8, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
-            Histo-{'\n'}rique
+            Historique
           </span>
         </button>
       </div>
@@ -530,18 +529,17 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           whileTap={{ scale: 0.98 }}
           onClick={() => escorte.setView('trip-form')}
           style={{
-            flex: 1, background: tk.ih, border: `1px solid ${tk.bd}`,
+            flex: 1, background: 'rgba(167,139,250,0.07)', border: `1px solid rgba(167,139,250,0.20)`,
             borderRadius: T.radiusLg, padding: '14px',
             display: 'flex', alignItems: 'center', gap: 12,
             cursor: 'pointer', textAlign: 'left',
           }}
         >
-          <div style={{
-            width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-            background: tk.ih, border: `1px solid ${tk.bdd}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          <div className="escorte-ico-violet" style={{
+            width: 44, height: 44, flexShrink: 0,
+            background: 'rgba(167,139,250,0.12)',
           }}>
-            <Navigation size={20} strokeWidth={1.5} color={tk.ts} />
+            <Navigation size={20} strokeWidth={1.5} color={'#A78BFA'} />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
@@ -549,26 +547,26 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             </div>
             <div style={{ fontSize: 11, color: tk.tt }}>Itineraire protege · arrivee tracee</div>
           </div>
-          <ChevronRight size={16} strokeWidth={1.5} color={tk.tt} />
+          <ChevronRight size={16} strokeWidth={1.5} color={'#A78BFA'} />
         </motion.button>
         {/* History pill */}
         <button
           onClick={(e) => { e.stopPropagation(); setShowTripHistory(true); }}
           style={{
-            width: 44, flexShrink: 0,
+            width: 62, flexShrink: 0,
             borderRadius: 12,
-            background: 'rgba(59,180,193,0.08)',
-            border: '1px solid rgba(59,180,193,0.20)',
+            background: 'rgba(167,139,250,0.08)',
+            border: '1px solid rgba(167,139,250,0.20)',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 5,
             cursor: 'pointer', position: 'relative', overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,180,193,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(59,180,193,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
-          <History size={15} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
-          <span style={{ fontSize: 8, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
-            Histo-{'\n'}rique
+          <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(167,139,250,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
+          <History size={15} color={'#A78BFA'} style={{ position: 'relative', zIndex: 2 }} />
+          <span style={{ fontSize: 8, fontWeight: 700, color: '#A78BFA', textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
+            Historique
           </span>
         </button>
       </div>

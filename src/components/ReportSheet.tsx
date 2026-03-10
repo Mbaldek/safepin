@@ -10,44 +10,43 @@ import { supabase } from '@/lib/supabase';
 const groups = [
   {
     id: 'urgent',
-    label: 'URGENT',
-    color: { text: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
+    label: 'DANGER',
+    dotColor: '#EF4444',
+    color: '#EF4444',
+    bg: 'rgba(239,68,68,0.10)',
     items: [
-      { id: 'assault', emoji: '🚨', label: 'Agression' },
-      { id: 'harassment', emoji: '🚫', label: 'Harcèlement' },
-      { id: 'theft', emoji: '👜', label: 'Vol' },
-      { id: 'following', emoji: '👤', label: 'Filature' },
-    ]
+      { value: 'assault', emoji: '🚨', label: 'Agression' },
+      { value: 'harassment', emoji: '😰', label: 'Harcèlement' },
+      { value: 'theft', emoji: '👜', label: 'Vol' },
+      { value: 'following', emoji: '🕵️', label: 'Filature' },
+    ],
   },
   {
     id: 'warning',
     label: 'ATTENTION',
-    color: { text: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
+    dotColor: '#F59E0B',
+    color: '#F59E0B',
+    bg: 'rgba(245,158,11,0.10)',
     items: [
-      { id: 'suspect', emoji: '👁️', label: 'Suspect' },
-      { id: 'group', emoji: '👥', label: 'Attroupement' },
-      { id: 'unsafe', emoji: '⚠️', label: 'Zone à éviter' },
-    ]
-  },
-  {
-    id: 'infra',
-    label: 'INFRASTRUCTURE',
-    color: { text: '#94A3B8', bg: 'rgba(148,163,184,0.12)' },
-    items: [
-      { id: 'lighting', emoji: '💡', label: 'Mal éclairé' },
-      { id: 'blocked', emoji: '🚧', label: 'Passage difficile' },
-      { id: 'closed', emoji: '🚷', label: 'Fermé' },
-    ]
+      { value: 'suspect', emoji: '👁️', label: 'Suspect' },
+      { value: 'group', emoji: '⚠️', label: 'Attroupement' },
+      { value: 'unsafe', emoji: '🚧', label: 'Zone à éviter' },
+      { value: 'lighting', emoji: '💡', label: 'Mal éclairé' },
+      { value: 'blocked', emoji: '🚧', label: 'Passage difficile' },
+      { value: 'closed', emoji: '🔒', label: 'Fermé' },
+    ],
   },
   {
     id: 'positive',
     label: 'POSITIF',
-    color: { text: '#34D399', bg: 'rgba(52,211,153,0.12)' },
+    dotColor: '#34D399',
+    color: '#34D399',
+    bg: 'rgba(52,211,153,0.10)',
     items: [
-      { id: 'safe', emoji: '💚', label: 'Lieu sûr' },
-      { id: 'help', emoji: '🙋', label: 'Aide reçue' },
-      { id: 'presence', emoji: '👮', label: 'Sécurité' },
-    ]
+      { value: 'safe', emoji: '💚', label: 'Lieu sûr' },
+      { value: 'help', emoji: '🤝', label: 'Aide reçue' },
+      { value: 'presence', emoji: '🛡️', label: 'Sécurité' },
+    ],
   },
 ];
 
@@ -79,11 +78,7 @@ const FIXED = {
   semanticSuccess: '#34D399', semanticSuccessSoft: 'rgba(52,211,153,0.12)',
 };
 
-interface CategoryItem {
-  id: string;
-  emoji: string;
-  label: string;
-}
+const allItems = groups.flatMap(g => g.items);
 
 export function ReportSheet() {
   const isDark = useTheme((s) => s.theme) === 'dark';
@@ -91,7 +86,7 @@ export function ReportSheet() {
   const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo } = useStore();
 
   const [step, setStep] = useState<number | '2b'>(1);
-  const [cat, setCat] = useState<CategoryItem | null>(null);
+  const [cat, setCat] = useState<string | null>(null);
   const [transport, setTransport] = useState<boolean | null>(null);
   const [tType, setTType] = useState<string | null>(null);
   const [tLine, setTLine] = useState('');
@@ -123,7 +118,8 @@ export function ReportSheet() {
 
   if (activeSheet !== 'report') return null;
 
-  const selectedGroup = cat ? groups.find(g => g.items.some(i => i.id === cat.id)) : null;
+  const catItem = cat ? allItems.find(i => i.value === cat) : null;
+  const selectedGroup = cat ? groups.find(g => g.items.some(i => i.value === cat)) : null;
 
   const c = {
     bg: C.bg,
@@ -183,14 +179,13 @@ export function ReportSheet() {
     try {
       const severity = selectedGroup?.id === 'urgent' ? 'high'
         : selectedGroup?.id === 'warning' ? 'med' : 'low';
-      const decayType = selectedGroup?.id === 'infra' ? 'infra'
-        : selectedGroup?.id === 'positive' ? 'positive' : 'people';
+      const decayType = selectedGroup?.id === 'positive' ? 'positive' : 'people';
 
       const newPin = {
         user_id: userId,
         lat: newPinCoords.lat,
         lng: newPinCoords.lng,
-        category: cat.id,
+        category: cat,
         severity,
         description: desc || null,
         is_transport: transport ?? false,
@@ -276,7 +271,7 @@ export function ReportSheet() {
         {/* Content */}
         <div style={{ padding: '10px 14px 24px', maxHeight: '60vh', overflowY: 'auto' }}>
 
-          {/* Step 1: Chips */}
+          {/* Step 1: Category grid */}
           {step === 1 && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, minWidth: 0 }}>
@@ -288,35 +283,66 @@ export function ReportSheet() {
                 </span>
               </div>
 
-              {groups.map(group => (
-                <div key={group.id} style={{ marginBottom: 10 }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: group.color.text, marginBottom: 6, letterSpacing: '0.05em' }}>
-                    {group.label}
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {group.items.map(item => {
-                      const isSelected = cat?.id === item.id;
+              {groups.map((group, gi) => (
+                <div
+                  key={group.id}
+                  style={{
+                    marginBottom: 14,
+                    animation: `reportGroupIn 0.35s ${gi * 0.08}s both ease-out`,
+                  }}
+                >
+                  {/* Group header with dot */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        backgroundColor: group.dotColor,
+                        flexShrink: 0,
+                        animation: group.id === 'urgent' ? 'reportUrgentPulse 2s ease-in-out infinite' : undefined,
+                      }}
+                    />
+                    <p style={{ fontSize: 10, fontWeight: 800, color: group.color, letterSpacing: '0.08em' }}>
+                      {group.label}
+                    </p>
+                  </div>
+
+                  {/* 2-col grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {group.items.map((item, ci) => {
+                      const isSelected = cat === item.value;
                       return (
                         <button
-                          key={item.id}
-                          onClick={() => { setCat(item); setStep(['safe','help','presence'].includes(item.id) ? '2b' : 2); }}
+                          key={item.value}
+                          onClick={() => { setCat(item.value); setStep(['safe','help','presence'].includes(item.value) ? '2b' : 2); }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 4,
-                            padding: '6px 10px',
+                            gap: 6,
+                            padding: '10px 10px',
                             borderRadius: 14,
-                            background: isSelected ? c.sel : group.color.bg,
-                            border: '1.5px solid ' + (isSelected ? c.accent : 'transparent'),
-                            color: isSelected ? c.text : group.color.text,
+                            background: isSelected ? c.sel : group.bg,
+                            border: `1.5px solid ${isSelected ? c.accent : 'transparent'}`,
+                            color: isSelected ? c.text : group.color,
                             fontSize: 12,
-                            fontWeight: 500,
+                            fontWeight: 600,
                             cursor: 'pointer',
+                            textAlign: 'left',
+                            animation: `reportCellIn 0.3s ${gi * 0.08 + ci * 0.04}s both ease-out`,
                           }}
                         >
-                          <span style={{ fontSize: 13 }}>{item.emoji}</span>
-                          {item.label}
-                          {isSelected && <Check size={12} color={c.accent} />}
+                          <span style={{
+                            fontSize: 16,
+                            lineHeight: 1,
+                            animation: group.id === 'positive' ? 'reportPositifBreathe 3s ease-in-out infinite' : undefined,
+                          }}>
+                            {item.emoji}
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.label}
+                          </span>
+                          {isSelected && <Check size={12} color={c.accent} style={{ flexShrink: 0 }} />}
                         </button>
                       );
                     })}
@@ -329,10 +355,10 @@ export function ReportSheet() {
           {/* Step 2: Transport */}
           {step === 2 && (
             <>
-              {cat && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 14, background: selectedGroup?.color.bg, marginBottom: 12 }}>
-                  <span style={{ fontSize: 14 }}>{cat.emoji}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: selectedGroup?.color.text }}>{cat.label}</span>
+              {catItem && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 14, background: selectedGroup?.bg, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14 }}>{catItem.emoji}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: selectedGroup?.color }}>{catItem.label}</span>
                 </div>
               )}
               <p style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 12 }}>Dans un transport ?</p>
@@ -454,7 +480,7 @@ export function ReportSheet() {
                       user_id: userId,
                       lat: newPinCoords.lat,
                       lng: newPinCoords.lng,
-                      category: cat.id,
+                      category: cat,
                       severity: 'low' as const,
                       description: positifNote || null,
                       is_transport: false,

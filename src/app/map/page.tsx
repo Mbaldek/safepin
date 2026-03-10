@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -13,6 +13,7 @@ import { Pin } from '@/types';
 import { bToast } from '@/components/GlobalToast';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { updateStreak } from '@/lib/streaks';
+import { haversineMeters } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, SlidersHorizontal } from 'lucide-react';
 import MapView from '@/components/MapView';
@@ -53,6 +54,74 @@ const tabVariants = {
   exit:    { opacity: 0 },
 } as const;
 const tabTransition = { duration: 0.18, ease: 'easeOut' } as const;
+
+// ─── Ambient pill logic ──────────────────────────────────────────────────────
+
+const URGENT_CATS = ['theft','assault','harassment','following','suspect','group','unsafe']
+const POSITIF_CATS = ['safe','help','presence']
+
+function getAmbientPill(pins: Pin[], userLocation: { lat: number; lng: number } | null): {
+  text: string
+  color: 'calm' | 'warn' | 'alert' | 'safe'
+  pulse: boolean
+} {
+  if (!userLocation || !pins.length) {
+    return { text: 'À proximité', color: 'calm', pulse: false }
+  }
+
+  const now = Date.now()
+  const nearby = pins.filter(p => {
+    if (p.resolved_at || p.hidden_at) return false
+    return haversineMeters(userLocation, { lat: p.lat, lng: p.lng }) <= 500
+  })
+
+  // P3 — URGENT actif <500m dans les 30min
+  const urgentRecent = nearby
+    .filter(p => URGENT_CATS.includes(p.category))
+    .filter(p => now - new Date(p.created_at).getTime() < 30 * 60 * 1000)
+    .sort((a, b) =>
+      haversineMeters(userLocation, { lat: a.lat, lng: a.lng }) -
+      haversineMeters(userLocation, { lat: b.lat, lng: b.lng })
+    )[0]
+
+  if (urgentRecent) {
+    const dist = Math.round(haversineMeters(userLocation, { lat: urgentRecent.lat, lng: urgentRecent.lng }))
+    const mins = Math.round((now - new Date(urgentRecent.created_at).getTime()) / 60000)
+    const label = urgentRecent.category_label ?? urgentRecent.category
+    return { text: `${label} · ${dist}m · il y a ${mins} min`, color: 'alert', pulse: true }
+  }
+
+  // P4 — Safe space <200m
+  const safeNearby = pins
+    .filter(p => !p.resolved_at && !p.hidden_at && POSITIF_CATS.includes(p.category))
+    .filter(p => haversineMeters(userLocation, { lat: p.lat, lng: p.lng }) <= 200)
+    .sort((a, b) =>
+      haversineMeters(userLocation, { lat: a.lat, lng: a.lng }) -
+      haversineMeters(userLocation, { lat: b.lat, lng: b.lng })
+    )[0]
+
+  if (safeNearby) {
+    const dist = Math.round(haversineMeters(userLocation, { lat: safeNearby.lat, lng: safeNearby.lng }))
+    const label = safeNearby.category_label ?? safeNearby.address ?? 'Espace sûr'
+    return { text: `${label} · ${dist}m`, color: 'safe', pulse: false }
+  }
+
+  // P2 — URGENT <500m dans les 2h (moins récent)
+  const urgentOlder = nearby
+    .filter(p => URGENT_CATS.includes(p.category))
+    .filter(p => now - new Date(p.created_at).getTime() < 2 * 60 * 60 * 1000)[0]
+
+  if (urgentOlder) {
+    const mins = Math.round((now - new Date(urgentOlder.created_at).getTime()) / 60000)
+    const label = urgentOlder.category_label ?? urgentOlder.category
+    return { text: `${label} signalé · il y a ${mins} min`, color: 'warn', pulse: true }
+  }
+
+  // P1 — Calm
+  const count = nearby.length
+  if (count === 0) return { text: 'Secteur calme', color: 'calm', pulse: false }
+  return { text: `Secteur calme · ${count} signal${count > 1 ? 'ements' : 'ement'}`, color: 'calm', pulse: false }
+}
 
 // ─── Push helpers ─────────────────────────────────────────────────────────────
 
@@ -368,6 +437,8 @@ activeTrip, setActiveTrip,
 
   // Count of unresolved emergency pins created in the last 2 hours (red badge on "Nearby" button)
   const emergencyNearbyCount = pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length;
+
+  const ambientPill = useMemo(() => getAmbientPill(pins, userLocation), [pins, userLocation]);
 
   const deepLinkHandled = useRef(false);
 
@@ -1123,19 +1194,27 @@ activeTrip, setActiveTrip,
                 backdropFilter: 'blur(12px)',
               }}
             >
-              <List size={15} strokeWidth={2.2} style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }} />
-              <span className="text-xs font-bold" style={{ color: showIncidentsList ? '#fff' : 'var(--text-muted)' }}>
-                {tMap('nearby')}
-              </span>
-              {/* Emergency badge — unresolved emergency pins from last 2 h */}
-              {!showIncidentsList && emergencyNearbyCount > 0 && (
-                <span
-                  className="min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-                  style={{ backgroundColor: '#ef4444', color: '#fff' }}
-                >
-                  {emergencyNearbyCount}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {/* Dot */}
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                  background:
+                    ambientPill.color === 'alert' ? '#EF4444' :
+                    ambientPill.color === 'warn'  ? '#F59E0B' :
+                    ambientPill.color === 'safe'  ? '#34D399' : 'var(--text-muted)',
+                  ...(ambientPill.pulse ? { animation: 'ambientDotPulse 1.2s ease-in-out infinite' } : {}),
+                }} />
+                <span style={{
+                  fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', maxWidth: 200,
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                  color: showIncidentsList ? '#fff' :
+                    ambientPill.color === 'alert' ? '#DC2626' :
+                    ambientPill.color === 'warn'  ? '#B45309' :
+                    ambientPill.color === 'safe'  ? '#059669' : 'var(--text-muted)',
+                }}>
+                  {ambientPill.text}
                 </span>
-              )}
+              </div>
             </button>
             {/* Walk With Me */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
