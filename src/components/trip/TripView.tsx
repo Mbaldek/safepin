@@ -96,6 +96,9 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
   const [state, setState] = useState<AppState>(openToHistory ? "history" : "idle");
+  // When opened directly to history (openToHistory=true), "going back" means returning
+  // to history state, not idle — idle is only the hub when opened normally from EscorteSheet
+  const goBack = () => openToHistory ? setState("history") : setState("idle");
   const [circleEnabled, setCircleEnabled] = useState(false);
   const [destination, setDestination] = useState("");
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
@@ -699,7 +702,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => { setState("idle"); setPendingRoutes(null); }}
+            onClick={() => { goBack(); setPendingRoutes(null); }}
             style={{
               width: 34, height: 34, borderRadius: "50%", backgroundColor: colors.card[theme],
               border: "none", display: "flex", alignItems: "center", justifyContent: "center",
@@ -1157,7 +1160,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       {/* CTA */}
       <motion.button
         onClick={() => {
-          setState("idle");
+          goBack();
           setDestination("");
           setDestCoords(null);
           setTripSummary(null);
@@ -1190,7 +1193,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     return (
       <FavorisSheet
         isOpen={state === "favoris"}
-        onClose={() => { setState("idle"); setFavAddMode(false); }}
+        onClose={() => { goBack(); setFavAddMode(false); }}
         onSelect={(place) => {
           setDestination(place.label);
           setDestCoords([place.lng, place.lat]);
@@ -1217,7 +1220,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => setState("idle")}
+          onClick={() => openToHistory ? onClose() : setState("idle")}
           style={{
             width: 34, height: 34, borderRadius: "50%",
             backgroundColor: colors.card[theme], border: "none",
@@ -1289,11 +1292,11 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       transition={spring}
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: openToHistory ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
         left: 0,
         right: 0,
-        maxHeight: "72dvh",
-        zIndex: 50,
+        maxHeight: openToHistory ? '78%' : "72dvh",
+        zIndex: openToHistory ? 310 : 50,
         backgroundColor: colors.sheet[theme],
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
