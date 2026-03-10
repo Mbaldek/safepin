@@ -6,8 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import ChatView from "@/components/chat/ChatView";
 import { useUiStore } from "@/stores/uiStore";
-import dynamic from 'next/dynamic'
-const AudioChannel = dynamic(() => import('@/components/escorte/AudioChannel'), { ssr: false })
+import { useAudioCall } from '@/stores/useAudioCall'
 
 interface MessagesTabProps {
   isDark: boolean;
@@ -184,13 +183,12 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
   const [conversations, setConversations] = useState<DMRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConvo, setSelectedConvo] = useState<DMRow | null>(null);
-  const [callState, setCallState] = useState<'idle' | 'connecting' | 'active' | 'muted' | 'error'>('idle')
-  const callActive = callState !== 'idle' && callState !== 'error'
-
-  // Reset callState quand on change de conv
-  useEffect(() => {
-    setCallState('idle')
-  }, [selectedConvo?.id])
+  const globalCallState = useAudioCall((s) => s.callState)
+  const globalSource = useAudioCall((s) => s.source)
+  const globalSourceId = useAudioCall((s) => s.sourceId)
+  const startCall = useAudioCall((s) => s.startCall)
+  const endCallGlobal = useAudioCall((s) => s.endCall)
+  const callActive = globalSource === 'dm' && globalSourceId === selectedConvo?.id && globalCallState !== 'idle'
 
   // Auto-open conversation from circle tab
   useEffect(() => {
@@ -384,31 +382,21 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           </div>
           <motion.button
             onClick={() => {
-              if (callState === 'idle' || callState === 'error') {
-                setCallState('connecting')
+              if (!callActive && selectedConvo) {
+                startCall({ roomName: `dm-${selectedConvo.id}`, source: 'dm', sourceId: selectedConvo.id, title: `Appel avec ${selectedConvo.partner_name ?? 'contact'}`, participantNames: selectedConvo.partner_name ? [selectedConvo.partner_name] : [] })
               } else {
-                setCallState('idle')
+                endCallGlobal()
               }
             }}
             whileTap={{ scale: 0.92 }}
             style={{
               width: 32, height: 32, borderRadius: '50%',
-              background: callState === 'active' ? 'rgba(59,180,193,0.22)'
-                : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
-                : callState === 'muted' ? 'rgba(239,68,68,0.12)'
-                : 'rgba(59,180,193,0.10)',
-              border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
-                : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
-                : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
-                : '1px solid rgba(59,180,193,0.22)',
+              background: callActive ? 'rgba(59,180,193,0.22)' : 'rgba(59,180,193,0.10)',
+              border: callActive ? '1px solid rgba(59,180,193,0.45)' : '1px solid rgba(59,180,193,0.22)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', flexShrink: 0,
-              boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
-                : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
-                : 'none',
-              animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
-                : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
-                : 'none',
+              boxShadow: callActive ? '0 0 0 4px rgba(59,180,193,0.08)' : 'none',
+              animation: callActive ? 'bv-call-breath 3s ease-in-out infinite' : 'none',
               transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
             }}
           >
@@ -418,23 +406,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           </motion.button>
         </div>
 
-        {(callState !== 'idle' && callState !== 'error') && selectedConvo && userId && (
-          <div style={{ padding: '8px 12px 0' }}>
-            <AudioChannel
-              roomName={`dm-${selectedConvo.id}`}
-              userId={userId}
-              isDark={isDark}
-              title={`Appel avec ${selectedConvo.partner_name ?? 'contact'}`}
-              participantNames={selectedConvo.partner_name ? [selectedConvo.partner_name] : []}
-              onEnd={() => setCallState('idle')}
-              onStateChange={(s) => {
-                if (s === 'active') setCallState('active')
-                if (s === 'error') setCallState('error')
-                if (s === 'ended') setCallState('idle')
-              }}
-            />
-          </div>
-        )}
+        {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
 
         {/* ChatView */}
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>

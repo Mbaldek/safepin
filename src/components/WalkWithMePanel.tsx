@@ -13,7 +13,7 @@ import { X, Copy, Users, Clock, Shield, Phone, Bell, Sparkles, Share2, ChevronUp
 import { useTranslations } from 'next-intl';
 import type { WalkSession } from '@/types';
 
-const AudioChannel = dynamic(() => import('@/components/escorte/AudioChannel'), { ssr: false });
+import { useAudioCall } from '@/stores/useAudioCall';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -118,15 +118,18 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
   const [joinCode, setJoinCode]     = useState('');
   const [elapsed, setElapsed]       = useState(0);
   const [nextCheckin, setNextCheckin] = useState<number | null>(null);
-  const [callState, setCallState]   = useState<CallState>('idle');
-  const [isMuted, setIsMuted]       = useState(false);
   const [shareOpen, setShareOpen]   = useState(false);
+
+  const globalCallState = useAudioCall((s) => s.callState);
+  const globalSource = useAudioCall((s) => s.source);
+  const globalMuted = useAudioCall((s) => s.muted);
+  const setGlobalMuted = useAudioCall((s) => s.setMuted);
+  const startCallGlobal = useAudioCall((s) => s.startCall);
+  const endCallGlobal = useAudioCall((s) => s.endCall);
+  const callActive = globalSource === 'walk' && globalCallState !== 'idle';
 
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const checkinRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Reset call on session change
-  useEffect(() => { setCallState('idle'); }, [session?.id]);
 
 
   // Elapsed timer
@@ -219,7 +222,6 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
     return `${m}:${sec.toString().padStart(2, '0')}`;
   }
 
-  const callActive = callState === 'connecting' || callState === 'active';
   const userName = userProfile?.display_name ?? 'Vous';
   const userInitial = userName[0]?.toUpperCase() ?? 'V';
 
@@ -473,7 +475,13 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
             {/* Audio CTA */}
             <button
-              onClick={() => setCallState(callActive ? 'idle' : 'connecting')}
+              onClick={() => {
+                if (!callActive && session) {
+                  startCallGlobal({ roomName: `walk-${session.id}`, source: 'walk', sourceId: session.id, title: 'Canal vocal — Marche' })
+                } else {
+                  endCallGlobal()
+                }
+              }}
               style={{
                 width: '100%', padding: '12px 16px', borderRadius: 13,
                 background: `linear-gradient(135deg,rgba(59,180,193,0.14),rgba(59,180,193,0.07))`,
@@ -487,21 +495,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               <Phone size={14} strokeWidth={2.5} color={TEAL} />
               {callActive ? 'Canal audio actif' : 'Démarrer le canal audio'}
             </button>
-            {callActive && (
-              <AudioChannel
-                roomName={`walk-${session!.id}`}
-                userId={userId}
-                isDark={isDark}
-                title="Canal vocal — Marche"
-                participantNames={[]}
-                onEnd={() => setCallState('idle')}
-                onStateChange={(s) => {
-                  if (s === 'active') setCallState('active');
-                  else if (s === 'error') setCallState('error');
-                  else if (s === 'ended') setCallState('idle');
-                }}
-              />
-            )}
+            {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
 
             {/* Code d'invitation — compact */}
             <div
@@ -689,19 +683,19 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               {/* Actions */}
               <div style={{ display: 'flex', gap: 5 }}>
                 <button
-                  onClick={() => setIsMuted(!isMuted)}
+                  onClick={() => setGlobalMuted(!globalMuted)}
                   style={{
                     width: 28, height: 28, borderRadius: '50%',
-                    border: `1px solid ${isMuted ? 'rgba(239,68,68,.25)' : C.borderM}`,
-                    background: isMuted ? RED12 : C.hover,
+                    border: `1px solid ${globalMuted ? 'rgba(239,68,68,.25)' : C.borderM}`,
+                    background: globalMuted ? RED12 : C.hover,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', padding: 0,
                   }}
                 >
-                  <MicOff size={11} strokeWidth={2} color={isMuted ? RED : C.ts} />
+                  <MicOff size={11} strokeWidth={2} color={globalMuted ? RED : C.ts} />
                 </button>
                 <button
-                  onClick={() => setCallState('idle')}
+                  onClick={() => endCallGlobal()}
                   style={{
                     width: 28, height: 28, borderRadius: '50%',
                     border: '1px solid rgba(239,68,68,.25)',
@@ -805,24 +799,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               )}
             </AnimatePresence>
 
-            {/* AudioChannel */}
-            <AnimatePresence>
-              {callActive && (
-                <AudioChannel
-                  roomName={`walk-${session.id}`}
-                  userId={userId}
-                  isDark={isDark}
-                  title="Marche sécurisée"
-                  participantNames={[]}
-                  onEnd={() => setCallState('idle')}
-                  onStateChange={(s) => {
-                    if (s === 'active') setCallState('active');
-                    else if (s === 'error') setCallState('error');
-                    else if (s === 'ended') setCallState('idle');
-                  }}
-                />
-              )}
-            </AnimatePresence>
+            {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
 
             {/* ── Terminer ── */}
             <div style={{ textAlign: 'center', marginTop: 2 }}>

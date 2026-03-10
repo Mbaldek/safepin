@@ -10,8 +10,7 @@ import { useCercle } from '@/hooks/useCercle'
 import CercleChat from '@/components/CercleChat'
 import AddCircleContactModal from '@/components/community/AddCircleContactModal'
 import type { CircleMember } from '@/types'
-import dynamic from 'next/dynamic'
-const AudioChannel = dynamic(() => import('@/components/escorte/AudioChannel'), { ssr: false })
+import { useAudioCall } from '@/stores/useAudioCall'
 
 interface CercleSheetProps {
   open: boolean
@@ -67,8 +66,11 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   const [showChat, setShowChat] = useState(false)
   const [pulsingId, setPulsingId] = useState<string | null>(null)
   const [showInvite, setShowInvite] = useState(false)
-  const [callState, setCallState] = useState<'idle' | 'connecting' | 'active' | 'muted' | 'error'>('idle')
-  const callActive = callState !== 'idle' && callState !== 'error'
+  const globalCallState = useAudioCall((s) => s.callState)
+  const globalSource = useAudioCall((s) => s.source)
+  const startCall = useAudioCall((s) => s.startCall)
+  const endCallGlobal = useAudioCall((s) => s.endCall)
+  const callActive = globalSource === 'cercle' && globalCallState !== 'idle'
 
   // tokens
   const t = useMemo(() => ({
@@ -156,23 +158,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
             {/* 1. DRAG HANDLE */}
             <div style={{ margin: '10px auto 4px', width: 36, height: 4, borderRadius: 2, background: t.border }} />
 
-            {callActive && (
-              <div style={{ marginBottom: 12 }}>
-                <AudioChannel
-                  roomName={`cercle-${userId}`}
-                  userId={userId}
-                  isDark={isDark}
-                  title="Appel groupe · Cercle"
-                  participantNames={participantNames}
-                  onEnd={() => setCallState('idle')}
-                  onStateChange={(s) => {
-                    if (s === 'active') setCallState('active')
-                    if (s === 'error') setCallState('error')
-                    if (s === 'ended') setCallState('idle')
-                  }}
-                />
-              </div>
-            )}
+            {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
 
             {showChat ? (
               <CercleChat
@@ -182,13 +168,13 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                 loading={loading}
                 onBack={() => setShowChat(false)}
                 onStartCall={() => {
-                  if (callState === 'idle' || callState === 'error') {
-                    setCallState('connecting')
+                  if (!callActive) {
+                    startCall({ roomName: `cercle-${userId}`, source: 'cercle', sourceId: userId, title: 'Appel groupe · Cercle', participantNames })
                   } else {
-                    setCallState('idle')
+                    endCallGlobal()
                   }
                 }}
-                callState={callState}
+                callState={callActive ? 'active' : 'idle'}
                 sendMessage={sendMessage}
               />
             ) : (
@@ -231,34 +217,24 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                     {/* audio call */}
                     <button
                       onClick={() => {
-                        if (callState === 'idle' || callState === 'error') {
-                          setCallState('connecting')
+                        if (!callActive) {
+                          startCall({ roomName: `cercle-${userId}`, source: 'cercle', sourceId: userId, title: 'Appel groupe · Cercle', participantNames })
                         } else {
-                          setCallState('idle')
+                          endCallGlobal()
                         }
                       }}
                       style={{
                         width: 33, height: 33, borderRadius: 10,
-                        background: callState === 'active' ? 'rgba(59,180,193,0.22)'
-                          : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
-                          : callState === 'muted' ? 'rgba(239,68,68,0.12)'
-                          : t.teal,
-                        border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
-                          : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
-                          : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
-                          : 'none',
-                        boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
-                          : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
-                          : 'none',
-                        animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
-                          : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
-                          : 'none',
+                        background: callActive ? 'rgba(59,180,193,0.22)' : t.teal,
+                        border: callActive ? '1px solid rgba(59,180,193,0.45)' : 'none',
+                        boxShadow: callActive ? '0 0 0 4px rgba(59,180,193,0.08)' : 'none',
+                        animation: callActive ? 'bv-call-breath 3s ease-in-out infinite' : 'none',
                         transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer',
                       }}
                     >
-                      <Phone size={16} color={callState === 'idle' ? '#FFFFFF' : callState === 'muted' ? '#EF4444' : t.teal} />
+                      <Phone size={16} color={callActive ? t.teal : '#FFFFFF'} />
                     </button>
 
                     {/* invite pill */}

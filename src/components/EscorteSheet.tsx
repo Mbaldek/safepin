@@ -25,11 +25,9 @@ import type { RouteOption } from '@/stores/useStore'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
 import { useStore } from '@/stores/useStore'
 import FavorisManager from './FavorisManager'
-import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import type { FavoriTrajet, MapboxSuggestion, RouteMode } from '@/types'
-
-const AudioChannel = dynamic(() => import('./escorte/AudioChannel'), { ssr: false })
+import { useAudioCall } from '@/stores/useAudioCall'
 
 interface Props {
   userId:    string
@@ -58,6 +56,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   }
 
   // ── Hooks ──────────────────────────────────────
+  const startCallGlobal = useAudioCall((s) => s.startCall)
+  const endCallGlobal = useAudioCall((s) => s.endCall)
   const { favoris } = useFavoris(userId)
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
@@ -192,6 +192,29 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     const [lng, lat] = selectedDest.center
     setMapFlyTo({ lat, lng, zoom: 14 })
   }, [selectedDest, setMapFlyTo])
+
+  // ── Start/stop global audio call for escorte vocal ──
+  const shouldHaveAudio =
+    (escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') &&
+    !!escorte.activeEscorte &&
+    escorte.circleMembers.some(m => m.status === 'vocal')
+
+  useEffect(() => {
+    if (shouldHaveAudio && escorte.activeEscorte) {
+      startCallGlobal({
+        roomName: `escorte-${escorte.activeEscorte.id}`,
+        source: 'escorte',
+        sourceId: escorte.activeEscorte.id,
+        title: 'Canal audio actif',
+        participantNames: escorte.circleMembers
+          .filter(m => m.status === 'vocal' || m.status === 'following')
+          .map(m => m.profiles?.name)
+          .filter((n): n is string => Boolean(n))
+          .slice(0, 2),
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldHaveAudio])
 
   // ── Sheet height per view ──────────────────────
   const SHEET_HEIGHTS: Record<string, string> = {
@@ -1607,27 +1630,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, scrollbarWidth: 'none' }}>
 
-        {/* Audio channel banner — in scroll flow */}
-        <AnimatePresence>
-          {(escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') &&
-           escorte.activeEscorte &&
-           escorte.circleMembers.some(m => m.status === 'vocal') && (
-            <div style={{ margin: '6px 16px 0' }}>
-              <AudioChannel
-                roomName={`escorte-${escorte.activeEscorte.id}`}
-                userId={userId}
-                isDark={d}
-                title="Canal audio actif"
-                participantNames={escorte.circleMembers
-                  .filter(m => m.status === 'vocal' || m.status === 'following')
-                  .map(m => m.profiles?.name)
-                  .filter((n): n is string => Boolean(n))
-                  .slice(0, 2)}
-                onEnd={() => escorte.endEscorte(false)}
-              />
-            </div>
-          )}
-        </AnimatePresence>
+        {/* Audio channel — now rendered globally by FloatingCallPill */}
 
         <AnimatePresence mode="wait">
           {escorte.view === 'hub'              && renderHub()}

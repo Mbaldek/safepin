@@ -33,6 +33,8 @@ import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
 import { useEscorte } from '@/hooks/useEscorte';
 import { useUiStore } from '@/stores/uiStore';
+import FloatingCallPill from '@/components/FloatingCallPill';
+import CallSheet from '@/components/CallSheet';
 
 // Lazy-loaded heavy components — not on the critical rendering path
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
@@ -1442,6 +1444,10 @@ activeTrip, setActiveTrip,
 
       {/* ── Offline banner ──────────────────────────────────────────── */}
       <OfflineBanner />
+
+      {/* ── Global audio call UI ─────────────────────────────────────── */}
+      <FloatingCallPill />
+      <CallSheet />
 
     </div>
   );
