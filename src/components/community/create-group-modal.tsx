@@ -12,8 +12,9 @@ import {
   Search,
   UserPlus,
   ArrowRight,
+  Camera,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { T, springConfig } from "@/lib/tokens";
 import { toast } from "sonner";
@@ -72,6 +73,11 @@ export default function CreateGroupModal({
   const [creating, setCreating] = useState(false);
   const [createdGroupId, setCreatedGroupId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  /* Photo state */
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* Invite state */
   const [cercleContacts, setCercleContacts] = useState<ContactForInvite[]>([]);
@@ -140,6 +146,21 @@ export default function CreateGroupModal({
 
   /* ─── Handlers ─── */
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Format invalide"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Max 5 Mo"); return; }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    e.target.value = "";
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+    if (photoPreview) { URL.revokeObjectURL(photoPreview); setPhotoPreview(null); }
+  };
+
   const handleCreate = async () => {
     if (name.trim().length < 2 || !userId) return;
     setCreating(true);
@@ -161,6 +182,17 @@ export default function CreateGroupModal({
       toast.error("Erreur lors de la creation");
       setCreating(false);
       return;
+    }
+
+    /* Upload group photo if selected */
+    if (photoFile) {
+      const ext = photoFile.name.split(".").pop() ?? "jpg";
+      const path = `communities/${data.id}/avatar_${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, photoFile, { upsert: true });
+      if (!upErr) {
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+        await supabase.from("communities").update({ avatar_url: urlData.publicUrl }).eq("id", data.id);
+      }
     }
 
     /* Add creator as member */
@@ -359,7 +391,16 @@ export default function CreateGroupModal({
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
-              {/* ─── Emoji preview + Name inline ─── */}
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                style={{ display: "none" }}
+              />
+
+              {/* ─── Photo/Emoji preview + Name inline ─── */}
               <div
                 style={{
                   display: "flex",
@@ -369,6 +410,7 @@ export default function CreateGroupModal({
                 }}
               >
                 <div
+                  onClick={() => fileInputRef.current?.click()}
                   style={{
                     width: 48,
                     height: 48,
@@ -378,10 +420,55 @@ export default function CreateGroupModal({
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
+                    cursor: "pointer",
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>{emoji}</span>
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <span style={{ fontSize: 24 }}>{emoji}</span>
+                  )}
+                  {/* Camera overlay */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      right: 0,
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      backgroundColor: "rgba(0,0,0,0.55)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Camera size={11} strokeWidth={2} color="#FFFFFF" />
+                  </div>
                 </div>
+                {/* Remove photo button */}
+                {photoPreview && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removePhoto(); }}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      border: "none",
+                      backgroundColor: d ? T.interactiveHover : T.interactiveHoverL,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      marginLeft: -8,
+                    }}
+                  >
+                    <X size={12} strokeWidth={2} color={d ? T.textSecondary : T.textSecondaryL} />
+                  </button>
+                )}
                 <input
                   type="text"
                   value={name}
