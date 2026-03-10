@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
-import { HashtagComposer } from "@/components/hashtags";
+import { HashtagComposer } from "@/components/map/hashtags";
 import { attachHashtags } from "@/hooks/useHashtags";
 import type { Hashtag } from "@/types";
 

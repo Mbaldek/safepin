@@ -20,7 +20,7 @@ import { haversineMetersRaw } from '@/lib/utils'
 import { T } from '@/lib/tokens'
 import { toast } from 'sonner'
 import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
-import { HashtagPill } from '@/components/hashtags'
+import { HashtagPill } from '@/components/map/hashtags'
 import type { Hashtag } from '@/types'
 
 // ─── Category config ─────────────────────────────

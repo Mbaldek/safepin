@@ -18,7 +18,7 @@ import ComposeModal from './compose-modal';
 import StoryViewer, { type DBStory } from './story-viewer';
 import StoryComposeModal from './story-compose-modal';
 import CreateGroupModal from './create-group-modal';
-import { HashtagFeedSheet } from '@/components/hashtags';
+import { HashtagFeedSheet } from '@/components/map/hashtags';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Hashtag } from '@/types';
 

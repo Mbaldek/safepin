@@ -18,38 +18,12 @@ import { MapPin } from './MapPin';
 
 // Import layer functions
 import {
-  fetchParisTransitStations,
-  addTransitLayer,
-  removeTransitLayer,
-  TRANSIT_CIRCLE,
-  TRANSIT_LABEL,
-} from './map/layers/TransitLayer';
-import {
-  fetchParisPOIs,
-  addPOILayers,
-  removePOILayers,
-  buildPOIFilter,
-  POI_CIRCLE,
-  POI_LABEL,
-} from './map/layers/POILayer';
-import {
-  addHeatmapLayer,
-  removeHeatmapLayer,
-  HEAT_LYR,
-} from './map/layers/HeatmapLayer';
-import {
-  addSafeSpacesLayer,
-  removeSafeSpacesLayer,
-  SAFE_CIRCLE,
-  SAFE_LABEL,
-  SAFE_PARTNER,
-} from './map/layers/SafeSpacesLayer';
-import {
   addClusterLayers,
   updateClusterData,
   updateDBClusters,
   removeClusterLayers,
   SOURCE_ID,
+  DB_CLUSTER_SRC,
   DB_CLUSTER_CIRCLE,
   DB_CLUSTER_HALO,
   DB_CLUSTER_LABEL,
@@ -57,22 +31,26 @@ import {
 import {
   addRouteLayer,
   removeRouteLayer,
+  ROUTE_SRC,
   ROUTE_LYR,
 } from './map/layers/RouteLayer';
 import {
   addSOSTrailLayer,
   removeSOSTrailLayer,
+  SOS_TRAIL_SRC,
   SOS_TRAIL_LYR,
 } from './map/layers/SOSLayer';
 import {
   addWatchContactsLayer,
   removeWatchContactsLayer,
+  WATCH_SRC,
   WATCH_CIRCLE,
   WATCH_LABEL,
 } from './map/layers/WatchContactsLayer';
 import {
   addPendingRoutesLayer,
   removePendingRoutesLayer,
+  PENDING_SRCS,
   PENDING_LYRS,
 } from './map/layers/PendingRoutesLayer';
 
@@ -89,6 +67,71 @@ const STYLE_URLS: Record<string, string> = {
   light:   'mapbox://styles/mapbox/light-v11',
   dark:    'mapbox://styles/mapbox/dark-v11',
 };
+
+// ── Layer source / layer ID constants ────────────────────────────────────────
+const TRANSIT_SRC    = 'transit-src';
+const TRANSIT_CIRCLE = 'transit-circle';
+const TRANSIT_LABEL  = 'transit-label';
+const POI_SRC        = 'poi-src';
+const POI_CIRCLE     = 'poi-circle';
+const POI_LABEL      = 'poi-label';
+const HEAT_SRC       = 'heatmap-src';
+const HEAT_LYR       = 'heatmap-layer';
+const SAFE_SRC       = 'safe-spaces-src';
+const SAFE_CIRCLE    = 'safe-circle';
+const SAFE_LABEL     = 'safe-label';
+const SAFE_PARTNER   = 'safe-partner';
+
+const PIN_COLORS = {
+  urgent: '#EF4444', warning: '#FBBF24', infra: '#60A5FA', positive: '#34D399',
+  safeSpace: '#34D399', safePartner: '#F5C341',
+  emergency: '#EF4444', emergencyResolved: '#9CA3AF',
+  destination: '#34D399', transport: '#22D3EE',
+  watchContact: '#3BB4C1', surface: '#1E293B', elevated: '#334155', stroke: '#FFFFFF',
+};
+
+const PIN_DECAY_HOURS: Record<string, number> = {
+  assault: 24, harassment: 24, theft: 24, following: 24,
+  suspect: 12, group: 6, unsafe: 48,
+  lighting: 168, blocked: 168, closed: 168,
+  safe: 720, help: 168, presence: 720,
+};
+
+function getPinOpacity(createdAt: string, category: string): number {
+  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  const maxHours = PIN_DECAY_HOURS[category] || 24;
+  return Math.max(1 - (hoursAgo / maxHours) * 0.7, 0.3);
+}
+
+function getPinColor(category: string): string {
+  const details = CATEGORY_DETAILS[category];
+  const group = details?.group ?? 'infra';
+  const gc: Record<string, string> = { urgent: '#EF4444', warning: '#F59E0B', infra: '#64748B', positive: '#34D399' };
+  return gc[group] ?? '#64748B';
+}
+
+// Module-level layer event handler refs
+let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
+let _transitMouseEnter: (() => void) | null = null;
+let _transitMouseLeave: (() => void) | null = null;
+let _clusterClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
+let _clusterMouseEnter: (() => void) | null = null;
+let _clusterMouseLeave: (() => void) | null = null;
+
+// All layer IDs we manage — preserved when hiding built-in Mapbox POI dot layers
+const OWN_LAYERS = new Set([
+  'clusters', 'clusters-halo', 'cluster-count',
+  DB_CLUSTER_CIRCLE, DB_CLUSTER_HALO, DB_CLUSTER_LABEL,
+  TRANSIT_CIRCLE, TRANSIT_LABEL,
+  POI_CIRCLE, POI_LABEL,
+  HEAT_LYR,
+  SAFE_CIRCLE, SAFE_LABEL, SAFE_PARTNER,
+  WATCH_CIRCLE, WATCH_LABEL,
+  SOS_TRAIL_LYR,
+  ROUTE_LYR,
+  ...PENDING_LYRS,
+  'safety-scores-fill',
+]);
 
 /** Hide built-in Mapbox circle/dot layers from the base style.
  *  Keeps our own layers (OWN_LAYERS) and all text/line/fill layers. */
@@ -428,199 +471,6 @@ function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
       },
     })),
   };
-}
-
-function addClusterLayers(m: mapboxgl.Map) {
-  if (m.getSource(SOURCE_ID)) return;
-
-  m.addSource(SOURCE_ID, {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] },
-    cluster: true,
-    clusterMaxZoom: 14,
-    clusterRadius: 40,
-    clusterProperties: {
-      urgent:   ['+', ['case', ['==', ['get', 'categoryGroup'], 'urgent'],  1, 0]],
-      warning:  ['+', ['case', ['==', ['get', 'categoryGroup'], 'warning'], 1, 0]],
-      infra:    ['+', ['case', ['==', ['get', 'categoryGroup'], 'infra'],   1, 0]],
-      positive: ['+', ['case', ['==', ['get', 'categoryGroup'], 'positive'],1, 0]],
-    },
-  });
-
-  // Cluster circle
-  m.addLayer({
-    id: 'clusters',
-    type: 'circle',
-    source: SOURCE_ID,
-    filter: ['has', 'point_count'],
-    paint: {
-      'circle-radius': [
-        'step', ['get', 'point_count'],
-        18,
-        10, 21,
-        30, 24,
-      ],
-      'circle-color': [
-        'case',
-        ['>', ['get', 'urgent'],   0], '#F87171',
-        ['>', ['get', 'warning'],  0], '#FBBF24',
-        ['>', ['get', 'positive'], 0], '#34D399',
-        '#94A3B8',
-      ],
-      'circle-opacity': 0.92,
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#ffffff',
-      'circle-stroke-opacity': 0.95,
-      'circle-blur': 0,
-    },
-  });
-
-  // Cluster halo — subtle outer ring for depth
-  m.addLayer({
-    id: 'clusters-halo',
-    type: 'circle',
-    source: SOURCE_ID,
-    filter: ['has', 'point_count'],
-    paint: {
-      'circle-radius': [
-        'step', ['get', 'point_count'],
-        24,
-        10, 27,
-        30, 30,
-      ],
-      'circle-color': [
-        'case',
-        ['>', ['get', 'urgent'],   0], '#F87171',
-        ['>', ['get', 'warning'],  0], '#FBBF24',
-        ['>', ['get', 'positive'], 0], '#34D399',
-        '#94A3B8',
-      ],
-      'circle-opacity': 0.15,
-      'circle-stroke-width': 0,
-    },
-  }, 'clusters');
-
-  // Cluster count label
-  m.addLayer({
-    id: 'cluster-count',
-    type: 'symbol',
-    source: SOURCE_ID,
-    filter: ['has', 'point_count'],
-    layout: {
-      'text-field': '{point_count_abbreviated}',
-      'text-size': 12,
-      'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
-    },
-    paint: { 'text-color': PIN_COLORS.stroke },
-  });
-
-  // Register category-group pin images: 4 groups × 4 tiers = 16 icons
-  if (!m.hasImage('pin-urgent-sm')) {
-    const tiers: [string, number, boolean, boolean][] = [
-      ['sm', 14, false, false],  // 1 confirmation
-      ['md', 18, false, false],  // 2-3 confirmations
-      ['lg', 22, true,  false],  // 4-9 confirmations (+ border)
-      ['xl', 28, true,  true],   // 10+ confirmations (+ border + glow)
-    ];
-    for (const [groupId, color] of Object.entries(GROUP_COLORS)) {
-      for (const [tier, size, border, glow] of tiers) {
-        m.addImage(`pin-${groupId}-${tier}`, makeCategoryPin(color, size, border, glow), { pixelRatio: 2 });
-      }
-    }
-  }
-
-  // DISABLED — unclustered pins now rendered as HTML markers via <MapPin> in JSX.
-  // GeoJSON source kept for cluster layers only.
-
-  // Remove previous cluster listeners before adding new ones
-  if (_clusterClickHandler) m.off('click', 'clusters', _clusterClickHandler);
-  if (_clusterMouseEnter)   m.off('mouseenter', 'clusters', _clusterMouseEnter);
-  if (_clusterMouseLeave)   m.off('mouseleave', 'clusters', _clusterMouseLeave);
-
-  // Cluster click → zoom in
-  _clusterClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
-    const features = m.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-    if (!features[0]) return;
-    const clusterId = features[0].properties?.cluster_id;
-    (m.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource).getClusterExpansionZoom(
-      clusterId,
-      (err, zoom) => {
-        if (err || zoom == null) return;
-        const coords = (features[0].geometry as GeoJSON.Point).coordinates as [number, number];
-        m.easeTo({ center: coords, zoom: zoom + 0.5 });
-      }
-    );
-  };
-
-  // Cursor pointers
-  _clusterMouseEnter = () => { m.getCanvas().style.cursor = 'pointer'; };
-  _clusterMouseLeave = () => { m.getCanvas().style.cursor = ''; };
-
-  m.on('click', 'clusters', _clusterClickHandler);
-  m.on('mouseenter', 'clusters', _clusterMouseEnter);
-  m.on('mouseleave', 'clusters', _clusterMouseLeave);
-
-  // ── DB spatial cluster layers (zoom < 10) ──────────────────────────────────
-  if (!m.getSource(DB_CLUSTER_SRC)) {
-    m.addSource(DB_CLUSTER_SRC, {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-    });
-
-    // Halo
-    m.addLayer({
-      id: DB_CLUSTER_HALO,
-      type: 'circle',
-      source: DB_CLUSTER_SRC,
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 22, 20, 34, 100, 50],
-        'circle-color': [
-          'match', ['get', 'dominant_group'],
-          'urgent',   '#F87171',
-          'warning',  '#FBBF24',
-          'infra',    '#60A5FA',
-          'positive', '#34D399',
-          '#94A3B8',
-        ],
-        'circle-opacity': 0.18,
-      },
-    });
-
-    // Main circle
-    m.addLayer({
-      id: DB_CLUSTER_CIRCLE,
-      type: 'circle',
-      source: DB_CLUSTER_SRC,
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 16, 20, 26, 100, 40],
-        'circle-color': [
-          'match', ['get', 'dominant_group'],
-          'urgent',   '#F87171',
-          'warning',  '#FBBF24',
-          'infra',    '#60A5FA',
-          'positive', '#34D399',
-          '#94A3B8',
-        ],
-        'circle-opacity': 0.92,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-opacity': 0.95,
-      },
-    });
-
-    // Count label
-    m.addLayer({
-      id: DB_CLUSTER_LABEL,
-      type: 'symbol',
-      source: DB_CLUSTER_SRC,
-      layout: {
-        'text-field': ['get', 'count'],
-        'text-size': 12,
-        'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
-      },
-      paint: { 'text-color': '#ffffff' },
-    });
-  }
 }
 
 export type MapViewProps = {
