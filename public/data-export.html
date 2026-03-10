@@ -89,8 +89,8 @@
     .form-card .subtitle{font-size:13px;color:var(--text-secondary);margin-bottom:24px;line-height:1.6}
     .form-group{margin-bottom:18px}
     label{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em}
-    input[type="email"], input[type="text"]{width:100%;padding:13px 16px;border-radius:var(--radius-md);border:1.5px solid var(--border-default);background:var(--surface-elevated);color:var(--text-primary);font-size:14px;font-family:inherit;outline:none;transition:border-color var(--duration-fast) ease}
-    input[type="email"]:focus, input[type="text"]:focus{border-color:var(--accent-teal);box-shadow:0 0 0 3px rgba(59,180,193,0.12)}
+    input[type="email"], input[type="text"], input[type="password"]{width:100%;padding:13px 16px;border-radius:var(--radius-md);border:1.5px solid var(--border-default);background:var(--surface-elevated);color:var(--text-primary);font-size:14px;font-family:inherit;outline:none;transition:border-color var(--duration-fast) ease}
+    input[type="email"]:focus, input[type="text"]:focus, input[type="password"]:focus{border-color:var(--accent-teal);box-shadow:0 0 0 3px rgba(59,180,193,0.12)}
     input::placeholder{color:var(--text-tertiary)}
     .checkbox-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--surface-elevated);cursor:pointer;transition:border-color var(--duration-fast) ease}
     .checkbox-row:hover{border-color:var(--border-default)}
@@ -181,7 +181,7 @@
           <div class="step-icon step-icon-teal">📝</div>
           <div class="step-body">
             <div class="step-label">Vous soumettez votre demande</div>
-            <div class="step-desc">Remplissez le formulaire ci-dessous avec votre adresse e-mail Breveil</div>
+            <div class="step-desc">Remplissez le formulaire ci-dessous avec votre nom d'utilisateur, e-mail et mot de passe Breveil</div>
             <span class="step-time step-time-teal">⚡ Immédiat</span>
           </div>
         </div>
@@ -208,7 +208,12 @@
     <div id="form-section">
       <div class="form-card">
         <h2>Demander l'export</h2>
-        <div class="subtitle">Saisissez l'adresse e-mail associée à votre compte Breveil. Vous recevrez vos données à cette adresse.</div>
+        <div class="subtitle">Pour vérifier votre identité, confirmez votre nom d'utilisateur, votre adresse e-mail et votre mot de passe. Vous recevrez vos données à l'adresse indiquée.</div>
+
+        <div class="form-group">
+          <label for="username-input">Nom d'utilisateur</label>
+          <input type="text" id="username-input" placeholder="votre_pseudo" autocomplete="username" required>
+        </div>
 
         <div class="form-group">
           <label for="email-input">Adresse e-mail du compte</label>
@@ -216,10 +221,15 @@
         </div>
 
         <div class="form-group">
+          <label for="password-input">Mot de passe</label>
+          <input type="password" id="password-input" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <div class="form-group">
           <div class="checkbox-row">
             <input type="checkbox" id="confirm-check">
             <label for="confirm-check" style="text-transform:none;letter-spacing:0;font-size:13px;font-weight:400;color:var(--text-secondary);cursor:pointer;margin:0">
-              Je confirme que cette adresse est bien associée à mon compte Breveil et que je souhaite exercer mon <strong>droit à la portabilité des données (RGPD Art. 20)</strong>.
+              Je confirme que ces informations correspondent bien à mon compte Breveil et que je souhaite exercer mon <strong>droit à la portabilité des données (RGPD Art. 20)</strong>.
             </label>
           </div>
         </div>
@@ -264,7 +274,7 @@
 
     <!-- FOOTER -->
     <div class="footer">
-      <p>DBEK · 75 rue de Lourmel, 75015 Paris · <a href="mailto:brumeapp@pm.me">brumeapp@pm.me</a></p>
+      <p>DBEK · 75 rue de Lourmel, 75015 Paris · <a href="mailto:dbek@pm.me">dbek@pm.me</a></p>
       <p>Autorité de contrôle : CNIL (France) · <a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a></p>
       <div class="footer-links">
         <a href="/privacy.html" class="footer-link">Confidentialité</a>
@@ -294,20 +304,28 @@
     } catch(e) {}
 
     /* ── Form logic ──────────────────────────────── */
+    const usernameInput = document.getElementById('username-input');
     const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
     const confirmCheck = document.getElementById('confirm-check');
     const submitBtn = document.getElementById('submit-btn');
     const errorMsg = document.getElementById('error-msg');
 
     function validateForm() {
+      const usernameOk = usernameInput.value.trim().length >= 2;
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
-      submitBtn.disabled = !(emailOk && confirmCheck.checked);
+      const passwordOk = passwordInput.value.length >= 6;
+      submitBtn.disabled = !(usernameOk && emailOk && passwordOk && confirmCheck.checked);
     }
+    usernameInput.addEventListener('input', validateForm);
     emailInput.addEventListener('input', validateForm);
+    passwordInput.addEventListener('input', validateForm);
     confirmCheck.addEventListener('change', validateForm);
 
     async function submitRequest() {
+      const username = usernameInput.value.trim();
       const email = emailInput.value.trim();
+      const password = passwordInput.value;
       submitBtn.disabled = true;
       document.getElementById('btn-text').textContent = 'Envoi en cours…';
       const spinner = document.createElement('span');
@@ -319,14 +337,14 @@
         const res = await fetch('/api/request-export', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ username, email, password }),
         });
 
         if (res.ok || res.status === 202) {
           showConfirmation(email);
         } else {
           const data = await res.json().catch(() => ({}));
-          showError(data.error || 'Une erreur est survenue. Réessayez ou contactez brumeapp@pm.me.');
+          showError(data.error || 'Une erreur est survenue. Réessayez ou contactez dbek@pm.me.');
           resetBtn();
         }
       } catch (e) {
