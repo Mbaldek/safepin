@@ -2,10 +2,11 @@
 
 import { useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, X, ChevronDown, UserPlus, Volume2, Phone } from 'lucide-react'
+import { Mic, MicOff, ChevronDown, UserPlus, Volume2, Phone } from 'lucide-react'
 import { useAudioCall } from '@/stores/useAudioCall'
 import { useTheme } from '@/stores/useTheme'
 import { avatarColor } from '@/lib/escorteHelpers'
+import { bToast } from '@/components/GlobalToast'
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const TEAL = '#3BB4C1'
@@ -51,7 +52,6 @@ export default function CallSheet() {
   const C = getColors(isDark)
 
   const source = useAudioCall((s) => s.source)
-  const title = useAudioCall((s) => s.title)
   const participantNames = useAudioCall((s) => s.participantNames)
   const callState = useAudioCall((s) => s.callState)
   const muted = useAudioCall((s) => s.muted)
@@ -106,15 +106,7 @@ export default function CallSheet() {
             : `${participantNames.length + 1} participants`}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 5 }}>
-        {!isDM && (
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', background: TEAL_D, border: `1px solid ${TEAL_G}`,
-          }}>
-            <UserPlus size={12} strokeWidth={2.2} color={TEAL} />
-          </div>
-        )}
+      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
         {isDM && (
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12, padding: '0 4px' }}>
             {[4, 7, 10, 12].map((h, i) => (
@@ -125,8 +117,8 @@ export default function CallSheet() {
         <div
           onClick={handleCollapse}
           style={{
-            width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', border: `1px solid ${C.borderM}`, background: C.el,
+            width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', border: 'none', background: C.el,
           }}
         >
           <ChevronDown size={10} strokeWidth={2.5} color={C.txts} />
@@ -136,7 +128,6 @@ export default function CallSheet() {
   )
 
   const renderParticipants = () => {
-    // "You" row + other participants
     const others = participantNames
     return (
       <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -200,17 +191,24 @@ export default function CallSheet() {
   const renderInviteRow = () => (
     <>
       <div style={{ height: 1, background: C.border, margin: '4px 14px' }} />
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 9, padding: '6px 16px', cursor: 'pointer', opacity: 0.9,
-      }}>
+      <div
+        onClick={() => bToast.info({ title: 'Fonctionnalité bientôt disponible' }, isDark)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 9, padding: '7px 16px', cursor: 'pointer', opacity: 0.9,
+        }}
+      >
         <div style={{
-          width: 34, height: 34, borderRadius: '50%', background: TEAL_D,
-          border: `1px dashed rgba(59,180,193,0.35)`,
+          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+          background: 'rgba(59,180,193,0.08)',
+          border: '1.5px dashed rgba(59,180,193,0.35)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <UserPlus size={13} strokeWidth={2.2} color={TEAL} />
         </div>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: TEAL }}>Inviter un contact</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: TEAL }}>Inviter dans l&apos;appel</div>
+          <div style={{ fontSize: 11, color: C.txts, marginTop: 1 }}>Partager le lien · Ajouter du cercle</div>
+        </div>
       </div>
       <div style={{ height: 1, background: C.border, margin: '4px 14px' }} />
     </>
