@@ -1180,8 +1180,13 @@ activeTrip, setActiveTrip,
               onClick={() => setShowIncidentsList(!showIncidentsList)}
               aria-label={showIncidentsList ? 'Hide incidents list' : 'Show incidents list'}
 
-              className="absolute top-3 left-3 rounded-xl shadow-lg z-50 hover:scale-105 active:scale-95 transition"
+              className="absolute rounded-xl shadow-lg z-50 hover:scale-105 active:scale-95 transition"
+              // centered horizontally, just above BottomNav (64px + 8px gap)
+
               style={{
+                bottom: 72,
+                left: '50%',
+                transform: 'translateX(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,

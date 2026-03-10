@@ -288,7 +288,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         setSelectedIdx(0);
         setPendingRoutes(routeOptions);
       } catch (e) {
-        console.error("Failed to fetch routes:", e);
+
       }
       setLoadingRoutes(false);
     })();
@@ -351,7 +351,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         });
       }
     } catch (e) {
-      console.error("Failed to end trip:", e);
+
     }
     setTripId(null);
   };
@@ -905,7 +905,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
               const data = await res.json();
               if (data.trip_id) setTripId(data.trip_id);
             } catch (e) {
-              console.error("Failed to start trip:", e);
+
             }
           }
         }}
@@ -1292,7 +1292,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       transition={spring}
       style={{
         position: "fixed",
-        bottom: openToHistory ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0,
+        bottom: 0,
         left: 0,
         right: 0,
         maxHeight: openToHistory ? '78%' : "72dvh",

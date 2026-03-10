@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, ChevronDown, UserPlus, Volume2, Phone } from 'lucide-react'
+import { Mic, MicOff, ChevronDown, UserPlus } from 'lucide-react'
 import { useAudioCall } from '@/stores/useAudioCall'
 import { useTheme } from '@/stores/useTheme'
 import { avatarColor } from '@/lib/escorteHelpers'
@@ -293,62 +293,29 @@ export default function CallSheet() {
           }
         </div>
       </motion.div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: confirmingEnd ? RED : C.txts, textAlign: 'center' }}>
-        {confirmingEnd ? "Quitter l'appel ?"
-          : isConnecting ? 'Connexion en cours...'
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.txts, textAlign: 'center' }}>
+        {!confirmingEnd && (
+          isConnecting ? 'Connexion en cours...'
           : muted ? 'Micro coupé — appuyer pour réactiver'
-          : 'Appuyer pour couper le micro'}
+          : 'Appuyer pour couper le micro'
+        )}
       </div>
     </div>
   )
 
   const renderActionRow = () => (
     !confirmingEnd ? (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44 }}>
-        {/* Speaker */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: '50%', background: C.el,
-            border: `1px solid ${C.borderM}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Volume2 size={16} strokeWidth={2} color={C.txt} />
-          </div>
-          <span style={{ fontSize: 9.5, fontWeight: 600, color: C.txts }}>Haut-parleur</span>
-        </div>
-
-        {/* Quit / Terminate */}
-        <div
-          onClick={() => setConfirmingEnd(true)}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}
-        >
-          <div style={{
-            width: 42, height: 42, borderRadius: '50%', background: 'rgba(239,68,68,0.14)',
-            border: `1px solid rgba(239,68,68,0.22)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Phone size={16} strokeWidth={2} color={RED} style={{ transform: 'rotate(135deg)' }} />
-          </div>
-          <span style={{ fontSize: 9.5, fontWeight: 600, color: RED }}>{isDM ? 'Terminer' : 'Quitter'}</span>
-        </div>
-
-        {/* Duration */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: '50%', background: C.el,
-            border: `1px solid ${C.borderM}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: TEAL, fontVariantNumeric: 'tabular-nums' }}>
-              {formatTime(seconds)}
-            </span>
-          </div>
-          <span style={{ fontSize: 9.5, fontWeight: 600, color: C.txts }}>Durée</span>
-        </div>
+      <div
+        onClick={() => setConfirmingEnd(true)}
+        style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 12px', cursor: 'pointer' }}
+      >
+        <span style={{ fontSize: 12, fontWeight: 600, color: RED }}>
+          {isDM ? "Terminer l'appel ?" : "Quitter l'appel ?"}
+        </span>
       </div>
     ) : (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '8px 16px 20px' }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: RED, marginBottom: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '4px 16px 20px' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: RED }}>
           {isDM ? "Terminer l'appel ?" : "Quitter l'appel ?"}
         </span>
         <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 280 }}>

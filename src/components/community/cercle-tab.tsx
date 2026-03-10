@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useAudioCall } from '@/stores/useAudioCall';
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
@@ -43,6 +44,8 @@ function timeAgo(d: string) {
 export default function CercleTab({ isDark, userId }: CercleTabProps) {
   const openProfile = useUiStore((s) => s.openProfile);
   const openCommunityDM = useUiStore((s) => s.openCommunityDM);
+  const startCall = useAudioCall((s) => s.startCall);
+  const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -600,8 +603,24 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
           };
 
           const actions = [
-            { emoji: "\uD83D\uDCAC", label: "Message", subtitle: "Ouvrir une conversation", onClick: handleMessage },
-            { emoji: "\uD83D\uDC64", label: "Voir le profil", subtitle: "Fiche publique", onClick: () => { openProfile(selectedContact.contact_id); setSelectedContact(null); } },
+            { emoji: "💬", label: "Message", subtitle: "Ouvrir une conversation", onClick: handleMessage },
+            {
+              emoji: "📞",
+              label: "Appel vocal",
+              subtitle: "Appel privé · cercle de confiance",
+              onClick: () => {
+                startCall({
+                  roomName: `cercle-${selectedContact.contact_id}`,
+                  source: 'cercle',
+                  sourceId: selectedContact.contact_id,
+                  title: `Appel · ${selectedContact.name}`,
+                  participantNames: [selectedContact.name],
+                });
+                setCallSheetOpen(true);
+                setSelectedContact(null);
+              },
+            },
+            { emoji: "👤", label: "Voir le profil", subtitle: "Fiche publique", onClick: () => { openProfile(selectedContact.contact_id); setSelectedContact(null); } },
             { emoji: "\uD83D\uDDD1\uFE0F", label: removing ? "Suppression\u2026" : "Retirer du cercle", subtitle: "Supprimer ce contact", onClick: handleRemoveContact, danger: true, loading: removing },
           ];
 

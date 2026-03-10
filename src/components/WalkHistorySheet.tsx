@@ -259,7 +259,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         position: 'fixed',
-        bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+        bottom: 0,
         left: 0, right: 0,
         maxHeight: '78%',
         background: bg,

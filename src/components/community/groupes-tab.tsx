@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone, PhoneOff, Mic, MicOff } from "lucide-react";
+import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone } from "lucide-react";
 import ChatTextBar from "@/components/chat/ChatTextBar";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
@@ -58,9 +58,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const globalSource = useAudioCall((s) => s.source)
   const globalSourceId = useAudioCall((s) => s.sourceId)
   const startCall = useAudioCall((s) => s.startCall)
-  const endCallGlobal = useAudioCall((s) => s.endCall)
-  const muted = useAudioCall((s) => s.muted)
-  const setMuted = useAudioCall((s) => s.setMuted)
   const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
   const callActive = globalSource === 'group' && globalSourceId === activeGroup && globalCallState !== 'idle'
 
@@ -323,37 +320,26 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
               <Phone size={15} />
             </button>
           )}
-          {/* Mic toggle + end call — only when in call */}
+          {/* Ambient pill — only when in call */}
           {callActive && (
-            <>
-              <button
-                onClick={() => setMuted(!muted)}
-                style={{
-                  width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
-                  background: muted ? 'rgba(239,68,68,0.10)' : 'rgba(59,180,193,0.12)',
-                  border: muted ? '1px solid rgba(239,68,68,0.22)' : '1px solid rgba(59,180,193,0.25)',
-                  color: muted ? '#EF4444' : '#3BB4C1',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                {muted ? <MicOff size={15} /> : <Mic size={15} />}
-              </button>
-              <button
-                onClick={endCallGlobal}
-                style={{
-                  width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
-                  background: 'rgba(239,68,68,0.12)',
-                  border: '1px solid rgba(239,68,68,0.25)',
-                  color: '#EF4444',
-                  animation: 'callPulse 2s ease-in-out infinite',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <PhoneOff size={15} />
-              </button>
-            </>
+            <button
+              onClick={() => setCallSheetOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 99,
+                background: 'rgba(52,211,153,0.10)',
+                border: '1px solid rgba(52,211,153,0.25)',
+                color: '#34D399', fontSize: 10, fontWeight: 700,
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <div style={{
+                width: 5, height: 5, borderRadius: '50%',
+                background: '#34D399',
+                animation: 'ambientDotPulse 1.2s ease-in-out infinite',
+              }} />
+              En appel
+            </button>
           )}
           <button style={{
             background: 'none', border: 'none', cursor: 'pointer',
