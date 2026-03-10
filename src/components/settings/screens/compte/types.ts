@@ -22,13 +22,10 @@ export interface AccountData {
 export type CompteScreen =
   | 'main'
   | 'personal-info'
-  | 'username'
-  | 'visibility'
   | 'verification'
   | 'email'
   | 'password'
   | 'delete-account'
-  | 'profile-photo'
 
 // --- Shared animations ---
 

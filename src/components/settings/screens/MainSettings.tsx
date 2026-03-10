@@ -96,6 +96,17 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
           onPress={() => onNavigate('compte')}
         />
 
+        {/* Profil */}
+        <SettingsSection label="Profil">
+          <SettingsRow
+            icon="User"
+            iconColor="#3BB4C1"
+            label="Mon profil"
+            subtitle="Pseudo, bio, abonnés, cercle"
+            onPress={() => onNavigate('myProfile')}
+          />
+        </SettingsSection>
+
         {/* Sécurité */}
         <SettingsSection label="Sécurité">
           <SettingsRow

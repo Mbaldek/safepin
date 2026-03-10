@@ -11,6 +11,8 @@ import { bToast } from "@/components/GlobalToast";
 import { getStreakEmoji } from "@/lib/streaks";
 import SettingsToggle from "../components/SettingsToggle";
 import AddCircleContactModal from "@/components/community/AddCircleContactModal";
+import VisibilityScreen from "./compte/VisibilityScreen";
+import type { AccountData } from "./compte/types";
 
 // ── Types ──
 
@@ -76,6 +78,10 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
   const [tab, setTab] = useState<Tab>("profil");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [subScreen, setSubScreen] = useState<"visibility" | null>(null);
+  const [visibility, setVisibility] = useState<AccountData["visibility"]>({
+    username: "public", city: "public", country: "private", birthDate: "private",
+  });
 
   // Profile fields
   const [fields, setFields] = useState<ProfileFields>({
@@ -121,7 +127,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     (async () => {
       setLoading(true);
       const [profileRes, followersRes, followingRes, circleRes] = await Promise.all([
-        supabase.from("profiles").select("username, display_name, city, bio, avatar_url, is_public, current_streak, longest_streak, last_active_date, pin_count, vote_count, comment_count, escort_count").eq("id", userId).single(),
+        supabase.from("profiles").select("username, display_name, city, bio, avatar_url, is_public, current_streak, longest_streak, last_active_date, pin_count, vote_count, comment_count, escort_count, visibility").eq("id", userId).single(),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
         supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted"),
@@ -145,6 +151,15 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
           commentCount: p.comment_count ?? 0,
           escortCount: p.escort_count ?? 0,
         });
+        const rawVis = p.visibility as Record<string, string> | null;
+        if (rawVis) {
+          setVisibility({
+            username: (rawVis.username ?? "public") as AccountData["visibility"]["username"],
+            city: (rawVis.city ?? "public") as AccountData["visibility"]["city"],
+            country: (rawVis.country ?? "private") as AccountData["visibility"]["country"],
+            birthDate: (rawVis.birthDate ?? "private") as AccountData["visibility"]["birthDate"],
+          });
+        }
       }
       setFollowersCount(followersRes.count ?? 0);
       setFollowingCount(followingRes.count ?? 0);
@@ -329,6 +344,16 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     setFollowingCount((c) => c + 1);
   }, [userId]);
 
+  // ── Visibility save ──
+  const handleVisibilitySave = useCallback(async (v: AccountData["visibility"]) => {
+    if (!userId) return;
+    const { error } = await supabase.from("profiles").update({ visibility: v }).eq("id", userId);
+    if (error) { bToast.danger({ title: "Erreur lors de la sauvegarde" }, isDark); return; }
+    setVisibility(v);
+    bToast.success({ title: "Visibilité mise à jour" }, isDark);
+    setSubScreen(null);
+  }, [userId, isDark]);
+
   if (loading) {
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 210, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -479,6 +504,17 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
         onClose={() => setShowAddCircle(false)}
         onAdded={() => { setCircleLoaded(false); setCircleCount((c) => c + 1); }}
       />
+
+      {/* Visibility sub-screen */}
+      {subScreen === "visibility" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 220, background: C.bg, display: "flex", flexDirection: "column" }}>
+          <VisibilityScreen
+            visibility={visibility}
+            onSave={handleVisibilitySave}
+            onBack={() => setSubScreen(null)}
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -566,6 +602,23 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
           </div>
           <SettingsToggle value={fields.is_public} onChange={(v) => updateField("is_public", v)} />
         </div>
+
+        {/* Visibility row */}
+        <button
+          onClick={() => setSubScreen("visibility")}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 0",
+            background: "none", border: "none", borderTop: `1px solid ${C.border}`,
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.t1 }}>Visibilité du profil</div>
+            <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>Choisir qui voit quoi</div>
+          </div>
+          <span style={{ fontSize: 16, color: C.t3 }}>›</span>
+        </button>
       </div>
     );
   }

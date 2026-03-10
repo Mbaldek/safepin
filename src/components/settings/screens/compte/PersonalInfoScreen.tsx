@@ -61,7 +61,6 @@ export default function PersonalInfoScreen({ data, onSave, onBack }: PersonalInf
   const [lastName, setLastName] = useState(data.lastName);
   const [birthDate, setBirthDate] = useState(data.birthDate);
   const [country, setCountry] = useState(data.country);
-  const [city, setCity] = useState(data.city);
   const [saving, setSaving] = useState(false);
 
   const canSave = firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -69,7 +68,7 @@ export default function PersonalInfoScreen({ data, onSave, onBack }: PersonalInf
   async function handleSave() {
     if (!canSave) return;
     setSaving(true);
-    onSave({ firstName: firstName.trim(), lastName: lastName.trim(), birthDate, country, city: city.trim() });
+    onSave({ firstName: firstName.trim(), lastName: lastName.trim(), birthDate, country });
   }
 
   const inputStyle: React.CSSProperties = {
@@ -221,7 +220,7 @@ export default function PersonalInfoScreen({ data, onSave, onBack }: PersonalInf
             </div>
 
             {/* Country select */}
-            <motion.div variants={fadeSlideUp} transition={springTransition} style={{ marginBottom: 12 }}>
+            <motion.div variants={fadeSlideUp} transition={springTransition} style={{ marginBottom: 32 }}>
               <label style={labelStyle}>Pays de résidence</label>
               <select
                 value={country}
@@ -252,19 +251,6 @@ export default function PersonalInfoScreen({ data, onSave, onBack }: PersonalInf
               </select>
             </motion.div>
 
-            {/* City */}
-            <motion.div variants={fadeSlideUp} transition={springTransition} style={{ marginBottom: 32 }}>
-              <label style={labelStyle}>Ville</label>
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Ville"
-                style={inputStyle}
-              />
-              <span style={{ fontSize: 11, color: C.t3, marginTop: 4, display: 'block' }}>
-                Optionnel · Visible selon vos réglages
-              </span>
-            </motion.div>
           </motion.div>
 
           {/* ── Save button ── */}

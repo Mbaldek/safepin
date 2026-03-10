@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
@@ -12,12 +12,9 @@ import SettingsSection from '../../components/SettingsSection';
 import SettingsRow from '../../components/SettingsRow';
 import { bToast } from '@/components/GlobalToast';
 import PersonalInfoScreen from './PersonalInfoScreen';
-import UsernameScreen from './UsernameScreen';
-import VisibilityScreen from './VisibilityScreen';
 import VerificationScreen from './VerificationScreen';
 import PasswordScreen from './PasswordScreen';
 import DeleteAccountScreen from './DeleteAccountScreen';
-import ProfilePhotoScreen from './ProfilePhotoScreen';
 import EmailScreen from './EmailScreen';
 import type { AccountData, CompteScreen } from './types';
 import { slideVariants, springTransition, staggerChildren, fadeSlideUp } from './types';
@@ -143,7 +140,6 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
         display_name: displayName,
         date_of_birth: updated.birthDate || null,
         country: updated.country || null,
-        city: updated.city || null,
       })
       .eq('id', userId);
 
@@ -157,56 +153,6 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
       store.setUserProfile({ ...store.userProfile, display_name: displayName });
     }
     bToast.success({ title: 'Informations mises à jour' }, isDark);
-    goBack();
-  }
-
-  // Username onSave → check uniqueness then update profiles.username
-  async function handleUsernameSave(username: string) {
-    if (!account || !userId) return;
-
-    // Double-check uniqueness server-side
-    const { count } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('username', username)
-      .neq('id', userId);
-
-    if (count && count > 0) {
-      bToast.danger({ title: 'Ce nom d\'utilisateur est déjà pris' }, isDark);
-      return;
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ username, name: username })
-      .eq('id', userId);
-
-    if (error) {
-      bToast.danger({ title: 'Erreur lors de la sauvegarde' }, isDark);
-      return;
-    }
-
-    setAccount({ ...account, username });
-    bToast.success({ title: 'Nom d\'utilisateur mis à jour' }, isDark);
-    goBack();
-  }
-
-  // Visibility onSave → update profiles.visibility (jsonb)
-  async function handleVisibilitySave(v: AccountData['visibility']) {
-    if (!account || !userId) return;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ visibility: v })
-      .eq('id', userId);
-
-    if (error) {
-      bToast.danger({ title: 'Erreur lors de la sauvegarde' }, isDark);
-      return;
-    }
-
-    setAccount({ ...account, visibility: v });
-    bToast.success({ title: 'Visibilité mise à jour' }, isDark);
     goBack();
   }
 
@@ -264,22 +210,6 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
         return account ? (
           <PersonalInfoScreen data={account} onSave={handleSave} onBack={goBack} />
         ) : null;
-      case 'username':
-        return (
-          <UsernameScreen
-            currentUsername={account?.username ?? ''}
-            onSave={handleUsernameSave}
-            onBack={goBack}
-          />
-        );
-      case 'visibility':
-        return account ? (
-          <VisibilityScreen
-            visibility={account.visibility}
-            onSave={handleVisibilitySave}
-            onBack={goBack}
-          />
-        ) : null;
       case 'verification':
         return (
           <VerificationScreen
@@ -300,8 +230,6 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
         return <PasswordScreen onBack={goBack} />;
       case 'delete-account':
         return <DeleteAccountScreen onBack={goBack} />;
-      case 'profile-photo':
-        return <ProfilePhotoScreen firstName={account?.firstName ?? ''} onBack={goBack} />;
       default:
         return (
           <MainCompteScreen
@@ -356,7 +284,6 @@ function MainCompteScreen({ account, C, onBack, navigateTo, onNavigateParent }: 
   // Build subtitle for "Informations personnelles"
   const infoSubtitleParts: string[] = [];
   if (account?.firstName) infoSubtitleParts.push(account.firstName);
-  if (account?.city) infoSubtitleParts.push(account.city);
   if (account?.country) infoSubtitleParts.push(account.country);
   const infoSubtitle = infoSubtitleParts.join(' · ') || undefined;
 
@@ -427,63 +354,31 @@ function MainCompteScreen({ account, C, onBack, navigateTo, onNavigateParent }: 
               paddingBottom: 20,
             }}
           >
-            {/* Avatar circle + camera button */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigateTo('profile-photo')}
-              style={{ position: 'relative', cursor: 'pointer' }}
+            {/* Avatar circle */}
+            <div
+              style={{
+                width: 84,
+                height: 84,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3BB4C1, #4A2C5A)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+              }}
             >
-              <div
-                style={{
-                  width: 84,
-                  height: 84,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #3BB4C1, #4A2C5A)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                }}
-              >
-                {userProfile?.avatar_url ? (
-                  <img
-                    src={userProfile.avatar_url}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 30, fontWeight: 300, color: '#FFFFFF' }}>
-                    {initial}
-                  </span>
-                )}
-              </div>
-
-              {/* Camera button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateTo('profile-photo');
-                }}
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  background: F.cyan,
-                  border: `2px solid ${C.sheet}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <Camera size={13} color="#FFFFFF" />
-              </button>
-            </motion.div>
+              {userProfile?.avatar_url ? (
+                <img
+                  src={userProfile.avatar_url}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <span style={{ fontSize: 30, fontWeight: 300, color: '#FFFFFF' }}>
+                  {initial}
+                </span>
+              )}
+            </div>
 
             {/* Name */}
             <span style={{ fontSize: 20, fontWeight: 300, color: C.t1, marginTop: 12 }}>
@@ -524,30 +419,6 @@ function MainCompteScreen({ account, C, onBack, navigateTo, onNavigateParent }: 
                 label="Informations personnelles"
                 subtitle={infoSubtitle}
                 onPress={() => navigateTo('personal-info')}
-              />
-              <div style={{ height: 1, background: C.border, margin: '0 20px' }} />
-              <SettingsRow
-                icon="AtSign"
-                iconColor={F.purple}
-                label="Nom d'utilisateur"
-                subtitle={account?.username ? `@${account.username}` : undefined}
-                onPress={() => navigateTo('username')}
-              />
-              <div style={{ height: 1, background: C.border, margin: '0 20px' }} />
-              <SettingsRow
-                icon="User"
-                iconColor={F.cyan}
-                label="Mon profil"
-                subtitle="Gerer abonnes, cercle et visibilite"
-                onPress={() => onNavigateParent?.('myProfile')}
-              />
-              <div style={{ height: 1, background: C.border, margin: '0 20px' }} />
-              <SettingsRow
-                icon="Eye"
-                iconColor={F.cyan}
-                label="Visibilité du profil"
-                subtitle="Choisir qui voit quoi"
-                onPress={() => navigateTo('visibility')}
               />
             </SettingsSection>
           </motion.div>
