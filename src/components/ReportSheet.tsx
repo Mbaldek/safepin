@@ -98,6 +98,16 @@ export function ReportSheet() {
   const [address, setAddress] = useState<string | null>(null);
   const [establishmentType, setEstablishmentType] = useState<string | null>(null);
   const [positifNote, setPositifNote] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [step1Height, setStep1Height] = useState<number | undefined>(undefined);
+
+  // Measure step 1 height for top-alignment of subsequent steps
+  useEffect(() => {
+    if (step === 1 && containerRef.current) {
+      const h = containerRef.current.offsetHeight;
+      if (h > 0) setStep1Height(h);
+    }
+  }, [step, activeSheet]);
 
   // Reverse geocode when coords change
   useEffect(() => {
@@ -227,22 +237,43 @@ export function ReportSheet() {
     }
   };
 
+  const showBackdrop = step !== 1;
+
   return (
     <AnimatePresence>
-      <div style={{ position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 301, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      {/* Backdrop blur for steps 2/2b/3/4 */}
+      {showBackdrop && (
+        <motion.div
+          key="report-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 301,
+            background: 'rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+          onClick={handleClose}
+        />
+      )}
+
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 302, display: 'flex', justifyContent: 'center', pointerEvents: 'none', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)' }}>
       <motion.div
+        ref={containerRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
-          width: '100%',
-          maxWidth: 480,
+          width: 'calc(100% - 32px)',
+          maxWidth: 420,
+          minHeight: step !== 1 && step1Height ? step1Height : undefined,
           pointerEvents: 'auto',
           background: c.card,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          boxShadow: '0 -2px 20px rgba(0,0,0,0.15)',
+          borderRadius: 20,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
         }}
       >
         {/* Header */}

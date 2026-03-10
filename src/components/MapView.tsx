@@ -16,6 +16,66 @@ import { supabase } from '@/lib/supabase';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
 import { MapPin } from './MapPin';
 
+// Import layer functions
+import {
+  fetchParisTransitStations,
+  addTransitLayer,
+  removeTransitLayer,
+  TRANSIT_CIRCLE,
+  TRANSIT_LABEL,
+} from './map/layers/TransitLayer';
+import {
+  fetchParisPOIs,
+  addPOILayers,
+  removePOILayers,
+  buildPOIFilter,
+  POI_CIRCLE,
+  POI_LABEL,
+} from './map/layers/POILayer';
+import {
+  addHeatmapLayer,
+  removeHeatmapLayer,
+  HEAT_LYR,
+} from './map/layers/HeatmapLayer';
+import {
+  addSafeSpacesLayer,
+  removeSafeSpacesLayer,
+  SAFE_CIRCLE,
+  SAFE_LABEL,
+  SAFE_PARTNER,
+} from './map/layers/SafeSpacesLayer';
+import {
+  addClusterLayers,
+  updateClusterData,
+  updateDBClusters,
+  removeClusterLayers,
+  SOURCE_ID,
+  DB_CLUSTER_CIRCLE,
+  DB_CLUSTER_HALO,
+  DB_CLUSTER_LABEL,
+} from './map/layers/ClusterLayer';
+import {
+  addRouteLayer,
+  removeRouteLayer,
+  ROUTE_LYR,
+} from './map/layers/RouteLayer';
+import {
+  addSOSTrailLayer,
+  removeSOSTrailLayer,
+  SOS_TRAIL_LYR,
+} from './map/layers/SOSLayer';
+import {
+  addWatchContactsLayer,
+  removeWatchContactsLayer,
+  WATCH_CIRCLE,
+  WATCH_LABEL,
+} from './map/layers/WatchContactsLayer';
+import {
+  addPendingRoutesLayer,
+  removePendingRoutesLayer,
+  PENDING_LYRS,
+} from './map/layers/PendingRoutesLayer';
+
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 // Prewarm WebGL dès le chargement du module
@@ -23,60 +83,12 @@ if (typeof window !== 'undefined') {
   mapboxgl.prewarm();
 }
 
-const SOURCE_ID    = 'pins-source';
-const ROUTE_SRC    = 'route-source';
-const ROUTE_LYR    = 'route-line';
-const PENDING_SRCS = ['pending-src-0', 'pending-src-1', 'pending-src-2'];
-const PENDING_LYRS = ['pending-line-0', 'pending-line-1', 'pending-line-2'];
-const WATCH_SRC    = 'watch-contacts-src';
-const WATCH_CIRCLE = 'watch-contacts-circle';
-const WATCH_LABEL  = 'watch-contacts-label';
-const TRANSIT_SRC    = 'paris-transit-src';
-const TRANSIT_CIRCLE = 'paris-transit-circle';
-const TRANSIT_LABEL  = 'paris-transit-label';
-const POI_SRC    = 'paris-poi-src';
-const POI_CIRCLE = 'paris-poi-circle';
-const POI_LABEL  = 'paris-poi-label';
-const HEAT_SRC = 'location-history-src';
-const HEAT_LYR = 'location-history-heat';
-const SAFE_SRC = 'safe-spaces-src';
-const SAFE_CIRCLE = 'safe-spaces-circle';
-const DB_CLUSTER_SRC    = 'pins-db-cluster-src';
-const DB_CLUSTER_CIRCLE = 'pins-db-cluster-circle';
-const DB_CLUSTER_HALO   = 'pins-db-cluster-halo';
-const DB_CLUSTER_LABEL  = 'pins-db-cluster-label';
-const SAFE_LABEL = 'safe-spaces-label';
-const SAFE_PARTNER = 'safe-spaces-partner';
-const SOS_TRAIL_SRC = 'sos-trail-source';
-const SOS_TRAIL_LYR = 'sos-trail-line';
-
 const STYLE_URLS: Record<string, string> = {
   custom:  'mapbox://styles/matlab244/cmm6okd7v005q01s49w19fac0',
   streets: 'mapbox://styles/mapbox/streets-v12',
   light:   'mapbox://styles/mapbox/light-v11',
   dark:    'mapbox://styles/mapbox/dark-v11',
 };
-
-/** Our custom layer IDs — never hide these. */
-const OWN_LAYERS = new Set([
-  SOURCE_ID, 'clusters', 'clusters-halo', 'cluster-count', 'unclustered-point',
-  TRANSIT_CIRCLE, TRANSIT_LABEL,
-  POI_CIRCLE, POI_LABEL,
-  SAFE_CIRCLE, SAFE_LABEL, SAFE_PARTNER,
-  HEAT_LYR, 'safety-scores-fill',
-  WATCH_CIRCLE, WATCH_LABEL,
-  ROUTE_LYR,
-  SOS_TRAIL_LYR,
-]);
-
-// ── Module-level handler refs for proper cleanup ────────────────────────────
-let _clusterClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
-let _clusterMouseEnter: (() => void) | null = null;
-let _clusterMouseLeave: (() => void) | null = null;
-
-let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
-let _transitMouseEnter: (() => void) | null = null;
-let _transitMouseLeave: (() => void) | null = null;
 
 /** Hide built-in Mapbox circle/dot layers from the base style.
  *  Keeps our own layers (OWN_LAYERS) and all text/line/fill layers. */
@@ -89,47 +101,6 @@ function hideBuiltinPOIDots(m: mapboxgl.Map) {
       m.setLayoutProperty(layer.id, 'visibility', 'none');
     }
   }
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  assault: '#EF4444', harassment: '#EF4444', theft: '#EF4444', following: '#EF4444',
-  suspect: '#F59E0B', group: '#F59E0B', unsafe: '#F59E0B',
-  lighting: '#64748B', blocked: '#64748B', closed: '#64748B',
-  safe: '#34D399', help: '#34D399', presence: '#34D399',
-};
-
-const PIN_COLORS = {
-  urgent:   '#EF4444',
-  warning:  '#FBBF24',
-  infra:    '#60A5FA',
-  positive: '#34D399',
-  safeSpace:   '#34D399',
-  safePartner: '#F5C341',
-  emergency:   '#EF4444',
-  emergencyResolved: '#9CA3AF',
-  destination: '#34D399',
-  transport:   '#22D3EE',
-  watchContact: '#3BB4C1',
-  surface:  '#1E293B',
-  elevated: '#334155',
-  stroke:   '#FFFFFF',
-};
-
-const DECAY_HOURS: Record<string, number> = {
-  assault: 24, harassment: 24, theft: 24, following: 24,
-  suspect: 12, group: 6, unsafe: 48,
-  lighting: 168, blocked: 168, closed: 168,
-  safe: 720, help: 168, presence: 720,
-};
-
-function getPinOpacity(createdAt: string, category: string): number {
-  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  const maxHours = DECAY_HOURS[category] || 24;
-  return Math.max(1 - (hoursAgo / maxHours) * 0.7, 0.3);
-}
-
-function getPinColor(category: string): string {
-  return CATEGORY_COLORS[category] || '#94A3B8';
 }
 
 // Module-level caches so they survive style switches

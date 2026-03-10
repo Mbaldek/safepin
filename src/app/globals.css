@@ -846,8 +846,8 @@ body {
 
 @keyframes wwm-shimmer { 0% { left: -100%; } 60%, 100% { left: 140%; } }
 @keyframes wwm-glow {
-  0%, 100% { box-shadow: 0 4px 18px rgba(92,61,94,0.55), 0 1px 3px rgba(0,0,0,0.3); }
-  50%       { box-shadow: 0 6px 28px rgba(92,61,94,0.75), 0 1px 3px rgba(0,0,0,0.3); }
+  0%, 100% { box-shadow: 0 4px 18px rgba(42,143,154,0.55), 0 1px 3px rgba(0,0,0,0.3); }
+  50%       { box-shadow: 0 6px 28px rgba(42,143,154,0.75), 0 1px 3px rgba(0,0,0,0.3); }
 }
 
 @keyframes callPulse {

@@ -302,19 +302,15 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
       style={{
         willChange: 'transform',
         position: 'fixed',
-        bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+        top: 0,
+        bottom: 0,
         left: 0,
         right: 0,
-        height: '85dvh',
-        maxHeight: '85dvh',
         paddingBottom: 0,
         zIndex: 50,
         backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 -4px 30px rgba(0,0,0,0.15)',
       }}
     >
       <Header

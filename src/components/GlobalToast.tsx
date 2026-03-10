@@ -290,6 +290,10 @@ export default function GlobalToast() {
           0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); }
           50%      { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
         }
+        [data-sonner-toaster][data-x-position="center"] {
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+        }
         [data-sonner-toast] {
           animation: bv-in 0.32s cubic-bezier(0.16,1,0.3,1) both !important;
         }

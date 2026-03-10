@@ -496,60 +496,62 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
         @keyframes badgePop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
       `}</style>
 
-      {/* Search + Create header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '8px 20px 0' }}>
-        <button
-          onClick={() => setSearchOpen(o => !o)}
-          style={{
-            width: 34, height: 34, borderRadius: 10,
-            border: `1px solid ${border1}`,
-            background: searchOpen ? 'rgba(59,180,193,0.12)' : 'transparent',
-            color: searchOpen ? '#3BB4C1' : text3,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s',
-          }}
-        >
-          <Search size={16} />
-        </button>
-        <button
-          onClick={onCreateGroup}
-          style={{
-            width: 34, height: 34, borderRadius: 10,
-            border: `1px solid ${border1}`,
-            background: 'transparent',
-            color: text3,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s',
-          }}
-        >
-          <Plus size={16} />
-        </button>
-      </div>
-
-      {/* Collapsible search bar */}
-      <div style={{
-        maxHeight: searchOpen ? 44 : 0,
-        opacity: searchOpen ? 1 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 350ms cubic-bezier(0.16,1,0.3,1), opacity 350ms cubic-bezier(0.16,1,0.3,1)',
-        padding: searchOpen ? '8px 20px' : '0 20px',
-      }}>
+      {/* Search + Create header — single inline row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px 0' }}>
+        {/* Inline search input — expands when open */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: elevated, border: `1px solid ${border1}`, borderRadius: 10,
-          padding: '8px 12px',
+          flex: searchOpen ? 1 : 0,
+          maxWidth: searchOpen ? 600 : 0,
+          opacity: searchOpen ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'flex 350ms cubic-bezier(0.16,1,0.3,1), max-width 350ms cubic-bezier(0.16,1,0.3,1), opacity 250ms ease',
         }}>
-          <Search size={14} style={{ color: text3, flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Rechercher un groupe..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: elevated, border: `1px solid ${border1}`, borderRadius: 10,
+            padding: '8px 12px', minWidth: 0,
+          }}>
+            <Search size={14} style={{ color: text3, flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Rechercher un groupe..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                flex: 1, border: 'none', background: 'transparent',
+                fontSize: 13, color: text, outline: 'none', minWidth: 0,
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setSearchOpen(o => !o)}
             style={{
-              flex: 1, border: 'none', background: 'transparent',
-              fontSize: 13, color: text, outline: 'none',
+              width: 34, height: 34, borderRadius: 10, border: 'none',
+              background: searchOpen ? 'rgba(59,180,193,0.20)' : 'rgba(59,180,193,0.10)',
+              color: '#3BB4C1',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.2s',
             }}
-          />
+          >
+            <Search size={16} />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={onCreateGroup}
+            style={{
+              width: 34, height: 34, borderRadius: 10, border: 'none',
+              background: 'rgba(59,180,193,0.10)',
+              color: '#3BB4C1',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.2s',
+            }}
+          >
+            <Plus size={16} />
+          </motion.button>
         </div>
       </div>
 
@@ -703,7 +705,27 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                   border: `1px solid ${border1}`,
                 }}
               >
-                <div style={{ height: 48, background: 'linear-gradient(135deg, #3BB4C1, #06B6D4)' }} />
+                <div style={{ height: 48, overflow: 'hidden', position: 'relative' }}>
+                  {group.avatar_url ? (
+                    <img src={group.avatar_url} alt=""
+                      style={{
+                        width: '100%', height: '100%', objectFit: 'cover',
+                        filter: 'blur(12px) brightness(0.7)', transform: 'scale(1.3)',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '100%', height: '100%',
+                      background: `linear-gradient(135deg, ${elevated}, ${border1})`,
+                    }} />
+                  )}
+                  <span style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%,-50%)', fontSize: 20, opacity: 0.8,
+                  }}>
+                    {group.avatar_emoji || '👥'}
+                  </span>
+                </div>
                 <div style={{ padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 13 }}>
