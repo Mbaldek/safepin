@@ -42,6 +42,7 @@ const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
+const TripView = dynamic(() => import('@/components/trip/TripView'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
 const CercleSheet = dynamic(() => import('@/components/CercleSheet'), { ssr: false });
@@ -101,6 +102,7 @@ activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     showWalkWithMe, setShowWalkWithMe,
     showWalkHistory, setShowWalkHistory,
+    showTripHistory, setShowTripHistory,
     mapFilters, setMapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
@@ -1403,6 +1405,14 @@ activeTrip, setActiveTrip,
           />
         )}
       </AnimatePresence>
+
+      {showTripHistory && userId && (
+        <TripView
+          key="trip-history"
+          onClose={() => setShowTripHistory(false)}
+          openToHistory
+        />
+      )}
 
       {/* Post-onboarding community tooltip */}
       <CommunityTooltip show={showCommunityTooltip} />

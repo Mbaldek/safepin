@@ -208,6 +208,10 @@ type Store = {
   showWalkHistory: boolean;
   setShowWalkHistory: (v: boolean) => void;
 
+  // Trip History overlay (TripView in history mode)
+  showTripHistory: boolean;
+  setShowTripHistory: (v: boolean) => void;
+
   // Safe Spaces (Sprint 40)
   safeSpaces: SafeSpace[];
   setSafeSpaces: (spaces: SafeSpace[]) => void;
@@ -379,6 +383,10 @@ export const useStore = create<Store>((set) => ({
   // Walk History sheet
   showWalkHistory: false,
   setShowWalkHistory: (v) => set({ showWalkHistory: v }),
+
+  // Trip History overlay
+  showTripHistory: false,
+  setShowTripHistory: (v) => set({ showTripHistory: v }),
 
   // Safe Spaces
   safeSpaces: [],

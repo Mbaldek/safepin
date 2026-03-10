@@ -6,7 +6,7 @@ import {
   Users, Send, Navigation, Search, Shield, Clock,
   ChevronLeft, ChevronRight, Check, AlertTriangle,
   Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase, Sparkles,
-  Footprints, Train, Bike, Car, Edit3, ArrowUpDown
+  Footprints, Train, Bike, Car, Edit3, ArrowUpDown, History
 } from 'lucide-react'
 import { T, tok, springConfig, gentleSpring } from '@/lib/tokens'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
@@ -64,7 +64,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const departSearch = useDestinationSearch(userLat, userLng)
   const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill } = useStore()
   const pins = useStore((s) => s.pins)
-  const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe)
+  const setShowWalkWithMe  = useStore((s) => s.setShowWalkWithMe)
+  const setShowWalkHistory = useStore((s) => s.setShowWalkHistory)
+  const setShowTripHistory = useStore((s) => s.setShowTripHistory)
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -448,73 +450,128 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </button>
       </div>
 
+      {/* Keyframes for history pill pulse */}
+      <style>{`
+        @keyframes histPulseGlow {
+          0%,100% { transform: scale(0.6); opacity: 0.55; }
+          50%      { transform: scale(1.45); opacity: 0; }
+        }
+        @keyframes histPulseRing {
+          0%,100% { transform: scale(0.65); opacity: 0.5; }
+          50%      { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
+
       {/* CTA 1 — Marche avec moi */}
-      <motion.button
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setShowWalkWithMe(true)}
-        style={{
-          width:          '100%',
-          background:     d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
-          border:         `1px solid ${T.gradientStart}35`,
-          borderRadius:   T.radiusLg,
-          padding:        '14px',
-          display:        'flex',
-          alignItems:     'center',
-          gap:            12,
-          cursor:         'pointer',
-          marginBottom:   8,
-          textAlign:      'left',
-        }}
-      >
-        <div style={{
-          width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-          background: 'rgba(59,180,193,0.14)', border: `1px solid ${T.gradientStart}40`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Users size={20} strokeWidth={1.5} color={T.gradientStart} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
-            Marche avec moi
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 8 }}>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowWalkWithMe(true)}
+          style={{
+            flex:           1,
+            background:     d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
+            border:         `1px solid ${T.gradientStart}35`,
+            borderRadius:   T.radiusLg,
+            padding:        '14px',
+            display:        'flex',
+            alignItems:     'center',
+            gap:            12,
+            cursor:         'pointer',
+            textAlign:      'left',
+          }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+            background: 'rgba(59,180,193,0.14)', border: `1px solid ${T.gradientStart}40`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Users size={20} strokeWidth={1.5} color={T.gradientStart} />
           </div>
-          <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte · sans destination</div>
-        </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0,
-          background: 'rgba(59,180,193,0.10)', border: `1px solid ${T.gradientStart}30`,
-          borderRadius: 100, padding: '4px 8px',
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.gradientStart }} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: T.gradientStart }}>1 TAP</span>
-        </div>
-      </motion.button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
+              Marche avec moi
+            </div>
+            <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte · sans destination</div>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0,
+            background: 'rgba(59,180,193,0.10)', border: `1px solid ${T.gradientStart}30`,
+            borderRadius: 100, padding: '4px 8px',
+          }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.gradientStart }} />
+            <span style={{ fontSize: 9, fontWeight: 700, color: T.gradientStart }}>1 TAP</span>
+          </div>
+        </motion.button>
+        {/* History pill */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowWalkHistory(true); }}
+          style={{
+            width: 44, flexShrink: 0,
+            borderRadius: 12,
+            background: 'rgba(59,180,193,0.08)',
+            border: '1px solid rgba(59,180,193,0.20)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 5,
+            cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,180,193,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(59,180,193,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
+          <History size={15} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
+          <span style={{ fontSize: 8, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
+            Histo-{'\n'}rique
+          </span>
+        </button>
+      </div>
 
       {/* CTA 2 — Trajet destination */}
-      <motion.button
-        whileTap={{ scale: 0.98 }}
-        onClick={() => escorte.setView('trip-form')}
-        style={{
-          width: '100%', background: tk.ih, border: `1px solid ${tk.bd}`,
-          borderRadius: T.radiusLg, padding: '14px',
-          display: 'flex', alignItems: 'center', gap: 12,
-          cursor: 'pointer', marginBottom: 12, textAlign: 'left',
-        }}
-      >
-        <div style={{
-          width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-          background: tk.ih, border: `1px solid ${tk.bdd}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Navigation size={20} strokeWidth={1.5} color={tk.ts} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
-            Trajet avec destination
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 12 }}>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => escorte.setView('trip-form')}
+          style={{
+            flex: 1, background: tk.ih, border: `1px solid ${tk.bd}`,
+            borderRadius: T.radiusLg, padding: '14px',
+            display: 'flex', alignItems: 'center', gap: 12,
+            cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <div style={{
+            width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+            background: tk.ih, border: `1px solid ${tk.bdd}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Navigation size={20} strokeWidth={1.5} color={tk.ts} />
           </div>
-          <div style={{ fontSize: 11, color: tk.tt }}>Itineraire protege · arrivee tracee</div>
-        </div>
-        <ChevronRight size={16} strokeWidth={1.5} color={tk.tt} />
-      </motion.button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
+              Trajet avec destination
+            </div>
+            <div style={{ fontSize: 11, color: tk.tt }}>Itineraire protege · arrivee tracee</div>
+          </div>
+          <ChevronRight size={16} strokeWidth={1.5} color={tk.tt} />
+        </motion.button>
+        {/* History pill */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowTripHistory(true); }}
+          style={{
+            width: 44, flexShrink: 0,
+            borderRadius: 12,
+            background: 'rgba(59,180,193,0.08)',
+            border: '1px solid rgba(59,180,193,0.20)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 5,
+            cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,180,193,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(59,180,193,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
+          <History size={15} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
+          <span style={{ fontSize: 8, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
+            Histo-{'\n'}rique
+          </span>
+        </button>
+      </div>
 
       <div style={{ height: 1, background: tk.bd, margin: '0 0 10px' }} />
 

@@ -83,9 +83,10 @@ type AppState = "idle" | "planifier" | "active" | "arrived" | "favoris" | "histo
 
 interface TripViewProps {
   onClose: () => void;
+  openToHistory?: boolean;
 }
 
-export default function TripView({ onClose }: TripViewProps) {
+export default function TripView({ onClose, openToHistory = false }: TripViewProps) {
   const isDark = useTheme((s) => s.theme) === "dark";
   const userId = useStore((s) => s.userId);
   const isSharingLocation = useStore((s) => s.isSharingLocation);
@@ -94,7 +95,7 @@ export default function TripView({ onClose }: TripViewProps) {
   const setActiveRoute = useStore((s) => s.setActiveRoute);
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
-  const [state, setState] = useState<AppState>("idle");
+  const [state, setState] = useState<AppState>(openToHistory ? "history" : "idle");
   const [circleEnabled, setCircleEnabled] = useState(false);
   const [destination, setDestination] = useState("");
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
@@ -126,6 +127,15 @@ export default function TripView({ onClose }: TripViewProps) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .then(({ data }) => { if (data) setSavedPlaces(data); });
+    // If opened directly in history mode, pre-fetch all trips
+    if (openToHistory) {
+      supabase
+        .from("trips")
+        .select("id, destination, duration_min, safety_score, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .then(({ data }) => { if (data) setAllTrips(data); });
+    }
   }, [userId]);
   const [routeMode, setRouteMode] = useState<"safe" | "balanced" | "fast">("balanced");
   const [transportMode, setTransportMode] = useState<"walk" | "transit" | "bike" | "car">("walk");
