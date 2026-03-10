@@ -156,25 +156,42 @@ export function ConfirmIncidentModal({
       proofUrl = await uploadProof()
     }
 
-    const { data, error } = await supabase.rpc('confirm_pin', {
-      p_pin_id: pin.id,
-      p_is_anonymous: isAnonymous,
-      p_proof_type: proofType ?? null,
-      p_proof_url: proofUrl,
-    })
+    let data: unknown = null
+    let error: { code?: string; message?: string } | null = null
+    try {
+      const res = await supabase.rpc('confirm_pin', {
+        p_pin_id: pin.id,
+        p_is_anonymous: isAnonymous,
+        p_proof_type: proofType ?? null,
+        p_proof_url: proofUrl,
+      })
+      data = res.data
+      error = res.error
+    } catch {
+      bToast.danger({ title: 'Erreur réseau · Réessaie' }, isDark)
+      setConfirming(false)
+      return
+    }
 
     if (error) {
       if (error.message?.includes('already_confirmed')) {
         bToast.info({ title: 'Tu as déjà confirmé cet incident' }, isDark)
         setAlreadyConfirmed(true)
+      } else if (error.code === '23502') {
+        bToast.danger({ title: 'Session expirée · Reconnecte-toi' }, isDark)
+      } else if (error.code === '23503') {
+        bToast.danger({ title: 'Ce signalement n\'existe plus' }, isDark)
+      } else if (error.code === 'PGRST202') {
+        bToast.danger({ title: 'Erreur serveur · Réessaie' }, isDark)
       } else {
-        bToast.danger({ title: 'Confirmation échouée' }, isDark)
+        bToast.danger({ title: 'Erreur · Réessaie plus tard' }, isDark)
       }
       setConfirming(false)
       return
     }
 
-    if (data) updatePin(data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (data) updatePin(data as any)
     const newCount = (pin.confirmations ?? 0) + 1
     setConfirmCount(newCount)
     bToast.success({ title: 'Confirmation envoyée' }, isDark)
