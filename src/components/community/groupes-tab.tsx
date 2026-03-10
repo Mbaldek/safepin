@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone } from "lucide-react";
+import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone, PhoneOff } from "lucide-react";
 import ChatTextBar from "@/components/chat/ChatTextBar";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
@@ -313,18 +313,19 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
               }
             }}
             style={{
-              background: callActive ? 'rgba(59,180,193,0.22)' : 'none',
-              border: callActive ? '1px solid rgba(59,180,193,0.45)' : 'none',
-              boxShadow: callActive ? '0 0 0 4px rgba(59,180,193,0.08)' : 'none',
-              animation: callActive ? 'bv-call-breath 3s ease-in-out infinite' : 'none',
-              transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+              width: 34, height: 34,
+              background: callActive ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.10)',
+              border: callActive ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(59,180,193,0.25)',
+              color: callActive ? '#EF4444' : '#3BB4C1',
+              animation: callActive ? 'callPulse 2s ease-in-out infinite' : 'none',
+              transition: 'background 0.2s, transform 0.15s',
               cursor: 'pointer',
-              color: callActive ? '#3BB4C1' : (isDark ? '#475569' : '#CBD5E1'),
-              padding: 4, opacity: callActive ? 1 : 0.5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0,
               borderRadius: '50%',
             }}
           >
-            <Phone size={18} />
+            {callActive ? <PhoneOff size={16} /> : <Phone size={16} />}
           </button>
           <button style={{
             background: 'none', border: 'none', cursor: 'pointer',

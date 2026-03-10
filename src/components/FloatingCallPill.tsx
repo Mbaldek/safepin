@@ -200,7 +200,7 @@ export default function FloatingCallPill() {
                   </span>
                   {callState === 'active' && (
                     <span style={{
-                      fontSize: 10.5, fontWeight: 500, color: TEAL,
+                      fontSize: 9, fontWeight: 500, color: TEAL,
                       fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
                     }}>
                       {formatTime(seconds)}
