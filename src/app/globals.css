@@ -7,7 +7,147 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "mapbox-gl/dist/mapbox-gl.css";
 @import "tailwindcss";
-@import "./tailwind-theme.css"; /* Breveil theme */
+/* ============================================
+   BREVEIL — TAILWIND v4 THEME EXTENSION
+   (inlined from tailwind-theme.css)
+   ============================================ */
+
+@theme {
+  /* ══════════════════════════════════════════
+     COLORS
+     ══════════════════════════════════════════ */
+
+  /* Surfaces */
+  --color-surface-base: #0F172A;
+  --color-surface-card: #1E293B;
+  --color-surface-elevated: #334155;
+
+  /* Text */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #94A3B8;
+  --color-text-tertiary: #64748B;
+  --color-text-inverse: #0F172A;
+
+  /* Gradient colors */
+  --color-gradient-start: #3BB4C1;
+  --color-gradient-mid: #1E3A5F;
+  --color-gradient-end: #5C3D5E;
+
+  /* Accents */
+  --color-accent-gold: #F5C341;
+  --color-accent-coral: #F87171;
+  --color-accent-cyan: #22D3EE;
+  --color-accent-purple: #A78BFA;
+
+  /* Semantic */
+  --color-semantic-success: #34D399;
+  --color-semantic-warning: #FBBF24;
+  --color-semantic-danger: #EF4444;
+  --color-semantic-info: #60A5FA;
+
+  /* ══════════════════════════════════════════
+     SPACING (extends default)
+     ══════════════════════════════════════════ */
+  --spacing-18: 4.5rem;  /* 72px */
+  --spacing-22: 5.5rem;  /* 88px */
+
+  /* ══════════════════════════════════════════
+     BORDER RADIUS
+     ══════════════════════════════════════════ */
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  /* ══════════════════════════════════════════
+     FONTS
+     ══════════════════════════════════════════ */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+  /* ══════════════════════════════════════════
+     ANIMATIONS
+     ══════════════════════════════════════════ */
+  --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-fade-in-up: fade-in-up 0.4s ease-out;
+  --animate-slide-in-up: slide-in-up 0.4s ease-out;
+}
+
+/* ══════════════════════════════════════════
+   CUSTOM UTILITIES
+   ══════════════════════════════════════════ */
+
+@utility bg-gradient-breveil {
+  background: linear-gradient(
+    180deg,
+    #3BB4C1 0%,
+    #1E3A5F 45%,
+    #4A2C5A 75%,
+    #5C3D5E 100%
+  );
+}
+
+@utility bg-gradient-breveil-horizontal {
+  background: linear-gradient(
+    90deg,
+    #3BB4C1 0%,
+    #1E3A5F 50%,
+    #5C3D5E 100%
+  );
+}
+
+@utility text-gradient-breveil {
+  background: linear-gradient(
+    90deg,
+    #3BB4C1 0%,
+    #5C3D5E 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility glass {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+@utility safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@utility safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* ══════════════════════════════════════════
+   ANIMATION KEYFRAMES (from theme)
+   ══════════════════════════════════════════ */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
 
 /* ============================================
    CSS CUSTOM PROPERTIES — DARK THEME (DEFAULT)
