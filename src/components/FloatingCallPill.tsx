@@ -10,6 +10,7 @@ import { useTheme } from '@/stores/useTheme'
 
 const TEAL = '#3BB4C1'
 const RED = '#EF4444'
+const PILL_SPRING = { type: 'spring' as const, stiffness: 280, damping: 28, mass: 0.9 }
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60).toString().padStart(2, '0')
@@ -23,7 +24,6 @@ export default function FloatingCallPill() {
 
   const roomName = useAudioCall((s) => s.roomName)
   const title = useAudioCall((s) => s.title)
-  const participantNames = useAudioCall((s) => s.participantNames)
   const callState = useAudioCall((s) => s.callState)
   const muted = useAudioCall((s) => s.muted)
   const seconds = useAudioCall((s) => s.seconds)
@@ -32,6 +32,7 @@ export default function FloatingCallPill() {
   const setMuted = useAudioCall((s) => s.setMuted)
   const tick = useAudioCall((s) => s.tick)
   const toggleCallSheet = useAudioCall((s) => s.toggleCallSheet)
+  const groupPanelOpen = useAudioCall((s) => s.groupPanelOpen)
 
   const roomRef = useRef<Room | null>(null)
   const cancelledRef = useRef(false)
@@ -102,6 +103,9 @@ export default function FloatingCallPill() {
     endCall()
   }, [endCall])
 
+  // Hide pill when group chat panel is open (layoutId shared animation)
+  if (groupPanelOpen) return null
+
   const bg = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.95)'
   const borderColor = callState === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(59,180,193,0.25)'
   const glow = callState === 'error'
@@ -125,10 +129,12 @@ export default function FloatingCallPill() {
         >
           <motion.div
             key="floating-call-pill"
+            layoutId="active-call-pill"
+            layout
             initial={{ opacity: 0, y: -12, scale: 0.92, filter: 'blur(4px)' }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            transition={PILL_SPRING}
             style={{
               width: 272,
               display: 'flex',
@@ -145,7 +151,6 @@ export default function FloatingCallPill() {
               overflow: 'hidden',
             }}
             onClick={(e) => {
-              // Don't navigate if clicking buttons
               if ((e.target as HTMLElement).closest('button')) return
               toggleCallSheet()
             }}

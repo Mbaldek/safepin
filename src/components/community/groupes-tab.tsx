@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone, PhoneOff } from "lucide-react";
+import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone, PhoneOff, Mic, MicOff } from "lucide-react";
 import ChatTextBar from "@/components/chat/ChatTextBar";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
@@ -59,6 +59,10 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const globalSourceId = useAudioCall((s) => s.sourceId)
   const startCall = useAudioCall((s) => s.startCall)
   const endCallGlobal = useAudioCall((s) => s.endCall)
+  const muted = useAudioCall((s) => s.muted)
+  const setMuted = useAudioCall((s) => s.setMuted)
+  const seconds = useAudioCall((s) => s.seconds)
+  const setGroupPanelOpen = useAudioCall((s) => s.setGroupPanelOpen)
   const callActive = globalSource === 'group' && globalSourceId === activeGroup && globalCallState !== 'idle'
 
   // Chat state
@@ -171,6 +175,12 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [activeGroup]);
+
+  // Sync floating pill visibility with group panel
+  useEffect(() => {
+    if (callActive) setGroupPanelOpen(true)
+    return () => setGroupPanelOpen(false)
+  }, [callActive])
 
   const handleJoin = async (communityId: string) => {
     if (!userId) return;
@@ -425,6 +435,76 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
             })
           )}
         </div>
+
+        {/* Inline call pill — shown when a group call is active */}
+        <style dangerouslySetInnerHTML={{ __html: '@keyframes liveDot{0%,100%{opacity:1}50%{opacity:.35}}' }} />
+        {callActive && (
+          <motion.div
+            layoutId="active-call-pill"
+            layout
+            transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.9 }}
+            style={{
+              margin: '0 10px 6px',
+              background: isDark ? 'rgba(59,180,193,0.10)' : 'rgba(59,180,193,0.07)',
+              border: '1px solid rgba(59,180,193,0.22)',
+              borderLeft: '2.5px solid #3BB4C1',
+              borderRadius: 14,
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Live dot */}
+            <div style={{ flexShrink: 0 }}>
+              <div style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: '#3BB4C1',
+                animation: 'liveDot 1.4s ease-in-out infinite',
+              }} />
+            </div>
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: isDark ? '#F1F5F9' : '#0F172A' }}>
+                Groupe · En appel
+              </div>
+              <div style={{ fontSize: 10, color: isDark ? '#94A3B8' : '#64748B', marginTop: 1 }}>
+                Vous parlez
+              </div>
+            </div>
+            {/* Timer */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3BB4C1', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+              {`${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`}
+            </div>
+            {/* Mic toggle */}
+            <button
+              onClick={() => setMuted(!muted)}
+              style={{
+                width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: muted ? 'rgba(239,68,68,0.10)' : 'rgba(59,180,193,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}
+            >
+              {muted
+                ? <MicOff size={13} strokeWidth={1.8} color="#EF4444" />
+                : <Mic size={13} strokeWidth={1.8} color="#3BB4C1" />
+              }
+            </button>
+            {/* End call */}
+            <button
+              onClick={endCallGlobal}
+              style={{
+                width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: 'rgba(239,68,68,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}
+            >
+              <PhoneOff size={13} strokeWidth={1.8} color="#EF4444" />
+            </button>
+          </motion.div>
+        )}
 
         {/* Input bar */}
         <ChatTextBar
