@@ -1485,7 +1485,7 @@ activeTrip, setActiveTrip,
           <WalkHistorySheet
             key="walk-history"
             userId={userId}
-            onClose={() => setShowWalkHistory(false)}
+            onClose={() => { setShowWalkHistory(false); setActiveTab('trip'); }}
           />
         )}
       </AnimatePresence>
@@ -1494,7 +1494,7 @@ activeTrip, setActiveTrip,
         {showTripHistory && userId && (
           <TripView
             key="trip-history"
-            onClose={() => setShowTripHistory(false)}
+            onClose={() => { setShowTripHistory(false); setActiveTab('trip'); }}
             openToHistory
           />
         )}

@@ -503,7 +503,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </motion.button>
         {/* History pill */}
         <button
-          onClick={(e) => { e.stopPropagation(); setShowWalkHistory(true); }}
+          onClick={(e) => { e.stopPropagation(); setShowTripHistory(false); setShowWalkHistory(true); onClose(); }}
           style={{
             width: 62, flexShrink: 0,
             borderRadius: 12,
@@ -551,7 +551,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </motion.button>
         {/* History pill */}
         <button
-          onClick={(e) => { e.stopPropagation(); setShowTripHistory(true); }}
+          onClick={(e) => { e.stopPropagation(); setShowWalkHistory(false); setShowTripHistory(true); onClose(); }}
           style={{
             width: 62, flexShrink: 0,
             borderRadius: 12,

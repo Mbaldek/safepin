@@ -118,7 +118,9 @@
       "Bash(npx vercel --prod)",
       "Bash(__NEW_LINE_a393238d3ab77969__ echo \"\")",
       "Bash(__NEW_LINE_faae292b3cff14ab__ echo \"\")",
-      "Bash(__NEW_LINE_ac91a0cc096028cc__ echo \"\")"
+      "Bash(__NEW_LINE_ac91a0cc096028cc__ echo \"\")",
+      "Bash(sed -n '1479,1498p' src/app/map/page.tsx)",
+      "Bash(sed -n '1489,1510p' src/app/map/page.tsx)"
     ]
   }
 }
