@@ -27,6 +27,7 @@ export default function AudioChannel({
 }: Props) {
   const tk = tok(isDark)
   const roomRef = useRef<Room | null>(null)
+  const cancelledRef = useRef(false)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState(false)
   const [muted, setMuted] = useState(false)
@@ -47,7 +48,7 @@ export default function AudioChannel({
 
   // Connect
   useEffect(() => {
-    let cancelled = false
+    cancelledRef.current = false
     const room = new Room({
       audioCaptureDefaults: { autoGainControl: true, noiseSuppression: true },
       videoCaptureDefaults: { resolution: { width: 0, height: 0, frameRate: 0 } },
@@ -69,15 +70,15 @@ export default function AudioChannel({
         })
         if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`)
         const { token, url } = await res.json()
-        if (cancelled) return
+        if (cancelledRef.current) return
         if (!url || !token) throw new Error('Missing token or URL')
         await room.connect(url, token)
-        if (cancelled) { room.disconnect(); return }
+        if (cancelledRef.current) { room.disconnect(); return }
         await room.localParticipant.setMicrophoneEnabled(true)
         setConnected(true)
         onStateChange?.('active')
       } catch {
-        if (!cancelled) {
+        if (!cancelledRef.current) {
           setError(true)
           onStateChange?.('error')
         }
@@ -85,14 +86,14 @@ export default function AudioChannel({
     })()
 
     room.on(RoomEvent.Disconnected, () => {
-      if (!cancelled) {
-        setConnected(false)
-        onStateChange?.('ended')
-      }
+      if (cancelledRef.current) return
+      setConnected(false)
+      onStateChange?.('ended')
+      onEnd()
     })
 
     return () => {
-      cancelled = true
+      cancelledRef.current = true
       room.disconnect()
       roomRef.current = null
     }
@@ -107,6 +108,7 @@ export default function AudioChannel({
   }, [muted])
 
   const handleEnd = useCallback(() => {
+    cancelledRef.current = true
     roomRef.current?.disconnect()
     onStateChange?.('ended')
     onEnd()
@@ -133,6 +135,22 @@ export default function AudioChannel({
         <span style={{ fontSize: 12, fontWeight: 500, color: tk.ts, flex: 1 }}>
           Audio indisponible
         </span>
+        <button
+          onClick={onEnd}
+          style={{
+            padding: '4px 12px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'transparent',
+            color: isDark ? '#94A3B8' : '#475569',
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          Fermer
+        </button>
       </motion.div>
     )
   }

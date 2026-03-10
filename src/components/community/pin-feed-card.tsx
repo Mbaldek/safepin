@@ -115,7 +115,7 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 20,
+            fontSize: 18,
             transition: 'transform 220ms',
             transform: hovered ? 'scale(1.12) rotate(-4deg)' : 'scale(1)',
           }}

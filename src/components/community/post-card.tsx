@@ -429,7 +429,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
         {post.title && (
           <p
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               color: isDark ? "#FFFFFF" : "#0F172A",
               marginBottom: 4,
@@ -526,7 +526,7 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 48,
+            fontSize: 36,
           }}
         >
           ☕

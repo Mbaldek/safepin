@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Users, Plus, ArrowLeft, Send, MoreHorizontal, Phone } from "lucide-react";
+import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone } from "lucide-react";
+import ChatTextBar from "@/components/chat/ChatTextBar";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -408,40 +409,14 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
         </div>
 
         {/* Input bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 14px 12px',
-          borderTop: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
-        }}>
-          <EmojiPickerButton onSelect={e => setMsgInput(p => p + e)} isDark={isDark} />
-          <input
-            value={msgInput}
-            onChange={(e) => setMsgInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={chatPlaceholder}
-            style={{
-              flex: 1, padding: '10px 14px', borderRadius: 99,
-              border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
-              background: isDark ? '#1E293B' : '#F8FAFC',
-              color: isDark ? '#FFFFFF' : '#0F172A',
-              fontSize: 12, outline: 'none', fontFamily: 'inherit',
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!msgInput.trim() || sending}
-            style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: msgInput.trim() ? '#3BB4C1' : (isDark ? '#334155' : '#E2E8F0'),
-              border: 'none', cursor: msgInput.trim() ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.15s',
-              flexShrink: 0,
-            }}
-          >
-            <Send size={16} style={{ color: msgInput.trim() ? '#FFFFFF' : (isDark ? '#64748B' : '#94A3B8') }} />
-          </button>
-        </div>
+        <ChatTextBar
+          isDark={isDark}
+          value={msgInput}
+          onChange={setMsgInput}
+          onSend={handleSend}
+          sending={sending}
+          placeholder={chatPlaceholder}
+        />
       </div>
     );
   }

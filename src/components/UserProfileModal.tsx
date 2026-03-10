@@ -466,7 +466,7 @@ export default function UserProfileModal() {
               style={{
                 flex: 1,
                 overflow: snapPoint === "expanded" ? "auto" : "hidden",
-                padding: "0 18px",
+                padding: "0 18px 24px",
               }}
               className="scrollbar-hidden"
             >

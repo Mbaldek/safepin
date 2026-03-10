@@ -682,7 +682,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             if (showFavoris) {
               return (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
-                  <span style={{ fontSize: 32 }}>🔖</span>
+                  <span style={{ fontSize: 24 }}>🔖</span>
                   <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                     Aucun favori pour l&apos;instant
                   </p>
@@ -695,7 +695,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             if (searchQuery && searchQuery.trim()) {
               return (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
-                  <span style={{ fontSize: 32 }}>🔍</span>
+                  <span style={{ fontSize: 24 }}>🔍</span>
                   <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                     Aucun post pour &quot;{searchQuery.trim()}&quot;
                   </p>
@@ -715,7 +715,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             }
             return (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0", gap: 8 }}>
-                <span style={{ fontSize: 32 }}>{sosPosts.length > 0 ? '🔍' : '📝'}</span>
+                <span style={{ fontSize: 24 }}>{sosPosts.length > 0 ? '🔍' : '📝'}</span>
                 <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
                   {sosPosts.length > 0 ? 'Aucun post dans ce filtre' : 'Aucun post pour l\u0027instant'}
                 </p>

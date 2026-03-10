@@ -1,12 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import EmojiPickerButton from '@/components/ui/EmojiPickerButton';
 import { sendSupportMessage, markConversationRead, notifyDmRecipient } from '@/lib/support';
 import ChatBubble, { type ChatColors } from './ChatBubble';
+import ChatTextBar from './ChatTextBar';
 import type { DirectMessage } from '@/types';
 
 export interface ChatViewProps {
@@ -44,8 +43,6 @@ export default function ChatView({
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const chatPlaceholder = useMemo(() => {
     const phrases = [
@@ -136,16 +133,13 @@ export default function ChatView({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
 
-  const handleFilePick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFilePick = useCallback((file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Fichier trop lourd (max 10 Mo)');
       return;
     }
     setPendingFile(file);
     setPendingPreview(URL.createObjectURL(file));
-    if (e.target) e.target.value = '';
   }, []);
 
   const clearPending = useCallback(() => {
@@ -180,16 +174,8 @@ export default function ChatView({
       await sendSupportMessage(conversationId, sendAsUserId, trimmed, mediaUrl ? { media_url: mediaUrl, content_type: contentType } : undefined);
       notifyDmRecipient(conversationId, sendAsUserId, mediaUrl ? (trimmed || '📎 Media') : trimmed);
       setText('');
-      inputRef.current?.focus();
     } finally {
       setSending(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
 
@@ -228,99 +214,21 @@ export default function ChatView({
         ))}
       </div>
 
-      {/* Preview strip */}
-      {pendingPreview && (
-        <div style={{
-          padding: '6px 12px',
-          borderTop: `1px solid ${inputBorder}`,
-          background: inputBg,
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          {pendingFile?.type.startsWith('video') ? (
-            <video src={pendingPreview} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
-          ) : (
-            <img src={pendingPreview} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
-          )}
-          <span style={{ fontSize: 11, color: colors.timestamp, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {pendingFile?.name}
-          </span>
-          <button onClick={clearPending} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-            <X size={14} style={{ color: colors.timestamp }} />
-          </button>
-        </div>
-      )}
-
       {/* Input */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-          borderTop: `1px solid ${inputBorder}`,
-          background: inputBg,
-        }}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFilePick}
-          style={{ display: 'none' }}
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: isDark ? '#334155' : '#F8FAFC', border: 'none',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: uploading ? 0.4 : 0.7,
-            flexShrink: 0,
-          }}
-        >
-          <Plus size={16} style={{ color: isDark ? '#94A3B8' : '#475569' }} />
-        </button>
-        <EmojiPickerButton onSelect={e => setText(p => p + e)} isDark={isDark} />
-        <input
-          ref={inputRef}
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={chatPlaceholder}
-          style={{
-            flex: 1,
-            padding: '10px 14px',
-            borderRadius: 20,
-            border: `1px solid ${inputBorder}`,
-            background: 'transparent',
-            color: inputText,
-            fontSize: 14,
-            outline: 'none',
-          }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={(!text.trim() && !pendingFile) || sending || uploading}
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            border: 'none',
-            background: (text.trim() || pendingFile) ? buttonBg : 'transparent',
-            color: (text.trim() || pendingFile) ? '#FFFFFF' : colors.timestamp,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: (text.trim() || pendingFile) ? 'pointer' : 'default',
-            transition: 'background 150ms',
-          }}
-        >
-          <Send size={18} />
-        </button>
-      </div>
+      <ChatTextBar
+        isDark={isDark}
+        value={text}
+        onChange={setText}
+        onSend={handleSend}
+        onFilePick={handleFilePick}
+        pendingPreview={pendingPreview}
+        pendingFileName={pendingFile?.name ?? null}
+        pendingIsVideo={pendingFile?.type.startsWith('video')}
+        onClearPending={clearPending}
+        uploading={uploading}
+        sending={sending}
+        placeholder={chatPlaceholder}
+      />
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default function Header({ isDark, onCompose, onClose }: HeaderProps) {
     >
       {/* Left side */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 19, fontWeight: 600, color: textColor }}>
+        <span style={{ fontSize: 17, fontWeight: 700, color: textColor }}>
           Communaute
         </span>
         <div
@@ -48,8 +48,8 @@ export default function Header({ isDark, onCompose, onClose }: HeaderProps) {
             backgroundColor: isDark ? "rgba(59, 180, 193, 0.15)" : "rgba(59, 180, 193, 0.1)",
           }}
         >
-          <span style={{ fontSize: 12 }}>📍</span>
-          <span style={{ fontSize: 12, color: "#3BB4C1", fontWeight: 500 }}>
+          <span style={{ fontSize: 11 }}>📍</span>
+          <span style={{ fontSize: 11, color: "#3BB4C1", fontWeight: 500 }}>
             Paris 15e
           </span>
         </div>

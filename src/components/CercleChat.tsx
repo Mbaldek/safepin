@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import ChatTextBar from '@/components/chat/ChatTextBar'
 import { useTheme } from '@/stores/useTheme'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -42,8 +42,6 @@ export default function CercleChat({
   const [pendingPreview, setPendingPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const t = useMemo(() => ({
     surfaceCard: isDark ? '#1E293B' : '#FFFFFF',
@@ -67,16 +65,13 @@ export default function CercleChat({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  const handleFilePick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleFilePick = useCallback((file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Fichier trop lourd (max 10 Mo)')
       return
     }
     setPendingFile(file)
     setPendingPreview(URL.createObjectURL(file))
-    if (e.target) e.target.value = ''
   }, [])
 
   const clearPending = useCallback(() => {
@@ -105,23 +100,7 @@ export default function CercleChat({
     const type = mediaUrl ? (pendingFile?.type.startsWith('video') ? 'video' : 'image') : 'text'
     sendMessage(trimmed || '', type, mediaUrl)
     setMessage('')
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-    }
   }, [message, sendMessage, pendingFile, currentUserId, clearPending])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }, [handleSend])
-
-  const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
-    const el = e.currentTarget
-    el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 100)}px`
-  }, [])
 
   // helper: check if message is grouped with previous
   const isGrouped = useCallback((idx: number): boolean => {
@@ -131,8 +110,6 @@ export default function CercleChat({
     if (prev.sender_id !== curr.sender_id) return false
     return Math.abs(new Date(curr.created_at).getTime() - new Date(prev.created_at).getTime()) < 60000
   }, [messages])
-
-  const hasTrimmed = message.trim().length > 0 || !!pendingFile
 
   // stacked avatars — first 3 members
   const stackedMembers = members.slice(0, 3)
@@ -342,102 +319,18 @@ export default function CercleChat({
       </div>
 
       {/* 3. INPUT BAR */}
-      {/* Preview strip */}
-      {pendingPreview && (
-        <div style={{
-          padding: '6px 12px',
-          borderTop: `1px solid ${t.border}`,
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          {pendingFile?.type.startsWith('video') ? (
-            <video src={pendingPreview} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
-          ) : (
-            <img src={pendingPreview} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
-          )}
-          <span style={{ fontSize: 11, color: t.textSecondary, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {pendingFile?.name}
-          </span>
-          <button onClick={clearPending} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-            <X size={14} style={{ color: t.textTertiary }} />
-          </button>
-        </div>
-      )}
-      <div style={{
-        flexShrink: 0,
-        padding: '8px 10px 14px',
-        borderTop: `1px solid ${t.border}`,
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 6,
-      }}>
-        {/* + attachment */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFilePick}
-          style={{ display: 'none' }}
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: t.surfaceElevated, border: 'none',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: uploading ? 0.4 : 0.7,
-            flexShrink: 0,
-          }}
-        >
-          <Plus size={16} style={{ color: t.textSecondary }} />
-        </button>
-
-        {/* textarea */}
-        <textarea
-          ref={textareaRef}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          rows={1}
-          placeholder="Message…"
-          style={{
-            flex: 1,
-            background: t.surfaceElevated,
-            borderRadius: 18,
-            padding: '8px 13px',
-            border: 'none',
-            outline: 'none',
-            fontSize: 13,
-            color: t.textPrimary,
-            WebkitTextFillColor: t.textPrimary,
-            caretColor: t.teal,
-            resize: 'none',
-            lineHeight: 1.4,
-            maxHeight: 100,
-            overflow: 'hidden' as const,
-          }}
-        />
-
-        {/* send */}
-        {hasTrimmed && (
-          <button
-            onClick={handleSend}
-            style={{
-              width: 34, height: 34, borderRadius: '50%',
-              border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13,
-              background: t.teal,
-              color: '#fff',
-              transition: 'background 0.15s',
-            }}
-          >
-            {'\u27A4'}
-          </button>
-        )}
-      </div>
+      <ChatTextBar
+        isDark={isDark}
+        value={message}
+        onChange={setMessage}
+        onSend={handleSend}
+        onFilePick={handleFilePick}
+        pendingPreview={pendingPreview}
+        pendingFileName={pendingFile?.name ?? null}
+        pendingIsVideo={pendingFile?.type.startsWith('video')}
+        onClearPending={clearPending}
+        uploading={uploading}
+      />
     </div>
   )
 }

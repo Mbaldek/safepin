@@ -20,50 +20,55 @@ export interface BreveilToastOptions {
 const VCFG = {
   success: {
     icon: '✓',
-    iconBgD: 'rgba(52,211,153,0.15)',  iconBgL: 'rgba(52,211,153,0.12)',
     iconColor: '#34D399',
-    bgD: 'rgba(14,30,22,0.94)',        bgL: 'rgba(236,253,245,0.97)',
-    border: 'rgba(52,211,153,0.22)',
+    bgD: 'rgba(14,30,22,0.88)',        bgL: 'rgba(236,253,245,0.95)',
+    border: 'rgba(52,211,153,0.25)',
+    glowD: '0 0 20px rgba(52,211,153,0.12)',
+    glowL: '0 0 16px rgba(52,211,153,0.08)',
     progress: '#34D399',
     ctaColor: '#34D399', ctaBg: 'rgba(52,211,153,0.1)',
-    duration: 4000,
+    duration: 3000,
   },
   danger: {
     icon: '✕',
-    iconBgD: 'rgba(239,68,68,0.15)',   iconBgL: 'rgba(239,68,68,0.1)',
     iconColor: '#F87171',
-    bgD: 'rgba(30,12,12,0.94)',        bgL: 'rgba(254,242,242,0.97)',
+    bgD: 'rgba(30,12,12,0.88)',        bgL: 'rgba(254,242,242,0.95)',
     border: 'rgba(239,68,68,0.25)',
+    glowD: '0 0 20px rgba(239,68,68,0.12)',
+    glowL: '0 0 16px rgba(239,68,68,0.08)',
     progress: '#EF4444',
     ctaColor: '#F87171', ctaBg: 'rgba(239,68,68,0.1)',
-    duration: 6000,
+    duration: 5000,
   },
   warning: {
     icon: '⚠',
-    iconBgD: 'rgba(251,191,36,0.15)',  iconBgL: 'rgba(251,191,36,0.12)',
     iconColor: '#FBBF24',
-    bgD: 'rgba(30,24,8,0.94)',         bgL: 'rgba(255,251,235,0.97)',
-    border: 'rgba(251,191,36,0.22)',
+    bgD: 'rgba(30,24,8,0.88)',         bgL: 'rgba(255,251,235,0.95)',
+    border: 'rgba(251,191,36,0.25)',
+    glowD: '0 0 20px rgba(251,191,36,0.12)',
+    glowL: '0 0 16px rgba(251,191,36,0.08)',
     progress: '#FBBF24',
     ctaColor: '#FBBF24', ctaBg: 'rgba(251,191,36,0.1)',
-    duration: 5000,
+    duration: 4000,
   },
   info: {
     icon: '◈',
-    iconBgD: 'rgba(59,180,193,0.13)',  iconBgL: 'rgba(59,180,193,0.1)',
     iconColor: '#3BB4C1',
-    bgD: 'rgba(10,22,35,0.94)',        bgL: 'rgba(236,254,255,0.97)',
-    border: 'rgba(59,180,193,0.22)',
+    bgD: 'rgba(10,22,35,0.88)',        bgL: 'rgba(236,254,255,0.95)',
+    border: 'rgba(59,180,193,0.25)',
+    glowD: '0 0 20px rgba(59,180,193,0.12)',
+    glowL: '0 0 16px rgba(59,180,193,0.08)',
     progress: '#3BB4C1',
     ctaColor: '#3BB4C1', ctaBg: 'rgba(59,180,193,0.1)',
-    duration: 4000,
+    duration: 3000,
   },
   sos: {
     icon: '🔴',
-    iconBgD: 'rgba(239,68,68,0.2)',    iconBgL: 'rgba(239,68,68,0.15)',
     iconColor: '#FF6B6B',
-    bgD: 'rgba(35,8,8,0.97)',          bgL: 'rgba(255,232,232,0.99)',
-    border: 'rgba(239,68,68,0.38)',
+    bgD: 'rgba(35,8,8,0.92)',          bgL: 'rgba(255,232,232,0.97)',
+    border: 'rgba(239,68,68,0.35)',
+    glowD: '0 0 24px rgba(239,68,68,0.2)',
+    glowL: '0 0 20px rgba(239,68,68,0.15)',
     progress: null,
     ctaColor: '#FF6B6B', ctaBg: 'rgba(239,68,68,0.12)',
     duration: undefined,
@@ -83,59 +88,113 @@ function ToastContent({
   isDark: boolean;
 }) {
   const cfg = VCFG[variant];
-  const bg        = isDark ? cfg.bgD        : cfg.bgL;
-  const iconBg    = isDark ? cfg.iconBgD    : cfg.iconBgL;
-  const textPri   = isDark ? '#FFFFFF'      : '#0F172A';
-  const textSec   = isDark ? '#94A3B8'      : '#475569';
-  const dismissBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)';
-  const dismissCl = isDark ? '#64748B'      : '#94A3B8';
-  const shadow    = variant === 'sos'
-    ? '0 8px 28px rgba(239,68,68,0.25)'
-    : isDark ? '0 8px 28px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.1)';
+  const isExpanded = !!(options.desc || options.cta);
+  const bg     = isDark ? cfg.bgD   : cfg.bgL;
+  const glow   = isDark ? cfg.glowD : cfg.glowL;
+  const textPri = isDark ? '#F1F5F9' : '#0F172A';
+  const textSec = isDark ? '#94A3B8' : '#64748B';
   const dur = options.duration !== undefined ? options.duration : cfg.duration;
 
+  const shadow = variant === 'sos'
+    ? `0 4px 16px rgba(239,68,68,0.2), ${glow}`
+    : `0 4px 16px rgba(0,0,0,${isDark ? '0.3' : '0.08'}), ${glow}`;
+
+  /* ── Pill mode (title only) ── */
+  if (!isExpanded) {
+    return (
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '8px 14px 8px 10px',
+          borderRadius: '999px',
+          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          background: bg,
+          border: `1px solid ${cfg.border}`,
+          boxShadow: shadow,
+          cursor: 'pointer',
+          position: 'relative', overflow: 'hidden',
+          maxWidth: '280px', margin: '0 auto',
+        }}
+        onClick={() => { options.onCta?.(); toast.dismiss(toastId); }}
+      >
+        {/* Icon badge */}
+        <span style={{
+          width: '20px', height: '20px', borderRadius: '50%',
+          background: `${cfg.iconColor}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 700, color: cfg.iconColor, flexShrink: 0,
+          animation: variant === 'sos' ? 'bv-sos 1s ease-in-out infinite' : undefined,
+        }}>
+          {cfg.icon}
+        </span>
+
+        {/* Text */}
+        <span style={{
+          fontSize: '13px', fontWeight: 600, lineHeight: 1,
+          color: variant === 'sos' ? '#FF6B6B' : textPri,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {options.title}
+        </span>
+
+        {/* Progress bar */}
+        {cfg.progress && dur && (
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0,
+            height: '1.5px', borderRadius: '0 0 999px 999px',
+            background: cfg.progress, opacity: 0.6,
+            animation: `bv-progress ${dur}ms linear forwards`,
+          }} />
+        )}
+      </div>
+    );
+  }
+
+  /* ── Card mode (desc / cta) ── */
   return (
     <div
       style={{
-        display: 'flex', alignItems: 'flex-start', gap: '11px',
-        padding: '13px 12px 13px 13px',
-        borderRadius: '18px',
-        backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+        padding: '10px 12px',
+        borderRadius: '14px',
+        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         background: bg,
         border: `1px solid ${cfg.border}`,
         boxShadow: shadow,
-        width: '100%', cursor: 'pointer',
+        cursor: 'pointer',
         position: 'relative', overflow: 'hidden',
+        maxWidth: '300px', margin: '0 auto',
       }}
       onClick={() => { options.onCta?.(); toast.dismiss(toastId); }}
     >
-      {/* Icon */}
-      <div style={{
-        width: '32px', height: '32px', borderRadius: '9px',
-        background: iconBg, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', fontSize: '15px',
-        color: cfg.iconColor, flexShrink: 0,
+      {/* Icon badge */}
+      <span style={{
+        width: '24px', height: '24px', borderRadius: '7px',
+        background: `${cfg.iconColor}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '12px', fontWeight: 700, color: cfg.iconColor, flexShrink: 0,
+        marginTop: '1px',
         animation: variant === 'sos' ? 'bv-sos 1s ease-in-out infinite' : undefined,
       }}>
         {cfg.icon}
-      </div>
+      </span>
 
       {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: '12.5px', fontWeight: 600, lineHeight: 1.3, marginBottom: '2px',
+          fontSize: '12.5px', fontWeight: 600, lineHeight: 1.3,
           color: variant === 'sos' ? '#FF6B6B' : textPri,
         }}>
           {options.title}
         </div>
         {options.desc && (
-          <div style={{ fontSize: '11px', color: textSec, lineHeight: 1.4 }}>
+          <div style={{ fontSize: '11px', color: textSec, lineHeight: 1.35, marginTop: '2px' }}>
             {options.desc}
           </div>
         )}
         {options.cta && (
           <div style={{
-            fontSize: '10.5px', fontWeight: 700, marginTop: '6px',
+            fontSize: '10.5px', fontWeight: 700, marginTop: '5px',
             display: 'inline-flex', alignItems: 'center', gap: '4px',
             padding: '3px 8px', borderRadius: '6px',
             color: cfg.ctaColor, background: cfg.ctaBg,
@@ -145,25 +204,12 @@ function ToastContent({
         )}
       </div>
 
-      {/* Dismiss */}
-      <button
-        onClick={(e) => { e.stopPropagation(); toast.dismiss(toastId); }}
-        style={{
-          width: '20px', height: '20px', borderRadius: '50%',
-          background: dismissBg, border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '9px', color: dismissCl, flexShrink: 0, marginTop: '2px',
-        }}
-      >
-        ✕
-      </button>
-
       {/* Progress bar */}
       {cfg.progress && dur && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0,
-          height: '2px', borderRadius: '0 0 18px 18px',
-          background: cfg.progress,
+          height: '1.5px', borderRadius: '0 0 14px 14px',
+          background: cfg.progress, opacity: 0.6,
           animation: `bv-progress ${dur}ms linear forwards`,
         }} />
       )}
@@ -217,7 +263,6 @@ export default function GlobalToast() {
     if (toastQueue.length === 0) return;
     const item = toastQueue[0];
 
-    // item.variant est 'info' | 'success' | 'warning' — pas de 'error'/'sos' dans le store legacy
     const variantMap: Record<string, ToastVariant> = {
       success: 'success',
       warning: 'warning',
@@ -246,30 +291,32 @@ export default function GlobalToast() {
           50%      { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
         }
         [data-sonner-toast] {
-          animation: bv-in 0.42s cubic-bezier(0.16,1,0.3,1) both !important;
+          animation: bv-in 0.32s cubic-bezier(0.16,1,0.3,1) both !important;
         }
         [data-sonner-toast][data-removed="true"] {
-          animation: bv-out 0.26s cubic-bezier(0.4,0,1,1) forwards !important;
+          animation: bv-out 0.2s cubic-bezier(0.4,0,1,1) forwards !important;
         }
         @keyframes bv-in {
-          from { opacity:0; transform:translateY(-16px) scale(0.95); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
+          from { opacity:0; transform:translateY(-12px) scale(0.92); filter:blur(4px); }
+          to   { opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
         }
         @keyframes bv-out {
-          from { opacity:1; transform:translateX(0); }
-          to   { opacity:0; transform:translateX(110%); }
+          from { opacity:1; transform:translateY(0) scale(1); }
+          to   { opacity:0; transform:translateY(-8px) scale(0.95); }
         }
       `}</style>
       <Toaster
         position="top-center"
         visibleToasts={3}
-        gap={8}
+        gap={6}
         toastOptions={{
           unstyled: true,
           style: {
             width: '100%',
-            maxWidth: '340px',
+            maxWidth: '300px',
             fontFamily: 'Inter, -apple-system, sans-serif',
+            display: 'flex',
+            justifyContent: 'center',
           },
         }}
       />

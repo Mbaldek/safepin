@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { MessageCircle, Phone } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
 import { useStore } from '@/stores/useStore'
 import { useUiStore } from '@/stores/uiStore'
@@ -213,10 +214,10 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                         width: 33, height: 33, borderRadius: '50%',
                         border: `1px solid ${t.border}`, background: 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', position: 'relative', fontSize: 12,
+                        cursor: 'pointer', position: 'relative',
                       }}
                     >
-                      {'\uD83D\uDCAC'}
+                      <MessageCircle size={16} color={t.textSecondary} />
                       {hasUnread && (
                         <span style={{
                           position: 'absolute', top: 2, right: 2,
@@ -236,11 +237,11 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                         }
                       }}
                       style={{
-                        width: 33, height: 33, borderRadius: '50%',
+                        width: 33, height: 33, borderRadius: 10,
                         background: callState === 'active' ? 'rgba(59,180,193,0.22)'
                           : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
                           : callState === 'muted' ? 'rgba(239,68,68,0.12)'
-                          : `${t.teal}1a`,
+                          : t.teal,
                         border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
                           : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
                           : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
@@ -253,10 +254,10 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                           : 'none',
                         transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', fontSize: 12,
+                        cursor: 'pointer',
                       }}
                     >
-                      {'\uD83D\uDCDE'}
+                      <Phone size={16} color={callState === 'idle' ? '#FFFFFF' : callState === 'muted' ? '#EF4444' : t.teal} />
                     </button>
 
                     {/* invite pill */}
