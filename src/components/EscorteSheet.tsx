@@ -25,7 +25,7 @@ import type { RouteOption } from '@/stores/useStore'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
 import { useStore } from '@/stores/useStore'
 import FavorisManager from './FavorisManager'
-import { toast } from 'sonner'
+import { useToast } from '@/hooks/useToast'
 import type { FavoriTrajet, MapboxSuggestion, RouteMode } from '@/types'
 import { useAudioCall } from '@/stores/useAudioCall'
 
@@ -39,6 +39,7 @@ interface Props {
 }
 
 export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte, onClose }: Props) {
+  const toast = useToast()
   const d  = isDark
   const tk = tok(isDark)
   const C = {
@@ -1506,7 +1507,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           <MapPin size={14} strokeWidth={2} />
           Retour a la carte
         </button>
-        <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }} onClick={() => toast('Résumé du trajet bientôt disponible')}>
+        <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }} onClick={() => toast.info('Résumé du trajet bientôt disponible')}>
           Voir le resume du trajet
         </button>
       </motion.div>

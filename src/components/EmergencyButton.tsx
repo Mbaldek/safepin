@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 import { useTranslations } from 'next-intl';
 import { haversineMeters } from '@/lib/utils';
 import { geocodeReverse } from '@/lib/geocode';
@@ -47,6 +47,7 @@ async function dispatchToContacts(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function EmergencyButton({ userId, compact = false }: { userId: string | null; compact?: boolean }) {
+  const toast = useToast();
   const { userLocation, setUserLocation } = useStore();
   useTheme(); // subscribe to theme changes for CSS var updates
   const t = useTranslations('emergency');

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { X } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 
 const REACTIONS = [
   { emoji: '\uD83E\uDEC2', label: 'Je suis avec toi' },
@@ -19,6 +19,7 @@ interface SoutienSheetProps {
 }
 
 export default function SoutienSheet({ postId, onClose }: SoutienSheetProps) {
+  const toast = useToast();
   const [selected, setSelected] = useState<number | null>(null);
   const [sent, setSent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +33,7 @@ export default function SoutienSheet({ postId, onClose }: SoutienSheetProps) {
       : inputRef.current?.value || '';
     void label; // will be used when DB table exists
     void postId;
-    toast('\uD83E\uDEC2 Soutien envoy\u00e9');
+    toast.info('\uD83E\uDEC2 Soutien envoy\u00e9');
     setSent(true);
   };
 

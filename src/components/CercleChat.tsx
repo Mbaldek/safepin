@@ -5,7 +5,7 @@ import ChatTextBar from '@/components/chat/ChatTextBar'
 import { Phone } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
 import { supabase } from '@/lib/supabase'
-import { toast } from 'sonner'
+import { useToast } from '@/hooks/useToast'
 import type { CircleMember, CircleMessage } from '@/types'
 
 interface CercleChatProps {
@@ -37,6 +37,7 @@ export default function CercleChat({
   callState = 'idle',
   sendMessage,
 }: CercleChatProps) {
+  const toast = useToast()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 

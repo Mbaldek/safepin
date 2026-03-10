@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
 import SettingsSection from '../components/SettingsSection';
@@ -40,6 +40,7 @@ function providerLabel(provider?: string): string {
 }
 
 export default function SessionsSecurityScreen({ onBack }: Props) {
+  const toast = useToast();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);

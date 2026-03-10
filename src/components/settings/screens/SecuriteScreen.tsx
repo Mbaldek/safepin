@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/stores/useTheme';
 import { useStore } from '@/stores/useStore';
@@ -15,6 +15,7 @@ export interface SecuriteScreenProps {
 }
 
 export default function SecuriteScreen({ onBack, onClose, onNavigate }: SecuriteScreenProps) {
+  const toast = useToast();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const verified = useStore((s) => s.userProfile?.verified);
   const [circleCount, setCircleCount] = useState<number | null>(null);
@@ -31,7 +32,7 @@ export default function SecuriteScreen({ onBack, onClose, onNavigate }: Securite
     })();
   }, []);
 
-  const comingSoon = () => toast('Bientôt disponible');
+  const comingSoon = () => toast.info('Bientôt disponible');
   const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
 
   return (

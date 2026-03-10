@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 import { sendSupportMessage, markConversationRead, notifyDmRecipient } from '@/lib/support';
 import ChatBubble, { type ChatColors } from './ChatBubble';
 import ChatTextBar from './ChatTextBar';
@@ -36,6 +36,7 @@ export default function ChatView({
   buttonBg,
   isDark = false,
 }: ChatViewProps) {
+  const toast = useToast();
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);

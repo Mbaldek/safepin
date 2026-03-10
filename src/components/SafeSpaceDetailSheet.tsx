@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/stores/useTheme';
 import { SafeSpace, SafeSpaceMedia, DayHours } from '@/types';
 import { T } from '@/lib/tokens';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -97,6 +97,7 @@ const SPRING = { type: 'spring' as const, damping: 30, stiffness: 300 };
 // ─── Component ──────────────────────────────────────────────────────
 
 export default function SafeSpaceDetailSheet({ safeSpace, userId, isOpen, onClose, onNavigate }: Props) {
+  const toast = useToast();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const d = isDark;
 

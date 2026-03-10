@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/stores/useTheme';
 import { SavedPlace } from '@/types';
 import { T } from '@/lib/tokens';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -101,6 +101,7 @@ interface FavorisSheetProps {
 // ─── Component ──────────────────────────────────────────────────────
 
 export default function FavorisSheet({ isOpen, onClose, onSelect, userId, userLat, userLng }: FavorisSheetProps) {
+  const toast = useToast();
   const isDark = useTheme((s) => s.theme) === 'dark';
   const d = isDark;
 

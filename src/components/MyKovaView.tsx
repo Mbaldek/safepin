@@ -17,7 +17,7 @@ import {
   CATEGORIES, SEVERITY,
 } from '@/types';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 import VerificationView from '@/components/VerificationView';
 import SettingsSheet from '@/components/settings/SettingsSheet';
 import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
@@ -138,6 +138,7 @@ type PinFilter = 'all' | 'active' | 'resolved';
 // ─── Root component ──────────────────────────────────────────────────────────
 
 export default function MyKovaView({ userId, userEmail, onClose }: { userId: string; userEmail: string; onClose: () => void }) {
+  const toast = useToast();
   const router = useRouter();
   const {
     pins, userProfile, setUserProfile, setSelectedPin, setActiveSheet, setPins, updatePin,

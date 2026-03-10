@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 
 function getColors(isDark: boolean) {
   return isDark ? {
@@ -56,6 +56,7 @@ function getStatusConfig(c: ReturnType<typeof getColors>): Record<VerifStatus, {
 const VERIFF_CDN = 'https://cdn.veriff.me/incontext/js/v1/veriff.js';
 
 export default function VerificationView({ onClose }: { onClose: () => void }) {
+  const toast = useToast();
   const isDark = useTheme(s => s.theme) === 'dark';
   const c = getColors(isDark);
   const STATUS_CONFIG = getStatusConfig(c);

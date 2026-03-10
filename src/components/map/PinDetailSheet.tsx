@@ -18,7 +18,7 @@ import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
 import { haversineMetersRaw } from '@/lib/utils'
 import { T } from '@/lib/tokens'
-import { toast } from 'sonner'
+import { useToast } from '@/hooks/useToast'
 import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
 import { HashtagPill } from '@/components/map/hashtags'
 import type { Hashtag } from '@/types'
@@ -108,6 +108,7 @@ function PinDetailSheet({
   userLng,
   onNavigateTo,
 }: PinDetailSheetProps) {
+  const toast = useToast()
   const isDark = useTheme((s) => s.theme) === 'dark'
   const d = isDark
   const { updatePin, pins, setSelectedPin, setActiveSheet, userLocation } = useStore()
@@ -247,7 +248,7 @@ function PinDetailSheet({
     const { data, error } = await supabase.rpc('flag_pin', { p_pin_id: pin.id, p_reason: 'false_report' })
     if (error) { toast.error('Erreur'); return }
     if (data) updatePin(data)
-    toast('Signalement envoyé')
+    toast.info('Signalement envoyé')
     setShowFalseReportConfirm(false)
   }
 
