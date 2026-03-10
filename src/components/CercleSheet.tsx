@@ -70,6 +70,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   const globalSource = useAudioCall((s) => s.source)
   const startCall = useAudioCall((s) => s.startCall)
   const endCallGlobal = useAudioCall((s) => s.endCall)
+  const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
   const callActive = globalSource === 'cercle' && globalCallState !== 'idle'
 
   // tokens
@@ -170,6 +171,8 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                 onStartCall={() => {
                   if (!callActive) {
                     startCall({ roomName: `cercle-${userId}`, source: 'cercle', sourceId: userId, title: 'Appel groupe · Cercle', participantNames })
+                    setCallSheetOpen(true)
+                    onClose()
                   } else {
                     endCallGlobal()
                   }
@@ -219,12 +222,14 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                       onClick={() => {
                         if (!callActive) {
                           startCall({ roomName: `cercle-${userId}`, source: 'cercle', sourceId: userId, title: 'Appel groupe · Cercle', participantNames })
+                          setCallSheetOpen(true)
+                          onClose()
                         } else {
                           endCallGlobal()
                         }
                       }}
                       style={{
-                        width: 33, height: 33, borderRadius: 10,
+                        width: 33, height: 33, borderRadius: '50%',
                         background: callActive ? 'rgba(59,180,193,0.22)' : t.teal,
                         border: callActive ? '1px solid rgba(59,180,193,0.45)' : 'none',
                         boxShadow: callActive ? '0 0 0 4px rgba(59,180,193,0.08)' : 'none',

@@ -1406,13 +1406,15 @@ activeTrip, setActiveTrip,
         )}
       </AnimatePresence>
 
-      {showTripHistory && userId && (
-        <TripView
-          key="trip-history"
-          onClose={() => setShowTripHistory(false)}
-          openToHistory
-        />
-      )}
+      <AnimatePresence>
+        {showTripHistory && userId && (
+          <TripView
+            key="trip-history"
+            onClose={() => setShowTripHistory(false)}
+            openToHistory
+          />
+        )}
+      </AnimatePresence>
 
       {/* Post-onboarding community tooltip */}
       <CommunityTooltip show={showCommunityTooltip} />

@@ -306,7 +306,7 @@ export default function CallSheet() {
   )
 
   const renderActionRow = () => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px 18px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44, padding: '0 0 18px' }}>
       {/* Speaker */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
         <div style={{

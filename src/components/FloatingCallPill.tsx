@@ -119,9 +119,8 @@ export default function FloatingCallPill() {
           transition={{ type: 'spring', stiffness: 340, damping: 28 }}
           style={{
             position: 'fixed',
-            top: 'calc(env(safe-area-inset-top, 12px) + 8px)',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+            left: 16,
             zIndex: 999,
             width: 272,
             display: 'flex',
