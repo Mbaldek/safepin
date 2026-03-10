@@ -188,6 +188,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                     setCallState('idle')
                   }
                 }}
+                callState={callState}
                 sendMessage={sendMessage}
               />
             ) : (

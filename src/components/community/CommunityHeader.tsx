@@ -35,7 +35,7 @@ export default function Header({ isDark, onCompose, onClose }: HeaderProps) {
     >
       {/* Left side */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 17, fontWeight: 700, color: textColor }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: textColor }}>
           Communaute
         </span>
         <div

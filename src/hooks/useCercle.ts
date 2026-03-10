@@ -11,6 +11,7 @@ export function useCercle(userId: string) {
   const [messages, setMessages] = useState<CircleMessage[]>([])
   const [loading, setLoading] = useState(true)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const membersRef = useRef<CircleMember[]>([])
 
   // ── MEMBERS ────────────────────────────────────────────
   const fetchMembers = useCallback(async () => {
@@ -96,6 +97,7 @@ export function useCercle(userId: string) {
       })
 
       setMembers(mapped)
+      membersRef.current = mapped
     } catch (err) {
       if (isDev) console.error('[useCercle] fetchMembers', err)
     }
@@ -156,7 +158,27 @@ export function useCercle(userId: string) {
           schema: 'public',
           table: 'circle_messages',
         },
-        () => fetchMessages()
+        (payload) => {
+          const m = payload.new as Record<string, unknown>
+          const senderId = m.sender_id as string
+          const memberName = membersRef.current.find(x => x.id === senderId)?.name ?? ''
+          const newMsg: CircleMessage = {
+            id: m.id as string,
+            sender_id: senderId,
+            sender_name: memberName,
+            content: m.content as string,
+            type: m.type as CircleMessage['type'],
+            media_url: (m.media_url as string | null) ?? null,
+            created_at: m.created_at as string,
+            is_safe_arrival: (m.is_safe_arrival as boolean) ?? false,
+          }
+          setMessages(prev => {
+            // Replace temp optimistic (own messages) or append (others)
+            const withoutTemp = prev.filter(x => !x.id.startsWith('temp-') || x.sender_id !== senderId)
+            if (withoutTemp.some(x => x.id === newMsg.id)) return prev
+            return [...withoutTemp, newMsg]
+          })
+        }
       )
       .subscribe()
 
@@ -173,6 +195,20 @@ export function useCercle(userId: string) {
     async (content: string, type: string = 'text', media_url?: string) => {
       if (!userId || (!content.trim() && !media_url)) return
 
+      // Optimistic update: show message instantly
+      const tempId = `temp-${Date.now()}`
+      const optimistic: CircleMessage = {
+        id: tempId,
+        sender_id: userId,
+        sender_name: '',
+        content: content.trim(),
+        type: type as CircleMessage['type'],
+        media_url: media_url ?? null,
+        created_at: new Date().toISOString(),
+        is_safe_arrival: false,
+      }
+      setMessages(prev => [...prev, optimistic])
+
       try {
         const { error } = await supabase.from('circle_messages').insert({
           sender_id: userId,
@@ -180,8 +216,12 @@ export function useCercle(userId: string) {
           type,
           ...(media_url ? { media_url } : {}),
         })
-        if (error && isDev) console.error('[useCercle] sendMessage', error)
+        if (error) {
+          setMessages(prev => prev.filter(m => m.id !== tempId))
+          if (isDev) console.error('[useCercle] sendMessage', error)
+        }
       } catch (err) {
+        setMessages(prev => prev.filter(m => m.id !== tempId))
         if (isDev) console.error('[useCercle] sendMessage', err)
       }
     },

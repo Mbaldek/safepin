@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ChatTextBar from '@/components/chat/ChatTextBar'
+import { Phone } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -14,6 +15,7 @@ interface CercleChatProps {
   loading?: boolean
   onBack: () => void
   onStartCall: () => void
+  callState?: 'idle' | 'connecting' | 'active' | 'muted' | 'error'
   sendMessage: (content: string, type?: string, media_url?: string) => void
 }
 
@@ -32,6 +34,7 @@ export default function CercleChat({
   loading,
   onBack,
   onStartCall,
+  callState = 'idle',
   sendMessage,
 }: CercleChatProps) {
   const { theme } = useTheme()
@@ -116,6 +119,10 @@ export default function CercleChat({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <style>{`
+        @keyframes bv-call-breath{0%,100%{box-shadow:0 0 0 4px rgba(59,180,193,0.08)}50%{box-shadow:0 0 0 8px rgba(59,180,193,0.14)}}
+        @keyframes bv-call-muted{0%,100%{box-shadow:0 0 0 4px rgba(239,68,68,0.08)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0.14)}}
+      `}</style>
       {/* 1. HEADER */}
       <div style={{
         flexShrink: 0,
@@ -177,13 +184,28 @@ export default function CercleChat({
           onClick={onStartCall}
           style={{
             width: 32, height: 32, borderRadius: '50%',
-            background: 'transparent',
-            border: `1px solid ${t.teal}`,
-            cursor: 'pointer', fontSize: 13,
+            background: callState === 'active' ? 'rgba(59,180,193,0.22)'
+              : callState === 'connecting' ? 'rgba(251,191,36,0.12)'
+              : callState === 'muted' ? 'rgba(239,68,68,0.12)'
+              : 'none',
+            border: callState === 'active' ? '1px solid rgba(59,180,193,0.45)'
+              : callState === 'connecting' ? '1px solid rgba(251,191,36,0.35)'
+              : callState === 'muted' ? '1px solid rgba(239,68,68,0.35)'
+              : `1px solid rgba(59,180,193,0.35)`,
+            boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
+              : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
+              : 'none',
+            animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
+              : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
+              : 'none',
+            transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+            cursor: 'pointer',
+            color: callState === 'muted' ? '#EF4444' : callState !== 'idle' ? t.teal : t.teal,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: callState === 'idle' ? 0.9 : 1,
           }}
         >
-          {'\uD83D\uDCDE'}
+          <Phone size={16} />
         </button>
 
         {/* more */}

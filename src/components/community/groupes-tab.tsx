@@ -23,6 +23,8 @@ interface ChatMessage {
   id: string;
   user_id: string;
   content: string;
+  media_url?: string | null;
+  type?: string;
   created_at: string;
   display_name: string | null;
   avatar_emoji?: string | null;
@@ -65,6 +67,9 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const [chatLoading, setChatLoading] = useState(false);
   const [msgInput, setMsgInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,6 +159,8 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
               id: m.id,
               user_id: m.user_id,
               content: m.content,
+              media_url: m.media_url ?? null,
+              type: m.type ?? 'text',
               created_at: m.created_at,
               display_name: m.display_name || "Membre",
               avatar_emoji: null,
@@ -180,17 +187,46 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
     onJoined?.();
   };
 
+  const clearPending = useCallback(() => {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingPreview(null);
+  }, [pendingPreview]);
+
+  const handleFilePick = useCallback((file: File) => {
+    if (file.size > 10 * 1024 * 1024) { toast.error('Fichier trop lourd (max 10 Mo)'); return; }
+    setPendingFile(file);
+    setPendingPreview(URL.createObjectURL(file));
+  }, []);
+
   const handleSend = useCallback(async () => {
-    if (!msgInput.trim() || !activeGroup || !userId || sending) return;
+    if ((!msgInput.trim() && !pendingFile) || !activeGroup || !userId || sending) return;
     const content = msgInput.trim();
     setSending(true);
     setMsgInput("");
+
+    let mediaUrl: string | undefined;
+    const fileToUpload = pendingFile;
+    if (fileToUpload) {
+      setUploading(true);
+      const ext = fileToUpload.name.split('.').pop() || 'bin';
+      const path = `community/${userId}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('media').upload(path, fileToUpload);
+      setUploading(false);
+      if (upErr) { toast.error("Erreur d'upload"); setSending(false); return; }
+      const { data: pub } = supabase.storage.from('media').getPublicUrl(path);
+      mediaUrl = pub.publicUrl;
+      clearPending();
+    }
+    const msgType = mediaUrl ? (fileToUpload?.type.startsWith('video') ? 'video' : 'image') : 'text';
 
     // Optimistic message
     const optimistic: ChatMessage = {
       id: `opt-${Date.now()}`,
       user_id: userId,
       content,
+      media_url: mediaUrl ?? null,
+      type: msgType,
       created_at: new Date().toISOString(),
       display_name: "Moi",
       avatar_emoji: null,
@@ -202,10 +238,11 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       community_id: activeGroup,
       user_id: userId,
       content,
+      ...(mediaUrl ? { media_url: mediaUrl, type: msgType } : {}),
     });
     if (error) toast.error("Erreur d'envoi");
     setSending(false);
-  }, [msgInput, activeGroup, userId, sending]);
+  }, [msgInput, pendingFile, activeGroup, userId, sending, clearPending]);
 
   const q = searchQuery.toLowerCase();
   const filteredMy = myGroups.filter((g) => !q || g.name.toLowerCase().includes(q));
@@ -392,6 +429,13 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                       fontSize: 11, lineHeight: 1.5,
                       wordBreak: 'break-word',
                     }}>
+                      {msg.media_url && (
+                        /\.(mp4|mov|webm)(\?|$)/i.test(msg.media_url) ? (
+                          <video src={msg.media_url} controls playsInline style={{ maxWidth: 220, borderRadius: 10, display: 'block', marginBottom: msg.content ? 4 : 0 }} />
+                        ) : (
+                          <img src={msg.media_url} alt="" style={{ maxWidth: 220, borderRadius: 10, display: 'block', marginBottom: msg.content ? 4 : 0 }} />
+                        )
+                      )}
                       {msg.content}
                       <span style={{
                         display: 'block', fontSize: 9,
@@ -416,6 +460,12 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           onSend={handleSend}
           sending={sending}
           placeholder={chatPlaceholder}
+          onFilePick={handleFilePick}
+          pendingPreview={pendingPreview}
+          pendingFileName={pendingFile?.name ?? null}
+          pendingIsVideo={pendingFile?.type.startsWith('video')}
+          onClearPending={clearPending}
+          uploading={uploading}
         />
       </div>
     );

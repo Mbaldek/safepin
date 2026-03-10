@@ -2,13 +2,14 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, PanInfo } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { Shield, ChevronUp, X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { CATEGORY_DETAILS, CATEGORY_GROUPS } from '@/types';
 import { haversineMeters } from '@/lib/utils';
+import { useMemo } from 'react';
 import type { Pin } from '@/types';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ function getColors(isDark: boolean) {
 }
 
 const F = {
-  cyan: '#3BB4C1', cyanSoft: 'rgba(59,180,193,0.12)',
+  cyan: '#3BB4C1', cyanSoft: 'rgba(59,180,193,0.12)', cyanBorder: 'rgba(59,180,193,0.25)',
   gold: '#F5C341',
   success: '#34D399',
   danger: '#EF4444',
@@ -51,10 +52,10 @@ function getCatConfig(category: string) {
   return { emoji, color, label };
 }
 
-const SEVERITY_CONFIG: Record<string, { bg: string; label: string }> = {
-  high: { bg: F.danger, label: 'Grave' },
-  med: { bg: F.gold, label: 'Modéré' },
-  low: { bg: F.success, label: 'Faible' },
+const SEVERITY_CONFIG: Record<string, { bg: string; border: string; text: string; label: string }> = {
+  high: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.2)',   text: F.danger,  label: 'Grave' },
+  med:  { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.2)', text: F.gold,    label: 'Modéré' },
+  low:  { bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.2)', text: F.success, label: 'Faible' },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -217,9 +218,9 @@ export default function NearbySheet({ onClose }: Props) {
       </motion.div>
 
       {/* Peek header — always visible */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', paddingBottom: snapPoint === 'collapsed' ? 16 : 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: C.t1, margin: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 0', paddingBottom: snapPoint === 'collapsed' ? 16 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 800, color: C.t1, margin: 0 }}>
             Signalements proches
           </h2>
           <motion.span
@@ -227,11 +228,12 @@ export default function NearbySheet({ onClose }: Props) {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             style={{
-              backgroundColor: F.cyan,
-              color: '#fff',
-              fontSize: 12,
-              fontWeight: 600,
-              padding: '3px 8px',
+              backgroundColor: F.cyanSoft,
+              border: `1px solid ${F.cyanBorder}`,
+              color: F.cyan,
+              fontSize: 11,
+              fontWeight: 800,
+              padding: '2px 8px',
               borderRadius: 9999,
             }}
           >
@@ -241,10 +243,10 @@ export default function NearbySheet({ onClose }: Props) {
         <button
           onClick={onClose}
           style={{
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             borderRadius: 9999,
-            backgroundColor: C.card,
+            backgroundColor: C.elevated,
             border: `1px solid ${C.border}`,
             display: 'flex',
             alignItems: 'center',
@@ -252,7 +254,7 @@ export default function NearbySheet({ onClose }: Props) {
             cursor: 'pointer',
           }}
         >
-          <X size={16} style={{ color: C.t2 }} />
+          <X size={13} style={{ color: C.t2 }} />
         </button>
       </div>
 
@@ -265,30 +267,33 @@ export default function NearbySheet({ onClose }: Props) {
           style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         >
           {/* Tabs */}
-          <div style={{ display: 'flex', padding: '0 20px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', padding: '10px 16px 0', borderBottom: `1px solid ${C.border}` }}>
             {tabs.map((tab) => {
               const disabled = tab === 'Sécurité' || tab === 'Alertes';
+              const isActive = !disabled && activeTab === tab;
               return (
                 <button
                   key={tab}
                   onClick={() => { if (!disabled) setActiveTab(tab); }}
                   style={{
                     flex: 1,
-                    padding: '12px 0',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: disabled ? C.t3 : activeTab === tab ? F.cyan : C.t3,
-                    opacity: disabled ? 0.5 : 1,
+                    padding: '0 4px 8px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: disabled ? C.t3 : isActive ? F.cyan : C.t3,
+                    opacity: disabled ? 0.45 : 1,
                     backgroundColor: 'transparent',
                     border: 'none',
-                    borderBottom: !disabled && activeTab === tab ? `2px solid ${F.cyan}` : '2px solid transparent',
+                    borderBottom: '2px solid transparent',
                     cursor: disabled ? 'not-allowed' : 'pointer',
                     pointerEvents: disabled ? 'none' : 'auto',
                     transition: 'color 0.2s',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: 5,
+                    position: 'relative',
+                    fontFamily: 'inherit',
                   }}
                 >
                   {tab}
@@ -299,11 +304,23 @@ export default function NearbySheet({ onClose }: Props) {
                       background: C.elevated,
                       color: C.t3,
                       borderRadius: 99,
-                      padding: '1px 6px',
+                      padding: '1px 5px',
                       border: `1px solid ${C.border}`,
                     }}>
                       Bientôt
                     </span>
+                  )}
+                  {isActive && (
+                    <motion.div
+                      layoutId="nearby-tab-bar"
+                      style={{
+                        position: 'absolute',
+                        bottom: -1, left: 0, right: 0,
+                        height: 2,
+                        background: F.cyan,
+                        borderRadius: 1,
+                      }}
+                    />
                   )}
                 </button>
               );
@@ -311,27 +328,45 @@ export default function NearbySheet({ onClose }: Props) {
           </div>
 
           {/* Filters */}
-          <div style={{ padding: '12px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ padding: '10px 14px 0', display: 'flex', flexDirection: 'column', gap: 7 }}>
             {/* Radius */}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               {radiusFilters.map((f) => (
-                <FilterChip key={f} label={f} isActive={radiusFilter === f} onClick={() => setRadiusFilter(f)} C={C} small />
+                <Pill
+                  key={f}
+                  label={f}
+                  isActive={radiusFilter === f}
+                  activeColor="teal"
+                  onClick={() => setRadiusFilter(f)}
+                  C={C}
+                />
               ))}
             </div>
             {/* Severity */}
-            <div style={{ display: 'flex', gap: 8, paddingBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 6, paddingBottom: 8 }}>
               {severityFilters.map((f) => (
-                <SeverityChip key={f} label={f} isActive={severityFilter === f} onClick={() => setSeverityFilter(f)} C={C} />
+                <Pill
+                  key={f}
+                  label={f}
+                  isActive={severityFilter === f}
+                  activeColor={f === 'Tous' ? 'teal' : f === 'Faible' ? 'green' : f === 'Modéré' ? 'amber' : 'red'}
+                  tint={f === 'Faible' ? 'green' : f === 'Modéré' ? 'amber' : f === 'Grave' ? 'red' : undefined}
+                  onClick={() => setSeverityFilter(f)}
+                  C={C}
+                />
               ))}
             </div>
           </div>
 
+          {/* Separator */}
+          <div style={{ height: 1, background: C.border, margin: '0 14px' }} />
+
           {/* List */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0 8px' }}>
             {filteredPins.length === 0 ? (
               <EmptyState C={C} />
             ) : (
-              <div>
+              <div key={`${radiusFilter}-${severityFilter}`}>
                 {filteredPins.map((entry, i) => (
                   <IncidentItem
                     key={entry.pin.id}
@@ -355,59 +390,61 @@ export default function NearbySheet({ onClose }: Props) {
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 type Colors = ReturnType<typeof getColors>;
+type ActiveColor = 'teal' | 'green' | 'amber' | 'red';
+type TintColor = 'green' | 'amber' | 'red';
 
-function FilterChip({ label, isActive, onClick, C, small = false }: {
-  label: string; isActive: boolean; onClick: () => void; C: Colors; small?: boolean;
+const ACTIVE_STYLES: Record<ActiveColor, { bg: string; border: string; color: string; shadow: string }> = {
+  teal:  { bg: F.cyan,    border: F.cyan,    color: '#fff',     shadow: '0 4px 14px rgba(59,180,193,0.4)' },
+  green: { bg: F.success, border: F.success, color: '#fff',     shadow: '0 4px 14px rgba(52,211,153,0.4)' },
+  amber: { bg: F.gold,    border: F.gold,    color: '#0F172A',  shadow: '0 4px 14px rgba(251,191,36,0.4)' },
+  red:   { bg: F.danger,  border: F.danger,  color: '#fff',     shadow: '0 4px 14px rgba(239,68,68,0.4)' },
+};
+
+const TINT_STYLES: Record<TintColor, { bg: string; border: string; color: string }> = {
+  green: { bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)',  color: F.success },
+  amber: { bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.3)',  color: F.gold },
+  red:   { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.3)',   color: F.danger },
+};
+
+function Pill({ label, isActive, activeColor, tint, onClick, C }: {
+  label: string;
+  isActive: boolean;
+  activeColor: ActiveColor;
+  tint?: TintColor;
+  onClick: () => void;
+  C: Colors;
 }) {
+  const activeStyle = ACTIVE_STYLES[activeColor];
+  const tintStyle = tint ? TINT_STYLES[tint] : null;
+
+  const bg = isActive ? activeStyle.bg : (tintStyle ? tintStyle.bg : 'transparent');
+  const border = isActive ? activeStyle.border : (tintStyle ? tintStyle.border : C.border);
+  const color = isActive ? activeStyle.color : (tintStyle ? tintStyle.color : C.t2);
+  const shadow = isActive ? activeStyle.shadow : 'none';
+
   return (
-    <button
+    <motion.button
       onClick={onClick}
+      animate={{ scale: isActive ? 1.06 : 1, boxShadow: shadow }}
+      whileTap={{ scale: 0.88 }}
+      whileHover={!isActive ? { scale: 1.04 } : { scale: 1.09 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       style={{
-        backgroundColor: isActive ? F.cyan : 'transparent',
-        color: isActive ? '#fff' : C.t2,
-        border: `1px solid ${isActive ? F.cyan : C.border}`,
-        borderRadius: 16,
-        padding: small ? '5px 10px' : '7px 14px',
-        fontSize: small ? 12 : 13,
-        fontWeight: 500,
+        backgroundColor: bg,
+        color,
+        border: `1.5px solid ${border}`,
+        borderRadius: 99,
+        padding: '6px 13px',
+        fontSize: 11,
+        fontWeight: 700,
         cursor: 'pointer',
         whiteSpace: 'nowrap' as const,
+        fontFamily: 'inherit',
+        outline: 'none',
       }}
     >
       {label}
-    </button>
-  );
-}
-
-function SeverityChip({ label, isActive, onClick, C }: {
-  label: string; isActive: boolean; onClick: () => void; C: Colors;
-}) {
-  const getStyle = () => {
-    if (!isActive) return { bg: 'transparent', text: C.t2, border: C.border };
-    switch (label) {
-      case 'Faible': return { bg: F.success, text: '#fff', border: F.success };
-      case 'Modéré': return { bg: F.gold, text: '#fff', border: F.gold };
-      case 'Grave': return { bg: F.danger, text: '#fff', border: F.danger };
-      default: return { bg: F.cyan, text: '#fff', border: F.cyan };
-    }
-  };
-  const s = getStyle();
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        backgroundColor: s.bg,
-        color: s.text,
-        border: `1px solid ${s.border}`,
-        borderRadius: 16,
-        padding: '5px 12px',
-        fontSize: 12,
-        fontWeight: 500,
-        cursor: 'pointer',
-      }}
-    >
-      {label}
-    </button>
+    </motion.button>
   );
 }
 
@@ -420,15 +457,16 @@ function IncidentItem({ pin, dist, index, C, isLast, onTap }: {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03 }}
+      initial={{ opacity: 0, x: -22 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 28, delay: Math.min(index * 0.08, 0.32) }}
+      whileTap={{ scale: 0.98, opacity: 0.75 }}
       onClick={() => onTap(pin)}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        padding: '12px 0',
+        gap: 11,
+        padding: '11px 16px',
         borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
         cursor: 'pointer',
       }}
@@ -436,15 +474,15 @@ function IncidentItem({ pin, dist, index, C, isLast, onTap }: {
       {/* Emoji circle */}
       <div
         style={{
-          width: 44,
-          height: 44,
+          width: 42,
+          height: 42,
           borderRadius: '50%',
           backgroundColor: `${cat.color}20`,
           border: `1px solid ${cat.color}50`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 20,
+          fontSize: 18,
           flexShrink: 0,
         }}
       >
@@ -453,26 +491,28 @@ function IncidentItem({ pin, dist, index, C, isLast, onTap }: {
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: C.t1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.t1, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {cat.label}
         </div>
-        <div style={{ fontSize: 13, color: C.t2, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ fontSize: 10, color: C.t3, display: 'flex', alignItems: 'center', gap: 6 }}>
           {dist !== null && <span>{formatDist(dist)}</span>}
           <span>·</span>
           <span>{formatTimeAgo(pin.created_at)}</span>
         </div>
       </div>
 
-      {/* Severity badge */}
+      {/* Severity badge — soft */}
       <div
         style={{
           backgroundColor: sev.bg,
-          color: '#fff',
-          fontSize: 11,
-          fontWeight: 600,
-          padding: '4px 8px',
+          border: `1px solid ${sev.border}`,
+          color: sev.text,
+          fontSize: 10,
+          fontWeight: 700,
+          padding: '3px 8px',
           borderRadius: 9999,
           flexShrink: 0,
+          whiteSpace: 'nowrap',
         }}
       >
         {sev.label}
@@ -508,10 +548,10 @@ function EmptyState({ C }: { C: Colors }) {
       >
         <Shield size={28} color={F.cyan} />
       </div>
-      <div style={{ fontSize: 15, fontWeight: 500, color: C.t1, marginBottom: 4 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.t1, marginBottom: 4 }}>
         Aucun signalement
       </div>
-      <div style={{ fontSize: 13, color: C.t2 }}>
+      <div style={{ fontSize: 11, color: C.t2 }}>
         Cette zone semble calme
       </div>
     </motion.div>

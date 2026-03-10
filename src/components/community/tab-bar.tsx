@@ -28,11 +28,11 @@ export default function TabBar({ tabs, activeTab, setActiveTab, isDark }: TabBar
           onClick={() => setActiveTab(index)}
           style={{
             position: "relative",
-            padding: "12px 0",
+            padding: "10px 0",
             background: "none",
             border: "none",
             cursor: "pointer",
-            fontSize: 15,
+            fontSize: 13,
             fontWeight: activeTab === index ? 600 : 400,
             color: activeTab === index ? "#3BB4C1" : isDark ? "#64748B" : "#94A3B8",
             transition: "color 0.2s",

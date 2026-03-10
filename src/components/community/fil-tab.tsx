@@ -408,14 +408,14 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         <button
           onClick={() => onSearchToggle?.()}
           style={{
-            width: 34, height: 34, minWidth: 34, borderRadius: 99,
+            width: 32, height: 32, minWidth: 32, borderRadius: 99,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: isDark ? '#1E293B' : '#F1F5F9',
             border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'}`,
             cursor: 'pointer',
           }}
         >
-          <Search size={16} style={{ color: '#3BB4C1' }} />
+          <Search size={14} style={{ color: '#3BB4C1' }} />
         </button>
 
         {/* Filter pill */}
@@ -423,7 +423,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
           <button
             onClick={() => setFilterMode(f => !f)}
             style={{
-              width: 34, height: 34, minWidth: 34, borderRadius: 99,
+              width: 32, height: 32, minWidth: 32, borderRadius: 99,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: filterMode ? 'rgba(59,180,193,0.15)' : (isDark ? '#1E293B' : '#F1F5F9'),
               border: `1px solid ${filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0')}`,
@@ -432,7 +432,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               transition: 'all 200ms',
             }}
           >
-            <SlidersHorizontal size={15} style={{ color: filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
+            <SlidersHorizontal size={13} style={{ color: filterMode || contentFilter.size < 3 ? '#3BB4C1' : (isDark ? '#94A3B8' : '#64748B') }} />
           </button>
           {contentFilter.size < 3 && (
             <div style={{
@@ -474,12 +474,12 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
                   }}
                   style={{
                     flexShrink: 0,
-                    padding: '5px 11px',
+                    padding: '4px 10px',
                     borderRadius: 20,
                     border: `1px solid ${active ? color : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')}`,
                     background: active ? color : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'),
                     color: active ? '#fff' : (isDark ? '#94A3B8' : '#475569'),
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: 600,
                     cursor: 'pointer',
                     fontFamily: 'inherit',
@@ -506,8 +506,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               onClick={() => setShowFavoris(f => !f)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 14px', borderRadius: 99, whiteSpace: 'nowrap',
-                fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+                padding: '5px 12px', borderRadius: 99, whiteSpace: 'nowrap',
+                fontSize: 10, fontWeight: 600, fontFamily: 'inherit',
                 cursor: 'pointer', transition: 'all 0.15s ease',
                 background: showFavoris
                   ? (isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.12)')
