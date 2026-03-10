@@ -418,9 +418,20 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
           0%   { opacity: 0.6; }
           100% { opacity: 0;   }
         }
-        @keyframes sos-compact-spin {
-          to { transform: rotate(360deg); }
+        @keyframes sos-dot-pulse {
+          0%, 100% { transform: scale(0.65); opacity: 0.55; }
+          50%      { transform: scale(1.15); opacity: 1; }
         }
+        @keyframes sos-ring-pulse {
+          0%   { transform: scale(0.85); opacity: 0.6; }
+          100% { transform: scale(1.22); opacity: 0; }
+        }
+        @keyframes sos-shine {
+          0%        { left: -75%; }
+          60%, 100% { left: 130%; }
+        }
+        .sos-fab:not(.sos-compact):hover:not(:disabled) { transform: scale(1.10) !important; box-shadow: 0 8px 28px rgba(239,68,68,0.56) !important; }
+        .sos-fab:not(.sos-compact):active:not(:disabled) { transform: scale(0.92) !important; }
       `}</style>
 
       {/* ── Hold progress — centered overlay, above the thumb ──────── */}
@@ -744,6 +755,35 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         />
       )}
 
+      {/* ── Radial pulse rings (normal mode only, outside button) ─────── */}
+      {!compact && (
+        <div
+          aria-hidden
+          style={{
+            position: 'fixed',
+            bottom: 80, right: 20,
+            width: 46, height: 46,
+            borderRadius: 9999,
+            pointerEvents: 'none',
+            zIndex: 199,
+          }}
+        >
+          <div style={{
+            position: 'absolute', inset: -7,
+            borderRadius: 9999,
+            border: '2px solid rgba(239,68,68,0.30)',
+            animation: 'sos-ring-pulse 2s ease-out infinite',
+          }} />
+          <div style={{
+            position: 'absolute', inset: -15,
+            borderRadius: 9999,
+            border: '2px solid rgba(239,68,68,0.14)',
+            animation: 'sos-ring-pulse 2s ease-out infinite',
+            animationDelay: '0.52s',
+          }} />
+        </div>
+      )}
+
       {/* ── FAB — hold 3 seconds to activate ────────────────────────── */}
       <button
         onPointerDown={handleFabPointerDown}
@@ -751,31 +791,31 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         onPointerLeave={handleFabPointerUp}
         onPointerCancel={handleFabPointerUp}
         onContextMenu={(e) => e.preventDefault()}
-
         disabled={phase !== 'idle'}
         aria-label="Emergency alert — hold 3 seconds to activate"
+        className={compact ? 'sos-fab sos-compact' : 'sos-fab'}
         style={{
           position: 'fixed',
           ...(compact
-            ? { top: 8, left: '50%', transform: 'translateX(-50%)', width: 40, height: 40, fontSize: 10, zIndex: 150, boxShadow: '0 2px 10px rgba(239,68,68,0.4)', opacity: 0.8 }
-            : { bottom: 80, right: 20, width: 50, height: 50, fontSize: 13, zIndex: 200, boxShadow: '0 4px 20px rgba(239,68,68,0.5)' }
+            ? { top: 8, left: '50%', transform: 'translateX(-50%)', width: 38, height: 38, zIndex: 150 }
+            : { bottom: 80, right: 20, width: 46, height: 46, zIndex: 200 }
           ),
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #EF4444, #DC2626)',
-          border: '2px solid rgba(239,68,68,0.3)',
+          borderRadius: 9999,
+          background: 'linear-gradient(135deg, #F87171, #DC2626)',
+          boxShadow: '0 4px 18px rgba(239,68,68,0.42), inset 0 1px 0 rgba(255,255,255,0.20)',
+          border: 'none',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontWeight: 800,
-          color: '#fff',
-          letterSpacing: '0.05em',
           opacity: phase === 'idle' ? 1 : 0.5,
-          transition: 'all 0.3s ease',
+          transition: 'transform 0.18s ease, box-shadow 0.18s ease, opacity 0.3s ease',
           touchAction: 'none',
           userSelect: 'none',
+          overflow: 'hidden',
         }}
       >
+        {/* Hold progress ring */}
         {fabHoldProgress > 0 && (
           <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 50 50" fill="none">
             <circle
@@ -788,18 +828,30 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
             />
           </svg>
         )}
-        {compact && (
-          <span style={{
-            position: 'absolute',
-            top: -3, right: -3, bottom: -3, left: -3,
-            borderRadius: '50%',
-            border: '2px solid transparent',
-            borderTopColor: '#F59E0B',
-            animation: 'sos-compact-spin 1.2s linear infinite',
-            pointerEvents: 'none',
-          }} />
-        )}
-        SOS
+        {/* Shine sweep */}
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          left: '-75%',
+          width: '50%',
+          height: '200%',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)',
+          transform: 'skewX(-20deg)',
+          pointerEvents: 'none',
+          animation: 'sos-shine 3.2s ease-in-out infinite',
+        }} />
+        {/* White dot */}
+        <div style={{
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+          background: 'white',
+          boxShadow: '0 0 8px rgba(255,255,255,0.55)',
+          animation: 'sos-dot-pulse 1.6s ease-in-out infinite',
+          position: 'relative',
+          zIndex: 1,
+          flexShrink: 0,
+        }} />
       </button>
     </>
   );
