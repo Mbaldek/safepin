@@ -5,9 +5,8 @@ import { Search, Users, Plus, ArrowLeft, MoreHorizontal, Phone } from "lucide-re
 import ChatTextBar from "@/components/chat/ChatTextBar";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { bToast } from "@/components/GlobalToast";
 import type { Community } from "@/types";
-import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
 import { useAudioCall } from '@/stores/useAudioCall'
 
 interface GroupesTabProps {
@@ -49,6 +48,7 @@ function dateDivider(d: string) {
 
 export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, onJoined }: GroupesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [myGroups, setMyGroups] = useState<Community[]>([]);
   const [discoverGroups, setDiscoverGroups] = useState<Community[]>([]);
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
@@ -92,7 +92,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
 
       // Build member count map
       const countMap = new Map<string, number>();
-      (allMembers || []).forEach((r: any) =>
+      (allMembers || []).forEach((r: { community_id: string }) =>
         countMap.set(r.community_id, (countMap.get(r.community_id) || 0) + 1));
 
       const memberSet = new Set((members || []).map((m) => m.community_id));
@@ -147,7 +147,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       .channel(`group-chat-${activeGroup}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages" },
         async (payload) => {
-          const m = payload.new as any;
+          const m = payload.new as { id: string; community_id: string; user_id: string; content: string; media_url?: string | null; type?: string; created_at: string; display_name?: string | null };
           if (m.community_id !== activeGroup) return;
           // Replace optimistic message or skip true duplicates
           setMessages(prev => {
@@ -177,12 +177,12 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
     const { error } = await supabase
       .from("community_members")
       .insert({ community_id: communityId, user_id: userId });
-    if (error) { toast.error("Impossible de rejoindre"); return; }
+    if (error) { bToast.danger({ title: "Impossible de rejoindre" }, isDark); return; }
     setJoinedIds((prev) => new Set([...prev, communityId]));
     const joined = discoverGroups.find((c) => c.id === communityId);
     if (joined) setMyGroups((p) => [...p, joined]);
     setDiscoverGroups((p) => p.filter((c) => c.id !== communityId));
-    toast.success("Groupe rejoint !");
+    bToast.success({ title: "Groupe rejoint !" }, isDark);
     onJoined?.();
   };
 
@@ -193,10 +193,10 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   }, [pendingPreview]);
 
   const handleFilePick = useCallback((file: File) => {
-    if (file.size > 10 * 1024 * 1024) { toast.error('Fichier trop lourd (max 10 Mo)'); return; }
+    if (file.size > 10 * 1024 * 1024) { bToast.danger({ title: 'Fichier trop lourd (max 10 Mo)' }, isDark); return; }
     setPendingFile(file);
     setPendingPreview(URL.createObjectURL(file));
-  }, []);
+  }, [isDark]);
 
   const handleSend = useCallback(async () => {
     if ((!msgInput.trim() && !pendingFile) || !activeGroup || !userId || sending) return;
@@ -212,7 +212,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       const path = `community/${userId}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('media').upload(path, fileToUpload);
       setUploading(false);
-      if (upErr) { toast.error("Erreur d'upload"); setSending(false); return; }
+      if (upErr) { bToast.danger({ title: "Erreur d'upload" }, isDark); setSending(false); return; }
       const { data: pub } = supabase.storage.from('media').getPublicUrl(path);
       mediaUrl = pub.publicUrl;
       clearPending();
@@ -239,9 +239,9 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       content,
       ...(mediaUrl ? { media_url: mediaUrl, type: msgType } : {}),
     });
-    if (error) toast.error("Erreur d'envoi");
+    if (error) bToast.danger({ title: "Erreur d'envoi" }, isDark);
     setSending(false);
-  }, [msgInput, pendingFile, activeGroup, userId, sending, clearPending]);
+  }, [msgInput, pendingFile, activeGroup, userId, sending, clearPending, isDark]);
 
   const q = searchQuery.toLowerCase();
   const filteredMy = myGroups.filter((g) => !q || g.name.toLowerCase().includes(q));
@@ -468,152 +468,229 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
     );
   }
 
+  const ACCENTS = ['#3BB4C1', '#8B5CF6', '#F59E0B', '#10B981'];
+  const ACCENT_RGB: Record<string, string> = {
+    '#3BB4C1': '59,180,193', '#8B5CF6': '139,92,246',
+    '#F59E0B': '245,158,11', '#10B981': '16,185,129',
+  };
+  const MOCK_TS = ['maintenant', '14 min', '1h', '2h'];
+  const MOCK_UNREADS = [7, 3, 0, 2];
+  const MOCK_PREVIEWS: ({ author: string; content: string } | null)[] = [
+    { author: 'Léa', content: 'Attention signalement rue Daguerre \u26A0\uFE0F' },
+    { author: 'Mehdi', content: 'RAS ce soir, bonne soirée !' },
+    null,
+    { author: 'Camille', content: 'Quelqu\'un pour un covoiturage ?' },
+  ];
+  const text = isDark ? '#F1F5F9' : '#0F172A';
+  const text2 = isDark ? '#94A3B8' : '#64748B';
+  const text3 = isDark ? '#64748B' : '#94A3B8';
+  const elevated = isDark ? '#1E293B' : '#FFFFFF';
+  const border1 = isDark ? '#334155' : '#E2E8F0';
+  const border2 = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)';
+
   return (
-    <div style={{ padding: "16px", paddingBottom: 80 }}>
-      {/* Search */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "12px 16px",
-        backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-        borderRadius: 12,
-        border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
-        marginBottom: 24,
-      }}>
-        <Search size={18} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-        <input
-          type="text"
-          placeholder="Rechercher un groupe..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+      <style>{`
+        @keyframes rowIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes onlinePulse { 0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0.5)} 50%{box-shadow:0 0 0 4px rgba(52,211,153,0)} }
+        @keyframes badgePop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+      `}</style>
+
+      {/* Search + Create header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '8px 20px 0' }}>
+        <button
+          onClick={() => setSearchOpen(o => !o)}
           style={{
-            flex: 1, border: "none", background: "transparent",
-            fontSize: 13, color: isDark ? "#FFFFFF" : "#0F172A", outline: "none",
+            width: 34, height: 34, borderRadius: 10,
+            border: `1px solid ${border1}`,
+            background: searchOpen ? 'rgba(59,180,193,0.12)' : 'transparent',
+            color: searchOpen ? '#3BB4C1' : text3,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.2s',
           }}
-        />
+        >
+          <Search size={16} />
+        </button>
+        <button
+          onClick={onCreateGroup}
+          style={{
+            width: 34, height: 34, borderRadius: 10,
+            border: `1px solid ${border1}`,
+            background: 'transparent',
+            color: text3,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.2s',
+          }}
+        >
+          <Plus size={16} />
+        </button>
       </div>
 
-      {/* Create group button */}
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={onCreateGroup}
-        style={{
-          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          padding: "14px 16px", borderRadius: 12, backgroundColor: "#3BB4C1", border: "none",
-          color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 24,
-        }}
-      >
-        <Plus size={18} strokeWidth={1.5} />
-        Creer un groupe
-      </motion.button>
-
-      {/* Mes Groupes */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{
-          fontSize: 10, fontWeight: 700, color: isDark ? "#64748B" : "#94A3B8",
-          textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16,
+      {/* Collapsible search bar */}
+      <div style={{
+        maxHeight: searchOpen ? 44 : 0,
+        opacity: searchOpen ? 1 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 350ms cubic-bezier(0.16,1,0.3,1), opacity 350ms cubic-bezier(0.16,1,0.3,1)',
+        padding: searchOpen ? '8px 20px' : '0 20px',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: elevated, border: `1px solid ${border1}`, borderRadius: 10,
+          padding: '8px 12px',
         }}>
-          Mes Groupes
-        </h3>
-        {filteredMy.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 0", gap: 8 }}>
-            <span style={{ fontSize: 32 }}>{'\uD83D\uDC65'}</span>
-            <p style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#94A3B8" : "#64748B" }}>
-              Aucun groupe rejoint
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filteredMy.map((group, index) => (
-              <motion.button
+          <Search size={14} style={{ color: text3, flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Rechercher un groupe..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              flex: 1, border: 'none', background: 'transparent',
+              fontSize: 13, color: text, outline: 'none',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Mes Groupes — section header */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '16px 20px 8px',
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+        color: text3,
+      }}>
+        <span>Mes Groupes</span>
+        <span>{filteredMy.length}</span>
+      </div>
+
+      {filteredMy.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0', gap: 8 }}>
+          <span style={{ fontSize: 32 }}>{'\uD83D\uDC65'}</span>
+          <p style={{ fontSize: 12, fontWeight: 500, color: text2 }}>Aucun groupe rejoint</p>
+        </div>
+      ) : (
+        <div>
+          {filteredMy.map((group, index) => {
+            const accent = ACCENTS[index % 4];
+            const rgb = ACCENT_RGB[accent];
+            const hasOnline = index === 0 || index === 3;
+            const isHighlighted = index === 0 || index === 1 || index === 3;
+            const mockPreview = index < MOCK_PREVIEWS.length ? MOCK_PREVIEWS[index] : null;
+            const mockUnread = index < MOCK_UNREADS.length ? MOCK_UNREADS[index] : 0;
+            const initial = group.name?.charAt(0)?.toUpperCase() || '?';
+
+            return (
+              <div
                 key={group.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
                 onClick={() => setActiveGroup(group.id)}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.05)';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateX(3px)';
+                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = isDark ? '#1E293B' : '#FFFFFF';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                }}
-                onMouseDown={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 4px rgba(59,180,193,0.25)';
-                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)';
-                  (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)';
-                }}
-                onMouseUp={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                  (e.currentTarget as HTMLElement).style.background = isDark ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.05)';
-                  (e.currentTarget as HTMLElement).style.transform = 'translateX(3px)';
+                  (e.currentTarget as HTMLElement).style.background = 'transparent';
                 }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11,
-                  background: isDark ? '#1E293B' : '#FFFFFF',
-                  borderRadius: 16, padding: '12px 13px',
-                  border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
-                  cursor: 'pointer', width: '100%', textAlign: 'left',
-                  fontFamily: 'inherit',
-                  transition: 'all 180ms cubic-bezier(0.16,1,0.3,1)',
+                  padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer', position: 'relative',
+                  transition: 'background 0.12s',
+                  animation: `rowIn 0.4s cubic-bezier(0.16,1,0.3,1) ${index * 0.04}s both`,
                 }}
               >
-                <div style={{
-                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, #3BB4C1, #06B6D4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, overflow: 'hidden',
-                }}>
-                  {group.avatar_url ? (
-                    <img src={group.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    group.avatar_emoji || '\uD83D\uDC65'
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    fontSize: 13, fontWeight: 700, margin: 0,
-                    color: isDark ? '#FFFFFF' : '#0F172A',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {group.name}
-                  </p>
-                  {group.description ? (
-                    <p style={{
-                      fontSize: 11, color: isDark ? '#94A3B8' : '#64748B', margin: '2px 0 0',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {group.description}
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: 11, color: isDark ? '#64748B' : '#94A3B8', margin: '2px 0 0' }}>
-                      Aucun message
-                    </p>
-                  )}
-                </div>
-                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Users size={12} style={{ color: isDark ? '#64748B' : '#94A3B8' }} />
-                  <span style={{ fontSize: 10, color: isDark ? '#64748B' : '#94A3B8' }}>
-                    {group.member_count || 0}
-                  </span>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        )}
-      </div>
+                {/* Separator */}
+                {index > 0 && (
+                  <div style={{
+                    position: 'absolute', top: 0, left: 72, right: 0, height: 1,
+                    background: border2,
+                  }} />
+                )}
 
-      {/* Découvrir */}
+                {/* Avatar */}
+                <div style={{
+                  width: 50, height: 50, borderRadius: 16, flexShrink: 0,
+                  position: 'relative',
+                  background: `rgba(${rgb},0.12)`,
+                  border: `1px solid rgba(${rgb},0.2)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22, color: accent,
+                }}>
+                  {group.avatar_emoji || initial}
+                  {hasOnline && (
+                    <div style={{
+                      position: 'absolute', bottom: 2, right: 2,
+                      width: 11, height: 11, borderRadius: '50%',
+                      background: '#34D399',
+                      border: `2px solid ${isDark ? '#0F172A' : '#FFFFFF'}`,
+                      animation: 'onlinePulse 2s infinite',
+                    }} />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{
+                      fontSize: 14, fontWeight: 700, color: text,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200,
+                    }}>
+                      {group.name}
+                    </span>
+                    <span style={{
+                      fontSize: 11, fontWeight: isHighlighted ? 700 : 500,
+                      color: isHighlighted ? '#3BB4C1' : text3,
+                      flexShrink: 0, marginLeft: 8,
+                    }}>
+                      {MOCK_TS[index % MOCK_TS.length]}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                    <p style={{
+                      flex: 1, fontSize: 12, color: text2, margin: 0,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {mockPreview ? (
+                        <>
+                          <span style={{ fontWeight: 600, color: text }}>{mockPreview.author}</span>
+                          {' : '}{mockPreview.content}
+                        </>
+                      ) : (
+                        <span style={{ color: text3 }}>Aucun message</span>
+                      )}
+                    </p>
+                    {mockUnread > 0 && (
+                      <span style={{
+                        minWidth: 20, height: 20, borderRadius: 10,
+                        paddingLeft: 6, paddingRight: 6,
+                        fontSize: 11, fontWeight: 800, color: '#FFFFFF',
+                        background: accent,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        animation: 'badgePop 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+                      }}>
+                        {mockUnread}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Découvrir — section header */}
       {filteredDiscover.length > 0 && (
-        <div>
-          <h3 style={{
-            fontSize: 10, fontWeight: 700, color: isDark ? "#64748B" : "#94A3B8",
-            textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16,
+        <>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px 20px 8px',
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: text3,
           }}>
-            D&eacute;couvrir
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <span>D&eacute;couvrir</span>
+            <span>{filteredDiscover.length}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 20px' }}>
             {filteredDiscover.map((group, index) => (
               <motion.div
                 key={group.id}
@@ -621,36 +698,36 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 + 0.2 }}
                 style={{
-                  backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                  borderRadius: 16, overflow: "hidden",
-                  border: `1px solid ${isDark ? "#334155" : "#E2E8F0"}`,
+                  backgroundColor: elevated,
+                  borderRadius: 16, overflow: 'hidden',
+                  border: `1px solid ${border1}`,
                 }}
               >
-                <div style={{ height: 48, background: "linear-gradient(135deg, #3BB4C1, #06B6D4)" }} />
+                <div style={{ height: 48, background: 'linear-gradient(135deg, #3BB4C1, #06B6D4)' }} />
                 <div style={{ padding: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 13 }}>
                       {group.avatar_url ? (
                         <img src={group.avatar_url} alt=""
-                          style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", verticalAlign: "middle" }} />
+                          style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle' }} />
                       ) : (group.avatar_emoji || '\uD83D\uDC65')}
                     </span>
-                    <h4 style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#FFFFFF" : "#0F172A" }}>
+                    <h4 style={{ fontSize: 13, fontWeight: 700, color: text, margin: 0 }}>
                       {group.name}
                     </h4>
                   </div>
                   {group.description && (
                     <p style={{
-                      fontSize: 12, color: isDark ? "#94A3B8" : "#64748B", marginBottom: 12,
-                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                      fontSize: 12, color: text2, marginBottom: 12, marginTop: 0,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     }}>
                       {group.description}
                     </p>
                   )}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <Users size={14} style={{ color: isDark ? "#64748B" : "#94A3B8" }} />
-                      <span style={{ fontSize: 11, color: isDark ? "#64748B" : "#94A3B8" }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Users size={14} style={{ color: text3 }} />
+                      <span style={{ fontSize: 11, color: text3 }}>
                         {group.member_count || 0} membres
                       </span>
                     </div>
@@ -658,8 +735,8 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleJoin(group.id)}
                       style={{
-                        padding: "8px 16px", borderRadius: 8, backgroundColor: "#3BB4C1",
-                        border: "none", color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                        padding: '8px 16px', borderRadius: 8, backgroundColor: '#3BB4C1',
+                        border: 'none', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       Rejoindre
@@ -669,7 +746,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
               </motion.div>
             ))}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
