@@ -11,6 +11,7 @@ import StoriesRow from "./stories-row";
 import PostCard from "./post-card";
 import PinFeedCard from "./pin-feed-card";
 import { SOSPostCard } from "./SOSPostCard";
+import { timeAgo } from '@/lib/utils';
 
 interface FilTabProps {
   isDark: boolean;
@@ -39,14 +40,6 @@ function pickGradient(id: string): string[] {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
-}
-
-function timeAgo(d: string) {
-  const s = (Date.now() - new Date(d).getTime()) / 1000;
-  if (s < 60) return "à l'instant";
-  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
-  return `il y a ${Math.floor(s / 86400)}j`;
 }
 
 export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey, onSearchToggle, onPinClick, renderSearchBar }: FilTabProps) {

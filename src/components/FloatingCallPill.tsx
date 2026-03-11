@@ -6,7 +6,7 @@ import { Mic, MicOff, X } from 'lucide-react'
 import { Room, RoomEvent } from 'livekit-client'
 import { useAudioCall } from '@/stores/useAudioCall'
 import { useStore } from '@/stores/useStore'
-import { useTheme } from '@/stores/useTheme'
+import { useIsDark } from '@/hooks/useIsDark'
 
 const TEAL = '#3BB4C1'
 const RED = '#EF4444'
@@ -19,7 +19,7 @@ function formatTime(s: number) {
 }
 
 export default function FloatingCallPill() {
-  const isDark = useTheme((s) => s.theme) === 'dark'
+  const isDark = useIsDark()
   const userId = useStore((s) => s.userId) ?? ''
 
   const roomName = useAudioCall((s) => s.roomName)

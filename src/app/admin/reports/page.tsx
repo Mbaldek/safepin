@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useAdminTheme } from '@/components/admin/AdminThemeContext';
+import { timeAgo } from '@/lib/utils';
 import DataTable, { type Column, type RowAction } from '@/components/admin/DataTable';
 
 /* ─── Types ─── */
@@ -20,17 +21,6 @@ type ReportRow = {
 };
 
 /* ─── Helpers ─── */
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'à l\'instant';
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}j`;
-}
 
 function Badge({ label, bg, color }: { label: string; bg: string; color: string }) {
   return (

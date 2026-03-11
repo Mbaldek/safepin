@@ -25,7 +25,7 @@ import { fetchTransitRoute } from "@/lib/transit";
 import { scoreRoute } from "@/lib/route-scoring";
 import RouteCard from "@/components/trip/RouteCard";
 import type { RouteOption } from "@/stores/useStore";
-import { useTheme } from "@/stores/useTheme";
+import { useIsDark } from "@/hooks/useIsDark";
 import { useStore } from "@/stores/useStore";
 import { supabase } from "@/lib/supabase";
 import AutocompleteInput from "@/components/AutocompleteInput";
@@ -93,7 +93,7 @@ interface TripViewProps {
 }
 
 export default function TripView({ onClose, openToHistory = false }: TripViewProps) {
-  const isDark = useTheme((s) => s.theme) === "dark";
+  const isDark = useIsDark();
   const userId = useStore((s) => s.userId);
   const isSharingLocation = useStore((s) => s.isSharingLocation);
   const setIsSharingLocation = useStore((s) => s.setIsSharingLocation);

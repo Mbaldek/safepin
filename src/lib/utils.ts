@@ -80,16 +80,6 @@ export function haversineMetersRaw(
   return haversineMeters({ lat: lat1, lng: lng1 }, { lat: lat2, lng: lng2 });
 }
 
-/**
- * Shared spring transition config for bottom sheets.
- */
-export const springTransition = {
-  type: 'spring' as const,
-  damping: 32,
-  stiffness: 320,
-  mass: 0.8,
-};
-
 /** Simple class name joiner (no tailwind-merge needed). */
 export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(' ');

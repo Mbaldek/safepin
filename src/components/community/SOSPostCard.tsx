@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useTheme } from "@/stores/useTheme"
+import { useIsDark } from "@/hooks/useIsDark"
 import { useUiStore } from "@/stores/uiStore"
 import SoutienSheet from "./SoutienSheet"
 
@@ -21,7 +21,7 @@ interface SOSPost {
 }
 
 export function SOSPostCard({ post, currentUserId }: { post: SOSPost; currentUserId: string | null }) {
-  const isDark = useTheme((s) => s.theme) === 'dark'
+  const isDark = useIsDark()
   const { openContextMenu, openProfile } = useUiStore()
   const [showSoutien, setShowSoutien] = useState(false)
   const resolved = post.status === 'resolved'

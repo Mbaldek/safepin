@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useTheme } from '@/stores/useTheme'
+import { useIsDark } from '@/hooks/useIsDark'
 
 interface CallBarProps {
   source: 'dm' | 'group' | 'cercle'
@@ -26,7 +26,7 @@ const SPRING = { type: 'spring' as const, stiffness: 300, damping: 30 }
 const WAVE_DELAYS = [0, 140, 280, 420]
 
 export default function CallBar({ source, title, muted, seconds, participantNames = [], onMute, onEnd }: CallBarProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark'
+  const isDark = useIsDark()
 
   const surfaceCard = isDark ? '#1E293B' : '#FFFFFF'
   const surfaceEl = isDark ? '#253347' : '#EEF2F7'

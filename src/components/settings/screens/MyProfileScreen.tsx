@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Pencil, Search, UserCheck, UserPlus, Globe, Users, Shield, Lock, AtSign, MapPin, Flag, Calendar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/stores/useTheme";
+import { useIsDark } from "@/hooks/useIsDark";
 import { useStore } from "@/stores/useStore";
 import { useUiStore } from "@/stores/uiStore";
 import { bToast } from "@/components/GlobalToast";
@@ -99,7 +99,7 @@ interface MyProfileScreenProps {
 }
 
 export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
-  const isDark = useTheme((s) => s.theme) === "dark";
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const userId = useStore((s) => s.userId);
   const openProfile = useUiStore((s) => s.openProfile);

@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { X, Heart, Send, Share2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useToast } from '@/hooks/useToast';
 import { useUiStore } from "@/stores/uiStore";
+import { timeAgo } from "@/lib/utils";
 
 export interface DBStory {
   id: string;
@@ -29,14 +30,6 @@ interface StoryViewerProps {
   userId?: string | null;
 }
 
-function timeAgo(d: string) {
-  const s = (Date.now() - new Date(d).getTime()) / 1000;
-  if (s < 60) return "maintenant";
-  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
-  return `il y a ${Math.floor(s / 86400)}j`;
-}
-
 export default function StoryViewer({
   storyIndex,
   stories,
@@ -44,6 +37,7 @@ export default function StoryViewer({
   onNavigate,
   userId,
 }: StoryViewerProps) {
+  const toast = useToast();
   const openProfile = useUiStore((s) => s.openProfile);
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);

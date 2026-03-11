@@ -10,10 +10,12 @@ import {
   Coffee, Heart, MessageCircle, Building2, Pill, Home,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { SafeSpace, SafeSpaceMedia, DayHours } from '@/types';
 import { T } from '@/lib/tokens';
 import { useToast } from '@/hooks/useToast';
+import { timeAgo } from '@/lib/utils';
+import { avatarColor } from '@/lib/escorteHelpers';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -56,20 +58,6 @@ function isOpenNow(hours: Record<string, string | DayHours> | null): boolean {
   return hhmm >= match[1] && hhmm <= match[2];
 }
 
-function timeAgo(dateStr: string): string {
-  const ms = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "a l'instant";
-  if (m < 60) return `il y a ${m}min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
-}
-
-const AVATAR_COLORS = ['#3BB4C1', '#7C3AED', '#DC2626', '#16A34A', '#D97706', '#0891B2'];
-function avatarColor(name: string): string {
-  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
-}
 function initial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
@@ -98,7 +86,7 @@ const SPRING = { type: 'spring' as const, damping: 30, stiffness: 300 };
 
 export default function SafeSpaceDetailSheet({ safeSpace, userId, isOpen, onClose, onNavigate }: Props) {
   const toast = useToast();
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const d = isDark;
 
   // ── State ─────────────────────────────────────────────────────────

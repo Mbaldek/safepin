@@ -8,13 +8,14 @@ import {
   EyeOff, AlertTriangle, Wrench, CheckCircle2,
   MapPin,
 } from 'lucide-react'
-import { useTheme } from '@/stores/useTheme'
+import { useIsDark } from '@/hooks/useIsDark'
 import { useStore } from '@/stores/useStore'
 import { supabase } from '@/lib/supabase'
 import { CATEGORY_DETAILS } from '@/types'
 import type { Pin } from '@/types'
 import { T } from '@/lib/tokens'
 import { bToast } from '@/components/GlobalToast'
+import { avatarColor } from '@/lib/escorteHelpers'
 
 // ─── Category config ─────────────────────────────
 const CATEGORY_CONFIG: Record<string, { color: string; colorSoft: string }> = {
@@ -48,10 +49,6 @@ function getTimeAgo(dateString: string): string {
   return `il y a ${days}j`
 }
 
-const AVATAR_COLORS = ['#3BB4C1', '#7C3AED', '#DC2626', '#16A34A', '#D97706']
-const avatarColor = (name: string) =>
-  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
-
 // ─── Props ───────────────────────────────────────
 
 interface ConfirmIncidentModalProps {
@@ -71,7 +68,7 @@ export function ConfirmIncidentModal({
   userId,
   alreadyConfirmed: alreadyConfirmedProp = false,
 }: ConfirmIncidentModalProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark'
+  const isDark = useIsDark()
   const d = isDark
   const updatePin = useStore((s) => s.updatePin)
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { useStore } from '@/stores/useStore';
 import { getOrCreateSupportConversation, SUPPORT_USER_ID } from '@/lib/support';
 import ChatView from '@/components/chat/ChatView';
@@ -12,7 +12,7 @@ interface SupportChatScreenProps {
 }
 
 export default function SupportChatScreen({ onBack }: SupportChatScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const userId = useStore((s) => s.userId);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

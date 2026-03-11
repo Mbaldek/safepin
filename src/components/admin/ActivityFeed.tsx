@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAdminTheme } from './AdminThemeContext';
+import { timeAgo } from '@/lib/utils';
 import PanelShell from './PanelShell';
 
 type FeedEvent = {
@@ -11,16 +12,6 @@ type FeedEvent = {
   time: string;
   bg: 'cyanSoft' | 'successSoft' | 'purpleSoft' | 'goldSoft' | 'warningSoft' | 'dangerSoft';
 };
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'à l\'instant';
-  if (mins < 60) return `${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}j`;
-}
 
 export default function ActivityFeed() {
   const { theme } = useAdminTheme();

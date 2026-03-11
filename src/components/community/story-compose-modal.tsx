@@ -5,7 +5,7 @@ import { X, Camera, Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { T, springConfig } from "@/lib/tokens";
-import { toast } from "sonner";
+import { useToast } from '@/hooks/useToast';
 import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
 import { useHashtagSearch, upsertHashtag, attachHashtags } from "@/hooks/useHashtags";
 import { useMentionSearch, insertMentions } from "@/hooks/useMentionSearch";
@@ -34,6 +34,7 @@ export default function StoryComposeModal({
   onPublished,
 }: StoryComposeModalProps) {
   const d = isDark;
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);

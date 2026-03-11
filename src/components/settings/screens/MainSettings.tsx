@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { X, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import ProfileBlock from '../components/ProfileBlock';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
@@ -15,7 +15,7 @@ export interface MainSettingsProps {
 }
 
 export default function MainSettings({ onNavigate, onClose }: MainSettingsProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const router = useRouter();
   const [logoutHover, setLogoutHover] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -11,7 +11,7 @@ export interface SecuriteScreenProps {
 }
 
 export default function SecuriteScreen({ onBack, onClose, onNavigate }: SecuriteScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
 

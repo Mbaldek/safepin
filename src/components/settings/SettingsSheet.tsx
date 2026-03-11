@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import MainSettings from './screens/MainSettings';
 import MonCompteScreen from './screens/compte/MonCompteScreen';
 import SecuriteScreen from './screens/SecuriteScreen';
@@ -27,7 +27,7 @@ const screenAnimate = { x: 0, opacity: 1 };
 const screenExit = { x: -30, opacity: 0 };
 
 export default function SettingsSheet({ isOpen, onClose, initialScreen }: SettingsSheetProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const [currentScreen, setCurrentScreen] = useState('main');
   const sheetRef = useRef<HTMLDivElement>(null);
 

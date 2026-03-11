@@ -17,7 +17,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { T, springConfig } from "@/lib/tokens";
-import { toast } from "sonner";
+import { useToast } from '@/hooks/useToast';
 
 const SPRING = springConfig;
 
@@ -62,6 +62,7 @@ export default function CreateGroupModal({
   onCreated,
 }: CreateGroupModalProps) {
   const d = isDark;
+  const toast = useToast();
 
   /* Form state */
   const [step, setStep] = useState<Step>("form");
@@ -752,7 +753,7 @@ export default function CreateGroupModal({
                     flex: 1,
                     border: "none",
                     background: "transparent",
-                    fontSize: 14,
+                    fontSize: 13,
                     color: d ? T.textPrimary : T.textPrimaryL,
                     outline: "none",
                     fontFamily: "inherit",

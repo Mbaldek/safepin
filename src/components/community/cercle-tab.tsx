@@ -12,6 +12,7 @@ import useVerificationGate from '@/hooks/useVerificationGate';
 import VerificationNudgeSheet from '@/components/VerificationNudgeSheet';
 import VerificationGateModal from '@/components/VerificationGateModal';
 import AddCircleContactModal from "./AddCircleContactModal";
+import { timeAgo } from '@/lib/utils';
 
 interface CercleTabProps {
   isDark: boolean;
@@ -34,14 +35,6 @@ interface PendingRequest {
   avatar: string;
   avatarUrl: string | null;
   created_at: string;
-}
-
-function timeAgo(d: string) {
-  const s = (Date.now() - new Date(d).getTime()) / 1000;
-  if (s < 60) return "à l'instant";
-  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
-  return `il y a ${Math.floor(s / 86400)}j`;
 }
 
 export default function CercleTab({ isDark, userId }: CercleTabProps) {

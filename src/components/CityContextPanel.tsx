@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Building2, AlertTriangle, Train, X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 type TransitStop = {
   id: number;
@@ -54,7 +54,7 @@ const F = {
 };
 
 export default function CityContextPanel({ onClose }: { onClose: () => void }) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const { userLocation, pins } = useStore();
 

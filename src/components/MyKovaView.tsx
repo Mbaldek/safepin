@@ -21,8 +21,9 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import VerificationView from '@/components/VerificationView';
 import SettingsSheet from '@/components/settings/SettingsSheet';
-import { timeAgoLong as timeAgo, springTransition } from '@/lib/utils';
-import { useTheme } from '@/stores/useTheme';
+import { timeAgoLong as timeAgo } from '@/lib/utils';
+import { springTransition } from '@/lib/tokens';
+import { useIsDark } from '@/hooks/useIsDark';
 
 // ─── Theme-aware colors ──────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ function DangerBadge({ score }: { score: number }) {
 }
 
 function EmptyState({ emoji, title, body, ctaLabel, onCta }: { emoji: string; title: string; body: string; ctaLabel?: string; onCta?: () => void }) {
-  const _isDark = useTheme((s) => s.theme) === 'dark';
+  const _isDark = useIsDark();
   const _c = getColors(_isDark);
   return (
     <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -110,7 +111,7 @@ function EmptyState({ emoji, title, body, ctaLabel, onCta }: { emoji: string; ti
 }
 
 function SectionLabel({ text }: { text: string }) {
-  const _isDark = useTheme((s) => s.theme) === 'dark';
+  const _isDark = useIsDark();
   const _c = getColors(_isDark);
   return (
     <p className="text-[0.65rem] font-black uppercase tracking-widest px-1" style={{ color: _c.textMuted }}>
@@ -120,7 +121,7 @@ function SectionLabel({ text }: { text: string }) {
 }
 
 function SkeletonList({ rows }: { rows: number }) {
-  const _isDark = useTheme((s) => s.theme) === 'dark';
+  const _isDark = useIsDark();
   const _c = getColors(_isDark);
   return (
     <div className="space-y-2">
@@ -149,7 +150,7 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
 
   const t = useTranslations('mykova');
   const tOb = useTranslations('onboarding');
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const c = getColors(isDark);
 
   // ─── Sub-tab state ──────────────────────────────────────────────────────

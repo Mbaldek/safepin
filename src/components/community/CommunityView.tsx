@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { useStore } from '@/stores/useStore';
 import { useUiStore } from '@/stores/uiStore';
 import { supabase } from '@/lib/supabase';
@@ -45,7 +45,7 @@ interface CommunityViewProps {
 }
 
 export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMOpened, onPinClick }: CommunityViewProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   const userId = useStore((s) => s.userId);
 
@@ -395,7 +395,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
                             background: 'transparent',
                             border: 'none',
                             outline: 'none',
-                            fontSize: 12,
+                            fontSize: 13,
                             color: isDark ? '#FFFFFF' : '#0F172A',
                             flex: 1,
                             minWidth: 0,

@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, UserPlus, Send, Mail, Phone, User } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useToast } from '@/hooks/useToast';
 import { useNotificationStore } from "@/stores/notificationStore";
 
 interface Props {
@@ -33,6 +33,7 @@ const COUNTRY_CODES = [
 ];
 
 export default function AddCircleContactModal({ isDark, open, onClose, onAdded }: Props) {
+  const toast = useToast();
   const [mode, setMode] = useState<SearchMode>("pseudo");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

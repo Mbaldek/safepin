@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 /* ─── Types ─────────────────────────────────── */
@@ -254,7 +254,7 @@ export const bToast = {
 
 /* ─── Composant principal ────────────────────── */
 export default function GlobalToast() {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const toastQueue  = useNotificationStore((s) => s.toastQueue);
   const dismissToast = useNotificationStore((s) => s.dismissToast);
 

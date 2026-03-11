@@ -8,7 +8,7 @@ import {
   Clock, Bookmark, Loader2, Edit2, Trash2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { SavedPlace } from '@/types';
 import { T } from '@/lib/tokens';
 import { useToast } from '@/hooks/useToast';
@@ -102,7 +102,7 @@ interface FavorisSheetProps {
 
 export default function FavorisSheet({ isOpen, onClose, onSelect, userId, userLat, userLng }: FavorisSheetProps) {
   const toast = useToast();
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const d = isDark;
 
   // State
@@ -668,7 +668,7 @@ export default function FavorisSheet({ isOpen, onClose, onSelect, userId, userLa
                         background: 'none',
                         border: 'none',
                         outline: 'none',
-                        fontSize: 14,
+                        fontSize: 13,
                         color: d ? T.textPrimary : T.textPrimaryL,
                         fontFamily: 'inherit',
                       }}

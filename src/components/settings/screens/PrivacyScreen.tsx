@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function PrivacyScreen({ onBack }: Props) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   const txt1 = isDark ? '#FFFFFF' : '#0F172A';
   const txt2 = isDark ? '#94A3B8' : '#64748B';

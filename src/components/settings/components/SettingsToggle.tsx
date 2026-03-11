@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 export interface SettingsToggleProps {
   value: boolean;
@@ -9,7 +9,7 @@ export interface SettingsToggleProps {
 }
 
 export default function SettingsToggle({ value, onChange }: SettingsToggleProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   return (
     <div

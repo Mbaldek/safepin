@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, ChevronDown, UserPlus, Volume2, PhoneOff } from 'lucide-react'
 import { useAudioCall } from '@/stores/useAudioCall'
-import { useTheme } from '@/stores/useTheme'
+import { useIsDark } from '@/hooks/useIsDark'
 import { avatarColor } from '@/lib/escorteHelpers'
 import { bToast } from '@/components/GlobalToast'
 
@@ -41,7 +41,7 @@ const springSheet = { type: 'spring' as const, stiffness: 300, damping: 30 }
 // Keyframes moved to globals.css
 
 export default function CallSheet() {
-  const isDark = useTheme((s) => s.theme) === 'dark'
+  const isDark = useIsDark()
   const C = getColors(isDark)
 
   const source = useAudioCall((s) => s.source)

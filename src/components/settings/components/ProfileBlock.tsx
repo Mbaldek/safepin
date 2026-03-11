@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Check, ChevronRight } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 export interface ProfileBlockProps {
   name: string;
@@ -14,7 +14,7 @@ export interface ProfileBlockProps {
 }
 
 export default function ProfileBlock({ name, email, isVerified, avatarUrl, onPress }: ProfileBlockProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const initial = name.charAt(0).toUpperCase();
 
   return (

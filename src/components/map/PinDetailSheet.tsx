@@ -9,7 +9,7 @@ import {
   RefreshCw, Image as ImageIcon, ChevronDown, Video, Download,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useTheme } from '@/stores/useTheme'
+import { useIsDark } from '@/hooks/useIsDark'
 import { useStore } from '@/stores/useStore'
 import { useUiStore } from '@/stores/uiStore'
 import { usePullToDismiss } from '@/hooks/usePullToDismiss'
@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/useToast'
 import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
 import { HashtagPill } from '@/components/map/hashtags'
 import type { Hashtag } from '@/types'
+import { avatarColor } from '@/lib/escorteHelpers'
 
 // ─── Category config ─────────────────────────────
 const CAT: Record<string, {
@@ -71,11 +72,6 @@ function getTimeAgo(dateString: string): string {
   return `Il y a ${days}j`
 }
 
-const AVATAR_COLORS = ['#3BB4C1', '#7C3AED', '#DC2626', '#16A34A', '#D97706', '#0891B2']
-const avatarColor = (name: string) =>
-  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
-
-
 const THRESHOLD = 5
 
 function getReliability(count: number) {
@@ -109,7 +105,7 @@ function PinDetailSheet({
   onNavigateTo,
 }: PinDetailSheetProps) {
   const toast = useToast()
-  const isDark = useTheme((s) => s.theme) === 'dark'
+  const isDark = useIsDark()
   const d = isDark
   const { updatePin, pins, setSelectedPin, setActiveSheet, userLocation } = useStore()
   const { openCommunityDM } = useUiStore()

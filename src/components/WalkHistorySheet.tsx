@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import type { WalkSession, AudioCheckin } from '@/types';
+import { avatarColor } from '@/lib/escorteHelpers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface WalkHistorySheetProps {
@@ -50,18 +51,6 @@ function getTimeBucket(iso: string): 'thisWeek' | 'lastWeek' | 'thisMonth' | 'ol
   return 'older';
 }
 
-function avatarColor(name: string): string {
-  const colors = [
-    'linear-gradient(135deg,#3BB4C1,#1E3A5F)',
-    'linear-gradient(135deg,#A78BFA,#4A2C5A)',
-    'linear-gradient(135deg,#34D399,#065F46)',
-    'linear-gradient(135deg,#F472B6,#831843)',
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  return colors[Math.abs(hash) % colors.length];
-}
-
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -78,7 +67,7 @@ const PERIOD_OPTIONS: { val: PeriodFilter & string; label: string; desc: string;
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetProps) {
-  const isDark = useTheme(s => s.theme) === 'dark';
+  const isDark = useIsDark();
   const [tab, setTab] = useState<'mes' | 'rejointes'>('mes');
   const [sessions, setSessions] = useState<SessionWithAudio[]>([]);
   const [loading, setLoading] = useState(true);

@@ -11,6 +11,7 @@ import { useAudioCall } from '@/stores/useAudioCall'
 import useVerificationGate from '@/hooks/useVerificationGate'
 import VerificationNudgeSheet from '@/components/VerificationNudgeSheet'
 import VerificationGateModal from '@/components/VerificationGateModal'
+import { timeAgo } from '@/lib/utils'
 
 interface MessagesTabProps {
   isDark: boolean;
@@ -29,14 +30,6 @@ interface DMRow {
   partner_name: string;
   partner_avatar: string | null;
   is_unread: boolean;
-}
-
-function timeAgo(d: string) {
-  const s = (Date.now() - new Date(d).getTime()) / 1000;
-  if (s < 60) return "Maintenant";
-  if (s < 3600) return `${Math.floor(s / 60)}min`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}j`;
 }
 
 /* ── Swipeable conversation row (Apple Mail style) ─────────── */

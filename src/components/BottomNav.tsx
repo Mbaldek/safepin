@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Navigation, Sparkles, type LucideIcon } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useTranslations } from 'next-intl';
 
@@ -23,7 +23,7 @@ const ACCENT = '#3BB4C1';
 const DANGER = '#EF4444';
 
 export default function BottomNav() {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const { activeTab, setActiveTab, unreadDmCount } = useStore();
   const badgeCount = useNotificationStore((s) => s.badgeCount);
   const markAllRead = useNotificationStore((s) => s.markAllRead);

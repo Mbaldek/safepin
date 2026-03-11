@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { Pin } from '@/types';
 import { bToast } from '@/components/GlobalToast';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
@@ -178,7 +178,7 @@ activeTrip, setActiveTrip,
     setTripPrefill,
     mapViewport, setDbClusters,
   } = useStore();
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const tMap = useTranslations('map');
   const escorte = useEscorte(userId ?? '');
   const { communityDMTarget, closeCommunityDM } = useUiStore();
@@ -224,14 +224,12 @@ activeTrip, setActiveTrip,
     return () => window.removeEventListener('breveil:locate-pin', handler);
   }, [setActiveTab]);
 
-  // Clear pending route options and history sheets whenever the user leaves the trip tab
+  // Clear pending route options whenever the user leaves the trip tab
   useEffect(() => {
     if (activeTab !== 'trip') {
       setPendingRoutes(null);
-      setShowWalkHistory(false);
-      setShowTripHistory(false);
     }
-  }, [activeTab, setPendingRoutes, setShowWalkHistory, setShowTripHistory]);
+  }, [activeTab, setPendingRoutes]);
 
   // Auto-close incidents list when leaving the map tab
   useEffect(() => {

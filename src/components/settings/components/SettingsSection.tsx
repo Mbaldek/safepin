@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 export interface SettingsSectionProps {
   label: string;
@@ -8,7 +8,7 @@ export interface SettingsSectionProps {
 }
 
 export default function SettingsSection({ label, children }: SettingsSectionProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   return (
     <div>

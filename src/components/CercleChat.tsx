@@ -8,6 +8,7 @@ import { useTheme } from '@/stores/useTheme'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/useToast'
 import type { CircleMember, CircleMessage } from '@/types'
+import { avatarColor } from '@/lib/escorteHelpers'
 
 interface CercleChatProps {
   messages: CircleMessage[]
@@ -23,14 +24,6 @@ interface CercleChatProps {
   seconds?: number
   onMute?: () => void
   onEnd?: () => void
-}
-
-const AVATAR_PALETTE = ['#A78BFA', '#34D399', '#F87171', '#F5C341', '#3BB4C1', '#F97316']
-
-function avatarColor(name: string): string {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) * 31
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
 }
 
 export default function CercleChat({

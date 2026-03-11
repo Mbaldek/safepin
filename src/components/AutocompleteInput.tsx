@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 export interface ACSuggestion {
   label: string;
@@ -54,7 +54,7 @@ export default function AutocompleteInput({
   localSections,
   autoFocus,
 }: Props) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const { userLocation } = useStore();
   const [open, setOpen]         = useState(false);
@@ -119,11 +119,12 @@ export default function AutocompleteInput({
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="w-full text-base rounded-xl px-4 py-2.5 outline-none"
+        className="w-full rounded-xl px-4 py-2.5 outline-none"
         style={{
           backgroundColor: C.card,
           border: `1.5px solid ${C.border}`,
           color: C.textPrimary,
+          fontSize: 13,
         }}
       />
 

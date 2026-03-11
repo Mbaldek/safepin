@@ -24,12 +24,12 @@ import {
   CreditCard,
   Receipt,
 } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { useWaitlist } from '@/hooks/useWaitlist';
 import { useStore } from '@/stores/useStore';
 import { useIsPro } from '@/lib/useIsPro';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/useToast';
 import type { Subscription, Invoice } from '@/types';
 
 // Brand Colors
@@ -70,7 +70,7 @@ export interface PaywallScreenProps {
 }
 
 export default function PaywallScreen({ onClose, context }: PaywallScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const [isAnnual, setIsAnnual] = useState(false);
   const [currentState, setCurrentState] = useState<AppState>('paywall');
   // userPlan state removed — MonPlanView now uses useIsPro() directly
@@ -205,6 +205,7 @@ function PaywallView({
   onClose?: () => void;
   context?: 'onboarding' | 'settings';
 }) {
+  const toast = useToast();
   const waitlist = useWaitlist();
   const userId = useStore((s) => s.userId);
   const [waitlistEmail, setWaitlistEmail] = useState('');
@@ -761,6 +762,7 @@ function MonPlanView({
   onNavigate: (state: AppState) => void;
   direction: number;
 }) {
+  const toast = useToast();
   const userId = useStore((s) => s.userId);
   const { isPro, plan } = useIsPro();
   const [subscription, setSubscription] = useState<Subscription | null>(null);

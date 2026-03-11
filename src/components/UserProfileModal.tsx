@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MoreHorizontal, MessageCircle, UserPlus, UserCheck, Heart, Pencil, Copy, Send, Mail, Share2, Shield, MapPin, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/stores/useTheme";
+import { useIsDark } from "@/hooks/useIsDark";
 import { useUiStore } from "@/stores/uiStore";
 import { bToast } from "@/components/GlobalToast";
+import { timeAgo } from "@/lib/utils";
 
 interface ProfileData {
   username: string | null;
@@ -64,14 +65,6 @@ function formatMemberSince(dateStr: string): string {
   return `${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function timeAgo(d: string) {
-  const s = (Date.now() - new Date(d).getTime()) / 1000;
-  if (s < 60) return "a l'instant";
-  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
-  return `il y a ${Math.floor(s / 86400)}j`;
-}
-
 // ─── Keyframes ────────────────────────────────────────────────────────────────
 
 const PROFILE_KEYFRAMES = `
@@ -89,7 +82,7 @@ export default function UserProfileModal() {
   const closeProfile = useUiStore((s) => s.closeProfile);
   const setOpenMyProfile = useUiStore((s) => s.setOpenMyProfile);
   const openCommunityDM = useUiStore((s) => s.openCommunityDM);
-  const isDark = useTheme((s) => s.theme) === "dark";
+  const isDark = useIsDark();
 
   const C = isDark
     ? {

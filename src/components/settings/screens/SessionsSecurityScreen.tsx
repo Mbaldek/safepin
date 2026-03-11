@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
+import { timeAgo } from '@/lib/utils';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 import type { User } from '@supabase/supabase-js';
@@ -19,17 +20,6 @@ function maskEmail(email: string): string {
   return `${local[0]}${'*'.repeat(Math.min(local.length - 1, 5))}@${domain}`;
 }
 
-function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "A l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `il y a ${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `il y a ${days}j`;
-}
-
 function providerLabel(provider?: string): string {
   switch (provider) {
     case 'google': return 'Google';
@@ -41,7 +31,7 @@ function providerLabel(provider?: string): string {
 
 export default function SessionsSecurityScreen({ onBack }: Props) {
   const toast = useToast();
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

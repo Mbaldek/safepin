@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { useStore } from '@/stores/useStore';
 import { supabase } from '@/lib/supabase';
 import SettingsSection from '../../components/SettingsSection';
@@ -46,7 +46,7 @@ interface MonCompteScreenProps {
 }
 
 export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const userId = useStore((s) => s.userId);
 

@@ -1047,7 +1047,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               autoFocus
               style={{
                 flex: 1, background: 'none', border: 'none', outline: 'none',
-                fontSize: 16, color: tk.ts, fontFamily: 'inherit',
+                fontSize: 13, color: tk.ts, fontFamily: 'inherit',
               }}
             />
             {departQuery && (

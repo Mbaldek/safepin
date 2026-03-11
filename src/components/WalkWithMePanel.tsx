@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { bToast } from '@/components/GlobalToast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Users, Clock, Shield, Phone, Bell, Sparkles, Share2, ChevronUp, Square, MicOff } from 'lucide-react';
@@ -107,7 +107,7 @@ const KEYFRAMES = `
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WalkWithMePanel({ userId, destination, onClose }: Props) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const { userProfile, setShowWalkHistory } = useStore();
   const t = useTranslations('walkWithMe');

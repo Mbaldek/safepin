@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, Camera, Check, BadgeCheck, Lock, Users } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { springTransition, fadeSlideUp } from './types';
 
 function getColors(isDark: boolean) {
@@ -64,7 +64,7 @@ const BENEFITS: { icon: typeof BadgeCheck; color: string; label: string; desc: s
 ];
 
 export default function VerificationScreen({ isVerified, onVerified, onBack }: VerificationScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
 
   const [step, setStep] = useState<Step>(isVerified ? 'done' : 'intro');

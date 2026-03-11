@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 import type { AppNotification } from '@/types';
 import { timeAgoLong as timeAgo } from '@/lib/utils';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 /* ── icon + dot color per notification type ─────────────────────── */
 
@@ -44,7 +44,7 @@ function getDotColor(type: string): string {
 /* ── component ──────────────────────────────────────────────────── */
 
 export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStory }: { onClose: () => void; onOpenSettings?: () => void; onOpenStory?: (storyId: string) => void }) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const { notifications, markNotificationsRead, setActiveTab, userId } = useStore();
   const focusTrapRef = useFocusTrap(true, onClose);
   const [hydrated, setHydrated] = useState(false);

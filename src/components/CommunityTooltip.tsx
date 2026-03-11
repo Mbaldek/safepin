@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 function getColors(isDark: boolean) {
   return { accent: isDark ? '#3BB4C1' : '#C48A1E' };
@@ -28,7 +28,7 @@ type Props = {
 
 export default function CommunityTooltip({ show }: Props) {
   const t = useTranslations('onboarding');
-  const isDark = useTheme(s => s.theme) === 'dark';
+  const isDark = useIsDark();
   const c = getColors(isDark);
   const [visible, setVisible] = useState(false);
 

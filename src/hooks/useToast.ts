@@ -1,8 +1,8 @@
-import { useTheme } from '@/stores/useTheme'
+import { useIsDark } from '@/hooks/useIsDark'
 import { bToast } from '@/components/GlobalToast'
 
 export function useToast() {
-  const isDark = useTheme(s => s.theme) === 'dark'
+  const isDark = useIsDark()
   return {
     success: (title: string) => bToast.success({ title }, isDark),
     error: (title: string) => bToast.danger({ title }, isDark),

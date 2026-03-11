@@ -1,7 +1,7 @@
 'use client';
 
 import { icons, ChevronRight } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 export interface SettingsRowProps {
   icon: string;
@@ -24,7 +24,7 @@ export default function SettingsRow({
   danger,
   badge,
 }: SettingsRowProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const Icon = icons[icon as keyof typeof icons];
 
   return (

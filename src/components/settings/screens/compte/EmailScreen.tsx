@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Mail } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { springTransition, fadeSlideUp } from './types';
 
 function getColors(isDark: boolean) {
@@ -39,7 +39,7 @@ interface EmailScreenProps {
 }
 
 export default function EmailScreen({ currentEmail, onSave, onBack }: EmailScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
 
   const [email, setEmail] = useState(currentEmail);

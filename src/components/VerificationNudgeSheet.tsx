@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 interface VerificationNudgeSheetProps {
   daysLeft: number;
@@ -16,7 +16,7 @@ export default function VerificationNudgeSheet({
   onVerify,
   onSkip,
 }: VerificationNudgeSheetProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   const surfaceCard = isDark ? '#1E293B' : '#FFFFFF';
   const surfaceEl = isDark ? '#253347' : '#EEF2F7';

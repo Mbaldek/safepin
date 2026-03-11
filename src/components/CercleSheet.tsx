@@ -12,6 +12,8 @@ import CallBar from '@/components/CallBar'
 import AddCircleContactModal from '@/components/community/AddCircleContactModal'
 import type { CircleMember } from '@/types'
 import { useAudioCall } from '@/stores/useAudioCall'
+import { timeAgo } from '@/lib/utils'
+import { avatarColor } from '@/lib/escorteHelpers'
 
 interface CercleSheetProps {
   open: boolean
@@ -19,24 +21,6 @@ interface CercleSheetProps {
 }
 
 // ── helpers ──────────────────────────────────────────────
-const AVATAR_PALETTE = ['#A78BFA', '#34D399', '#F87171', '#F5C341', '#3BB4C1', '#F97316']
-
-function avatarColor(name: string): string {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i)) * 31
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
-}
-
-function timeAgo(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "à l'instant"
-  if (mins < 60) return `il y a ${mins} min`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `il y a ${hrs}h`
-  return `il y a ${Math.floor(hrs / 24)}j`
-}
 
 const STATUS_DOT: Record<CircleMember['status'], string> = {
   online: '#34D399',
@@ -84,6 +68,14 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
     setChatOpen(true)
     return () => setChatOpen(false)
   }, [showChat, setChatOpen])
+
+  // Reset chat state immediately when sheet closes (don't wait for AnimatePresence unmount)
+  useEffect(() => {
+    if (!open) {
+      setChatOpen(false)
+      setShowChat(false)
+    }
+  }, [open, setChatOpen])
 
   // tokens
   const t = useMemo(() => ({
@@ -549,7 +541,7 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
         <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary }}>{m.name}</span>
         {m.last_seen && (
           <span style={{ fontSize: 10, color: t.textTertiary, marginLeft: 6 }}>
-            {timeAgo(m.last_seen)}
+            {timeAgo(m.last_seen ?? '')}
           </span>
         )}
       </div>

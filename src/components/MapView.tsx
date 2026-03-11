@@ -893,18 +893,16 @@ function MapView({
       .setLngLat(last)
       .addTo(m);
 
-    // Center on user GPS position (navigation mode) — fallback to route overview
+    // Fit route + user position — navigation-style view
     const loc = useStore.getState().userLocation;
-    if (loc) {
-      m.flyTo({ center: [loc.lng, loc.lat], zoom: 15.5, duration: 1000 });
-    } else {
-      const lngs = activeRoute.coords.map((c) => c[0]);
-      const lats  = activeRoute.coords.map((c) => c[1]);
-      m.fitBounds(
-        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
-      );
-    }
+    const allPts = [...activeRoute.coords];
+    if (loc) allPts.push([loc.lng, loc.lat]);
+    const lngs = allPts.map((c) => c[0]);
+    const lats  = allPts.map((c) => c[1]);
+    m.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: { top: 80, left: 60, right: 60, bottom: 80 + mapBottomPadding }, maxZoom: 16, duration: 1200 },
+    );
   }, [activeRoute, mapReady, layersReady]);
 
   // Draw / clear pending route options (colored multi-route selection)

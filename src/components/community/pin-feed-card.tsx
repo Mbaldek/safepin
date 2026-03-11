@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ThumbsUp, Check, MapPin as MapPinIcon, Navigation } from 'lucide-react'
 import { Pin } from '@/types'
+import { timeAgo } from '@/lib/utils'
 
 interface PinFeedCardProps {
   pin: Pin
@@ -206,7 +207,7 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
             )}
             {pin.created_at && (
               <span style={{ fontSize: 10, color: textTertiary, whiteSpace: 'nowrap' }}>
-                {timeAgoFn(pin.created_at)}
+                {timeAgo(pin.created_at)}
               </span>
             )}
           </div>
@@ -290,13 +291,4 @@ export default function PinFeedCard({ pin, isDark, onClick, onLocate }: PinFeedC
       )}
     </div>
   )
-}
-
-function timeAgoFn(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const h = Math.floor(diff / 3600000)
-  if (h < 1) return 'à l\'instant'
-  if (h < 24) return `il y a ${h}h`
-  const d = Math.floor(h / 24)
-  return `il y a ${d}j`
 }

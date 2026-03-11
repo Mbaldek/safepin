@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
 import type { NotifChannel } from '@/types';
 import SettingsSection from '../components/SettingsSection';
@@ -76,7 +76,7 @@ interface Props {
 }
 
 export default function LocationScreen({ onBack }: Props) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const [settings, setSettings] = useState<AllSettings>(DEFAULTS);
   const [loaded, setLoaded] = useState(false);
   const userIdRef = useRef<string | null>(null);

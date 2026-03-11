@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 interface VerificationGateModalProps {
   onVerify: () => void;
@@ -23,7 +23,7 @@ const ringKeyframes = `
 }`;
 
 export default function VerificationGateModal({ onVerify }: VerificationGateModalProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
 
   const surfaceBase = isDark ? '#0F172A' : '#F1F5F9';
   const surfaceCard = isDark ? '#1E293B' : '#FFFFFF';

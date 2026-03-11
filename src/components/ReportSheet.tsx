@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Camera, Video, Mic, MapPin, ChevronLeft, Loader2 } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
 
 const groups = [
@@ -91,7 +91,7 @@ const allItems = groups.flatMap(g => g.items);
 type Step = 1 | 2 | '2b' | 3;
 
 export function ReportSheet() {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo } = useStore();
 
@@ -402,7 +402,7 @@ export function ReportSheet() {
                       </button>
                     ))}
                   </div>
-                  {tType && <input placeholder={trans.find(x => x.id === tType)?.p} value={tLine} onChange={e => setTLine(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 14, outline: 'none' }} />}
+                  {tType && <input placeholder={trans.find(x => x.id === tType)?.p} value={tLine} onChange={e => setTLine(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, outline: 'none' }} />}
                 </>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: c.pill, fontSize: 11, color: c.muted }}>
@@ -477,7 +477,7 @@ export function ReportSheet() {
               <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setMediaFile(e.target.files?.[0] ?? null)} />
 
               {/* Description */}
-              <textarea placeholder="Description (optionnel)..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 14, outline: 'none', resize: 'none' as const, marginTop: 6 }} />
+              <textarea placeholder="Description (optionnel)..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, outline: 'none', resize: 'none' as const, marginTop: 6 }} />
 
               {/* CTA */}
               <button
@@ -566,7 +566,7 @@ export function ReportSheet() {
                   width: '100%', padding: 10, borderRadius: 10,
                   background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
                   border: `1px solid ${c.border}`,
-                  color: c.text, fontSize: 14, outline: 'none', resize: 'none' as const,
+                  color: c.text, fontSize: 13, outline: 'none', resize: 'none' as const,
                   marginBottom: 12,
                 }}
               />

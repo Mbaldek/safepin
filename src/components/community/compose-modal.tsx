@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { X, Image as ImageIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useToast } from '@/hooks/useToast';
 import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
 import { HashtagComposer } from "@/components/map/hashtags";
 import { attachHashtags } from "@/hooks/useHashtags";
@@ -37,6 +37,7 @@ interface CommunityOption {
 }
 
 export default function ComposeModal({ isDark, userId, onClose, onPublished }: ComposeModalProps) {
+  const toast = useToast();
   const [selectedType, setSelectedType] = useState("post");
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState<"public" | "followers" | "cercle">("public");

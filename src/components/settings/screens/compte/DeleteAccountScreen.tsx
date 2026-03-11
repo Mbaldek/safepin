@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, AlertTriangle, FileX, Users, MapPin, Ban } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
 import { bToast } from '@/components/GlobalToast';
 import { springTransition, fadeSlideUp } from './types';
@@ -48,7 +48,7 @@ interface DeleteAccountScreenProps {
 }
 
 export default function DeleteAccountScreen({ onBack }: DeleteAccountScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
 
   const [step, setStep] = useState<1 | 2>(1);

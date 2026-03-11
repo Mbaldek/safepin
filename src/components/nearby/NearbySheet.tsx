@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { Shield, ChevronUp, X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { CATEGORY_DETAILS, CATEGORY_GROUPS } from '@/types';
 import { haversineMeters } from '@/lib/utils';
 import { useMemo } from 'react';
@@ -85,7 +85,7 @@ const tabs = ['Signalements', 'Sécurité', 'Alertes'] as const;
 type Props = { onClose: () => void };
 
 export default function NearbySheet({ onClose }: Props) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const { pins, userLocation, setSelectedPin, setActiveSheet, setMapFlyTo } = useStore();
 

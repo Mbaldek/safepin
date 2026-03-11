@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff, Check } from 'lucide-react';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
 import { bToast } from '@/components/GlobalToast';
 import { springTransition } from './types';
@@ -52,7 +52,7 @@ interface PasswordScreenProps {
 }
 
 export default function PasswordScreen({ onBack }: PasswordScreenProps) {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
 
   const [step, setStep] = useState(1);

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useTheme } from '@/stores/useTheme';
+import { useIsDark } from '@/hooks/useIsDark';
 
 function getColors(isDark: boolean) {
   return isDark ? {
@@ -45,7 +45,7 @@ if (typeof window !== 'undefined') {
 }
 
 export default function InstallPrompt() {
-  const isDark = useTheme((s) => s.theme) === 'dark';
+  const isDark = useIsDark();
   const C = getColors(isDark);
   const t = useTranslations('install');
   const [show, setShow] = useState(false);

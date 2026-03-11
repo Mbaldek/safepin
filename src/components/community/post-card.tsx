@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle, MapPin, Share2, Flag, EyeOff, Trash2, Send } from "lucide-react";
 import { SAFETY_TAG_COLORS } from "@/lib/hashtagTokens";
-import { toast } from "sonner";
+import { useToast } from '@/hooks/useToast';
 import { supabase } from "@/lib/supabase";
 import EmojiPickerButton from "@/components/ui/EmojiPickerButton";
 import { useUiStore } from "@/stores/uiStore";
@@ -87,6 +87,7 @@ const typeStyles = {
 };
 
 export default function PostCard({ post, isDark, currentUserId, onHide, onSafetyFilter, onHashtagClick }: PostCardProps) {
+  const toast = useToast();
   const openContextMenu = useUiStore((s) => s.openContextMenu);
   const openProfile = useUiStore((s) => s.openProfile);
   const [confirmed, setConfirmed] = useState(false);
@@ -122,12 +123,12 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
       setBookmarked(false);
       const { error } = await supabase.from('saved_posts').delete().eq('user_id', currentUserId).eq('post_id', post.id);
       if (error) { setBookmarked(true); toast.error('Erreur'); }
-      else toast('Retire des favoris');
+      else toast.info('Retire des favoris');
     } else {
       setBookmarked(true);
       const { error } = await supabase.from('saved_posts').insert({ user_id: currentUserId, post_id: post.id });
       if (error) { setBookmarked(false); toast.error(error.code === '23505' ? 'Deja en favoris' : 'Erreur'); }
-      else toast('Ajoute aux favoris');
+      else toast.info('Ajoute aux favoris');
     }
     setBookmarkLoading(false);
   };
@@ -382,11 +383,11 @@ export default function PostCard({ post, isDark, currentUserId, onHide, onSafety
                     setMenuOpen(false);
                   }},
                   ...(!isOwn ? [
-                    { icon: Flag, label: "Signaler", action: () => { toast("Signalement envoyé"); setMenuOpen(false); } },
+                    { icon: Flag, label: "Signaler", action: () => { toast.info("Signalement envoyé"); setMenuOpen(false); } },
                     { icon: EyeOff, label: "Masquer", action: () => { onHide?.(post.id); setMenuOpen(false); } },
                   ] : []),
                   ...(isOwn ? [
-                    { icon: Trash2, label: "Supprimer", action: () => { toast("Post supprimé"); onHide?.(post.id); setMenuOpen(false); }, danger: true },
+                    { icon: Trash2, label: "Supprimer", action: () => { toast.info("Post supprimé"); onHide?.(post.id); setMenuOpen(false); }, danger: true },
                   ] : []),
                 ].map((item, i) => (
                   <button
