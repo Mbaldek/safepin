@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { AdminThemeProvider, useAdminTheme } from '@/components/admin/AdminThemeContext';
+import { useAdminTheme } from '@/components/admin/AdminThemeContext';
 import TowerTopbar from '@/components/admin/TowerTopbar';
 import TowerSidebar from '@/components/admin/TowerSidebar';
 import AdminFooter from '@/components/admin/AdminFooter';
@@ -35,8 +35,14 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
 
   if (allowed === null) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080E1A' }}>
-        <div style={{ color: '#94A3B8', fontSize: 14 }}>Loading Tower Control...</div>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--surface-base)',
+      }}>
+        <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Loading Tower Control...</div>
       </div>
     );
   }
@@ -63,10 +69,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AdminThemeProvider>
-      <AdminGuard>
-        <AdminShell>{children}</AdminShell>
-      </AdminGuard>
-    </AdminThemeProvider>
+    <AdminGuard>
+      <AdminShell>{children}</AdminShell>
+    </AdminGuard>
   );
 }

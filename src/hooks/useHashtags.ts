@@ -72,7 +72,7 @@ export function useHashtagSearch() {
       try {
         const { data } = await supabase
           .from('hashtags')
-          .select('*')
+          .select('id, tag, category, display, color, icon, uses_count, created_at')
           .ilike('tag', `%${query.toLowerCase()}%`)
           .order('uses_count', { ascending: false })
           .limit(6)
@@ -130,11 +130,9 @@ export async function attachHashtags(params: {
 
   if (error) return
 
-  await Promise.all(
-    params.tags.map(t =>
-      supabase.rpc('increment_hashtag_count', { tag_id: t.id }).then(() => {})
-    )
-  )
+  await supabase.rpc('increment_hashtag_counts', {
+    p_tag_ids: params.tags.map(t => t.id),
+  })
 }
 
 // ── Fetch feed filtré par hashtag ──────────────────────────────

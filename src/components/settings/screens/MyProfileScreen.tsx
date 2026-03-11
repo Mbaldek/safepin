@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Pencil, Search, UserCheck, UserPlus } from "lucide-react";
+import { ArrowLeft, Pencil, Search, UserCheck, UserPlus, Globe, Users, Shield, Lock, AtSign, MapPin, Flag, Calendar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/stores/useTheme";
 import { useStore } from "@/stores/useStore";
@@ -11,19 +11,48 @@ import { bToast } from "@/components/GlobalToast";
 import { getStreakEmoji } from "@/lib/streaks";
 import SettingsToggle from "../components/SettingsToggle";
 import AddCircleContactModal from "@/components/community/AddCircleContactModal";
-import VisibilityScreen from "./compte/VisibilityScreen";
-import type { AccountData } from "./compte/types";
+import type { AccountData, VisibilityLevel } from "./compte/types";
 
 // ── Types ──
 
 interface ProfileFields {
+  first_name: string;
+  last_name: string;
   username: string;
   display_name: string;
+  date_of_birth: string;
+  country: string;
   city: string;
   bio: string;
   avatar_url: string | null;
   is_public: boolean;
 }
+
+const COUNTRIES = [
+  { code: 'fr', flag: '\u{1F1EB}\u{1F1F7}', label: 'France' },
+  { code: 'be', flag: '\u{1F1E7}\u{1F1EA}', label: 'Belgique' },
+  { code: 'ch', flag: '\u{1F1E8}\u{1F1ED}', label: 'Suisse' },
+  { code: 'ca', flag: '\u{1F1E8}\u{1F1E6}', label: 'Canada' },
+  { code: 'ma', flag: '\u{1F1F2}\u{1F1E6}', label: 'Maroc' },
+  { code: 'sn', flag: '\u{1F1F8}\u{1F1F3}', label: 'S\u00e9n\u00e9gal' },
+  { code: 'dz', flag: '\u{1F1E9}\u{1F1FF}', label: 'Alg\u00e9rie' },
+  { code: 'tn', flag: '\u{1F1F9}\u{1F1F3}', label: 'Tunisie' },
+  { code: 'other', flag: '\u{1F30D}', label: 'Autre' },
+] as const;
+
+const VISIBILITY_LEVELS: { value: VisibilityLevel; label: string; color: string }[] = [
+  { value: 'public', label: 'Public', color: '#3BB4C1' },
+  { value: 'followers', label: 'Abonn\u00e9s', color: '#F5C341' },
+  { value: 'circle', label: 'Cercle', color: '#A78BFA' },
+  { value: 'private', label: 'Priv\u00e9', color: '#64748B' },
+];
+
+const VISIBILITY_FIELDS: { key: keyof AccountData['visibility']; icon: typeof AtSign; iconColor: string; label: string; disabledLevels?: VisibilityLevel[] }[] = [
+  { key: 'username', icon: AtSign, iconColor: '#A78BFA', label: "Nom d'utilisateur", disabledLevels: ['private'] },
+  { key: 'city', icon: MapPin, iconColor: '#3BB4C1', label: 'Ville' },
+  { key: 'country', icon: Flag, iconColor: '#F5C341', label: 'Pays' },
+  { key: 'birthDate', icon: Calendar, iconColor: '#34D399', label: 'Date de naissance' },
+];
 
 interface FollowUser {
   id: string;
@@ -78,14 +107,14 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
   const [tab, setTab] = useState<Tab>("profil");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [subScreen, setSubScreen] = useState<"visibility" | null>(null);
   const [visibility, setVisibility] = useState<AccountData["visibility"]>({
     username: "public", city: "public", country: "private", birthDate: "private",
   });
 
   // Profile fields
   const [fields, setFields] = useState<ProfileFields>({
-    username: "", display_name: "", city: "", bio: "",
+    first_name: "", last_name: "", username: "", display_name: "",
+    date_of_birth: "", country: "", city: "", bio: "",
     avatar_url: null, is_public: true,
   });
   const [dirty, setDirty] = useState(false);
@@ -127,7 +156,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     (async () => {
       setLoading(true);
       const [profileRes, followersRes, followingRes, circleRes] = await Promise.all([
-        supabase.from("profiles").select("username, display_name, city, bio, avatar_url, is_public, current_streak, longest_streak, last_active_date, pin_count, vote_count, comment_count, escort_count, visibility").eq("id", userId).single(),
+        supabase.from("profiles").select("first_name, last_name, username, display_name, date_of_birth, country, city, bio, avatar_url, is_public, current_streak, longest_streak, last_active_date, pin_count, vote_count, comment_count, escort_count, visibility").eq("id", userId).single(),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
         supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
         supabase.from("circle_invitations").select("id", { count: "exact", head: true }).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).eq("status", "accepted"),
@@ -135,8 +164,12 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
       if (profileRes.data) {
         const p = profileRes.data;
         setFields({
+          first_name: p.first_name ?? "",
+          last_name: p.last_name ?? "",
           username: p.username ?? "",
           display_name: p.display_name ?? "",
+          date_of_birth: p.date_of_birth ?? "",
+          country: p.country ?? "",
           city: p.city ?? "",
           bio: p.bio ?? "",
           avatar_url: p.avatar_url ?? null,
@@ -172,17 +205,28 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
   const handleSave = useCallback(async () => {
     if (!userId || !dirty || saving) return;
     setSaving(true);
+    const displayName = fields.display_name || [fields.first_name, fields.last_name].filter(Boolean).join(" ") || null;
     const { error } = await supabase.from("profiles").update({
+      first_name: fields.first_name || null,
+      last_name: fields.last_name || null,
       username: fields.username || null,
-      display_name: fields.display_name || null,
+      display_name: displayName,
+      date_of_birth: fields.date_of_birth || null,
+      country: fields.country || null,
       city: fields.city || null,
       bio: fields.bio || null,
       is_public: fields.is_public,
+      visibility,
     }).eq("id", userId);
     if (error) bToast.danger({ title: "Erreur lors de la sauvegarde" }, isDark);
-    else { bToast.success({ title: "Profil mis a jour" }, isDark); setDirty(false); }
+    else {
+      bToast.success({ title: "Profil mis a jour" }, isDark);
+      setDirty(false);
+      const store = useStore.getState();
+      if (store.userProfile) store.setUserProfile({ ...store.userProfile, display_name: displayName ?? null });
+    }
     setSaving(false);
-  }, [userId, fields, dirty, saving]);
+  }, [userId, fields, visibility, dirty, saving]);
 
   // ── Avatar upload ──
   const handleAvatarChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -344,15 +388,11 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
     setFollowingCount((c) => c + 1);
   }, [userId]);
 
-  // ── Visibility save ──
-  const handleVisibilitySave = useCallback(async (v: AccountData["visibility"]) => {
-    if (!userId) return;
-    const { error } = await supabase.from("profiles").update({ visibility: v }).eq("id", userId);
-    if (error) { bToast.danger({ title: "Erreur lors de la sauvegarde" }, isDark); return; }
-    setVisibility(v);
-    bToast.success({ title: "Visibilité mise à jour" }, isDark);
-    setSubScreen(null);
-  }, [userId, isDark]);
+  // ── Visibility updater (marks dirty) ──
+  const updateVisibility = (key: keyof AccountData["visibility"], level: VisibilityLevel) => {
+    setVisibility((prev) => ({ ...prev, [key]: level }));
+    setDirty(true);
+  };
 
   if (loading) {
     return (
@@ -380,7 +420,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
       {/* HEADER */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 16px 10px", flexShrink: 0,
+        padding: "20px 20px 12px", flexShrink: 0,
       }}>
         <motion.button
           whileTap={{ scale: 0.9 }}
@@ -461,7 +501,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: C.card, borderRadius: 16, padding: 24, width: 280,
+              background: C.card, borderRadius: 16, padding: 24, width: "min(280px, 90vw)",
               textAlign: "center",
             }}
           >
@@ -505,16 +545,6 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
         onAdded={() => { setCircleLoaded(false); setCircleCount((c) => c + 1); }}
       />
 
-      {/* Visibility sub-screen */}
-      {subScreen === "visibility" && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 220, background: C.bg, display: "flex", flexDirection: "column" }}>
-          <VisibilityScreen
-            visibility={visibility}
-            onSave={handleVisibilitySave}
-            onBack={() => setSubScreen(null)}
-          />
-        </div>
-      )}
     </div>
   );
 
@@ -585,40 +615,162 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
         {/* ── Streak card + Week dots + Contributions ── */}
         {renderStreakBlock()}
 
-        {/* Editable fields */}
-        {renderField("Nom d'utilisateur", fields.username, (v) => updateField("username", v), "@pseudo")}
-        {renderField("Nom complet", fields.display_name, (v) => updateField("display_name", v), "Votre nom")}
-        {renderField("Ville", fields.city, (v) => updateField("city", v), "Votre ville")}
-        {renderField("Bio", fields.bio, (v) => updateField("bio", v), "Ajouter une bio...", true)}
-
-        {/* Public toggle */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 0", borderTop: `1px solid ${C.border}`, marginTop: 8,
-        }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: C.t1 }}>Profil public</div>
-            <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>Visible dans la communaute</div>
+        {/* ── Section: Identité ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: C.t3, marginBottom: 10 }}>
+            Identité
           </div>
-          <SettingsToggle value={fields.is_public} onChange={(v) => updateField("is_public", v)} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.18)", marginBottom: 14 }}>
+            <Lock size={13} color="#A78BFA" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: "#A78BFA", lineHeight: 1.3 }}>Votre nom réel n'est jamais visible par les autres membres</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            {renderField("Prénom", fields.first_name, (v) => updateField("first_name", v), "Prénom")}
+            {renderField("Nom", fields.last_name, (v) => updateField("last_name", v), "Nom")}
+          </div>
+          {renderField("Nom d'affichage", fields.display_name, (v) => updateField("display_name", v), "Votre nom public")}
+          {renderField("Nom d'utilisateur", fields.username, (v) => updateField("username", v), "@pseudo")}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4, display: "block" }}>
+              Date de naissance
+            </label>
+            <input
+              type="date"
+              value={fields.date_of_birth}
+              onChange={(e) => updateField("date_of_birth", e.target.value)}
+              max={new Date(Date.now() - 13 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+              style={{
+                width: "100%", padding: "10px 12px", borderRadius: 10,
+                background: C.inputBg, border: "none", color: C.t1,
+                fontSize: 14, outline: "none",
+                colorScheme: isDark ? "dark" : "light",
+              }}
+            />
+            <span style={{ fontSize: 10, color: C.t3, marginTop: 3, display: "block" }}>
+              Minimum 13 ans · Non visible par les autres
+            </span>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4, display: "block" }}>
+              Pays de résidence
+            </label>
+            <select
+              value={fields.country}
+              onChange={(e) => updateField("country", e.target.value)}
+              style={{
+                width: "100%", padding: "10px 12px", borderRadius: 10,
+                background: C.inputBg, border: "none", color: C.t1,
+                fontSize: 14, outline: "none", cursor: "pointer",
+                appearance: "none", WebkitAppearance: "none",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='${encodeURIComponent(C.t3)}'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 14px center",
+                paddingRight: 36,
+              }}
+            >
+              <option value="" style={{ background: isDark ? "#1E293B" : "#FFFFFF", color: C.t1 }}>Sélectionner un pays</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code} style={{ background: isDark ? "#1E293B" : "#FFFFFF", color: C.t1 }}>{c.flag} {c.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Visibility row */}
-        <button
-          onClick={() => setSubScreen("visibility")}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 0",
-            background: "none", border: "none", borderTop: `1px solid ${C.border}`,
-            cursor: "pointer",
-          }}
-        >
-          <div style={{ textAlign: "left" }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: C.t1 }}>Visibilité du profil</div>
-            <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>Choisir qui voit quoi</div>
+        {/* ── Section: À propos ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: C.t3, marginBottom: 10 }}>
+            À propos
           </div>
-          <span style={{ fontSize: 16, color: C.t3 }}>›</span>
-        </button>
+          {renderField("Ville", fields.city, (v) => updateField("city", v), "Votre ville")}
+          {renderField("Bio", fields.bio, (v) => updateField("bio", v), "Ajouter une bio...", true)}
+        </div>
+
+        {/* ── Section: Visibilité ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: C.t3, marginBottom: 10 }}>
+            Visibilité
+          </div>
+
+          {/* Public toggle */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 0", borderBottom: `1px solid ${C.border}`, marginBottom: 12,
+          }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: C.t1 }}>Profil public</div>
+              <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>Visible dans la communauté</div>
+            </div>
+            <SettingsToggle value={fields.is_public} onChange={(v) => updateField("is_public", v)} />
+          </div>
+
+          {/* Legend pills */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            {[
+              { icon: <Globe size={10} />, color: "#3BB4C1", label: "Tous" },
+              { icon: <Users size={10} />, color: "#F5C341", label: "Abonnés" },
+              { icon: <Shield size={10} />, color: "#A78BFA", label: "Cercle" },
+              { icon: <Lock size={10} />, color: "#64748B", label: "Privé" },
+            ].map((l) => (
+              <div key={l.label} style={{
+                display: "flex", alignItems: "center", gap: 3,
+                padding: "3px 8px", borderRadius: 999,
+                background: l.color + "15", border: `1px solid ${l.color}30`,
+              }}>
+                <span style={{ color: l.color, display: "flex" }}>{l.icon}</span>
+                <span style={{ fontSize: 9, fontWeight: 600, color: C.t2 }}>{l.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Per-field visibility controls */}
+          <div style={{
+            borderRadius: 14, border: `1px solid ${C.border}`, background: C.inputBg, overflow: "hidden",
+          }}>
+            {VISIBILITY_FIELDS.map((field, i) => {
+              const Icon = field.icon;
+              return (
+                <div key={field.key}>
+                  {i > 0 && <div style={{ height: 1, background: C.border, margin: "0 14px" }} />}
+                  <div style={{ padding: "12px 14px 10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <div style={{
+                        width: 26, height: 26, borderRadius: 7,
+                        background: field.iconColor + "20",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Icon size={13} color={field.iconColor} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.t1 }}>{field.label}</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {VISIBILITY_LEVELS.map((lvl) => {
+                        const isActive = visibility[field.key] === lvl.value;
+                        const isDisabled = field.disabledLevels?.includes(lvl.value) ?? false;
+                        return (
+                          <button
+                            key={lvl.value}
+                            onClick={() => { if (!isDisabled) updateVisibility(field.key, lvl.value); }}
+                            style={{
+                              flex: "1 1 22%", minWidth: 0, padding: "6px 0", borderRadius: 8,
+                              fontSize: 10, fontWeight: 600,
+                              border: isActive ? `1.5px solid ${lvl.color}` : `1px solid ${C.border}`,
+                              background: isActive ? lvl.color + "20" : "transparent",
+                              color: isActive ? lvl.color : C.t3,
+                              cursor: isDisabled ? "not-allowed" : "pointer",
+                              opacity: isDisabled ? 0.35 : 1,
+                            }}
+                          >
+                            {lvl.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   }
@@ -809,7 +961,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleFollowBack(u.id)}
                   style={{
-                    padding: "6px 12px", borderRadius: 8,
+                    padding: "10px 16px", borderRadius: 8,
                     border: `1px solid ${C.border}`, background: "transparent",
                     color: C.t1, fontSize: 12, fontWeight: 600, cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 4,
@@ -862,7 +1014,7 @@ export default function MyProfileScreen({ onClose }: MyProfileScreenProps) {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setUnfollowConfirm(u.id)}
                 style={{
-                  padding: "6px 12px", borderRadius: 8,
+                  padding: "10px 16px", borderRadius: 8,
                   border: `1px solid ${C.border}`, background: "transparent",
                   color: C.t3, fontSize: 12, fontWeight: 600, cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 4,

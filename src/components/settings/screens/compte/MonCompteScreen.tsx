@@ -11,7 +11,6 @@ import { supabase } from '@/lib/supabase';
 import SettingsSection from '../../components/SettingsSection';
 import SettingsRow from '../../components/SettingsRow';
 import { bToast } from '@/components/GlobalToast';
-import PersonalInfoScreen from './PersonalInfoScreen';
 import VerificationScreen from './VerificationScreen';
 import PasswordScreen from './PasswordScreen';
 import DeleteAccountScreen from './DeleteAccountScreen';
@@ -125,37 +124,6 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
     setCurrentScreen('main');
   }
 
-  // PersonalInfo onSave → persist first_name, last_name, birth_date, country, city
-  async function handleSave(partial: Partial<AccountData>) {
-    if (!account || !userId) return;
-    const updated = { ...account, ...partial };
-    setAccount(updated);
-
-    const displayName = [updated.firstName, updated.lastName].filter(Boolean).join(' ');
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        first_name: updated.firstName || null,
-        last_name: updated.lastName || null,
-        display_name: displayName,
-        date_of_birth: updated.birthDate || null,
-        country: updated.country || null,
-      })
-      .eq('id', userId);
-
-    if (error) {
-      bToast.danger({ title: 'Erreur lors de la sauvegarde' }, isDark);
-      return;
-    }
-
-    const store = useStore.getState();
-    if (store.userProfile) {
-      store.setUserProfile({ ...store.userProfile, display_name: displayName });
-    }
-    bToast.success({ title: 'Informations mises à jour' }, isDark);
-    goBack();
-  }
-
   // Email onSave → supabase.auth.updateUser({ email })
   async function handleEmailSave(newEmail: string) {
     if (!account || !userId) return;
@@ -206,10 +174,6 @@ export default function MonCompteScreen({ onBack, onNavigateParent }: MonCompteS
 
   function renderScreen() {
     switch (currentScreen) {
-      case 'personal-info':
-        return account ? (
-          <PersonalInfoScreen data={account} onSave={handleSave} onBack={goBack} />
-        ) : null;
       case 'verification':
         return (
           <VerificationScreen
@@ -273,20 +237,7 @@ interface MainCompteScreenProps {
   onNavigateParent?: (screen: string) => void;
 }
 
-function MainCompteScreen({ account, C, onBack, navigateTo, onNavigateParent }: MainCompteScreenProps) {
-  const userProfile = useStore((s) => s.userProfile);
-  const displayName = [account?.firstName, account?.lastName].filter(Boolean).join(' ')
-    || account?.username
-    || account?.email?.split('@')[0]
-    || '';
-  const initial = displayName.charAt(0).toUpperCase();
-
-  // Build subtitle for "Informations personnelles"
-  const infoSubtitleParts: string[] = [];
-  if (account?.firstName) infoSubtitleParts.push(account.firstName);
-  if (account?.country) infoSubtitleParts.push(account.country);
-  const infoSubtitle = infoSubtitleParts.join(' · ') || undefined;
-
+function MainCompteScreen({ account, C, onBack, navigateTo }: MainCompteScreenProps) {
   // Verified badge pill for SettingsRow rightEl
   const verifiedPill = account?.isVerified ? (
     <span
@@ -342,87 +293,6 @@ function MainCompteScreen({ account, C, onBack, navigateTo, onNavigateParent }: 
           initial="initial"
           animate="animate"
         >
-          {/* ── Avatar block ── */}
-          <motion.div
-            variants={fadeSlideUp}
-            transition={springTransition}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              paddingTop: 24,
-              paddingBottom: 20,
-            }}
-          >
-            {/* Avatar circle */}
-            <div
-              style={{
-                width: 84,
-                height: 84,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3BB4C1, #4A2C5A)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-              }}
-            >
-              {userProfile?.avatar_url ? (
-                <img
-                  src={userProfile.avatar_url}
-                  alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span style={{ fontSize: 30, fontWeight: 300, color: '#FFFFFF' }}>
-                  {initial}
-                </span>
-              )}
-            </div>
-
-            {/* Name */}
-            <span style={{ fontSize: 20, fontWeight: 300, color: C.t1, marginTop: 12 }}>
-              {displayName}
-            </span>
-
-            {/* @username */}
-            {account?.username && (
-              <span style={{ fontSize: 13, color: C.t3, marginTop: 2 }}>
-                @{account.username}
-              </span>
-            )}
-
-            {/* Verified badge */}
-            {account?.isVerified && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '3px 12px',
-                  borderRadius: 999,
-                  background: F.successSoft,
-                  color: F.success,
-                  marginTop: 8,
-                }}
-              >
-                VÉRIFIÉ
-              </span>
-            )}
-          </motion.div>
-
-          {/* ── Section: PROFIL ── */}
-          <motion.div variants={fadeSlideUp} transition={springTransition}>
-            <SettingsSection label="Profil">
-              <SettingsRow
-                icon="User"
-                iconColor="#22D3EE"
-                label="Informations personnelles"
-                subtitle={infoSubtitle}
-                onPress={() => navigateTo('personal-info')}
-              />
-            </SettingsSection>
-          </motion.div>
-
           {/* ── Section: VÉRIFICATION ── */}
           <motion.div variants={fadeSlideUp} transition={springTransition}>
             <SettingsSection label="Vérification">

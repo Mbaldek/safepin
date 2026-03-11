@@ -119,10 +119,13 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
     (async () => {
       setLoading(true);
 
-      const { data: memberships } = await supabase
-        .from("community_members")
-        .select("community_id")
-        .eq("user_id", userId);
+      // Wave 1: fetch memberships + social graph in parallel
+      const [{ data: memberships }, { data: myFollows }, { data: myCircle1 }, { data: myCircle2 }] = await Promise.all([
+        supabase.from("community_members").select("community_id").eq("user_id", userId),
+        supabase.from("follows").select("following_id").eq("follower_id", userId),
+        supabase.from("trusted_contacts").select("contact_id").eq("user_id", userId).eq("status", "accepted"),
+        supabase.from("trusted_contacts").select("user_id").eq("contact_id", userId).eq("status", "accepted"),
+      ]);
 
       const ids = memberships?.map((m) => m.community_id) ?? [];
       setCommunityIds(ids);
@@ -132,99 +135,83 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         return;
       }
 
-      // Pre-fetch viewer's social graph for visibility filtering
-      const [{ data: myFollows }, { data: myCircle1 }, { data: myCircle2 }] = await Promise.all([
-        supabase.from("follows").select("following_id").eq("follower_id", userId),
-        supabase.from("trusted_contacts").select("contact_id").eq("user_id", userId).eq("status", "accepted"),
-        supabase.from("trusted_contacts").select("user_id").eq("contact_id", userId).eq("status", "accepted"),
-      ]);
       const followingSet = new Set((myFollows || []).map((f: any) => f.following_id));
       const circleSet = new Set([
         ...(myCircle1 || []).map((c: any) => c.contact_id),
         ...(myCircle2 || []).map((c: any) => c.user_id),
       ]);
+      const socialIds = [...followingSet, ...circleSet];
 
-      const { data: messages } = await supabase
-        .from("community_messages")
-        .select("id, content, created_at, user_id, display_name, community_id, visibility")
-        .in("community_id", ids)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      // Wave 2: feed RPC + SOS + pins — all in parallel
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const pinSelect = 'id, user_id, lat, lng, category, severity, description, photo_url, address, confirmations, created_at';
+      const lat = userLocation?.lat ?? 48.8566;
+      const lng = userLocation?.lng ?? 2.3522;
+      const latDelta = 0.0045;
+      const lngDelta = 0.0055;
 
-      if (!messages?.length) {
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
+      const [feedResult, sosResult, nearbyPinsRes, socialPinsRes] = await Promise.all([
+        // Single RPC replaces: messages + profiles + comment counts
+        supabase.rpc("community_feed", { p_community_ids: ids, p_limit: 50 }),
+        // SOS posts (graceful)
+        supabase.from("community_posts").select("*").eq("type", "sos_alert").order("created_at", { ascending: false }).limit(20).then(r => r, () => ({ data: null, error: null, count: null, status: 0, statusText: '' })),
+        // Nearby pins
+        supabase.from('pins').select(pinSelect)
+          .gte('created_at', sevenDaysAgo).is('resolved_at', null)
+          .gte('lat', lat - latDelta).lte('lat', lat + latDelta)
+          .gte('lng', lng - lngDelta).lte('lng', lng + lngDelta)
+          .order('created_at', { ascending: false }).limit(20),
+        // Social pins
+        socialIds.length > 0
+          ? supabase.from('pins').select(pinSelect)
+              .gte('created_at', sevenDaysAgo).is('resolved_at', null)
+              .in('user_id', socialIds)
+              .order('created_at', { ascending: false }).limit(15)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
 
-      // Filter by visibility
-      const visible = messages.filter((m) => {
-        const vis = (m as any).visibility || "public";
+      // Process feed posts (already joined with profiles + comment counts)
+      const feedRows = (feedResult.data ?? []) as any[];
+      const visible = feedRows.filter((m: any) => {
+        const vis = m.visibility || "public";
         if (vis === "public") return true;
-        if (m.user_id === userId) return true; // always see own posts
+        if (m.user_id === userId) return true;
         if (vis === "followers") return followingSet.has(m.user_id);
         if (vis === "cercle") return circleSet.has(m.user_id);
         return true;
       });
 
-      const userIds = [...new Set(visible.map((m) => m.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, first_name, username, avatar_emoji, avatar_url")
-        .in("id", userIds);
-
-      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
-
-      // Fetch comment counts for all posts
-      const postIds = visible.map((m) => m.id);
-      const { data: commentRows } = await supabase
-        .from("post_comments")
-        .select("post_id")
-        .in("post_id", postIds);
-      const commentCountMap = new Map<string, number>();
-      (commentRows || []).forEach((r: any) =>
-        commentCountMap.set(r.post_id, (commentCountMap.get(r.post_id) || 0) + 1)
-      );
-
       setPosts(
-        visible.map((m) => {
-          const p = profileMap.get(m.user_id);
-          const displayName = p?.display_name || p?.first_name || m.display_name || "Anonyme";
-          const name = p?.username || displayName;
-          const avatar = p?.avatar_emoji || name.charAt(0).toUpperCase();
+        visible.map((m: any) => {
+          const displayName = m.author_display_name || m.author_first_name || m.display_name || "Anonyme";
+          const name = m.author_username || displayName;
+          const avatar = m.author_avatar_emoji || name.charAt(0).toUpperCase();
           return {
             id: m.id,
             type: "quartier" as const,
             user: {
               name,
               avatar,
-              avatarUrl: p?.avatar_url || null,
+              avatarUrl: m.author_avatar_url || null,
               gradientColors: pickGradient(m.user_id),
             },
             time: timeAgo(m.created_at),
             title: "",
             content: m.content,
-            comments: commentCountMap.get(m.id) || 0,
+            comments: Number(m.comment_count) || 0,
             userId: m.user_id,
-            username: p?.username || null,
+            username: m.author_username || null,
             displayName,
             _createdAt: m.created_at,
           };
         })
       );
 
-      // Fetch SOS community posts (graceful — table may not exist yet)
+      // Process SOS posts
       try {
-        const { data: sosRows } = await supabase
-          .from("community_posts")
-          .select("*")
-          .eq("type", "sos_alert")
-          .order("created_at", { ascending: false })
-          .limit(20);
-
+        const sosRows = (sosResult as any)?.data;
         if (sosRows?.length) {
-          // Filter circle posts: only visible if current user is in circleMembers
-          const visible = sosRows.filter((s: any) => {
+          const visibleSos = sosRows.filter((s: any) => {
             if (s.visibility === 'community') return true;
             if (s.visibility === 'circle') {
               return s.author_id === userId || (s.metadata?.circleMembers ?? []).includes(userId);
@@ -232,15 +219,14 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             return false;
           });
 
-          // Enrich with author profiles
-          const sosAuthorIds = [...new Set(visible.map((s: any) => s.author_id))];
+          const sosAuthorIds = [...new Set(visibleSos.map((s: any) => s.author_id))];
           const { data: sosProfiles } = await supabase
             .from("profiles")
             .select("id, display_name, avatar_emoji")
             .in("id", sosAuthorIds);
           const sosProfileMap = new Map((sosProfiles || []).map((p: any) => [p.id, p]));
 
-          setSosPosts(visible.map((s: any) => {
+          setSosPosts(visibleSos.map((s: any) => {
             const prof = sosProfileMap.get(s.author_id);
             return {
               ...s,
@@ -255,37 +241,9 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
         // community_posts table may not exist — silent
       }
 
-      // Fetch recent pins (nearby + social graph)
+      // Process pins
       try {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-        const pinSelect = 'id, user_id, lat, lng, category, severity, description, photo_url, address, confirmations, created_at';
-
-        const lat = userLocation?.lat ?? 48.8566;
-        const lng = userLocation?.lng ?? 2.3522;
-        const latDelta = 0.0045;   // ~500m
-        const lngDelta = 0.0055;   // ~500m
-        const socialIds = [...followingSet, ...circleSet];
-
-        const [nearbyPinsRes, socialPinsRes] = await Promise.all([
-          supabase.from('pins').select(pinSelect)
-            .gte('created_at', sevenDaysAgo)
-            .is('resolved_at', null)
-            .gte('lat', lat - latDelta).lte('lat', lat + latDelta)
-            .gte('lng', lng - lngDelta).lte('lng', lng + lngDelta)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          socialIds.length > 0
-            ? supabase.from('pins').select(pinSelect)
-                .gte('created_at', sevenDaysAgo)
-                .is('resolved_at', null)
-                .in('user_id', socialIds)
-                .order('created_at', { ascending: false })
-                .limit(15)
-            : Promise.resolve({ data: [] as any[] }),
-        ]);
         const allPins = [...(nearbyPinsRes.data ?? []), ...(socialPinsRes.data ?? [])];
-
-        // Deduplicate
         const seenPinIds = new Set<string>();
         const uniquePins = allPins.filter(p => {
           if (seenPinIds.has(p.id)) return false;
@@ -293,7 +251,6 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
           return true;
         });
 
-        // Enrich with profiles
         const pinAuthorIds = [...new Set(uniquePins.map(p => p.user_id))];
         let pinProfileMap = new Map<string, any>();
         if (pinAuthorIds.length > 0) {

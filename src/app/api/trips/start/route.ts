@@ -86,20 +86,14 @@ async function notifyCircle(
   body: { user_id: string; to_label: string; mode: string },
   tripId: string,
 ) {
-  // Get user display name
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('display_name')
-    .eq('id', body.user_id)
-    .single();
+  // Fetch profile + contacts in parallel
+  const [{ data: profile }, { data: contacts }] = await Promise.all([
+    admin.from('profiles').select('display_name').eq('id', body.user_id).single(),
+    admin.from('trusted_contacts').select('user_id, contact_id')
+      .or(`user_id.eq.${body.user_id},contact_id.eq.${body.user_id}`)
+      .eq('status', 'accepted'),
+  ]);
   const name = profile?.display_name ?? 'Someone';
-
-  // Get accepted trusted contacts (both directions)
-  const { data: contacts } = await admin
-    .from('trusted_contacts')
-    .select('user_id, contact_id')
-    .or(`user_id.eq.${body.user_id},contact_id.eq.${body.user_id}`)
-    .eq('status', 'accepted');
 
   if (!contacts?.length) return;
 

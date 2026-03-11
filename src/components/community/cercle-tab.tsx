@@ -4,10 +4,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, X, Users, Plus, Trash2, MessageCircle, User, ChevronRight } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/useToast";
 import { useNotificationStore } from "@/stores/notificationStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useAudioCall } from '@/stores/useAudioCall';
+import useVerificationGate from '@/hooks/useVerificationGate';
+import VerificationNudgeSheet from '@/components/VerificationNudgeSheet';
+import VerificationGateModal from '@/components/VerificationGateModal';
 import AddCircleContactModal from "./AddCircleContactModal";
 
 interface CercleTabProps {
@@ -46,6 +49,10 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
   const openCommunityDM = useUiStore((s) => s.openCommunityDM);
   const startCall = useAudioCall((s) => s.startCall);
   const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen);
+  const toast = useToast();
+  const { isGated, shouldNudge, isNonSkippable, daysLeft, snooze } = useVerificationGate();
+  const [showVerifNudge, setShowVerifNudge] = useState(false);
+  const [showVerifGate, setShowVerifGate] = useState(false);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +63,9 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
 
   const handleAdded = useCallback(() => {
     setRefreshKey((k) => k + 1);
-  }, []);
+    if (isGated) setShowVerifGate(true);
+    else if (shouldNudge) setShowVerifNudge(true);
+  }, [isGated, shouldNudge]);
 
   const handleRemoveContact = async () => {
     if (!selectedContact || removing) return;
@@ -250,6 +259,8 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
       ]);
     }
     toast.success("Contact accepté !");
+    if (isGated) setShowVerifGate(true);
+    else if (shouldNudge) setShowVerifNudge(true);
   };
 
   const handleDecline = async (requestId: string) => {
@@ -288,7 +299,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
               fontWeight: 600,
               color: isDark ? "#64748B" : "#94A3B8",
               textTransform: "uppercase",
-              letterSpacing: 0.5,
+              letterSpacing: "0.06em",
               margin: 0,
             }}
           >
@@ -433,7 +444,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
               fontWeight: 600,
               color: isDark ? "#64748B" : "#94A3B8",
               textTransform: "uppercase",
-              letterSpacing: 0.5,
+              letterSpacing: "0.06em",
               marginBottom: 16,
             }}
           >
@@ -582,6 +593,24 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
         onAdded={handleAdded}
       />
 
+      <AnimatePresence>
+        {showVerifNudge && (
+          <VerificationNudgeSheet
+            daysLeft={daysLeft}
+            isNonSkippable={isNonSkippable}
+            onVerify={() => setShowVerifNudge(false)}
+            onSkip={() => { snooze(); setShowVerifNudge(false); }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showVerifGate && (
+          <VerificationGateModal
+            onVerify={() => setShowVerifGate(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Contact action sheet */}
       <AnimatePresence>
         {selectedContact && (() => {
@@ -609,6 +638,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
               label: "Appel vocal",
               subtitle: "Appel privé · cercle de confiance",
               onClick: () => {
+                if (isGated) { setShowVerifGate(true); return; }
                 startCall({
                   roomName: `cercle-${selectedContact.contact_id}`,
                   source: 'cercle',
@@ -632,7 +662,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSelectedContact(null)}
-                style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)" }}
+                style={{ position: "fixed", inset: 0, zIndex: 310, background: "rgba(0,0,0,0.4)" }}
               />
               <motion.div
                 key="circle-sheet"
@@ -642,7 +672,7 @@ export default function CercleTab({ isDark, userId }: CercleTabProps) {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 301,
+                  position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0, zIndex: 311,
                   background: SC.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22,
                   boxShadow: "0 -10px 40px rgba(0,0,0,0.15)",
                   paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",

@@ -93,17 +93,17 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
           email={profileEmail}
           isVerified={profileVerified}
           avatarUrl={profileAvatar || undefined}
-          onPress={() => onNavigate('compte')}
+          onPress={() => onNavigate('myProfile')}
         />
 
-        {/* Profil */}
-        <SettingsSection label="Profil">
+        {/* Compte */}
+        <SettingsSection label="Compte">
           <SettingsRow
-            icon="User"
-            iconColor="#3BB4C1"
-            label="Mon profil"
-            subtitle="Pseudo, bio, abonnés, cercle"
-            onPress={() => onNavigate('myProfile')}
+            icon="Lock"
+            iconColor="#F5C341"
+            label="Mon compte"
+            subtitle="Email, mot de passe, vérification"
+            onPress={() => onNavigate('compte')}
           />
         </SettingsSection>
 
@@ -113,7 +113,7 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
             icon="Shield"
             iconColor="#34D399"
             label="Sécurité & confidentialité"
-            subtitle="Cercle, alertes, localisation, RGPD"
+            subtitle="Alertes, localisation, RGPD"
             onPress={() => onNavigate('securite')}
           />
         </SettingsSection>

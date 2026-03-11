@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useAdminTheme } from './AdminThemeContext';
 
 type SidebarSection = {
@@ -56,7 +57,9 @@ export default function TowerSidebar() {
         top: 56,
         height: 'calc(100vh - 56px)',
         overflowY: 'auto',
-        background: theme.card,
+        background: theme.topbarBg,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderRight: `1px solid ${theme.borderMd}`,
         padding: '16px 0',
         flexShrink: 0,
@@ -80,9 +83,11 @@ export default function TowerSidebar() {
           {section.items.map((item) => {
             const active = pathname.includes(`/admin/${item.id}`);
             return (
-              <button
+              <motion.button
                 key={item.id}
                 onClick={() => router.push(`/admin/${item.id}`)}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.15 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -90,13 +95,15 @@ export default function TowerSidebar() {
                   width: '100%',
                   padding: '8px 16px',
                   border: 'none',
-                  borderLeft: active ? `3px solid ${theme.cyan}` : '3px solid transparent',
+                  borderLeft: active ? '3px solid #3BB4C1' : '3px solid transparent',
                   background: active ? theme.cyanSoft : 'transparent',
                   color: active ? theme.cyan : theme.t2,
                   fontSize: 12,
                   fontWeight: active ? 600 : 500,
                   cursor: 'pointer',
                   textAlign: 'left',
+                  transition: 'background 0.2s, color 0.2s',
+                  boxShadow: active ? '0 0 8px rgba(59,180,193,0.1)' : 'none',
                 }}
               >
                 <span style={{ fontSize: 14 }}>{item.icon}</span>
@@ -115,7 +122,7 @@ export default function TowerSidebar() {
                     {item.count}
                   </span>
                 )}
-              </button>
+              </motion.button>
             );
           })}
         </div>

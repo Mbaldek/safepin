@@ -11,13 +11,9 @@ import AideScreen from './screens/AideScreen';
 import SupportChatScreen from './screens/SupportChatScreen';
 import PaywallScreen from '../subscription/PaywallScreen';
 import MyProfileScreen from './screens/MyProfileScreen';
-import AlertNotificationsScreen from './screens/AlertNotificationsScreen';
 import LocationScreen from './screens/LocationScreen';
 import PrivacyScreen from './screens/PrivacyScreen';
-import DeleteAccountScreen from './screens/compte/DeleteAccountScreen';
 import SessionsSecurityScreen from './screens/SessionsSecurityScreen';
-import VerificationScreen from './screens/compte/VerificationScreen';
-import { useStore } from '@/stores/useStore';
 
 export interface SettingsSheetProps {
   isOpen: boolean;
@@ -87,20 +83,6 @@ export default function SettingsSheet({ isOpen, onClose, initialScreen }: Settin
         return <MonCompteScreen onBack={goBack} onNavigateParent={setCurrentScreen} />;
       case 'securite':
         return <SecuriteScreen onBack={goBack} onClose={onClose} onNavigate={setCurrentScreen} />;
-      case 'verification': {
-        const profile = useStore.getState().userProfile;
-        return (
-          <VerificationScreen
-            isVerified={!!profile?.verified}
-            onVerified={() => {
-              if (profile) {
-                useStore.getState().setUserProfile({ ...profile, verified: true, verification_status: 'approved' });
-              }
-            }}
-            onBack={() => setCurrentScreen('securite')}
-          />
-        );
-      }
       case 'preferences':
         return <PreferencesScreen onBack={goBack} />;
       case 'aide':
@@ -112,15 +94,12 @@ export default function SettingsSheet({ isOpen, onClose, initialScreen }: Settin
       case 'myProfile':
         return <MyProfileScreen onClose={goBack} />;
       case 'alert-notifications':
-        return <AlertNotificationsScreen onBack={() => setCurrentScreen('securite')} />;
       case 'location':
         return <LocationScreen onBack={() => setCurrentScreen('securite')} />;
       case 'sessions-security':
         return <SessionsSecurityScreen onBack={() => setCurrentScreen('securite')} />;
       case 'privacy-rgpd':
-        return <PrivacyScreen onBack={() => setCurrentScreen('securite')} onNavigate={setCurrentScreen} />;
-      case 'delete-account-privacy':
-        return <DeleteAccountScreen onBack={() => setCurrentScreen('privacy-rgpd')} />;
+        return <PrivacyScreen onBack={() => setCurrentScreen('securite')} />;
       default:
         return <MainSettings onNavigate={setCurrentScreen} onClose={onClose} />;
     }

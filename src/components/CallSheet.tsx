@@ -38,15 +38,7 @@ function getColors(isDark: boolean) {
 
 const springSheet = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
-// ─── CSS keyframes (injected once) ──────────────────────────────────────────
-const KEYFRAMES = `
-@keyframes call-sheet-live-dot { 0%,100%{opacity:1} 50%{opacity:.35} }
-@keyframes call-sheet-ring-pulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.04)} }
-@keyframes call-sheet-mic-ripple { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.07);opacity:.2} }
-@keyframes call-sheet-spinner { to{transform:rotate(360deg)} }
-@keyframes call-sheet-call-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.18)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0.08)} }
-@keyframes call-sheet-morph-in { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
-`
+// Keyframes moved to globals.css
 
 export default function CallSheet() {
   const isDark = useTheme((s) => s.theme) === 'dark'
@@ -385,7 +377,6 @@ export default function CallSheet() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: KEYFRAMES }} />
       <AnimatePresence>
         {active && callSheetOpen && (
           <>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
@@ -19,11 +19,18 @@ import {
   History,
   RotateCcw,
   AlertTriangle,
+  Loader2,
+  Calendar,
+  CreditCard,
+  Receipt,
 } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import { useWaitlist } from '@/hooks/useWaitlist';
 import { useStore } from '@/stores/useStore';
+import { useIsPro } from '@/lib/useIsPro';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import type { Subscription, Invoice } from '@/types';
 
 // Brand Colors
 const colors = {
@@ -54,7 +61,6 @@ const colors = {
 };
 
 type AppState = 'paywall' | 'mon-plan' | 'referral';
-type PlanType = 'free' | 'pro';
 
 const springConfig = { stiffness: 300, damping: 30 };
 
@@ -67,7 +73,7 @@ export default function PaywallScreen({ onClose, context }: PaywallScreenProps) 
   const isDark = useTheme((s) => s.theme) === 'dark';
   const [isAnnual, setIsAnnual] = useState(false);
   const [currentState, setCurrentState] = useState<AppState>('paywall');
-  const [userPlan, setUserPlan] = useState<PlanType>('free');
+  // userPlan state removed — MonPlanView now uses useIsPro() directly
   const [copied, setCopied] = useState(false);
   const [direction, setDirection] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -122,8 +128,6 @@ export default function PaywallScreen({ onClose, context }: PaywallScreenProps) 
             key="mon-plan"
             theme={theme}
             isDark={isDark}
-            userPlan={userPlan}
-            setUserPlan={setUserPlan}
             onNavigate={handleStateChange}
             direction={direction}
           />
@@ -205,6 +209,7 @@ function PaywallView({
   const userId = useStore((s) => s.userId);
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [showWaitlist, setShowWaitlist] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -213,6 +218,29 @@ function PaywallView({
   }, []);
 
   const billingCycle = isAnnual ? 'yearly' as const : 'monthly' as const;
+
+  const handleCheckout = async () => {
+    if (!userId) { toast.error('Connectez-vous pour continuer'); return; }
+    setCheckoutLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email: user?.email ?? '', plan: isAnnual ? 'pro_annual' : 'pro' }),
+      });
+      const json = await res.json();
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        toast.error(json.error || 'Impossible de démarrer le paiement');
+      }
+    } catch {
+      toast.error('Erreur réseau');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -449,8 +477,10 @@ function PaywallView({
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
                 animate={{
-                  boxShadow: [
+                  boxShadow: checkoutLoading ? 'none' : [
                     '0 4px 20px rgba(245,195,65,0.2)',
                     '0 4px 30px rgba(245,195,65,0.4)',
                     '0 4px 20px rgba(245,195,65,0.2)',
@@ -464,17 +494,23 @@ function PaywallView({
                   background: `linear-gradient(135deg, ${colors.gold} 0%, ${colors.goldDark} 100%)`,
                   border: 'none',
                   borderRadius: 14,
-                  cursor: 'pointer',
+                  cursor: checkoutLoading ? 'wait' : 'pointer',
                   fontSize: 16,
                   fontWeight: 700,
                   color: '#0F172A',
+                  opacity: checkoutLoading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
                 }}
               >
+                {checkoutLoading && <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />}
                 {"Commencer l'essai gratuit"}
               </motion.button>
 
               <p style={{ fontSize: 11, color: theme.textTertiary, textAlign: 'center', marginTop: 8 }}>
-                7 jours gratuits · Sans CB requise
+                7 jours gratuits · Puis facturation automatique
               </p>
 
               {/* Separator */}
@@ -717,18 +753,73 @@ function PaywallView({
 function MonPlanView({
   theme,
   isDark,
-  userPlan,
-  setUserPlan,
   onNavigate,
   direction,
 }: {
   theme: typeof colors.dark;
   isDark: boolean;
-  userPlan: PlanType;
-  setUserPlan: (v: PlanType) => void;
   onNavigate: (state: AppState) => void;
   direction: number;
 }) {
+  const userId = useStore((s) => s.userId);
+  const { isPro, plan } = useIsPro();
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [showInvoices, setShowInvoices] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setSubscription(data as Subscription); });
+    supabase
+      .from('invoices')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => { if (data) setInvoices(data as Invoice[]); });
+  }, [userId]);
+
+  const handlePortal = async () => {
+    if (!userId) return;
+    setPortalLoading(true);
+    try {
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const json = await res.json();
+      if (json.url) window.location.href = json.url;
+      else toast.error(json.error || 'Impossible d\u2019ouvrir le portail');
+    } catch { toast.error('Erreur réseau'); }
+    finally { setPortalLoading(false); }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const statusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      active: 'Actif', trialing: 'Essai gratuit', past_due: 'Paiement en retard',
+      canceled: 'Annulé', paused: 'En pause',
+    };
+    return map[status] ?? status;
+  };
+
+  const statusColor = (status: string) => {
+    if (status === 'active' || status === 'trialing') return colors.success;
+    if (status === 'past_due') return colors.gold;
+    return colors.danger;
+  };
+
   return (
     <motion.div
       initial={{ x: direction * 40, opacity: 0 }}
@@ -763,8 +854,9 @@ function MonPlanView({
       </div>
 
       <div style={{ padding: '0 20px' }}>
-        {userPlan === 'pro' ? (
+        {isPro && subscription ? (
           <>
+            {/* Active subscription card */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -782,13 +874,13 @@ function MonPlanView({
                   <div>
                     <h3 style={{ fontSize: 17, fontWeight: 600, color: theme.textPrimary }}>Breveil Pro</h3>
                     <p style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>
-                      {"Actif jusqu'au 4 avril 2026"}
+                      {plan === 'pro_annual' ? 'Abonnement annuel' : 'Abonnement mensuel'}
                     </p>
                   </div>
                 </div>
                 <span
                   style={{
-                    background: colors.gold,
+                    background: statusColor(subscription.status),
                     color: '#0F172A',
                     fontSize: 11,
                     fontWeight: 700,
@@ -796,12 +888,31 @@ function MonPlanView({
                     borderRadius: 8,
                   }}
                 >
-                  PRO
+                  {statusLabel(subscription.status).toUpperCase()}
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: theme.textTertiary, marginTop: 12 }}>Géré via App Store</p>
+
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Calendar size={14} color={theme.textTertiary} />
+                  <span style={{ fontSize: 13, color: theme.textSecondary }}>
+                    {subscription.status === 'trialing'
+                      ? `Essai jusqu'au ${formatDate(subscription.current_period_end)}`
+                      : `Renouvellement le ${formatDate(subscription.current_period_end)}`}
+                  </span>
+                </div>
+                {subscription.cancel_at_period_end && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertTriangle size={14} color={colors.gold} />
+                    <span style={{ fontSize: 13, color: colors.gold }}>
+                      {`Annulation prévue le ${formatDate(subscription.current_period_end)}`}
+                    </span>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
+            {/* Actions */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -809,29 +920,32 @@ function MonPlanView({
               style={{ marginTop: 20, background: theme.card, borderRadius: 16, overflow: 'hidden' }}
             >
               {[
-                { icon: ExternalLink, label: "Gérer l'abonnement", action: () => {} },
-                { icon: Gift, label: 'Parrainer un ami', action: () => onNavigate('referral') },
-                { icon: History, label: 'Historique des paiements', action: () => {} },
-                { icon: RotateCcw, label: 'Restaurer les achats', action: () => {} },
+                { icon: CreditCard, label: "Gérer l'abonnement", action: handlePortal, loading: portalLoading },
+                { icon: Gift, label: 'Parrainer un ami', action: () => onNavigate('referral'), loading: false },
+                { icon: Receipt, label: 'Historique des paiements', action: () => setShowInvoices(!showInvoices), loading: false },
               ].map((item, i) => (
                 <motion.button
                   key={i}
                   whileTap={{ scale: 0.98 }}
                   onClick={item.action}
+                  disabled={item.loading}
                   style={{
                     width: '100%',
                     padding: '16px 20px',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: i < 3 ? `1px solid ${theme.border}` : 'none',
-                    cursor: 'pointer',
+                    borderBottom: i < 2 ? `1px solid ${theme.border}` : 'none',
+                    cursor: item.loading ? 'wait' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    opacity: item.loading ? 0.6 : 1,
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <item.icon size={18} color={theme.textSecondary} />
+                    {item.loading
+                      ? <Loader2 size={18} color={theme.textSecondary} style={{ animation: 'spin 1s linear infinite' }} />
+                      : <item.icon size={18} color={theme.textSecondary} />}
                     <span style={{ fontSize: 14, color: theme.textPrimary }}>{item.label}</span>
                   </div>
                   <ChevronRight size={16} color={theme.textTertiary} />
@@ -839,6 +953,50 @@ function MonPlanView({
               ))}
             </motion.div>
 
+            {/* Invoices list */}
+            <AnimatePresence>
+              {showInvoices && invoices.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={springConfig}
+                  style={{ overflow: 'hidden', marginTop: 12 }}
+                >
+                  <div style={{ background: theme.card, borderRadius: 16, overflow: 'hidden' }}>
+                    {invoices.map((inv, i) => (
+                      <div
+                        key={inv.id}
+                        style={{
+                          padding: '14px 20px',
+                          borderBottom: i < invoices.length - 1 ? `1px solid ${theme.border}` : 'none',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div>
+                          <p style={{ fontSize: 13, color: theme.textPrimary }}>{formatDate(inv.created_at)}</p>
+                          <p style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>
+                            {inv.description ?? 'Abonnement Pro'}
+                          </p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: inv.status === 'paid' ? colors.success : colors.danger }}>
+                            {((inv.amount_cents ?? 0) / 100).toFixed(2)}€
+                          </p>
+                          <p style={{ fontSize: 10, color: theme.textTertiary, marginTop: 1 }}>
+                            {inv.status === 'paid' ? 'Payé' : inv.status}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Pro features */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -867,31 +1025,10 @@ function MonPlanView({
                 ))}
               </div>
             </motion.div>
-
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ ...springConfig, delay: 0.4 }}
-              style={{ marginTop: 24, padding: 16, background: 'rgba(239, 68, 68, 0.1)', borderRadius: 14 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <AlertTriangle size={20} color={colors.danger} />
-                <div>
-                  <p
-                    style={{ fontSize: 14, fontWeight: 600, color: colors.danger, cursor: 'pointer' }}
-                    onClick={() => setUserPlan('free')}
-                  >
-                    Passer en Gratuit
-                  </p>
-                  <p style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
-                    {"Vous perdrez l'accès à Julia, Marche avec moi et votre historique."}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
           </>
         ) : (
           <>
+            {/* Free plan view */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -927,12 +1064,12 @@ function MonPlanView({
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: theme.textSecondary }}>Cercle</span>
-                    <span style={{ fontSize: 13, color: theme.textPrimary }}>2/3 contacts</span>
+                    <span style={{ fontSize: 13, color: theme.textPrimary }}>3 contacts max</span>
                   </div>
                   <div style={{ height: 6, background: theme.border, borderRadius: 3, overflow: 'hidden' }}>
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: '66%' }}
+                      animate={{ width: '100%' }}
                       transition={{ duration: 0.8, delay: 0.2 }}
                       style={{ height: '100%', background: colors.cyan, borderRadius: 3 }}
                     />
@@ -941,12 +1078,12 @@ function MonPlanView({
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: theme.textSecondary }}>Trajets</span>
-                    <span style={{ fontSize: 13, color: theme.textPrimary }}>3/5 ce mois</span>
+                    <span style={{ fontSize: 13, color: theme.textPrimary }}>5 / mois</span>
                   </div>
                   <div style={{ height: 6, background: theme.border, borderRadius: 3, overflow: 'hidden' }}>
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: '60%' }}
+                      animate={{ width: '100%' }}
                       transition={{ duration: 0.8, delay: 0.3 }}
                       style={{ height: '100%', background: colors.cyan, borderRadius: 3 }}
                     />
@@ -973,7 +1110,7 @@ function MonPlanView({
               </p>
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setUserPlan('pro')}
+                onClick={() => onNavigate('paywall')}
                 style={{
                   marginTop: 16,
                   padding: '12px 32px',

@@ -238,6 +238,27 @@ activeTrip, setActiveTrip,
     }
   }, [activeTab, setShowIncidentsList]);
 
+  // ── Billing redirect handler (Stripe checkout return) ─────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const billing = params.get('billing');
+    if (!billing) return;
+
+    if (billing === 'success') {
+      bToast.success({ title: 'Bienvenue dans Breveil Pro !' }, isDark);
+      try { localStorage.setItem('breveil_is_pro', 'true'); } catch {}
+    } else if (billing === 'canceled') {
+      bToast.warning({ title: 'Paiement annulé' }, isDark);
+    }
+
+    // Clean up URL param
+    params.delete('billing');
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+  }, []);
+
   // ── Walk With Me — trusted contacts presence ──────────────────────────────
   const [watchContacts, setWatchContacts] = useState<{ id: string; name: string | null }[]>([]);
   const shareChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -509,7 +530,6 @@ activeTrip, setActiveTrip,
       setUnreadDmCount(count);
     }
     fetchUnread();
-    const iv = setInterval(fetchUnread, 30_000);
 
     // Realtime: instant badge update when a DM conversation is updated
     const channel = supabase
@@ -530,7 +550,6 @@ activeTrip, setActiveTrip,
       .subscribe();
 
     return () => {
-      clearInterval(iv);
       supabase.removeChannel(channel);
     };
   }, [userId, setUnreadDmCount]);

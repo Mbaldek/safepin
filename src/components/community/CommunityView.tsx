@@ -307,7 +307,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
         left: 0,
         right: 0,
         paddingBottom: 0,
-        zIndex: 50,
+        zIndex: 310,
         backgroundColor: isDark ? '#0F172A' : '#F8FAFC',
         display: 'flex',
         flexDirection: 'column',

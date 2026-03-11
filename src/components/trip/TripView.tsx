@@ -30,6 +30,9 @@ import { useStore } from "@/stores/useStore";
 import { supabase } from "@/lib/supabase";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import FavorisSheet from "@/components/trip/FavorisSheet";
+import useVerificationGate from "@/hooks/useVerificationGate";
+import VerificationNudgeSheet from "@/components/VerificationNudgeSheet";
+import VerificationGateModal from "@/components/VerificationGateModal";
 
 type Trip = {
   id: string;
@@ -98,6 +101,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const setActiveRoute = useStore((s) => s.setActiveRoute);
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
+  const { isGated, shouldNudge, isNonSkippable, daysLeft, snooze } = useVerificationGate();
   const [state, setState] = useState<AppState>(openToHistory ? "history" : "idle");
   // When opened directly to history (openToHistory=true), "going back" means returning
   // to history state, not idle — idle is only the hub when opened normally from EscorteSheet
@@ -186,6 +190,8 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const routeFetchRef = useRef(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
+  const [showVerifNudge, setShowVerifNudge] = useState(false);
+  const [showVerifGate, setShowVerifGate] = useState(false);
 
   const theme = isDark ? "dark" : "light";
   const CONTACT_COLORS = [colors.purple, colors.cyan, colors.gold, colors.success, "#60A5FA", "#F97316"];
@@ -574,22 +580,24 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             width: 44,
             height: 26,
             borderRadius: 13,
-            backgroundColor: colors.card[theme],
-            border: `1px solid ${colors.textTertiary[theme]}`,
+            backgroundColor: isDark ? "#334155" : "#CBD5E1",
             padding: 2,
             opacity: 0.4,
             cursor: "not-allowed",
             display: "flex",
             alignItems: "center",
+            position: "relative",
           }}
         >
           <div
             style={{
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               borderRadius: "50%",
               backgroundColor: "white",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+              position: "absolute",
+              left: 3,
             }}
           />
         </div>
@@ -1067,7 +1075,12 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
 
       {/* Hero CTA */}
       <motion.button
-        onClick={async () => { await endTrip(); setState("arrived"); }}
+        onClick={async () => {
+          await endTrip();
+          setState("arrived");
+          if (isGated) setShowVerifGate(true);
+          else if (shouldNudge) setShowVerifNudge(true);
+        }}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
         style={{
@@ -1132,8 +1145,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       exit={{ opacity: 0, scale: 0.92 }}
       transition={spring}
       style={{
-        width: "88%",
-        maxWidth: 340,
+        width: "min(340px, 90vw)",
         padding: "28px 20px 20px",
         borderRadius: 24,
         backgroundColor: colors.sheet[theme],
@@ -1406,13 +1418,15 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                 {sectionTrips.map((trip, idx) => {
                   const score = trip.safety_score ?? null;
                   return (
-                    <div
+                    <motion.div
                       key={trip.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1], delay: idx * 0.04 }}
                       style={{
                         background: H.surfaceCard,
                         border: `1px solid ${score !== null && score < 40 ? 'rgba(251,191,36,0.15)' : H.borderSubtle}`,
                         borderRadius: 12, padding: 11, marginBottom: 8,
-                        animation: `cardIn 0.25s cubic-bezier(0.16,1,0.3,1) ${idx * 40}ms both`,
                       }}
                     >
                       {/* Card top */}
@@ -1515,7 +1529,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                           </div>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -1524,9 +1538,12 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         </div>
 
         {/* FILTER MODAL */}
-        {historyFilterOpen && (
+        <AnimatePresence>{historyFilterOpen && (
           <>
-            <div
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setHistoryFilterOpen(false)}
               style={{
                 position: 'absolute', inset: 0,
@@ -1535,7 +1552,12 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                 zIndex: 500, borderRadius: 'inherit',
               }}
             />
-            <div style={{
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               background: H.surfaceCard,
               borderTopLeftRadius: 20, borderTopRightRadius: 20,
@@ -1619,9 +1641,9 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
               >
                 {'\u21BA'}&nbsp;&nbsp;R\u00e9initialiser
               </button>
-            </div>
+            </motion.div>
           </>
-        )}
+        )}</AnimatePresence>
       </motion.div>
     );
   };
@@ -1640,8 +1662,8 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         maxHeight: openToHistory ? '78%' : "72dvh",
         zIndex: openToHistory ? 310 : 50,
         backgroundColor: colors.sheet[theme],
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
+        borderTopLeftRadius: 26,
+        borderTopRightRadius: 26,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -1655,7 +1677,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             width: 36,
             height: 4,
             borderRadius: 2,
-            backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
+            backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
           }}
         />
       </div>
@@ -1673,6 +1695,24 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
 
       {/* FavorisSheet rendered as overlay outside AnimatePresence */}
       {renderFavoris()}
+
+      <AnimatePresence>
+        {showVerifNudge && (
+          <VerificationNudgeSheet
+            daysLeft={daysLeft}
+            isNonSkippable={isNonSkippable}
+            onVerify={() => { setShowVerifNudge(false); }}
+            onSkip={() => { snooze(); setShowVerifNudge(false); }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showVerifGate && (
+          <VerificationGateModal
+            onVerify={() => { setShowVerifGate(false); }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

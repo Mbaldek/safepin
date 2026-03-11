@@ -6,10 +6,9 @@ import SettingsRow from '../components/SettingsRow';
 
 interface Props {
   onBack: () => void;
-  onNavigate: (screen: string) => void;
 }
 
-export default function PrivacyScreen({ onBack, onNavigate }: Props) {
+export default function PrivacyScreen({ onBack }: Props) {
   const isDark = useTheme((s) => s.theme) === 'dark';
 
   const txt1 = isDark ? '#FFFFFF' : '#0F172A';
@@ -74,14 +73,6 @@ export default function PrivacyScreen({ onBack, onNavigate }: Props) {
             label="Exporter mes donnees"
             subtitle="Recevoir toutes vos donnees par e-mail"
             onPress={() => window.open('/data-export.html', '_blank')}
-          />
-          <div style={divider} />
-          <SettingsRow
-            icon="Trash2"
-            iconColor="#EF4444"
-            label="Supprimer mon compte"
-            subtitle="Toutes vos donnees seront effacees"
-            onPress={() => onNavigate('delete-account-privacy')}
           />
         </SettingsSection>
 

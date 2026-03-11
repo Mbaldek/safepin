@@ -16,8 +16,8 @@ export default function PanelShell({ title, dotColor, action, children }: PanelS
     <div
       style={{
         background: theme.card,
-        border: `1px solid ${theme.borderMd}`,
-        borderRadius: 16,
+        border: `1px solid ${theme.border}`,
+        borderRadius: 20,
         overflow: 'hidden',
         boxShadow: theme.panelShadow,
       }}
@@ -27,7 +27,7 @@ export default function PanelShell({ title, dotColor, action, children }: PanelS
         style={{
           background: theme.elevated,
           borderBottom: `1px solid ${theme.border}`,
-          padding: '16px 20px',
+          padding: '14px 20px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -42,6 +42,7 @@ export default function PanelShell({ title, dotColor, action, children }: PanelS
                 borderRadius: '50%',
                 background: dotColor,
                 display: 'inline-block',
+                boxShadow: `0 0 6px ${dotColor}`,
               }}
             />
           )}
@@ -57,6 +58,7 @@ export default function PanelShell({ title, dotColor, action, children }: PanelS
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
+              transition: 'opacity 0.15s',
             }}
           >
             {action.label}

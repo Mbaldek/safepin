@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { useAdminTheme } from './AdminThemeContext';
 
 interface StatCardProps {
@@ -16,13 +17,16 @@ export default function StatCard({ label, icon, value, valueColor, sub, trend, t
   const { theme } = useAdminTheme();
 
   return (
-    <div
+    <motion.div
+      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+      transition={{ duration: 0.2 }}
       style={{
         background: theme.card,
-        border: `1px solid ${theme.borderMd}`,
-        borderRadius: 14,
+        border: `1px solid ${theme.border}`,
+        borderRadius: 16,
         padding: '16px 18px',
         boxShadow: theme.panelShadow,
+        transition: 'border-color 0.2s',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -57,6 +61,6 @@ export default function StatCard({ label, icon, value, valueColor, sub, trend, t
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

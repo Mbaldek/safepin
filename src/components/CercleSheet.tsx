@@ -80,7 +80,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
     textPrimary: isDark ? '#FFFFFF' : '#0F172A',
     textSecondary: isDark ? '#94A3B8' : '#475569',
     textTertiary: isDark ? '#64748B' : '#94A3B8',
-    border: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.10)',
+    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
     sheetBg: isDark ? 'rgba(13,20,40,0.97)' : 'rgba(255,255,255,0.98)',
     teal: '#3BB4C1',
     green: '#34D399',
@@ -106,19 +106,6 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   // ── render ─────────────────────────────────────────────
   return (
     <>
-    <style>{`
-      @keyframes bv-call-breath {
-        0%,100% { box-shadow: 0 0 0 0 rgba(59,180,193,0.2); }
-        50% { box-shadow: 0 0 0 5px rgba(59,180,193,0.07); }
-      }
-      @keyframes bv-call-muted {
-        0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.2); }
-        50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.07); }
-      }
-      @keyframes bv-call-spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
     <AnimatePresence>
       {open && (
         <>
@@ -461,7 +448,7 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
         <button
           onClick={onPing}
           style={{
-            width: 30, height: 30, borderRadius: '50%',
+            width: 36, height: 36, borderRadius: '50%',
             border: `1px solid ${t.border}`, background: 'transparent',
             cursor: 'pointer', fontSize: 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -472,7 +459,7 @@ function MemberCard({ member: m, index, pulsing, tokens: t, onPing, onDM }: {
         <button
           onClick={onDM}
           style={{
-            width: 30, height: 30, borderRadius: '50%',
+            width: 36, height: 36, borderRadius: '50%',
             border: `1px solid ${t.border}`, background: 'transparent',
             cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -546,7 +533,7 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
       <button
         onClick={onDM}
         style={{
-          width: 26, height: 26, borderRadius: '50%',
+          width: 32, height: 32, borderRadius: '50%',
           border: `1px solid ${t.border}`, background: 'transparent',
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

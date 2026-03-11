@@ -2,13 +2,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 
 const LS_KEY = 'breveil_is_pro';
 
-export function useIsPro(): { isPro: boolean; plan: string | null; loading: boolean } {
+export function useIsPro(): { isPro: boolean; plan: string | null; loading: boolean; refresh: () => void } {
   const userId = useStore((s) => s.userId);
   const [isPro, setIsPro] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -21,8 +21,9 @@ export function useIsPro(): { isPro: boolean; plan: string | null; loading: bool
   const [plan, setPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchStatus = useCallback(() => {
     if (!userId) { setLoading(false); return; }
+    setLoading(true);
     supabase
       .from('subscriptions')
       .select('plan, status')
@@ -37,5 +38,7 @@ export function useIsPro(): { isPro: boolean; plan: string | null; loading: bool
       });
   }, [userId]);
 
-  return { isPro, plan, loading };
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  return { isPro, plan, loading, refresh: fetchStatus };
 }

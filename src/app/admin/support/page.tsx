@@ -1,11 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { SUPPORT_USER_ID } from '@/lib/support';
 import { useAdminTheme } from '@/components/admin/AdminThemeContext';
 import ChatView from '@/components/chat/ChatView';
 import type { ChatColors } from '@/components/chat/ChatBubble';
+
+/* ─── Types ─── */
 
 type ConvoRow = {
   id: string;
@@ -16,11 +19,12 @@ type ConvoRow = {
   last_message_at: string;
   user1_last_read_at: string | null;
   user2_last_read_at: string | null;
-  // enriched
   partner_name: string;
   partner_id: string;
   is_unread: boolean;
 };
+
+/* ─── Helpers ─── */
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -33,21 +37,18 @@ function timeAgo(iso: string) {
 }
 
 function initials(name: string) {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 }
+
+/* ─── Main Page ─── */
 
 export default function AdminSupportPage() {
   const { theme } = useAdminTheme();
   const [convos, setConvos] = useState<ConvoRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adminUserId, setAdminUserId] = useState<string>('');
+  const [search, setSearch] = useState('');
 
-  // Get admin user id
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setAdminUserId(data.user.id);
@@ -55,7 +56,6 @@ export default function AdminSupportPage() {
   }, []);
 
   const fetchConvos = useCallback(async () => {
-    // Fetch all conversations where support user is a participant
     const { data: rows } = await supabase
       .from('dm_conversations')
       .select('*')
@@ -67,12 +67,10 @@ export default function AdminSupportPage() {
       return;
     }
 
-    // Collect partner user IDs
     const partnerIds = rows.map((r) =>
       r.user1_id === SUPPORT_USER_ID ? r.user2_id : r.user1_id,
     );
 
-    // Fetch partner profiles
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, display_name, name')
@@ -84,7 +82,6 @@ export default function AdminSupportPage() {
 
     const enriched: ConvoRow[] = rows.map((r) => {
       const partnerId = r.user1_id === SUPPORT_USER_ID ? r.user2_id : r.user1_id;
-      // Support reads as whichever position they are
       const supportPosition = r.user1_id === SUPPORT_USER_ID ? 'user1' : 'user2';
       const lastRead = supportPosition === 'user1' ? r.user1_last_read_at : r.user2_last_read_at;
       const isUnread =
@@ -102,27 +99,43 @@ export default function AdminSupportPage() {
     setConvos(enriched);
   }, []);
 
-  useEffect(() => {
-    fetchConvos();
-  }, [fetchConvos]);
+  useEffect(() => { fetchConvos(); }, [fetchConvos]);
 
-  // Realtime: refresh conversation list on changes
   useEffect(() => {
     const channel = supabase
       .channel('admin-support-convos')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'dm_conversations' },
-        () => fetchConvos(),
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_conversations', filter: `or(user1_id=eq.${SUPPORT_USER_ID},user2_id=eq.${SUPPORT_USER_ID})` }, () => fetchConvos())
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchConvos]);
 
+  /* ─── Mark as read ─── */
+
+  async function markAsRead(convo: ConvoRow) {
+    const supportPosition = convo.user1_id === SUPPORT_USER_ID ? 'user1' : 'user2';
+    const field = `${supportPosition}_last_read_at`;
+    await supabase
+      .from('dm_conversations')
+      .update({ [field]: new Date().toISOString() })
+      .eq('id', convo.id);
+    // Optimistic update
+    setConvos((prev) =>
+      prev.map((c) => (c.id === convo.id ? { ...c, is_unread: false } : c)),
+    );
+  }
+
+  function selectConvo(convo: ConvoRow) {
+    setSelectedId(convo.id);
+    if (convo.is_unread) markAsRead(convo);
+  }
+
   const selected = convos.find((c) => c.id === selectedId);
+  const unreadCount = convos.filter((c) => c.is_unread).length;
+
+  // Filter conversations
+  const filtered = search.trim()
+    ? convos.filter((c) => c.partner_name.toLowerCase().includes(search.toLowerCase()))
+    : convos;
 
   const chatColors: ChatColors = {
     myBg: theme.cyan,
@@ -133,7 +146,7 @@ export default function AdminSupportPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 56px - 48px)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - 56px - 48px)', overflow: 'hidden', borderRadius: 20, border: `1px solid ${theme.border}` }}>
       {/* Left panel — conversation list */}
       <div
         style={{
@@ -145,50 +158,86 @@ export default function AdminSupportPage() {
           background: theme.card,
         }}
       >
+        {/* Header */}
         <div
           style={{
             padding: '16px 20px',
             borderBottom: `1px solid ${theme.border}`,
-            fontSize: 15,
-            fontWeight: 600,
-            color: theme.t1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
-          Support Inbox
-          {convos.filter((c) => c.is_unread).length > 0 && (
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: theme.t1 }}>Support Inbox</span>
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 10,
+                  background: theme.dangerSoft,
+                  color: theme.danger,
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          {unreadCount > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                convos.filter((c) => c.is_unread).forEach((c) => markAsRead(c));
+              }}
               style={{
-                marginLeft: 8,
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: 10,
-                background: theme.dangerSoft,
-                color: theme.danger,
+                fontSize: 10,
+                fontWeight: 600,
+                padding: '3px 10px',
+                borderRadius: 100,
+                border: 'none',
+                background: theme.cyanSoft,
+                color: theme.cyan,
+                cursor: 'pointer',
               }}
             >
-              {convos.filter((c) => c.is_unread).length}
-            </span>
+              Tout lire
+            </motion.button>
           )}
         </div>
 
+        {/* Search */}
+        <div style={{ padding: '8px 16px' }}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher..."
+            style={{
+              width: '100%',
+              padding: '7px 12px',
+              borderRadius: 8,
+              border: `1px solid ${theme.borderMd}`,
+              background: theme.elevated,
+              color: theme.t1,
+              fontSize: 12,
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Conversation list */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {convos.length === 0 && (
-            <div
-              style={{
-                padding: 40,
-                textAlign: 'center',
-                color: theme.t3,
-                fontSize: 13,
-              }}
-            >
+          {filtered.length === 0 && (
+            <div style={{ padding: 40, textAlign: 'center', color: theme.t3, fontSize: 13 }}>
               Aucune conversation
             </div>
           )}
-          {convos.map((convo) => (
+          {filtered.map((convo) => (
             <button
               key={convo.id}
-              onClick={() => setSelectedId(convo.id)}
+              onClick={() => selectConvo(convo)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -196,16 +245,13 @@ export default function AdminSupportPage() {
                 width: '100%',
                 padding: '12px 20px',
                 border: 'none',
-                borderLeft:
-                  convo.id === selectedId
-                    ? `3px solid ${theme.cyan}`
-                    : '3px solid transparent',
+                borderLeft: convo.id === selectedId ? '3px solid #3BB4C1' : '3px solid transparent',
                 background: convo.id === selectedId ? theme.cyanSoft : 'transparent',
                 cursor: 'pointer',
                 textAlign: 'left',
+                transition: 'background 0.15s',
               }}
             >
-              {/* Avatar */}
               <div
                 style={{
                   width: 40,
@@ -224,24 +270,9 @@ export default function AdminSupportPage() {
               >
                 {initials(convo.partner_name)}
               </div>
-
-              {/* Name + last message */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: 2,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: convo.is_unread ? 700 : 500,
-                      color: theme.t1,
-                    }}
-                  >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <span style={{ fontSize: 13, fontWeight: convo.is_unread ? 700 : 500, color: theme.t1 }}>
                     {convo.partner_name}
                   </span>
                   <span style={{ fontSize: 10, color: theme.t3 }}>
@@ -261,16 +292,15 @@ export default function AdminSupportPage() {
                   {convo.last_message ?? 'Nouvelle conversation'}
                 </div>
               </div>
-
-              {/* Unread dot */}
               {convo.is_unread && (
                 <div
                   style={{
                     width: 8,
                     height: 8,
                     borderRadius: '50%',
-                    background: theme.cyan,
+                    background: '#3BB4C1',
                     flexShrink: 0,
+                    boxShadow: '0 0 6px rgba(59,180,193,0.4)',
                   }}
                 />
               )}
@@ -283,7 +313,6 @@ export default function AdminSupportPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: theme.bg }}>
         {selected && adminUserId ? (
           <>
-            {/* Chat header */}
             <div
               style={{
                 padding: '14px 20px',
@@ -311,7 +340,7 @@ export default function AdminSupportPage() {
               >
                 {initials(selected.partner_name)}
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: theme.t1 }}>
                   {selected.partner_name}
                 </div>
@@ -321,7 +350,6 @@ export default function AdminSupportPage() {
               </div>
             </div>
 
-            {/* Chat */}
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <ChatView
                 key={selected.id}

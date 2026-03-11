@@ -5,22 +5,65 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
+import type { NotifChannel } from '@/types';
 import SettingsSection from '../components/SettingsSection';
+import SettingsRow from '../components/SettingsRow';
 import SettingsToggle from '../components/SettingsToggle';
+import SegmentedControl from '../components/SegmentedControl';
 
 type LocationMode = 'always' | 'while_using' | 'never';
 
-interface LocationSettings {
+interface AllSettings {
+  // Location
   location_mode: LocationMode;
   share_with_circle: boolean;
   high_accuracy: boolean;
+  // Alert radius
+  proximity_radius_m: number;
+  // SOS
+  notify_sos_nearby: boolean;
+  sos_notif_channel: NotifChannel;
+  // Lifecycle
+  notify_new_pins: boolean;
+  notify_confirmed_pins: boolean;
+  notify_resolved_pins: boolean;
+  // Categories
+  notify_cat_urgent: boolean;
+  notify_cat_warning: boolean;
+  notify_cat_infra: boolean;
+  // Channel
+  pin_notif_channel: NotifChannel;
+  // Quiet hours
+  quiet_hours_enabled: boolean;
+  quiet_start: string;
+  quiet_end: string;
+  // Follower SOS
+  notify_sos_followers: boolean;
+  follower_sos_radius_m: number;
 }
 
-const DEFAULTS: LocationSettings = {
+const DEFAULTS: AllSettings = {
   location_mode: 'while_using',
   share_with_circle: false,
   high_accuracy: true,
+  proximity_radius_m: 1000,
+  notify_sos_nearby: true,
+  sos_notif_channel: 'both',
+  notify_new_pins: true,
+  notify_confirmed_pins: true,
+  notify_resolved_pins: false,
+  notify_cat_urgent: true,
+  notify_cat_warning: true,
+  notify_cat_infra: false,
+  pin_notif_channel: 'both',
+  quiet_hours_enabled: false,
+  quiet_start: '22:00',
+  quiet_end: '07:00',
+  notify_sos_followers: true,
+  follower_sos_radius_m: 5000,
 };
+
+const ALL_COLS = Object.keys(DEFAULTS) as (keyof AllSettings)[];
 
 const MODE_OPTIONS: { value: LocationMode; icon: string; label: string; desc: string }[] = [
   { value: 'always', icon: '\uD83C\uDF0D', label: 'Toujours', desc: 'Position mise \u00e0 jour en arri\u00e8re-plan' },
@@ -34,7 +77,7 @@ interface Props {
 
 export default function LocationScreen({ onBack }: Props) {
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const [settings, setSettings] = useState<LocationSettings>(DEFAULTS);
+  const [settings, setSettings] = useState<AllSettings>(DEFAULTS);
   const [loaded, setLoaded] = useState(false);
   const userIdRef = useRef<string | null>(null);
 
@@ -45,6 +88,7 @@ export default function LocationScreen({ onBack }: Props) {
   const cardBg = isDark ? '#1E293B' : '#FFFFFF';
   const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)';
   const cyan = '#3BB4C1';
+  const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
 
   useEffect(() => {
     (async () => {
@@ -53,33 +97,31 @@ export default function LocationScreen({ onBack }: Props) {
       userIdRef.current = user.id;
       const { data } = await supabase
         .from('notification_settings')
-        .select('location_mode, share_with_circle, high_accuracy')
+        .select(ALL_COLS.join(', '))
         .eq('user_id', user.id)
         .single();
       if (data) {
-        setSettings({
-          location_mode: (data.location_mode as LocationMode) ?? DEFAULTS.location_mode,
-          share_with_circle: data.share_with_circle ?? DEFAULTS.share_with_circle,
-          high_accuracy: data.high_accuracy ?? DEFAULTS.high_accuracy,
-        });
+        const d = data as unknown as Record<string, unknown>;
+        const merged = { ...DEFAULTS } as Record<string, unknown>;
+        for (const col of ALL_COLS) {
+          if (d[col] != null) merged[col] = d[col];
+        }
+        setSettings(merged as unknown as AllSettings);
       }
       setLoaded(true);
     })();
   }, []);
 
-  const save = async (patch: Partial<LocationSettings>) => {
+  const save = async (patch: Partial<AllSettings>) => {
     const next = { ...settings, ...patch };
     setSettings(next);
     if (!userIdRef.current) return;
     await supabase
       .from('notification_settings')
-      .upsert({
-        user_id: userIdRef.current,
-        location_mode: next.location_mode,
-        share_with_circle: next.share_with_circle,
-        high_accuracy: next.high_accuracy,
-      }, { onConflict: 'user_id' });
+      .upsert({ user_id: userIdRef.current, ...next }, { onConflict: 'user_id' });
   };
+
+  const formatRadius = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -96,11 +138,14 @@ export default function LocationScreen({ onBack }: Props) {
         >
           <ArrowLeft size={18} color={txt2} />
         </button>
-        <span style={{ fontSize: 19, fontWeight: 600, color: txt1 }}>Localisation</span>
+        <span style={{ fontSize: 19, fontWeight: 600, color: txt1 }}>Localisation & alertes</span>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', opacity: loaded ? 1 : 0.5, transition: 'opacity 0.3s' }}>
+      <div style={{ flex: 1, overflowY: 'auto', opacity: loaded ? 1 : 0.5, pointerEvents: loaded ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+
+        {/* ═══ LOCATION ═══ */}
+
         {/* Mode de localisation */}
         <SettingsSection label="Mode de localisation">
           <div style={{ padding: '8px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -142,7 +187,6 @@ export default function LocationScreen({ onBack }: Props) {
             })}
           </div>
 
-          {/* Warning if "never" */}
           {settings.location_mode === 'never' && (
             <div style={{
               margin: '0 16px 14px', padding: '10px 14px', borderRadius: 12,
@@ -151,13 +195,13 @@ export default function LocationScreen({ onBack }: Props) {
             }}>
               <AlertTriangle size={16} color="#F5C341" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: '#F5C341', lineHeight: 1.4 }}>
-                Les alertes de proximit&eacute; ne fonctionneront pas sans localisation
+                Les alertes de proximité ne fonctionneront pas sans localisation
               </span>
             </div>
           )}
         </SettingsSection>
 
-        {/* Partage avec le cercle */}
+        {/* Cercle */}
         <SettingsSection label="Cercle de confiance">
           <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -176,11 +220,11 @@ export default function LocationScreen({ onBack }: Props) {
         </SettingsSection>
 
         {/* Précision */}
-        <SettingsSection label="Pr&eacute;cision">
+        <SettingsSection label="Précision">
           <div style={{ padding: '8px 16px 14px', display: 'flex', gap: 8 }}>
             {([
-              { value: true, icon: '\uD83C\uDFAF', label: 'Pr\u00e9cise', desc: 'GPS haute pr\u00e9cision' },
-              { value: false, icon: '\uD83D\uDCE1', label: 'Approximative', desc: '\u00c9conomie de batterie' },
+              { value: true, icon: '\uD83C\uDFAF', label: 'Précise', desc: 'GPS haute précision' },
+              { value: false, icon: '\uD83D\uDCE1', label: 'Approximative', desc: 'Économie de batterie' },
             ] as const).map((opt) => {
               const active = settings.high_accuracy === opt.value;
               return (
@@ -205,22 +249,307 @@ export default function LocationScreen({ onBack }: Props) {
           </div>
         </SettingsSection>
 
-        {/* SOS safety override banner */}
+        {/* SOS override banner */}
         <div style={{
-          margin: '8px 20px 24px', padding: '12px 14px', borderRadius: 14,
+          margin: '8px 20px 16px', padding: '12px 14px', borderRadius: 14,
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <span style={{ fontSize: 16, flexShrink: 0 }}>&#x1F6A8;</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#EF4444' }}>
-              SOS &amp; urgences
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#EF4444' }}>SOS & urgences</div>
             <div style={{ fontSize: 11, color: txt3, marginTop: 2, lineHeight: 1.4 }}>
-              En cas de SOS, la localisation pr&eacute;cise est toujours activ&eacute;e pour votre s&eacute;curit&eacute;
+              En cas de SOS, la localisation précise est toujours activée
             </div>
           </div>
         </div>
+
+        {/* ═══ ALERTS ═══ */}
+
+        {/* Rayon d'alerte */}
+        <SettingsSection label="Rayon d'alerte">
+          <div style={{ padding: '12px 20px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 500, color: txt1 }}>Distance</span>
+              <span style={{
+                fontSize: 13, fontWeight: 700, color: cyan,
+                background: 'rgba(59,180,193,0.10)', padding: '2px 10px', borderRadius: 8,
+              }}>
+                {formatRadius(settings.proximity_radius_m)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={200}
+              max={5000}
+              step={100}
+              value={settings.proximity_radius_m}
+              onChange={(e) => save({ proximity_radius_m: Number(e.target.value) })}
+              style={{
+                width: '100%', height: 6, appearance: 'none',
+                borderRadius: 3, outline: 'none', cursor: 'pointer',
+                background: `linear-gradient(to right, ${cyan} ${((settings.proximity_radius_m - 200) / 4800) * 100}%, ${isDark ? '#334155' : '#E2E8F0'} 0%)`,
+                accentColor: cyan,
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <span style={{ fontSize: 11, color: txt2 }}>200 m</span>
+              <span style={{ fontSize: 11, color: txt2 }}>5 km</span>
+            </div>
+          </div>
+        </SettingsSection>
+
+        {/* Alertes SOS */}
+        <SettingsSection label="Alertes SOS">
+          <SettingsRow
+            icon="AlertTriangle"
+            iconColor="#EF4444"
+            label="Alertes SOS"
+            subtitle="Toujours recommandé"
+            rightEl={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: '#22C55E',
+                  background: 'rgba(34,197,94,0.10)', padding: '2px 8px', borderRadius: 6,
+                }}>
+                  Recommandé
+                </span>
+                <SettingsToggle
+                  value={settings.notify_sos_nearby}
+                  onChange={(v) => save({ notify_sos_nearby: v })}
+                />
+              </div>
+            }
+          />
+          {settings.notify_sos_nearby && (
+            <>
+              <div style={divider} />
+              <div style={{ padding: '10px 20px 14px' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: txt2, marginBottom: 8, display: 'block' }}>
+                  Canal de notification
+                </span>
+                <SegmentedControl
+                  value={settings.sos_notif_channel}
+                  onChange={(v) => save({ sos_notif_channel: v })}
+                  isDark={isDark}
+                />
+              </div>
+            </>
+          )}
+        </SettingsSection>
+
+        {/* SOS abonnements */}
+        <SettingsSection label="SOS abonnements">
+          <SettingsRow
+            icon="Users"
+            iconColor="#8B5CF6"
+            label="SOS d'un abonnement"
+            subtitle="Quand un utilisateur que vous suivez déclenche un SOS"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_sos_followers}
+                onChange={(v) => save({ notify_sos_followers: v })}
+              />
+            }
+          />
+          {settings.notify_sos_followers && (
+            <>
+              <div style={divider} />
+              <div style={{ padding: '12px 20px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: txt1 }}>Rayon abonnements</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700, color: '#8B5CF6',
+                    background: 'rgba(139,92,246,0.10)', padding: '2px 10px', borderRadius: 8,
+                  }}>
+                    {formatRadius(settings.follower_sos_radius_m)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1000}
+                  max={10000}
+                  step={500}
+                  value={settings.follower_sos_radius_m}
+                  onChange={(e) => save({ follower_sos_radius_m: Number(e.target.value) })}
+                  style={{
+                    width: '100%', height: 6, appearance: 'none',
+                    borderRadius: 3, outline: 'none', cursor: 'pointer',
+                    background: `linear-gradient(to right, #8B5CF6 ${((settings.follower_sos_radius_m - 1000) / 9000) * 100}%, ${isDark ? '#334155' : '#E2E8F0'} 0%)`,
+                    accentColor: '#8B5CF6',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                  <span style={{ fontSize: 11, color: txt2 }}>1 km</span>
+                  <span style={{ fontSize: 11, color: txt2 }}>10 km</span>
+                </div>
+              </div>
+            </>
+          )}
+        </SettingsSection>
+
+        {/* Cycle de vie */}
+        <SettingsSection label="Cycle de vie">
+          <SettingsRow
+            icon="Plus"
+            iconColor={cyan}
+            label="Nouveau signalement"
+            subtitle="Un pin est créé dans votre rayon"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_new_pins}
+                onChange={(v) => save({ notify_new_pins: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="CheckCircle"
+            iconColor="#22C55E"
+            label="Pin confirmé"
+            subtitle="Confirmé par la communauté (5+)"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_confirmed_pins}
+                onChange={(v) => save({ notify_confirmed_pins: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="XCircle"
+            iconColor="#64748B"
+            label="Pin résolu"
+            subtitle="L'incident a été résolu"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_resolved_pins}
+                onChange={(v) => save({ notify_resolved_pins: v })}
+              />
+            }
+          />
+        </SettingsSection>
+
+        {/* Catégories */}
+        <SettingsSection label="Catégories">
+          <SettingsRow
+            icon="AlertTriangle"
+            iconColor="#EF4444"
+            label="Urgent"
+            subtitle="Agression, vol, harcèlement, filature"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_cat_urgent}
+                onChange={(v) => save({ notify_cat_urgent: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="Eye"
+            iconColor="#F59E0B"
+            label="Attention"
+            subtitle="Suspect, attroupement, zone à éviter"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_cat_warning}
+                onChange={(v) => save({ notify_cat_warning: v })}
+              />
+            }
+          />
+          <div style={divider} />
+          <SettingsRow
+            icon="Settings"
+            iconColor="#64748B"
+            label="Infrastructure"
+            subtitle="Éclairage, passage, fermeture"
+            rightEl={
+              <SettingsToggle
+                value={settings.notify_cat_infra}
+                onChange={(v) => save({ notify_cat_infra: v })}
+              />
+            }
+          />
+        </SettingsSection>
+
+        {/* Canal (pins) */}
+        <SettingsSection label="Canal (pins)">
+          <div style={{ padding: '10px 20px 14px' }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: txt2, marginBottom: 8, display: 'block' }}>
+              Comment recevoir les alertes de pins
+            </span>
+            <SegmentedControl
+              value={settings.pin_notif_channel}
+              onChange={(v) => save({ pin_notif_channel: v })}
+              isDark={isDark}
+            />
+          </div>
+        </SettingsSection>
+
+        {/* Heures calmes */}
+        <SettingsSection label="Heures calmes">
+          <SettingsRow
+            icon="Moon"
+            iconColor="#A78BFA"
+            label="Activer les heures calmes"
+            subtitle="Silencieux pendant la nuit"
+            rightEl={
+              <SettingsToggle
+                value={settings.quiet_hours_enabled}
+                onChange={(v) => save({ quiet_hours_enabled: v })}
+              />
+            }
+          />
+          {settings.quiet_hours_enabled && (
+            <>
+              <div style={divider} />
+              <div style={{ display: 'flex', gap: 12, padding: '12px 20px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: txt2, marginBottom: 6, display: 'block' }}>
+                    Début
+                  </label>
+                  <input
+                    type="time"
+                    value={settings.quiet_start}
+                    onChange={(e) => save({ quiet_start: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 12,
+                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'}`,
+                      background: isDark ? '#1E293B' : '#F8FAFC',
+                      color: txt1, fontSize: 15, outline: 'none',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: txt2, marginBottom: 6, display: 'block' }}>
+                    Fin
+                  </label>
+                  <input
+                    type="time"
+                    value={settings.quiet_end}
+                    onChange={(e) => save({ quiet_end: e.target.value })}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 12,
+                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'}`,
+                      background: isDark ? '#1E293B' : '#F8FAFC',
+                      color: txt1, fontSize: 15, outline: 'none',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ padding: '4px 20px 12px' }}>
+                <span style={{ fontSize: 12, color: txt2, fontStyle: 'italic' }}>
+                  Les alertes SOS ignorent les heures calmes
+                </span>
+              </div>
+            </>
+          )}
+        </SettingsSection>
+
+        {/* Bottom spacing */}
+        <div style={{ height: 40 }} />
       </div>
     </div>
   );

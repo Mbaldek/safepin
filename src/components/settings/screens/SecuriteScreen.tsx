@@ -1,10 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useToast } from '@/hooks/useToast';
-import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/stores/useTheme';
-import { useStore } from '@/stores/useStore';
 import SettingsSection from '../components/SettingsSection';
 import SettingsRow from '../components/SettingsRow';
 
@@ -15,24 +11,8 @@ export interface SecuriteScreenProps {
 }
 
 export default function SecuriteScreen({ onBack, onClose, onNavigate }: SecuriteScreenProps) {
-  const toast = useToast();
   const isDark = useTheme((s) => s.theme) === 'dark';
-  const verified = useStore((s) => s.userProfile?.verified);
-  const [circleCount, setCircleCount] = useState<number | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { count } = await supabase
-        .from('trusted_contacts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-      setCircleCount(count ?? 0);
-    })();
-  }, []);
-
-  const comingSoon = () => toast.info('Bientôt disponible');
   const divider = { height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)', margin: '0 20px' } as const;
 
   return (
@@ -71,48 +51,13 @@ export default function SecuriteScreen({ onBack, onClose, onNavigate }: Securite
 
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {/* Cercle de confiance */}
-        <SettingsSection label="Cercle de confiance">
+        {/* Alertes & localisation */}
+        <SettingsSection label="Alertes & localisation">
           <SettingsRow
-            icon="Users"
-            iconColor="#A78BFA"
-            label="Mon cercle"
-            subtitle={
-              circleCount === null
-                ? 'Chargement…'
-                : `${circleCount} contact${circleCount !== 1 ? 's' : ''} de confiance`
-            }
-            onPress={() => {
-              useStore.getState().setCommunityDefaultTab(1);
-              useStore.getState().setActiveTab('community');
-              onClose();
-            }}
-          />
-          <div style={divider} />
-          <SettingsRow
-            icon="ShieldCheck"
-            iconColor="#34D399"
-            label="Badge de vérification"
-            subtitle={verified ? "Compte vérifié ✓" : "Vérifier votre identité"}
-            onPress={() => onNavigate('verification')}
-          />
-        </SettingsSection>
-
-        {/* Alertes */}
-        <SettingsSection label="Alertes">
-          <SettingsRow
-            icon="Bell"
-            iconColor="#F87171"
-            label="Notifications d'alerte"
-            subtitle="Rayon, heures calmes"
-            onPress={() => onNavigate('alert-notifications')}
-          />
-          <div style={divider} />
-          <SettingsRow
-            icon="Eye"
+            icon="MapPin"
             iconColor="#22D3EE"
-            label="Localisation"
-            subtitle="G\u00e9rer la localisation"
+            label="Localisation & alertes"
+            subtitle="Mode, rayon, notifications, heures calmes"
             onPress={() => onNavigate('location')}
           />
         </SettingsSection>
@@ -122,7 +67,7 @@ export default function SecuriteScreen({ onBack, onClose, onNavigate }: Securite
           <SettingsRow
             icon="Lock"
             label="Confidentialité & RGPD"
-            subtitle="Analytics, export, suppression"
+            subtitle="Analytics, export"
             onPress={() => onNavigate('privacy-rgpd')}
           />
           <div style={divider} />
@@ -133,6 +78,8 @@ export default function SecuriteScreen({ onBack, onClose, onNavigate }: Securite
             onPress={() => onNavigate('sessions-security')}
           />
         </SettingsSection>
+
+        <div style={{ height: 32 }} />
       </div>
     </div>
   );

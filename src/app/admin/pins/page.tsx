@@ -1,22 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useAdminTheme } from '@/components/admin/AdminThemeContext';
+import DataTable, { type Column, type RowAction } from '@/components/admin/DataTable';
+
+/* ─── Types ─── */
 
 type PinRow = {
   id: string;
+  user_id: string;
   category: string | null;
   arrondissement: string | null;
   severity: string | null;
   confirmations: number | null;
-  status: string | null;
+  flag_count: number;
+  is_emergency: boolean | null;
+  resolved_at: string | null;
+  hidden_at: string | null;
   created_at: string;
 };
 
-const PAGE_SIZE = 20;
-
-function shortId(id: string) { return id.slice(0, 8); }
+/* ─── Helpers ─── */
 
 function fmt(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -24,183 +30,231 @@ function fmt(dateStr: string) {
   });
 }
 
+function Badge({ label, bg, color }: { label: string; bg: string; color: string }) {
+  return (
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: bg, color, whiteSpace: 'nowrap' }}>
+      {label}
+    </span>
+  );
+}
+
+/* ─── Main Page ─── */
+
 export default function PinsPage() {
   const { theme } = useAdminTheme();
   const [pins, setPins] = useState<PinRow[]>([]);
-  const [filters, setFilters] = useState({ category: '', status: 'active', severity: '' });
-  const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState<'all' | 'active' | 'resolved' | 'hidden' | 'flagged'>('active');
+  const [acting, setActing] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadPins = useCallback(() => {
     let q = supabase
       .from('pins')
-      .select('id, category, arrondissement, severity, confirmations, status, created_at')
+      .select('id, user_id, category, arrondissement, severity, confirmations, flag_count, is_emergency, resolved_at, hidden_at, created_at')
       .order('created_at', { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-    if (filters.status) q = q.eq('status', filters.status);
-    if (filters.severity) q = q.eq('severity', filters.severity);
-    if (filters.category) q = q.ilike('category', `%${filters.category}%`);
+      .limit(500);
+
+    if (filter === 'active') q = q.is('resolved_at', null).is('hidden_at', null);
+    else if (filter === 'resolved') q = q.not('resolved_at', 'is', null);
+    else if (filter === 'hidden') q = q.not('hidden_at', 'is', null);
+    else if (filter === 'flagged') q = q.gte('flag_count', 1);
+
     q.then(({ data }) => setPins((data as PinRow[]) ?? []));
-  }, [filters, page]);
+  }, [filter]);
 
-  const selectStyle: React.CSSProperties = {
-    padding: '6px 12px',
-    borderRadius: 8,
-    border: `1px solid ${theme.borderMd}`,
-    background: theme.elevated,
-    color: theme.t1,
-    fontSize: 12,
-  };
+  useEffect(() => { loadPins(); }, [loadPins]);
 
-  const thStyle: React.CSSProperties = {
-    background: theme.elevated,
-    fontSize: 10,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    color: theme.t3,
-    padding: '10px 12px',
-    textAlign: 'left',
-    whiteSpace: 'nowrap',
-  };
+  /* ─── Actions ─── */
 
-  const tdStyle: React.CSSProperties = {
-    padding: '10px 12px',
-    fontSize: 12,
-    color: theme.t2,
-    borderTop: `1px solid ${theme.border}`,
-    whiteSpace: 'nowrap',
-  };
+  async function resolvePin(pin: PinRow) {
+    setActing(pin.id + '-resolve');
+    await supabase.from('pins').update({ resolved_at: new Date().toISOString() }).eq('id', pin.id);
+    setActing(null);
+    loadPins();
+  }
+
+  async function hidePin(pin: PinRow) {
+    setActing(pin.id + '-hide');
+    const next = pin.hidden_at ? null : new Date().toISOString();
+    await supabase.from('pins').update({ hidden_at: next }).eq('id', pin.id);
+    setActing(null);
+    loadPins();
+  }
+
+  async function deletePin(pin: PinRow) {
+    if (!confirm(`Supprimer définitivement le pin ${pin.id.slice(0, 8)} ?`)) return;
+    setActing(pin.id + '-delete');
+    await supabase.from('pins').delete().eq('id', pin.id);
+    setActing(null);
+    loadPins();
+  }
+
+  /* ─── Filter pills ─── */
+
+  const FILTERS: { key: typeof filter; label: string; count?: number }[] = [
+    { key: 'all', label: 'Tous' },
+    { key: 'active', label: 'Actifs' },
+    { key: 'resolved', label: 'Résolus' },
+    { key: 'hidden', label: 'Masqués' },
+    { key: 'flagged', label: 'Signalés' },
+  ];
+
+  /* ─── Columns ─── */
+
+  const columns: Column<PinRow>[] = [
+    {
+      key: 'id',
+      header: 'ID',
+      render: (p) => (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: theme.cyan }}>
+          {p.id.slice(0, 8)}
+        </span>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Catégorie',
+      sortValue: (p) => p.category ?? '',
+      render: (p) => {
+        const isEmergency = p.is_emergency === true;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{p.category ?? '—'}</span>
+            {isEmergency && <Badge label="SOS" bg={theme.dangerSoft} color={theme.danger} />}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'arrondissement',
+      header: 'Lieu',
+      sortValue: (p) => p.arrondissement ?? '',
+      render: (p) => <span>{p.arrondissement ?? '—'}</span>,
+    },
+    {
+      key: 'severity',
+      header: 'Sévérité',
+      sortValue: (p) => p.severity === 'high' ? 3 : p.severity === 'medium' ? 2 : 1,
+      render: (p) => {
+        const sev = p.severity ?? 'low';
+        const map: Record<string, { bg: string; color: string }> = {
+          high: { bg: theme.dangerSoft, color: theme.danger },
+          medium: { bg: theme.warningSoft, color: theme.warning },
+          low: { bg: theme.successSoft, color: theme.success },
+        };
+        const s = map[sev] ?? map.low;
+        return <Badge label={sev} bg={s.bg} color={s.color} />;
+      },
+    },
+    {
+      key: 'confirmations',
+      header: 'Conf.',
+      sortValue: (p) => p.confirmations ?? 0,
+      render: (p) => <span>{p.confirmations ?? 0}</span>,
+    },
+    {
+      key: 'flags',
+      header: 'Flags',
+      sortValue: (p) => p.flag_count,
+      render: (p) => {
+        if (p.flag_count === 0) return <span style={{ color: theme.t3 }}>0</span>;
+        return (
+          <Badge
+            label={String(p.flag_count)}
+            bg={p.flag_count >= 3 ? theme.dangerSoft : theme.warningSoft}
+            color={p.flag_count >= 3 ? theme.danger : theme.warning}
+          />
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Statut',
+      render: (p) => {
+        if (p.hidden_at) return <Badge label="masqué" bg="rgba(167,139,250,0.12)" color="var(--accent-purple)" />;
+        if (p.resolved_at) return <Badge label="résolu" bg={theme.successSoft} color={theme.success} />;
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: theme.success }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: theme.success, display: 'inline-block' }} />
+            actif
+          </span>
+        );
+      },
+    },
+    {
+      key: 'created_at',
+      header: 'Créé',
+      sortValue: (p) => new Date(p.created_at).getTime(),
+      render: (p) => <span>{fmt(p.created_at)}</span>,
+    },
+  ];
+
+  const fixedActions: RowAction<PinRow>[] = [
+    {
+      label: 'Résoudre',
+      color: 'var(--semantic-success)',
+      onClick: resolvePin,
+      loading: (p) => acting === p.id + '-resolve',
+      disabled: (p) => !!p.resolved_at,
+    },
+    {
+      label: 'Masquer',
+      color: 'var(--accent-purple)',
+      onClick: hidePin,
+      loading: (p) => acting === p.id + '-hide',
+    },
+    {
+      label: 'Suppr.',
+      color: 'var(--semantic-danger)',
+      onClick: deletePin,
+      loading: (p) => acting === p.id + '-delete',
+    },
+  ];
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: theme.t1, margin: 0 }}>Pins</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <select
-            value={filters.status}
-            onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setPage(0); }}
-            style={selectStyle}
-          >
-            <option value="">Tous statuts</option>
-            <option value="active">Active</option>
-            <option value="resolved">Resolved</option>
-          </select>
-          <select
-            value={filters.severity}
-            onChange={(e) => { setFilters({ ...filters, severity: e.target.value }); setPage(0); }}
-            style={selectStyle}
-          >
-            <option value="">Toutes s&eacute;v&eacute;rit&eacute;s</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <input
-            placeholder="Cat\u00e9gorie..."
-            value={filters.category}
-            onChange={(e) => { setFilters({ ...filters, category: e.target.value }); setPage(0); }}
-            style={{ ...selectStyle, width: 140 }}
-          />
-        </div>
+        <span style={{ fontSize: 12, color: theme.t3 }}>{pins.length} pins</span>
       </div>
 
-      <div
-        style={{
-          background: theme.card,
-          border: `1px solid ${theme.borderMd}`,
-          borderRadius: 16,
-          overflow: 'hidden',
-          boxShadow: theme.panelShadow,
-        }}
-      >
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={thStyle}>ID</th>
-                <th style={thStyle}>Cat&eacute;gorie</th>
-                <th style={thStyle}>Arrondissement</th>
-                <th style={thStyle}>S&eacute;v&eacute;rit&eacute;</th>
-                <th style={thStyle}>Confirmations</th>
-                <th style={thStyle}>Statut</th>
-                <th style={thStyle}>Cr&eacute;&eacute;</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pins.map((pin) => (
-                <tr key={pin.id}>
-                  <td style={{ ...tdStyle, fontFamily: 'monospace', color: theme.cyan }}>{shortId(pin.id)}</td>
-                  <td style={tdStyle}>{pin.category ?? '\u2014'}</td>
-                  <td style={tdStyle}>{pin.arrondissement ?? '\u2014'}</td>
-                  <td style={tdStyle}>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        padding: '2px 8px',
-                        borderRadius: 100,
-                        background: pin.severity === 'high' ? theme.dangerSoft : pin.severity === 'medium' ? theme.warningSoft : theme.successSoft,
-                        color: pin.severity === 'high' ? theme.danger : pin.severity === 'medium' ? theme.warning : theme.success,
-                      }}
-                    >
-                      {pin.severity ?? 'N/A'}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>{pin.confirmations ?? 0}</td>
-                  <td style={tdStyle}>{pin.status ?? '\u2014'}</td>
-                  <td style={tdStyle}>{fmt(pin.created_at)}</td>
-                </tr>
-              ))}
-              {pins.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ ...tdStyle, textAlign: 'center', padding: 24, color: theme.t3 }}>
-                    Aucun pin trouv&eacute;
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Filter pills */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {FILTERS.map((f) => (
+          <motion.button
+            key={f.key}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setFilter(f.key)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 100,
+              border: filter === f.key ? `1px solid ${theme.cyanBorder}` : `1px solid ${theme.borderMd}`,
+              background: filter === f.key ? theme.cyanSoft : 'transparent',
+              color: filter === f.key ? theme.cyan : theme.t2,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {f.label}
+          </motion.button>
+        ))}
       </div>
 
-      {/* Pagination */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-        <button
-          disabled={page === 0}
-          onClick={() => setPage((p) => Math.max(0, p - 1))}
-          style={{
-            padding: '6px 14px',
-            borderRadius: 8,
-            border: `1px solid ${theme.borderMd}`,
-            background: theme.card,
-            color: theme.t2,
-            fontSize: 12,
-            cursor: page === 0 ? 'default' : 'pointer',
-            opacity: page === 0 ? 0.4 : 1,
-          }}
-        >
-          &larr; Pr&eacute;c&eacute;dent
-        </button>
-        <span style={{ fontSize: 12, color: theme.t3, display: 'flex', alignItems: 'center' }}>
-          Page {page + 1}
-        </span>
-        <button
-          disabled={pins.length < PAGE_SIZE}
-          onClick={() => setPage((p) => p + 1)}
-          style={{
-            padding: '6px 14px',
-            borderRadius: 8,
-            border: `1px solid ${theme.borderMd}`,
-            background: theme.card,
-            color: theme.t2,
-            fontSize: 12,
-            cursor: pins.length < PAGE_SIZE ? 'default' : 'pointer',
-            opacity: pins.length < PAGE_SIZE ? 0.4 : 1,
-          }}
-        >
-          Suivant &rarr;
-        </button>
-      </div>
+      <DataTable
+        data={pins}
+        columns={columns}
+        actions={fixedActions}
+        pageSize={25}
+        searchPlaceholder="Rechercher par catégorie, lieu, ID..."
+        searchFilter={(p, q) =>
+          (p.category ?? '').toLowerCase().includes(q) ||
+          (p.arrondissement ?? '').toLowerCase().includes(q) ||
+          p.id.startsWith(q)
+        }
+        emptyMessage="Aucun pin trouvé"
+      />
     </div>
   );
 }

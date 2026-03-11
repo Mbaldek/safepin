@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useAdminTheme } from './AdminThemeContext';
 
 const NAV = [
@@ -29,7 +30,8 @@ export default function TowerTopbar() {
         background: theme.topbarBg,
         borderBottom: `1px solid ${theme.topbarBorder}`,
         boxShadow: theme.shadow,
-        backdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 20px',
@@ -39,9 +41,9 @@ export default function TowerTopbar() {
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <svg width={24} height={24} viewBox="0 0 80 80" fill="none">
-          <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke={theme.cyan} strokeWidth="4" strokeLinecap="round" fill="none" />
-          <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke={theme.cyan} strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
-          <circle cx="40" cy="22" r="4" fill={theme.cyan} />
+          <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="#3BB4C1" strokeWidth="4" strokeLinecap="round" fill="none" />
+          <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="#3BB4C1" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
+          <circle cx="40" cy="22" r="4" fill="#3BB4C1" />
         </svg>
         <span style={{ fontSize: 15, fontWeight: 700, color: theme.t1, letterSpacing: '0.04em' }}>Breveil</span>
         <span
@@ -68,9 +70,12 @@ export default function TowerTopbar() {
         {NAV.map((item) => {
           const active = pathname.includes(`/admin/${item.id}`);
           return (
-            <button
+            <motion.button
               key={item.id}
               onClick={() => router.push(`/admin/${item.id}`)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -84,11 +89,13 @@ export default function TowerTopbar() {
                 fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                transition: 'background 0.2s, color 0.2s, border-color 0.2s',
+                boxShadow: active ? '0 0 12px rgba(59,180,193,0.15)' : 'none',
               }}
             >
               <span style={{ fontSize: 13 }}>{item.icon}</span>
               {item.label}
-            </button>
+            </motion.button>
           );
         })}
       </nav>
@@ -97,8 +104,10 @@ export default function TowerTopbar() {
       <div style={{ flex: 1 }} />
 
       {/* Theme toggle */}
-      <button
+      <motion.button
         onClick={toggle}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         style={{
           border: `1px solid ${theme.borderMd}`,
           borderRadius: 100,
@@ -109,14 +118,17 @@ export default function TowerTopbar() {
           background: 'transparent',
           cursor: 'pointer',
           whiteSpace: 'nowrap',
+          transition: 'border-color 0.2s, color 0.2s',
         }}
       >
         {isDark ? '\u2600\uFE0F Light' : '\uD83C\uDF19 Dark'}
-      </button>
+      </motion.button>
 
       {/* Back to app */}
-      <button
+      <motion.button
         onClick={() => router.push('/')}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         style={{
           border: `1px solid ${theme.borderMd}`,
           borderRadius: 100,
@@ -127,10 +139,11 @@ export default function TowerTopbar() {
           background: 'transparent',
           cursor: 'pointer',
           whiteSpace: 'nowrap',
+          transition: 'border-color 0.2s, color 0.2s',
         }}
       >
         &larr; Back to app
-      </button>
+      </motion.button>
 
       {/* Avatar */}
       <div
@@ -138,13 +151,14 @@ export default function TowerTopbar() {
           width: 32,
           height: 32,
           borderRadius: '50%',
-          background: `linear-gradient(135deg, ${theme.cyan}, ${theme.purple})`,
+          background: `linear-gradient(135deg, #3BB4C1, #A78BFA)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: 12,
           fontWeight: 700,
           color: '#fff',
+          boxShadow: '0 0 12px rgba(59,180,193,0.25)',
         }}
       >
         A

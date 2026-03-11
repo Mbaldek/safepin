@@ -120,10 +120,6 @@ export default function CercleChat({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <style>{`
-        @keyframes bv-call-breath{0%,100%{box-shadow:0 0 0 4px rgba(59,180,193,0.08)}50%{box-shadow:0 0 0 8px rgba(59,180,193,0.14)}}
-        @keyframes bv-call-muted{0%,100%{box-shadow:0 0 0 4px rgba(239,68,68,0.08)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0.14)}}
-      `}</style>
       {/* 1. HEADER */}
       <div style={{
         flexShrink: 0,
@@ -196,8 +192,8 @@ export default function CercleChat({
             boxShadow: callState === 'active' ? '0 0 0 4px rgba(59,180,193,0.08)'
               : callState === 'muted' ? '0 0 0 4px rgba(239,68,68,0.08)'
               : 'none',
-            animation: callState === 'active' ? 'bv-call-breath 3s ease-in-out infinite'
-              : callState === 'muted' ? 'bv-call-muted 2.5s ease-in-out infinite'
+            animation: callState === 'active' ? 'bv-chat-call-breath 3s ease-in-out infinite'
+              : callState === 'muted' ? 'bv-chat-call-muted 2.5s ease-in-out infinite'
               : 'none',
             transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
             cursor: 'pointer',

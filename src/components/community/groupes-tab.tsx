@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { bToast } from "@/components/GlobalToast";
 import type { Community } from "@/types";
+import CallBar from '@/components/CallBar'
 import { useAudioCall } from '@/stores/useAudioCall'
 
 type LastMessage = {
@@ -66,7 +67,19 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const globalSourceId = useAudioCall((s) => s.sourceId)
   const startCall = useAudioCall((s) => s.startCall)
   const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
+  const muted = useAudioCall((s) => s.muted)
+  const seconds = useAudioCall((s) => s.seconds)
+  const setMuted = useAudioCall((s) => s.setMuted)
+  const setChatOpen = useAudioCall((s) => s.setChatOpen)
+  const endCallGlobal = useAudioCall((s) => s.endCall)
   const callActive = globalSource === 'group' && globalSourceId === activeGroup && globalCallState !== 'idle'
+
+  // Signal FloatingCallPill that the chat is mounted
+  useEffect(() => {
+    if (!activeGroup) return
+    setChatOpen(true)
+    return () => setChatOpen(false)
+  }, [activeGroup, setChatOpen])
 
   // Last messages for group list preview
   const [lastMessages, setLastMessages] = useState<Record<string, LastMessage>>({});
@@ -112,18 +125,16 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       setMyGroups(all.filter((c) => memberSet.has(c.id)));
       setDiscoverGroups(all.filter((c) => !memberSet.has(c.id)));
 
-      // Fetch last message per community
+      // Fetch last message per community (single row each via DISTINCT ON)
       const communityIds = all.map(c => c.id);
       if (communityIds.length > 0) {
-        const { data: lastMsgs } = await supabase
-          .from('community_messages')
-          .select('community_id, content, created_at, display_name')
-          .in('community_id', communityIds)
-          .order('created_at', { ascending: false });
+        const { data: lastMsgs } = await supabase.rpc('community_last_messages', {
+          p_community_ids: communityIds,
+        });
         if (lastMsgs) {
           const map: Record<string, LastMessage> = {};
-          lastMsgs.forEach((msg: LastMessage) => {
-            if (!map[msg.community_id]) map[msg.community_id] = msg;
+          (lastMsgs as LastMessage[]).forEach((msg) => {
+            map[msg.community_id] = msg;
           });
           setLastMessages(map);
         }
@@ -173,10 +184,9 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
     if (!activeGroup) return;
     const channel = supabase
       .channel(`group-chat-${activeGroup}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages" },
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages", filter: `community_id=eq.${activeGroup}` },
         async (payload) => {
           const m = payload.new as { id: string; community_id: string; user_id: string; content: string; media_url?: string | null; type?: string; created_at: string; display_name?: string | null };
-          if (m.community_id !== activeGroup) return;
           // Replace optimistic message or skip true duplicates
           setMessages(prev => {
             const withoutOpt = prev.filter(p =>
@@ -348,27 +358,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
               <Phone size={15} />
             </button>
           )}
-          {/* Ambient pill — only when in call */}
-          {callActive && (
-            <button
-              onClick={() => setCallSheetOpen(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '4px 10px', borderRadius: 99,
-                background: 'rgba(52,211,153,0.10)',
-                border: '1px solid rgba(52,211,153,0.25)',
-                color: '#34D399', fontSize: 10, fontWeight: 700,
-                cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              <div style={{
-                width: 5, height: 5, borderRadius: '50%',
-                background: '#34D399',
-                animation: 'ambientDotPulse 1.2s ease-in-out infinite',
-              }} />
-              En appel
-            </button>
-          )}
           <button style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: isDark ? '#64748B' : '#94A3B8', padding: 4,
@@ -377,7 +366,17 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           </button>
         </div>
 
-        {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
+        {callActive && (
+          <CallBar
+            source="group"
+            title={activeGroupData?.name ?? 'Groupe'}
+            muted={muted}
+            seconds={seconds}
+            participantNames={[]}
+            onMute={() => setMuted(!muted)}
+            onEnd={() => endCallGlobal()}
+          />
+        )}
 
         {/* Messages */}
         <div
@@ -524,12 +523,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
-      <style>{`
-        @keyframes rowIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes onlinePulse { 0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0.5)} 50%{box-shadow:0 0 0 4px rgba(52,211,153,0)} }
-        @keyframes badgePop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
-      `}</style>
-
       {/* Search + Create header — single inline row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px 0' }}>
         {/* Inline search input — expands when open */}

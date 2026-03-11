@@ -302,7 +302,7 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
               position: "fixed",
               inset: 0,
               backgroundColor: "rgba(0,0,0,0.5)",
-              zIndex: 998,
+              zIndex: 310,
             }}
           />
           {/* Modal */}
@@ -311,13 +311,13 @@ export default function AddCircleContactModal({ isDark, open, onClose, onAdded }
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
             style={{
               position: "fixed",
               bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
               left: 8,
               right: 8,
-              zIndex: 999,
+              zIndex: 311,
               backgroundColor: bg,
               borderRadius: 20,
               border: `1px solid ${border}`,

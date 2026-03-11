@@ -23,7 +23,7 @@ export function useWaitlist() {
     setState('loading')
 
     const { error } = await supabase
-      .from('waitlist')
+      .from('pro_waitlist')
       .insert({
         email,
         user_id:      userId ?? null,

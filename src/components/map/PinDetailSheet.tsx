@@ -142,43 +142,56 @@ function PinDetailSheet({
     setMediaLoadError(false)
 
     const load = async () => {
-      // Check if user already confirmed
-      if (userId) {
-        const { data: ev } = await supabase
-          .from('pin_evidence')
-          .select('id')
-          .eq('pin_id', pin.id)
-          .eq('user_id', userId)
-          .eq('activity', 'confirmation')
-          .maybeSingle()
-        if (ev) setAlreadyConfirmed(true)
-      }
+      // Run all 4 independent queries in parallel
+      const [evResult, confsResult, evidResult, chResult] = await Promise.all([
+        // 1. Check if user already confirmed
+        userId
+          ? supabase
+              .from('pin_evidence')
+              .select('id')
+              .eq('pin_id', pin.id)
+              .eq('user_id', userId)
+              .eq('activity', 'confirmation')
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
 
-      // Fetch recent confirmers
-      const { data: confs } = await supabase
-        .from('pin_evidence')
-        .select('user_id, profiles:user_id(name)')
-        .eq('pin_id', pin.id)
-        .eq('activity', 'confirmation')
-        .order('created_at', { ascending: false })
-        .limit(4)
-      if (confs) {
+        // 2. Fetch recent confirmers
+        supabase
+          .from('pin_evidence')
+          .select('user_id, profiles:user_id(name)')
+          .eq('pin_id', pin.id)
+          .eq('activity', 'confirmation')
+          .order('created_at', { ascending: false })
+          .limit(4),
+
+        // 3. Fetch evidence media
+        supabase
+          .from('pin_evidence')
+          .select('activity, media_urls, proof_type, proof_url')
+          .eq('pin_id', pin.id)
+          .order('created_at', { ascending: false }),
+
+        // 4. Fetch hashtags
+        supabase
+          .from('content_hashtags')
+          .select('hashtags(id, tag, category, display, color, icon, uses_count, created_at)')
+          .eq('content_type', 'incident')
+          .eq('content_id', pin.id),
+      ])
+
+      if (evResult.data) setAlreadyConfirmed(true)
+
+      if (confsResult.data) {
         setRecentConfirmers(
-          confs.map((c: Record<string, unknown>) => ({
+          confsResult.data.map((c: Record<string, unknown>) => ({
             name: (c.profiles as { name?: string } | null)?.name ?? '?',
           }))
         )
       }
 
-      // Fetch evidence media (media_urls + proof_url from confirmations)
-      const { data: evidRows } = await supabase
-        .from('pin_evidence')
-        .select('activity, media_urls, proof_type, proof_url')
-        .eq('pin_id', pin.id)
-        .order('created_at', { ascending: false })
-      if (evidRows) {
+      if (evidResult.data) {
         const items: EvidenceItem[] = []
-        for (const row of evidRows) {
+        for (const row of evidResult.data) {
           const urls = row.media_urls as { type: string; url: string }[] | null
           if (urls?.length) {
             for (const m of urls) {
@@ -192,14 +205,8 @@ function PinDetailSheet({
         setEvidenceItems(items)
       }
 
-      // Fetch hashtags for this pin
-      const { data: chRows } = await supabase
-        .from('content_hashtags')
-        .select('hashtags(id, tag, category, display, color, icon, uses_count, created_at)')
-        .eq('content_type', 'incident')
-        .eq('content_id', pin.id)
-      if (chRows) {
-        const tags = chRows
+      if (chResult.data) {
+        const tags = chResult.data
           .map((r: Record<string, unknown>) => r.hashtags as unknown as Hashtag)
           .filter(Boolean)
         setPinHashtags(tags)

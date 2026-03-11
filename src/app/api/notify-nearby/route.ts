@@ -222,25 +222,18 @@ export async function POST(req: NextRequest) {
       .filter((id) => id !== pin.user_id && !notifiedUserIds.has(id) && !trustedIds.has(id));
 
     if (followerIds.length > 0) {
-      const { data: followerSubs } = await admin
-        .from('push_subscriptions')
-        .select('user_id, subscription')
-        .in('user_id', followerIds);
+      // Fetch push subs, notification settings, and locations in parallel
+      const [{ data: followerSubs }, { data: fSettingsRows }, { data: fLocRows }] = await Promise.all([
+        admin.from('push_subscriptions').select('user_id, subscription').in('user_id', followerIds),
+        admin.from('notification_settings')
+          .select('user_id, notify_sos_followers, follower_sos_radius_m, sos_notif_channel')
+          .in('user_id', followerIds),
+        admin.from('profiles').select('id, last_known_lat, last_known_lng').in('id', followerIds),
+      ]);
 
-      const fUserIds = (followerSubs ?? []).map((s) => s.user_id);
-
-      const { data: fSettingsRows } = await admin
-        .from('notification_settings')
-        .select('user_id, notify_sos_followers, follower_sos_radius_m, sos_notif_channel')
-        .in('user_id', fUserIds);
       const fSettingsMap = Object.fromEntries(
         (fSettingsRows ?? []).map((r) => [r.user_id, r])
       );
-
-      const { data: fLocRows } = await admin
-        .from('profiles')
-        .select('id, last_known_lat, last_known_lng')
-        .in('id', fUserIds);
       const fLocMap = Object.fromEntries(
         (fLocRows ?? []).map((r) => [r.id, { lat: r.last_known_lat, lng: r.last_known_lng }])
       );

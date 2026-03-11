@@ -5,8 +5,12 @@ import { Search, ArrowLeft, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import ChatView from "@/components/chat/ChatView";
+import CallBar from '@/components/CallBar'
 import { useUiStore } from "@/stores/uiStore";
 import { useAudioCall } from '@/stores/useAudioCall'
+import useVerificationGate from '@/hooks/useVerificationGate'
+import VerificationNudgeSheet from '@/components/VerificationNudgeSheet'
+import VerificationGateModal from '@/components/VerificationGateModal'
 
 interface MessagesTabProps {
   isDark: boolean;
@@ -189,7 +193,28 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
   const startCall = useAudioCall((s) => s.startCall)
   const endCallGlobal = useAudioCall((s) => s.endCall)
   const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
+  const muted = useAudioCall((s) => s.muted)
+  const seconds = useAudioCall((s) => s.seconds)
+  const setMuted = useAudioCall((s) => s.setMuted)
+  const setChatOpen = useAudioCall((s) => s.setChatOpen)
   const callActive = globalSource === 'dm' && globalSourceId === selectedConvo?.id && globalCallState !== 'idle'
+  const { isGated, shouldNudge, isNonSkippable, daysLeft, snooze } = useVerificationGate()
+  const [showVerifNudge, setShowVerifNudge] = useState(false)
+  const [showVerifGate, setShowVerifGate] = useState(false)
+  const [pendingConvo, setPendingConvo] = useState<DMRow | null>(null)
+
+  const openConvo = (convo: DMRow) => {
+    if (isGated) { setPendingConvo(convo); setShowVerifGate(true); return }
+    if (shouldNudge) { setPendingConvo(convo); setShowVerifNudge(true); return }
+    setSelectedConvo(convo)
+  }
+
+  // Signal FloatingCallPill that the chat is mounted
+  useEffect(() => {
+    if (!selectedConvo) return
+    setChatOpen(true)
+    return () => setChatOpen(false)
+  }, [selectedConvo?.id, setChatOpen])
 
   // Auto-open conversation from circle tab
   useEffect(() => {
@@ -408,7 +433,16 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           </motion.button>
         </div>
 
-        {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
+        {callActive && (
+          <CallBar
+            source="dm"
+            title={selectedConvo.partner_name ?? 'Contact'}
+            muted={muted}
+            seconds={seconds}
+            onMute={() => setMuted(!muted)}
+            onEnd={() => endCallGlobal()}
+          />
+        )}
 
         {/* ChatView */}
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -550,7 +584,7 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
                 convo={convo}
                 index={index}
                 isDark={isDark}
-                onSelect={() => setSelectedConvo(convo)}
+                onSelect={() => openConvo(convo)}
                 onDelete={() => handleDeleteConvo(convo.id)}
               />
             ))}
@@ -558,6 +592,23 @@ export default function MessagesTab({ isDark, userId, pendingDm, onPendingDmCons
           </div>
         </div>
       )}
+      <AnimatePresence>
+        {showVerifNudge && (
+          <VerificationNudgeSheet
+            daysLeft={daysLeft}
+            isNonSkippable={isNonSkippable}
+            onVerify={() => { setShowVerifNudge(false); if (pendingConvo) { setSelectedConvo(pendingConvo); setPendingConvo(null); } }}
+            onSkip={() => { snooze(); setShowVerifNudge(false); if (pendingConvo) { setSelectedConvo(pendingConvo); setPendingConvo(null); } }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showVerifGate && (
+          <VerificationGateModal
+            onVerify={() => { setShowVerifGate(false); setPendingConvo(null); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

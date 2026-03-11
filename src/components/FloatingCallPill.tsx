@@ -33,11 +33,12 @@ export default function FloatingCallPill() {
   const tick = useAudioCall((s) => s.tick)
   const toggleCallSheet = useAudioCall((s) => s.toggleCallSheet)
   const callSheetOpen = useAudioCall((s) => s.callSheetOpen)
+  const chatOpen = useAudioCall((s) => s.chatOpen)
 
   const roomRef = useRef<Room | null>(null)
   const cancelledRef = useRef(false)
 
-  const active = callState !== 'idle' && !callSheetOpen
+  const active = callState !== 'idle' && !callSheetOpen && !chatOpen
 
   // Timer
   useEffect(() => {
