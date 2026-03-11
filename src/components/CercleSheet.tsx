@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useCercle } from '@/hooks/useCercle'
 import CercleChat from '@/components/CercleChat'
+import CallBar from '@/components/CallBar'
 import AddCircleContactModal from '@/components/community/AddCircleContactModal'
 import type { CircleMember } from '@/types'
 import { useAudioCall } from '@/stores/useAudioCall'
@@ -157,7 +158,17 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
             {/* 1. DRAG HANDLE */}
             <div style={{ margin: '10px auto 4px', width: 36, height: 4, borderRadius: 2, background: t.border }} />
 
-            {/* AudioChannel pill is now rendered globally by FloatingCallPill */}
+            {/* CallBar in hub when call active */}
+            {!showChat && callActive && (
+              <CallBar
+                source="cercle"
+                title="Mon Cercle"
+                muted={muted}
+                seconds={seconds}
+                onMute={() => setMuted(!muted)}
+                onEnd={() => endCallGlobal()}
+              />
+            )}
 
             {showChat ? (
               <CercleChat
@@ -165,7 +176,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                 members={members}
                 currentUserId={userId}
                 loading={loading}
-                onBack={() => setShowChat(false)}
+                onBack={() => { setShowChat(false); setChatOpen(false) }}
                 onStartCall={() => {
                   if (!callActive) {
                     startCall({ roomName: `cercle-${userId}`, source: 'cercle', sourceId: userId, title: 'Appel groupe · Cercle', participantNames })

@@ -360,7 +360,8 @@ export default function CallSheet() {
           <button
             onClick={() => setConfirmingEnd(false)}
             style={{
-              flex: 1, maxWidth: 140, height: 40, borderRadius: 999,
+              padding: '0 28px', height: 40, borderRadius: 999, boxSizing: 'border-box' as const,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               background: 'transparent', border: `1.5px solid ${C.borderM}`, color: C.txt,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -370,7 +371,8 @@ export default function CallSheet() {
           <button
             onClick={() => { handleConfirmEnd(); setConfirmingEnd(false) }}
             style={{
-              flex: 1, maxWidth: 140, height: 40, borderRadius: 999,
+              padding: '0 28px', height: 40, borderRadius: 999, boxSizing: 'border-box' as const,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               background: RED, border: 'none', color: 'white',
               fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               boxShadow: '0 4px 14px rgba(239,68,68,0.30)',

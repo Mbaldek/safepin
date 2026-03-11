@@ -8,6 +8,7 @@ import { useStore } from '@/stores/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '@/stores/useTheme';
 import { Pin, CATEGORY_DETAILS } from '@/types';
+import { getPinOpacity as getPinOpacityUtil } from '@/lib/pin-utils';
 import type { Escorte, EscorteView } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { T } from '@/lib/tokens';
@@ -89,19 +90,6 @@ const PIN_COLORS = {
   destination: '#34D399', transport: '#22D3EE',
   watchContact: '#3BB4C1', surface: '#1E293B', elevated: '#334155', stroke: '#FFFFFF',
 };
-
-const PIN_DECAY_HOURS: Record<string, number> = {
-  assault: 24, harassment: 24, theft: 24, following: 24,
-  suspect: 12, group: 6, unsafe: 48,
-  lighting: 168, blocked: 168, closed: 168,
-  safe: 720, help: 168, presence: 720,
-};
-
-function getPinOpacity(createdAt: string, category: string): number {
-  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  const maxHours = PIN_DECAY_HOURS[category] || 24;
-  return Math.max(1 - (hoursAgo / maxHours) * 0.7, 0.3);
-}
 
 // Module-level layer event handler refs
 let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
@@ -437,10 +425,7 @@ function makeSafePin(emoji: string): { width: number; height: number; data: Uint
 
 /** Compute effective opacity for a pin, accounting for last_confirmed_at. */
 function getEffectiveOpacity(pin: Pin): number {
-  const effectiveTime = pin.last_confirmed_at
-    ? new Date(Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())).toISOString()
-    : pin.created_at;
-  return getPinOpacity(effectiveTime, pin.category);
+  return getPinOpacityUtil(pin);
 }
 
 /** Get category group id for a pin. */
@@ -908,13 +893,18 @@ function MapView({
       .setLngLat(last)
       .addTo(m);
 
-    // Fly to fit route
-    const lngs = activeRoute.coords.map((c) => c[0]);
-    const lats  = activeRoute.coords.map((c) => c[1]);
-    m.fitBounds(
-      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-      { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
-    );
+    // Center on user GPS position (navigation mode) — fallback to route overview
+    const loc = useStore.getState().userLocation;
+    if (loc) {
+      m.flyTo({ center: [loc.lng, loc.lat], zoom: 15.5, duration: 1000 });
+    } else {
+      const lngs = activeRoute.coords.map((c) => c[0]);
+      const lats  = activeRoute.coords.map((c) => c[1]);
+      m.fitBounds(
+        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
+      );
+    }
   }, [activeRoute, mapReady, layersReady]);
 
   // Draw / clear pending route options (colored multi-route selection)

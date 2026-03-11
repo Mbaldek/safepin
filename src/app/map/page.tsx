@@ -224,12 +224,14 @@ activeTrip, setActiveTrip,
     return () => window.removeEventListener('breveil:locate-pin', handler);
   }, [setActiveTab]);
 
-  // Clear pending route options whenever the user leaves the trip tab
+  // Clear pending route options and history sheets whenever the user leaves the trip tab
   useEffect(() => {
     if (activeTab !== 'trip') {
       setPendingRoutes(null);
+      setShowWalkHistory(false);
+      setShowTripHistory(false);
     }
-  }, [activeTab, setPendingRoutes]);
+  }, [activeTab, setPendingRoutes, setShowWalkHistory, setShowTripHistory]);
 
   // Auto-close incidents list when leaving the map tab
   useEffect(() => {
@@ -411,12 +413,14 @@ activeTrip, setActiveTrip,
     setShowSearch(false);
     setShowCityContext(false);
     setShowIncidentsList(false);
+    setShowWalkHistory(false);
+    setShowTripHistory(false);
     // Close trip/community/cercle panels — return to map
     const tab = useStore.getState().activeTab;
     if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
       setActiveTab('map');
     }
-  }, [setActiveSheet, setShowIncidentsList, setActiveTab]);
+  }, [setActiveSheet, setShowIncidentsList, setShowWalkHistory, setShowTripHistory, setActiveTab]);
 
   // When a store-driven overlay opens (pin detail, report), close all local overlays
   useEffect(() => {

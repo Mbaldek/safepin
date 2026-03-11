@@ -1,21 +1,35 @@
 import { CATEGORY_DETAILS, CATEGORY_GROUPS, DECAY_HOURS } from '@/types';
 
 /**
- * Get pin size based on confirmations count
+ * Effective reference date for decay — uses last_confirmed_at when available.
  */
-export function getPinSize(confirmations: number): number {
-  if (confirmations >= 10) return 28;
-  if (confirmations >= 4) return 22;
-  if (confirmations >= 2) return 18;
-  return 14;
+export function getEffectiveDate(pin: { created_at: string; last_confirmed_at?: string | null }): Date {
+  if (pin.last_confirmed_at) {
+    return new Date(Math.max(
+      new Date(pin.created_at).getTime(),
+      new Date(pin.last_confirmed_at).getTime(),
+    ));
+  }
+  return new Date(pin.created_at);
 }
 
 /**
- * Get pin opacity based on time decay
+ * Get pin size based on confirmations count
  */
-export function getPinOpacity(createdAt: string, category: string): number {
-  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  const maxHours = DECAY_HOURS[category] || 24;
+export function getPinSize(confirmations: number): number {
+  if (confirmations >= 10) return 32;
+  if (confirmations >= 4) return 26;
+  if (confirmations >= 2) return 20;
+  return 16;
+}
+
+/**
+ * Get pin opacity based on time decay (accounts for last_confirmed_at)
+ */
+export function getPinOpacity(pin: { created_at: string; last_confirmed_at?: string | null; category: string }): number {
+  const effectiveDate = getEffectiveDate(pin);
+  const hoursAgo = (Date.now() - effectiveDate.getTime()) / (1000 * 60 * 60);
+  const maxHours = DECAY_HOURS[pin.category] || 24;
   const ratio = Math.min(hoursAgo / maxHours, 1);
   return Math.max(1 - ratio * 0.7, 0.3);
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { CATEGORY_DETAILS, CATEGORY_GROUPS } from '@/types';
+import { CATEGORY_DETAILS, CATEGORY_GROUPS, DECAY_HOURS } from '@/types';
+import { getEffectiveDate } from '@/lib/pin-utils';
 
 interface MapPinProps {
   map: mapboxgl.Map;
@@ -59,15 +60,6 @@ function getSize(confirmations: number): number {
 
 const POSITIF_CATS = new Set(['safe', 'help', 'presence']);
 
-const LIFETIME_HOURS: Record<string, number> = {
-  // URGENT
-  assault: 24, harassment: 24, theft: 24, following: 24,
-  // ATTENTION
-  suspect: 6, group: 6, unsafe: 6,
-  // INFRA
-  lighting: 168, blocked: 168, closed: 168,
-};
-
 function getPinDegradationState(
   category: string,
   createdAt: string,
@@ -75,11 +67,9 @@ function getPinDegradationState(
 ): 'active' | 'degraded' | 'expired' {
   if (POSITIF_CATS.has(category)) return 'active';
 
-  const referenceDate = lastConfirmedAt
-    ? new Date(lastConfirmedAt)
-    : new Date(createdAt);
+  const referenceDate = getEffectiveDate({ created_at: createdAt, last_confirmed_at: lastConfirmedAt });
   const hoursElapsed = (Date.now() - referenceDate.getTime()) / (1000 * 60 * 60);
-  const lifetime = LIFETIME_HOURS[category] ?? 24;
+  const lifetime = DECAY_HOURS[category] ?? 24;
 
   if (hoursElapsed >= lifetime) return 'expired';
   if (hoursElapsed >= lifetime * 0.5) return 'degraded';

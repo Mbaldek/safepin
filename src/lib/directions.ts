@@ -3,6 +3,7 @@
 import type { Pin } from '@/types';
 import { DECAY_HOURS } from '@/types';
 import { haversineMetersLngLat } from '@/lib/utils';
+import { getEffectiveDate } from '@/lib/pin-utils';
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -165,7 +166,7 @@ export async function fetchRoutesWithAvoidance(
     if (p.resolved_at) return false;
     if (p.severity === 'low') return false;
     const maxH = DECAY_HOURS[p.category] || 24;
-    const ageH = (now - new Date(p.created_at).getTime()) / 3600_000;
+    const ageH = (now - getEffectiveDate(p).getTime()) / 3600_000;
     if (ageH >= maxH) return false;
     // Check proximity to any route point (sample every 5th for perf)
     for (let i = 0; i < direct.coords.length; i += 5) {

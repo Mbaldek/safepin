@@ -122,7 +122,10 @@
       "Bash(sed -n '1479,1498p' src/app/map/page.tsx)",
       "Bash(sed -n '1489,1510p' src/app/map/page.tsx)",
       "Bash(taskkill //F //PID 54364)",
-      "Bash(taskkill //F //IM next-server.exe)"
+      "Bash(taskkill //F //IM next-server.exe)",
+      "Bash(start http://localhost:3000/map)",
+      "Bash(find /c/Users/mathi/Desktop/safepin -maxdepth 2 -type f \\\\\\(-name .env* -o -name *.env \\\\\\))",
+      "Bash(git stash:*)"
     ]
   }
 }

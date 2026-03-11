@@ -99,6 +99,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const setIsSharingLocation = useStore((s) => s.setIsSharingLocation);
   const setPendingRoutes = useStore((s) => s.setPendingRoutes);
   const setActiveRoute = useStore((s) => s.setActiveRoute);
+  const setTransitSegments = useStore((s) => s.setTransitSegments);
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
   const { isGated, shouldNudge, isNonSkippable, daysLeft, snooze } = useVerificationGate();
@@ -1077,6 +1078,9 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       <motion.button
         onClick={async () => {
           await endTrip();
+          setActiveRoute(null);
+          setPendingRoutes(null);
+          setTransitSegments(null);
           setState("arrived");
           if (isGated) setShowVerifGate(true);
           else if (shouldNudge) setShowVerifNudge(true);

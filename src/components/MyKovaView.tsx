@@ -14,8 +14,9 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
 import {
   Pin, SavedRoute, TripLog,
-  CATEGORIES, SEVERITY,
+  CATEGORIES, SEVERITY, DECAY_HOURS,
 } from '@/types';
+import { getEffectiveDate } from '@/lib/pin-utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import VerificationView from '@/components/VerificationView';
@@ -312,10 +313,9 @@ export default function MyKovaView({ userId, userEmail, onClose }: { userId: str
   const now = Date.now();
   function isPinActive(pin: Pin) {
     if (pin.resolved_at) return false;
-    const base = pin.last_confirmed_at
-      ? Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())
-      : new Date(pin.created_at).getTime();
-    return (now - base) / 3_600_000 < (pin.is_emergency ? 2 : 24);
+    const base = getEffectiveDate(pin).getTime();
+    const maxH = pin.is_emergency ? 2 : (DECAY_HOURS[pin.category] || 24);
+    return (now - base) / 3_600_000 < maxH;
   }
   const activePins = myPins.filter(isPinActive);
 

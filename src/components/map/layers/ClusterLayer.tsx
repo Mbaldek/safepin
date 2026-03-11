@@ -3,6 +3,7 @@
 import mapboxgl from 'mapbox-gl';
 import type { Pin } from '@/types';
 import { CATEGORY_DETAILS } from '@/types';
+import { getPinOpacity as getPinOpacityUtil } from '@/lib/pin-utils';
 
 export const SOURCE_ID = 'pins-source';
 export const DB_CLUSTER_SRC = 'pins-db-cluster-src';
@@ -34,24 +35,8 @@ const PIN_COLORS = {
   stroke: '#FFFFFF',
 };
 
-const DECAY_HOURS: Record<string, number> = {
-  assault: 24, harassment: 24, theft: 24, following: 24,
-  suspect: 12, group: 6, unsafe: 48,
-  lighting: 168, blocked: 168, closed: 168,
-  safe: 720, help: 168, presence: 720,
-};
-
-function getPinOpacity(createdAt: string, category: string): number {
-  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  const maxHours = DECAY_HOURS[category] || 24;
-  return Math.max(1 - (hoursAgo / maxHours) * 0.7, 0.3);
-}
-
 function getEffectiveOpacity(pin: Pin): number {
-  const effectiveTime = pin.last_confirmed_at
-    ? new Date(Math.max(new Date(pin.created_at).getTime(), new Date(pin.last_confirmed_at).getTime())).toISOString()
-    : pin.created_at;
-  return getPinOpacity(effectiveTime, pin.category);
+  return getPinOpacityUtil(pin);
 }
 
 function getCategoryGroupId(pin: Pin): string {
