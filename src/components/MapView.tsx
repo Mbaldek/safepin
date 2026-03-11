@@ -103,13 +103,6 @@ function getPinOpacity(createdAt: string, category: string): number {
   return Math.max(1 - (hoursAgo / maxHours) * 0.7, 0.3);
 }
 
-function getPinColor(category: string): string {
-  const details = CATEGORY_DETAILS[category];
-  const group = details?.group ?? 'infra';
-  const gc: Record<string, string> = { urgent: '#EF4444', warning: '#F59E0B', infra: '#64748B', positive: '#34D399' };
-  return gc[group] ?? '#64748B';
-}
-
 // Module-level layer event handler refs
 let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
 let _transitMouseEnter: (() => void) | null = null;
@@ -595,7 +588,7 @@ function MapView({
   const [mapZoom, setMapZoom] = useState(13);
   const zoomRef = useRef(13);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
-  const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const [newPinIds, setNewPinIds] = useState<Set<string>>(new Set());
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
   const LABEL_ZOOM_THRESHOLD = 13;
@@ -1311,19 +1304,14 @@ function MapView({
     const allVisiblePins = pins.filter(passesFilters);
     const currentIds = new Set(allVisiblePins.map((p) => p.id));
     const prevIds = prevPinIdsRef.current;
-    if (prevIds.size > 0 && map.current && activeSheet === 'none') {
-      const m = map.current;
+    if (prevIds.size > 0) {
+      const freshIds = new Set<string>();
       for (const pin of allVisiblePins) {
-        if (prevIds.has(pin.id)) continue;
-        const dropColor = getPinColor(pin.category);
-        const el = document.createElement('div');
-        el.className = 'pin-drop';
-        el.style.cssText = `width:18px;height:18px;border-radius:50%;background:${dropColor};border:2.5px solid #fff;box-shadow:0 2px 6px ${dropColor}66;pointer-events:none;`;
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([pin.lng, pin.lat])
-          .addTo(m);
-        dropMarkersRef.current.push(marker);
-        setTimeout(() => { marker.remove(); }, 800);
+        if (!prevIds.has(pin.id)) freshIds.add(pin.id);
+      }
+      if (freshIds.size > 0) {
+        setNewPinIds(freshIds);
+        setTimeout(() => setNewPinIds(new Set()), 700);
       }
     }
     prevPinIdsRef.current = currentIds;
@@ -1730,6 +1718,7 @@ function MapView({
           onClick={handleTransportPinClick}
           showLabels={effectiveLabels}
           opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
+          isNew={newPinIds.has(pin.id)}
         />
       ))}
 
@@ -1741,6 +1730,7 @@ function MapView({
           onClick={handleTransportPinClick}
           showLabels={effectiveLabels}
           opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
+          isNew={newPinIds.has(pin.id)}
         />
       ))}
 

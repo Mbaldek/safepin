@@ -199,6 +199,18 @@ export function ConfirmIncidentModal({
     onConfirmed(pin.id)
     onClose()
 
+    // Notify pin creator about the confirmation
+    if (pin.user_id && pin.user_id !== userId) {
+      const catLabel = CATEGORY_DETAILS[pin.category]?.label ?? pin.category
+      void supabase.from('notifications').insert({
+        user_id: pin.user_id,
+        type: 'pin_confirmed',
+        title: 'Ton signalement a été confirmé',
+        body: `${catLabel} · ${newCount} confirmation${newCount > 1 ? 's' : ''}`,
+        pin_id: pin.id,
+      })
+    }
+
     // Notify nearby users when confirmation threshold (5) is crossed
     if ((pin.confirmations ?? 0) < 5 && newCount >= 5) {
       fetch('/api/notify-nearby', {

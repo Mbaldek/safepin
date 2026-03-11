@@ -851,6 +851,13 @@ body {
   animation: pin-ripple 1.8s ease-out infinite;
 }
 
+@keyframes pin-drop-in {
+  0% { transform: translateY(-30px) scale(0.5); opacity: 0; }
+  60% { transform: translateY(4px) scale(1.15); opacity: 1; }
+  80% { transform: translateY(-2px) scale(0.95); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 @keyframes report-pin-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.35); opacity: 0.7; }

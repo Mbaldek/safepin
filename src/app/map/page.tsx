@@ -958,7 +958,7 @@ activeTrip, setActiveTrip,
           onMapTap={handleMapTap}
         />
 
-        <EmergencyButton userId={userId} compact={activeTab !== 'map'} />
+        <EmergencyButton userId={userId} />
 
         {/* Filter button — replaces old POI toggle */}
         {activeTab === 'map' && (

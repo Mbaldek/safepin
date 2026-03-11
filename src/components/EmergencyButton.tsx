@@ -46,7 +46,7 @@ async function dispatchToContacts(
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function EmergencyButton({ userId, compact = false }: { userId: string | null; compact?: boolean }) {
+export default function EmergencyButton({ userId }: { userId: string | null }) {
   const toast = useToast();
   const { userLocation, setUserLocation } = useStore();
   useTheme(); // subscribe to theme changes for CSS var updates
@@ -431,15 +431,15 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
           0%        { left: -75%; }
           60%, 100% { left: 130%; }
         }
-        .sos-fab:not(.sos-compact):hover:not(:disabled) { transform: scale(1.10) !important; box-shadow: 0 8px 28px rgba(239,68,68,0.56) !important; }
-        .sos-fab:not(.sos-compact):active:not(:disabled) { transform: scale(0.92) !important; }
+        .sos-fab:hover:not(:disabled) { transform: scale(1.10) !important; box-shadow: 0 8px 28px rgba(239,68,68,0.56) !important; }
+        .sos-fab:active:not(:disabled) { transform: scale(0.92) !important; }
       `}</style>
 
       {/* ── Hold progress — centered overlay, above the thumb ──────── */}
       {phase === 'idle' && fabHoldProgress > 0 && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 1098,
+            position: 'fixed', inset: 0, zIndex: 40,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             pointerEvents: 'none',
             background: `rgba(240,64,96,${fabHoldProgress * 0.10})`,
@@ -474,7 +474,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
             background: 'rgba(0,0,0,0.55)',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
-            zIndex: 1199,
+            zIndex: 399,
             opacity: scrimVisible ? 1 : 0,
             transition: 'opacity 0.35s ease',
           }} />
@@ -496,7 +496,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
             border: '1px solid var(--border-default)',
             borderRadius: 28,
             boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
-            zIndex: 1200,
+            zIndex: 400,
             overflow: 'hidden',
             animation: 'sos-slideUp 0.3s cubic-bezier(0.16,1,0.3,1)',
           }}>
@@ -748,7 +748,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
       {showFlash && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 1300,
+            position: 'fixed', inset: 0, zIndex: 500,
             pointerEvents: 'none',
             backgroundColor: '#ef4444', opacity: 0.6,
             animation: 'flash-fade 2s ease-out forwards',
@@ -756,34 +756,32 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         />
       )}
 
-      {/* ── Radial pulse rings (normal mode only, outside button) ─────── */}
-      {!compact && (
-        <div
-          aria-hidden
-          style={{
-            position: 'fixed',
-            bottom: 80, right: 20,
-            width: 46, height: 46,
-            borderRadius: 9999,
-            pointerEvents: 'none',
-            zIndex: 1099,
-          }}
-        >
-          <div style={{
-            position: 'absolute', inset: -7,
-            borderRadius: 9999,
-            border: '2px solid rgba(239,68,68,0.30)',
-            animation: 'sos-ring-pulse 2s ease-out infinite',
-          }} />
-          <div style={{
-            position: 'absolute', inset: -15,
-            borderRadius: 9999,
-            border: '2px solid rgba(239,68,68,0.14)',
-            animation: 'sos-ring-pulse 2s ease-out infinite',
-            animationDelay: '0.52s',
-          }} />
-        </div>
-      )}
+      {/* ── Radial pulse rings (outside button) ─────── */}
+      <div
+        aria-hidden
+        style={{
+          position: 'fixed',
+          bottom: 80, right: 20,
+          width: 46, height: 46,
+          borderRadius: 9999,
+          pointerEvents: 'none',
+          zIndex: 199,
+        }}
+      >
+        <div style={{
+          position: 'absolute', inset: -7,
+          borderRadius: 9999,
+          border: '2px solid rgba(239,68,68,0.30)',
+          animation: 'sos-ring-pulse 2s ease-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', inset: -15,
+          borderRadius: 9999,
+          border: '2px solid rgba(239,68,68,0.14)',
+          animation: 'sos-ring-pulse 2s ease-out infinite',
+          animationDelay: '0.52s',
+        }} />
+      </div>
 
       {/* ── FAB — hold 3 seconds to activate ────────────────────────── */}
       <button
@@ -794,13 +792,10 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         onContextMenu={(e) => e.preventDefault()}
         disabled={phase !== 'idle'}
         aria-label="Emergency alert — hold 3 seconds to activate"
-        className={compact ? 'sos-fab sos-compact' : 'sos-fab'}
+        className="sos-fab"
         style={{
           position: 'fixed',
-          ...(compact
-            ? { top: 8, left: '50%', transform: 'translateX(-50%)', width: 38, height: 38, zIndex: 1100 }
-            : { bottom: 80, right: 20, width: 46, height: 46, zIndex: 1100 }
-          ),
+          bottom: 80, right: 20, width: 46, height: 46, zIndex: 200,
           borderRadius: 9999,
           background: 'linear-gradient(135deg, #F87171, #DC2626)',
           boxShadow: '0 4px 18px rgba(239,68,68,0.42), inset 0 1px 0 rgba(255,255,255,0.20)',

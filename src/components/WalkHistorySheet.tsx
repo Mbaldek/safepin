@@ -71,9 +71,9 @@ function initials(name: string): string {
 const springSheet = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
 const PERIOD_OPTIONS: { val: PeriodFilter & string; label: string; desc: string; icon: string }[] = [
-  { val: 'week', label: 'Cette semaine', desc: '7 derniers jours', icon: '\uD83D\uDCC5' },
-  { val: 'month', label: 'Ce mois', desc: '30 derniers jours', icon: '\uD83D\uDDD3' },
-  { val: 'all', label: "Tout l'historique", desc: 'Depuis le d\u00e9but', icon: '\u221E' },
+  { val: 'week', label: 'Cette semaine', desc: '7 derniers jours', icon: '📅' },
+  { val: 'month', label: 'Ce mois', desc: '30 derniers jours', icon: '🗓' },
+  { val: 'all', label: "Tout l'historique", desc: 'Depuis le début', icon: '∞' },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
 
   const bucketLabels: Record<string, string> = {
     thisWeek: 'Cette semaine',
-    lastWeek: 'La semaine derni\u00e8re',
+    lastWeek: 'La semaine dernière',
     thisMonth: 'Ce mois',
     older: 'Plus ancien',
   };
@@ -212,7 +212,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
     const names: string[] = [];
     if (s.companionName) names.push(s.companionName);
     const memberCount = names.length + 1; // +1 for user
-    const statusLabel = '\u2713 Safe';
+    const statusLabel = '✓ Safe';
     const statusBg = 'rgba(52,211,153,0.12)';
     const statusColor = C.success;
     const cardBorder = C.borderSubtle;
@@ -317,14 +317,14 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {s.durationMin != null && (
             <span style={{ fontSize: 11, color: C.textTertiary }}>
-              \uD83D\uDD50 {s.durationMin} min
+              {'🕐'} {s.durationMin} min
             </span>
           )}
           {s.durationMin != null && (
             <>
               <span style={{ width: 2, height: 2, borderRadius: '50%', background: C.borderDefault, display: 'inline-block' }} />
               <span style={{ fontSize: 11, color: C.textTertiary }}>
-                \uD83D\uDCCD Walk With Me
+                {'📍'} Walk With Me
               </span>
             </>
           )}
@@ -378,7 +378,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
               borderBottom: `1px solid ${C.borderSubtle}`,
             }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>P\u00e9riode</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>Période</div>
                 <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 1 }}>Filtrer l&apos;historique</div>
               </div>
               <button
@@ -393,7 +393,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
                   fontFamily: 'inherit',
                 }}
               >
-                \u2192
+                {'→'}
               </button>
             </div>
 
@@ -438,7 +438,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
                       transition: 'all 0.15s',
                       transform: sel ? 'scale(1.15)' : 'scale(1)',
                     }}>
-                      {sel && <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>\u2713</span>}
+                      {sel && <span style={{ fontSize: 10, color: 'white', fontWeight: 700 }}>{'✓'}</span>}
                     </div>
                   </div>
                 );
@@ -457,7 +457,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
                 fontWeight: 500,
               }}
             >
-              \u21BA  R\u00e9initialiser
+              {'↺'}  Réinitialiser
             </div>
           </motion.div>
         </>
@@ -499,11 +499,11 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 16,
             }}>
-              \uD83D\uDEB6\u200D\u2640\uFE0F
+              {'🚶‍♀️'}
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary }}>Mes marches</div>
-              <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 1 }}>Walk With Me \u00b7 historique</div>
+              <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 1 }}>Walk With Me · historique</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -521,7 +521,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
                 transition: 'all 0.15s',
               }}
             >
-              \u2699
+              {'⚙'}
               {activePeriod && (
                 <div style={{
                   position: 'absolute', top: 3, right: 3,
@@ -569,7 +569,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
                 opacity: 0.7, fontFamily: 'inherit',
               }}
             >
-              \u2715
+              {'✕'}
             </button>
           </div>
         </div>
@@ -603,7 +603,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textTertiary, fontSize: 13 }}>
-            Chargement\u2026
+            Chargement…
           </div>
         ) : filteredSessions.length === 0 ? (
           /* Empty state */
@@ -615,15 +615,15 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 28,
             }}>
-              {tab === 'mes' ? '\uD83D\uDEB6\u200D\u2640\uFE0F' : '\uD83E\uDD1D'}
+              {tab === 'mes' ? '🚶‍♀️' : '🤝'}
             </div>
             <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>
-              {tab === 'mes' ? 'Aucune marche' : 'Pas encore accompagn\u00e9'}
+              {tab === 'mes' ? 'Aucune marche' : 'Pas encore accompagné'}
             </div>
             <div style={{ fontSize: 13, color: C.textTertiary, lineHeight: 1.5, maxWidth: 220 }}>
               {tab === 'mes'
-                ? "Tes marches Walk With Me appara\u00eetront ici."
-                : "Quand une amie te demande de l\u2019accompagner, ses marches appara\u00eetront ici."
+                ? "Tes marches Walk With Me apparaîtront ici."
+                : "Quand une amie te demande de l'accompagner, ses marches apparaîtront ici."
               }
             </div>
           </div>

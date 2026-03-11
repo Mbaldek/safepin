@@ -150,7 +150,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       else older.push(t);
     });
     if (week.length) sections.push({ label: 'Cette semaine', trips: week });
-    if (lastWeek.length) sections.push({ label: 'La semaine derni\u00e8re', trips: lastWeek });
+    if (lastWeek.length) sections.push({ label: 'La semaine dernière', trips: lastWeek });
     if (month.length) sections.push({ label: 'Ce mois', trips: month });
     if (older.length) sections.push({ label: 'Plus ancien', trips: older });
     return sections;
@@ -701,7 +701,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   {trip.destination || "Trajet"}
                 </div>
                 <div style={{ fontSize: 12, color: colors.textTertiary[theme] }}>
-                  {dayLabel}{durLabel ? ` \u00b7 ${durLabel}` : ""}
+                  {dayLabel}{durLabel ? ` · ${durLabel}` : ""}
                 </div>
               </div>
               {trip.safety_score != null && (
@@ -727,10 +727,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   );
   // Render State 3 - Planifier
   const TRANSPORT_MODES = [
-    { id: "walk" as const, label: "À pied", emoji: "\uD83D\uDEB6" },
-    { id: "transit" as const, label: "Transports", emoji: "\uD83D\uDE87" },
-    { id: "bike" as const, label: "Vélo", emoji: "\uD83D\uDEB2" },
-    { id: "car" as const, label: "Voiture", emoji: "\uD83D\uDE97" },
+    { id: "walk" as const, label: "À pied", emoji: "🚶" },
+    { id: "transit" as const, label: "Transports", emoji: "🚇" },
+    { id: "bike" as const, label: "Vélo", emoji: "🚲" },
+    { id: "car" as const, label: "Voiture", emoji: "🚗" },
   ];
 
   const selectedRoute = fetchedRoutes[selectedIdx] ?? null;
@@ -794,7 +794,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   items: savedPlaces.map((p) => ({
                     label: p.label,
                     coords: [p.lng, p.lat] as [number, number],
-                    icon: p.icon || "\u2B50",
+                    icon: p.icon || "⭐",
                   })),
                 }] : undefined}
                 autoFocus
@@ -1289,14 +1289,14 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     };
     const modeIcon = (trip: Trip) => {
       const m = trip.mode;
-      if (m === 'cycling') return '\uD83D\uDEB4\u200D\u2640\uFE0F';
-      if (m === 'driving') return '\uD83D\uDE97';
-      return '\uD83D\uDEB6\u200D\u2640\uFE0F';
+      if (m === 'cycling') return '🚴‍♀️';
+      if (m === 'driving') return '🚗';
+      return '🚶‍♀️';
     };
     const periodMeta: Record<string, { icon: string; name: string; desc: string }> = {
-      week:  { icon: '\uD83D\uDCC5', name: 'Cette semaine', desc: '7 derniers jours' },
-      month: { icon: '\uD83D\uDDD3', name: 'Ce mois', desc: '30 derniers jours' },
-      all:   { icon: '\u221E', name: "Tout l\u2019historique", desc: 'Depuis le d\u00e9but' },
+      week:  { icon: '📅', name: 'Cette semaine', desc: '7 derniers jours' },
+      month: { icon: '🗓', name: 'Ce mois', desc: '30 derniers jours' },
+      all:   { icon: '∞', name: "Tout l'historique", desc: 'Depuis le début' },
     };
 
     return (
@@ -1321,18 +1321,18 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   color: H.textSecond, fontSize: 13, fontFamily: 'inherit',
                 }}
               >
-                {'\u2039'}
+                {'‹'}
               </button>
               <div style={{
                 width: 30, height: 30, borderRadius: 8,
                 background: 'linear-gradient(135deg,#3BB4C1,#1E3A5F)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
               }}>
-                {'\uD83D\uDDFA'}
+                {'🗺'}
               </div>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: H.textPrimary }}>Mes trajets</div>
-                <div style={{ fontSize: 11, color: H.textTertiary, marginTop: 1 }}>Trajet avec destination \u00b7 historique</div>
+                <div style={{ fontSize: 11, color: H.textTertiary, marginTop: 1 }}>Trajet avec destination · historique</div>
               </div>
             </div>
             {/* Filter button */}
@@ -1346,7 +1346,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                 color: historyActivePeriod ? H.teal : H.textTertiary, fontSize: 13, fontFamily: 'inherit',
               }}
             >
-              {'\u2699'}
+              {'⚙'}
               {historyActivePeriod && (
                 <div style={{
                   position: 'absolute', top: 3, right: 3, width: 7, height: 7,
@@ -1378,7 +1378,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   cursor: 'pointer', fontSize: 10, opacity: 0.7, fontFamily: 'inherit', padding: 0,
                 }}
               >
-                {'\u2715'}
+                {'✕'}
               </button>
             </div>
           </div>
@@ -1399,11 +1399,11 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 24, marginBottom: 4,
               }}>
-                {'\uD83D\uDDFA'}
+                {'🗺'}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: H.textPrimary }}>Aucun trajet enregistr\u00e9</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: H.textPrimary }}>Aucun trajet enregistré</div>
               <div style={{ fontSize: 13, color: H.textTertiary, lineHeight: 1.5, maxWidth: 220 }}>
-                Tes trajets avec destination appara\u00eetront ici une fois compl\u00e9t\u00e9s.
+                Tes trajets avec destination apparaîtront ici une fois complétés.
               </div>
             </div>
           ) : (
@@ -1455,7 +1455,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                           </div>
                           <div style={{ fontSize: 10, color: H.textTertiary }}>
                             {new Date(trip.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                            {trip.duration_min ? ` \u00b7 ${trip.duration_min} min` : ''}
+                            {trip.duration_min ? ` · ${trip.duration_min} min` : ''}
                           </div>
                         </div>
                         {/* Status badge */}
@@ -1464,7 +1464,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                           background: trip.status === 'completed' ? 'rgba(52,211,153,0.12)' : 'rgba(251,191,36,0.12)',
                           color: trip.status === 'completed' ? H.success : H.warning,
                         }}>
-                          {trip.status === 'completed' ? '\u2713 Arriv\u00e9e' : '\u21A9 Abandonn\u00e9'}
+                          {trip.status === 'completed' ? '✓ Arrivée' : '↩ Abandonné'}
                         </div>
                       </div>
 
@@ -1501,13 +1501,13 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           {trip.duration_min != null && (
-                            <span style={{ fontSize: 11, color: H.textTertiary }}>{'\uD83D\uDD50'} {trip.duration_min} min</span>
+                            <span style={{ fontSize: 11, color: H.textTertiary }}>{'🕐'} {trip.duration_min} min</span>
                           )}
                           {trip.duration_min != null && (
                             <div style={{ width: 2, height: 2, borderRadius: '50%', background: H.borderDef }} />
                           )}
                           <span style={{ fontSize: 11, color: H.textTertiary }}>
-                            {'\uD83D\uDCCD'} {trip.distance_m ? `${(trip.distance_m / 1000).toFixed(1)} km` : '\u2014'}
+                            {'📍'} {trip.distance_m ? `${(trip.distance_m / 1000).toFixed(1)} km` : '—'}
                           </span>
                         </div>
                         {score !== null && (
@@ -1569,7 +1569,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                 padding: '14px 16px 12px', borderBottom: `1px solid ${H.borderSubtle}`,
               }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: H.textPrimary }}>P\u00e9riode</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: H.textPrimary }}>Période</div>
                   <div style={{ fontSize: 11, color: H.textTertiary, marginTop: 2 }}>Filtrer l&apos;historique</div>
                 </div>
                 <button
@@ -1584,7 +1584,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                     fontSize: 14, fontFamily: 'inherit',
                   }}
                 >
-                  {'\u2192'}
+                  {'→'}
                 </button>
               </div>
               {(['week', 'month', 'all'] as const).map(k => {
@@ -1624,7 +1624,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                       transform: on ? 'scale(1.15)' : 'scale(1)',
                       transition: 'all 0.2s',
                     }}>
-                      {on ? '\u2713' : ''}
+                      {on ? '✓' : ''}
                     </div>
                   </div>
                 );
@@ -1639,7 +1639,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   fontFamily: 'inherit', cursor: 'pointer',
                 }}
               >
-                {'\u21BA'}&nbsp;&nbsp;R\u00e9initialiser
+                {'↺'}&nbsp;&nbsp;Réinitialiser
               </button>
             </motion.div>
           </>

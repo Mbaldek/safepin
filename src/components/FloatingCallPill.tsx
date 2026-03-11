@@ -37,7 +37,6 @@ export default function FloatingCallPill() {
 
   const roomRef = useRef<Room | null>(null)
   const cancelledRef = useRef(false)
-
   const active = callState !== 'idle' && !callSheetOpen && !chatOpen
 
   // Timer

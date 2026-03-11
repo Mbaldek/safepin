@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Camera, Video, Mic, MapPin, ChevronLeft, ArrowRight } from 'lucide-react';
+import { X, Check, Camera, Video, Mic, MapPin, ChevronLeft, Loader2 } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
 import { useTheme } from '@/stores/useTheme';
 import { supabase } from '@/lib/supabase';
@@ -57,6 +57,13 @@ const trans = [
   { id: 'tram', e: '🚊', label: 'Tram', p: 'Ligne' },
 ];
 
+const TIMING_OPTIONS = [
+  { id: 'now' as const, label: 'Maintenant' },
+  { id: '15min' as const, label: 'Il y a ~15 min' },
+  { id: '1h' as const, label: 'Il y a ~1h' },
+  { id: 'earlier' as const, label: 'Plus tôt' },
+];
+
 function getColors(isDark: boolean) {
   return isDark ? {
     bg: '#0F172A', card: '#1E293B', elevated: '#334155',
@@ -80,16 +87,20 @@ const FIXED = {
 
 const allItems = groups.flatMap(g => g.items);
 
+// Steps: 1 = category, 2 = details (merged transport+media+desc), '2b' = positive, 3 = success
+type Step = 1 | 2 | '2b' | 3;
+
 export function ReportSheet() {
   const isDark = useTheme((s) => s.theme) === 'dark';
   const C = getColors(isDark);
   const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo } = useStore();
 
-  const [step, setStep] = useState<number | '2b'>(1);
+  const [step, setStep] = useState<Step>(1);
   const [cat, setCat] = useState<string | null>(null);
   const [transport, setTransport] = useState<boolean | null>(null);
   const [tType, setTType] = useState<string | null>(null);
   const [tLine, setTLine] = useState('');
+  const [timing, setTiming] = useState<'now' | '15min' | '1h' | 'earlier'>('now');
   const [desc, setDesc] = useState('');
   const [mediaType, setMediaType] = useState<'photo' | 'video' | 'audio' | null>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -98,16 +109,6 @@ export function ReportSheet() {
   const [address, setAddress] = useState<string | null>(null);
   const [establishmentType, setEstablishmentType] = useState<string | null>(null);
   const [positifNote, setPositifNote] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [step1Height, setStep1Height] = useState<number | undefined>(undefined);
-
-  // Measure step 1 height for top-alignment of subsequent steps
-  useEffect(() => {
-    if (step === 1 && containerRef.current) {
-      const h = containerRef.current.offsetHeight;
-      if (h > 0) setStep1Height(h);
-    }
-  }, [step, activeSheet]);
 
   // Reverse geocode when coords change
   useEffect(() => {
@@ -143,15 +144,8 @@ export function ReportSheet() {
     gold: FIXED.accentCyan,
   };
 
-  const canNext = cat !== null;
-  const next = () => {
-    if (step === 1 && canNext) setStep(2);
-    else if (step === 2) setStep(3);
-    else if (step === 3) handleSubmit();
-  };
   const back = () => {
-    if (step === '2b') setStep(1);
-    else if (typeof step === 'number' && step > 1) setStep(step - 1);
+    if (step === '2b' || step === 2) { setStep(1); setTransport(null); setTType(null); setTLine(''); }
   };
 
   const reset = () => {
@@ -160,6 +154,7 @@ export function ReportSheet() {
     setTransport(null);
     setTType(null);
     setTLine('');
+    setTiming('now');
     setDesc('');
     setMediaType(null);
     setMediaFile(null);
@@ -191,13 +186,17 @@ export function ReportSheet() {
         : selectedGroup?.id === 'warning' ? 'med' : 'low';
       const decayType = selectedGroup?.id === 'positive' ? 'positive' : 'people';
 
+      // Build timing context for description
+      const timingLabel = timing !== 'now' ? TIMING_OPTIONS.find(t => t.id === timing)?.label : null;
+      const fullDesc = [timingLabel ? `[${timingLabel}]` : null, desc || null].filter(Boolean).join(' ') || null;
+
       const newPin = {
         user_id: userId,
         lat: newPinCoords.lat,
         lng: newPinCoords.lng,
         category: cat,
         severity,
-        description: desc || null,
+        description: fullDesc,
         is_transport: transport ?? false,
         transport_type: tType,
         transport_line: tLine || null,
@@ -228,8 +227,8 @@ export function ReportSheet() {
       }
       setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
 
-      setStep(4);
-      setTimeout(handleClose, 1500);
+      setStep(3);
+      setTimeout(handleClose, 2000);
     } catch (error) {
       console.error('[ReportSheet] Erreur envoi:', error);
     } finally {
@@ -238,10 +237,18 @@ export function ReportSheet() {
   };
 
   const showBackdrop = step !== 1;
+  const ctaColor = selectedGroup?.color ?? FIXED.accentCyan;
+
+  // Section label helper
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: c.muted, marginBottom: 6, marginTop: 14 }}>
+      {children}
+    </p>
+  );
 
   return (
     <AnimatePresence>
-      {/* Backdrop blur for steps 2/2b/3/4 */}
+      {/* Backdrop blur for steps 2/2b/3 */}
       {showBackdrop && (
         <motion.div
           key="report-backdrop"
@@ -261,7 +268,6 @@ export function ReportSheet() {
 
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 302, display: 'flex', justifyContent: 'center', pointerEvents: 'none', paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)' }}>
       <motion.div
-        ref={containerRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -269,7 +275,6 @@ export function ReportSheet() {
         style={{
           width: 'calc(100% - 32px)',
           maxWidth: 420,
-          minHeight: step !== 1 && step1Height ? step1Height : undefined,
           pointerEvents: 'auto',
           background: c.card,
           borderRadius: 20,
@@ -277,30 +282,22 @@ export function ReportSheet() {
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid ' + c.border }}>
-          <button onClick={step === 1 ? handleClose : back} style={{ width: 32, height: 32, borderRadius: '50%', background: c.pill, border: 'none', color: c.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {step === 1 ? <X size={18} /> : <ChevronLeft size={18} />}
-          </button>
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>
-              {step === 1 ? 'Signaler' : step === '2b' ? 'Lieu positif' : step === 2 ? 'Transport' : step === 3 ? 'Validation' : 'Envoyé'}
-            </span>
-          </div>
-          {step === 2 ? (
-            <button onClick={next} style={{ width: 32, height: 32, borderRadius: '50%', background: c.gold, border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ArrowRight size={16} />
+        {step !== 3 && (
+          <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid ' + c.border }}>
+            <button onClick={step === 1 ? handleClose : back} style={{ width: 32, height: 32, borderRadius: '50%', background: c.pill, border: 'none', color: c.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {step === 1 ? <X size={18} /> : <ChevronLeft size={18} />}
             </button>
-          ) : step === 3 ? (
-            <button onClick={handleSubmit} disabled={isSubmitting || !newPinCoords || !cat} style={{ width: 32, height: 32, borderRadius: '50%', background: '#34D399', border: 'none', color: '#FFFFFF', cursor: (isSubmitting || !newPinCoords || !cat) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (isSubmitting || !newPinCoords || !cat) ? 0.4 : 1 }}>
-              <Check size={16} />
-            </button>
-          ) : step === '2b' ? (
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>
+                {step === 1 ? 'Signaler' : step === '2b' ? 'Lieu positif' : 'Détails'}
+              </span>
+            </div>
             <div style={{ width: 32 }} />
-          ) : <div style={{ width: 32 }} />}
-        </div>
+          </div>
+        )}
 
         {/* Content */}
-        <div style={{ padding: '10px 14px 24px', maxHeight: '60vh', overflowY: 'auto' }}>
+        <div style={{ padding: step === 3 ? '14px 14px 20px' : '10px 14px 16px', maxHeight: '65vh', overflowY: 'auto' }}>
 
           {/* Step 1: Category grid */}
           {step === 1 && (
@@ -322,15 +319,11 @@ export function ReportSheet() {
                     animation: `reportGroupIn 0.35s ${gi * 0.08}s both ease-out`,
                   }}
                 >
-                  {/* Group header with dot */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <span
                       style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        backgroundColor: group.dotColor,
-                        flexShrink: 0,
+                        width: 7, height: 7, borderRadius: '50%',
+                        backgroundColor: group.dotColor, flexShrink: 0,
                         animation: group.id === 'urgent' ? 'reportUrgentPulse 2s ease-in-out infinite' : undefined,
                       }}
                     />
@@ -339,7 +332,6 @@ export function ReportSheet() {
                     </p>
                   </div>
 
-                  {/* 2-col grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     {group.items.map((item, ci) => {
                       const isSelected = cat === item.value;
@@ -348,26 +340,16 @@ export function ReportSheet() {
                           key={item.value}
                           onClick={() => { setCat(item.value); setStep(['safe','help','presence'].includes(item.value) ? '2b' : 2); }}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            padding: '10px 10px',
-                            borderRadius: 14,
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '10px 10px', borderRadius: 14,
                             background: isSelected ? c.sel : group.bg,
                             border: `1.5px solid ${isSelected ? c.accent : 'transparent'}`,
                             color: isSelected ? c.text : group.color,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            textAlign: 'left',
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
                             animation: `reportCellIn 0.3s ${gi * 0.08 + ci * 0.04}s both ease-out`,
                           }}
                         >
-                          <span style={{
-                            fontSize: 16,
-                            lineHeight: 1,
-                            animation: group.id === 'positive' ? 'reportPositifBreathe 3s ease-in-out infinite' : undefined,
-                          }}>
+                          <span style={{ fontSize: 16, lineHeight: 1, animation: group.id === 'positive' ? 'reportPositifBreathe 3s ease-in-out infinite' : undefined }}>
                             {item.emoji}
                           </span>
                           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -383,38 +365,141 @@ export function ReportSheet() {
             </>
           )}
 
-          {/* Step 2: Transport */}
+          {/* Step 2: Merged Details (transport + timing + media + description + CTA) */}
           {step === 2 && (
             <>
+              {/* Category badge */}
               {catItem && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 14, background: selectedGroup?.bg, marginBottom: 12 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 12, background: selectedGroup?.bg, marginBottom: 10 }}>
                   <span style={{ fontSize: 14 }}>{catItem.emoji}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: selectedGroup?.color }}>{catItem.label}</span>
-                </div>
-              )}
-              <p style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 12 }}>Dans un transport ?</p>
-
-              {transport === null && (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setTransport(true)} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Oui</button>
-                  <button onClick={() => { setTransport(false); setStep(3); }} style={{ flex: 1, padding: 14, borderRadius: 12, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Non</button>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: selectedGroup?.color }}>{catItem.label}</span>
                 </div>
               )}
 
-              {transport === true && (
+              {/* Address */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, minWidth: 0 }}>
+                <MapPin size={12} color={c.muted} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: c.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {newPinCoords
+                    ? (address ?? `${newPinCoords.lat.toFixed(4)}, ${newPinCoords.lng.toFixed(4)}`)
+                    : 'Position actuelle'}
+                </span>
+              </div>
+
+              {/* Transport section */}
+              <SectionLabel>Transport</SectionLabel>
+              {transport === null ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setTransport(true)} style={{ flex: 1, padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>Oui</button>
+                  <button onClick={() => setTransport(false)} style={{ flex: 1, padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>Non</button>
+                </div>
+              ) : transport ? (
                 <>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                     {trans.map(t => (
-                      <button key={t.id} onClick={() => setTType(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '9px 14px', borderRadius: 18, background: tType === t.id ? c.sel : c.pill, border: '1.5px solid ' + (tType === t.id ? c.accent : 'transparent'), color: tType === t.id ? c.text : c.muted, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                      <button key={t.id} onClick={() => setTType(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 14, background: tType === t.id ? c.sel : c.pill, border: '1.5px solid ' + (tType === t.id ? c.accent : 'transparent'), color: tType === t.id ? c.text : c.muted, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                         {t.e} {t.label}
                       </button>
                     ))}
                   </div>
-                  {tType && <input placeholder={trans.find(x => x.id === tType)?.p} value={tLine} onChange={e => setTLine(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 16, outline: 'none' }} />}
+                  {tType && <input placeholder={trans.find(x => x.id === tType)?.p} value={tLine} onChange={e => setTLine(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 14, outline: 'none' }} />}
                 </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: c.pill, fontSize: 11, color: c.muted }}>
+                  Pas dans un transport
+                  <button onClick={() => setTransport(null)} style={{ background: 'none', border: 'none', color: c.accent, cursor: 'pointer', fontSize: 10, fontWeight: 600, padding: 0 }}>Modifier</button>
+                </div>
               )}
 
-              {/* transport === false auto-advances to step 3 */}
+              {/* Timing section */}
+              <SectionLabel>Quand</SectionLabel>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {TIMING_OPTIONS.map(t => {
+                  const sel = timing === t.id;
+                  return (
+                    <button key={t.id} onClick={() => setTiming(t.id)} style={{
+                      padding: '7px 12px', borderRadius: 14,
+                      background: sel ? c.sel : c.pill,
+                      border: `1.5px solid ${sel ? c.accent : 'transparent'}`,
+                      color: sel ? c.text : c.muted,
+                      fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                      transition: 'all 120ms',
+                    }}>
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Media section */}
+              <SectionLabel>Preuve (optionnel)</SectionLabel>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                {([{ id: 'photo' as const, I: Camera, l: 'Photo' }, { id: 'video' as const, I: Video, l: 'Vidéo' }, { id: 'audio' as const, I: Mic, l: 'Audio' }]).map((m) => {
+                  const sel = mediaType === m.id;
+                  return (
+                    <button key={m.id} onClick={() => {
+                      if (sel) { setMediaType(null); setMediaFile(null); return; }
+                      setMediaType(m.id);
+                      setMediaFile(null);
+                      if (m.id !== 'audio') setTimeout(() => fileInputRef.current?.click(), 0);
+                    }} style={{ flex: 1, padding: '8px 6px', borderRadius: 10, background: sel ? `${c.accent}14` : c.pill, border: `1px solid ${sel ? c.accent : c.border}`, color: sel ? c.accent : c.muted, fontSize: 10, fontWeight: 500, cursor: 'pointer', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3, transition: 'all 150ms' }}>
+                      <m.I size={16} /> {m.l}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* File picker zone */}
+              {(mediaType === 'photo' || mediaType === 'video') && (
+                <div style={{ marginBottom: 8 }}>
+                  {!mediaFile ? (
+                    <div onClick={() => fileInputRef.current?.click()} style={{ border: `1.5px dashed ${c.accent}50`, background: `${c.accent}06`, borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 6, background: `${c.accent}14`, border: `1px solid ${c.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {mediaType === 'photo' ? <Camera size={12} color={c.accent} /> : <Video size={12} color={c.accent} />}
+                      </div>
+                      <span style={{ fontSize: 11, color: c.muted }}>Choisir un fichier</span>
+                    </div>
+                  ) : (
+                    <div style={{ borderRadius: 10, background: c.pill, border: `1px solid ${c.border}`, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {mediaType === 'photo' ? <Camera size={12} color={c.accent} /> : <Video size={12} color={c.accent} />}
+                      <span style={{ fontSize: 11, color: c.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaFile.name}</span>
+                      <button onClick={() => setMediaFile(null)} style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><X size={9} /></button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {mediaType === 'audio' && (
+                <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 10, background: `${c.accent}10`, border: `1px solid ${c.accent}30` }}>
+                  <Mic size={12} color={c.accent} />
+                  <span style={{ fontSize: 11, color: c.accent, flex: 1 }}>Audio attaché</span>
+                  <button onClick={() => setMediaType(null)} style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={9} /></button>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setMediaFile(e.target.files?.[0] ?? null)} />
+
+              {/* Description */}
+              <textarea placeholder="Description (optionnel)..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 14, outline: 'none', resize: 'none' as const, marginTop: 6 }} />
+
+              {/* CTA */}
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !newPinCoords || !cat}
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 14, marginTop: 14,
+                  background: isSubmitting ? c.pill : ctaColor,
+                  border: 'none',
+                  color: '#FFFFFF', fontSize: 13, fontWeight: 700,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  animation: !isSubmitting ? 'confirmCTAPulse 2s ease-in-out infinite' : 'none',
+                  transition: 'background 200ms',
+                }}
+              >
+                {isSubmitting ? (
+                  <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Envoi...</>
+                ) : (
+                  <>Signaler · {catItem?.label}</>
+                )}
+              </button>
             </>
           )}
 
@@ -437,12 +522,12 @@ export function ReportSheet() {
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
                 {([
-                  { id: 'cafe', emoji: '\u2615', label: 'Café / bar' },
-                  { id: 'pharma', emoji: '\uD83D\uDC8A', label: 'Pharmacie' },
-                  { id: 'police', emoji: '\uD83D\uDE94', label: 'Commissariat' },
-                  { id: 'hotel', emoji: '\uD83C\uDFE8', label: 'Hôtel / lobby' },
-                  { id: 'transport', emoji: '\uD83D\uDE87', label: 'Station metro/bus' },
-                  { id: 'other', emoji: '\uD83D\uDCCD', label: 'Autre lieu sûr' },
+                  { id: 'cafe', emoji: '☕', label: 'Café / bar' },
+                  { id: 'pharma', emoji: '💊', label: 'Pharmacie' },
+                  { id: 'police', emoji: '🚓', label: 'Commissariat' },
+                  { id: 'hotel', emoji: '🏨', label: 'Hôtel / lobby' },
+                  { id: 'transport', emoji: '🚇', label: 'Station metro/bus' },
+                  { id: 'other', emoji: '📍', label: 'Autre lieu sûr' },
                 ]).map((et) => {
                   const isSel = establishmentType === et.id;
                   return (
@@ -481,7 +566,7 @@ export function ReportSheet() {
                   width: '100%', padding: 10, borderRadius: 10,
                   background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
                   border: `1px solid ${c.border}`,
-                  color: c.text, fontSize: 16, outline: 'none', resize: 'none' as const,
+                  color: c.text, fontSize: 14, outline: 'none', resize: 'none' as const,
                   marginBottom: 12,
                 }}
               />
@@ -494,7 +579,7 @@ export function ReportSheet() {
                 border: '1px solid rgba(52,211,153,0.15)',
                 marginBottom: 14,
               }}>
-                <span style={{ fontSize: 13, flexShrink: 0 }}>{'\u2705'}</span>
+                <span style={{ fontSize: 13, flexShrink: 0 }}>{'✅'}</span>
                 <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>
                   Visible immédiatement — pas de validation requise
                 </span>
@@ -527,8 +612,8 @@ export function ReportSheet() {
                     if (error) throw error;
                     if (data) addPin(data);
                     setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
-                    setStep(4);
-                    setTimeout(handleClose, 1500);
+                    setStep(3);
+                    setTimeout(handleClose, 2000);
                   } catch {
                     // submission failed silently
                   } finally {
@@ -545,72 +630,71 @@ export function ReportSheet() {
                   transition: 'all 150ms',
                 }}
               >
-                {isSubmitting ? 'Envoi...' : 'Publier ce lieu \u2713'}
+                {isSubmitting ? 'Envoi...' : 'Publier ce lieu ✓'}
               </button>
             </>
           )}
 
-          {/* Step 3: Details */}
+          {/* Step 3: Success */}
           {step === 3 && (
-            <>
-              <p style={{ fontSize: 12, color: c.muted, marginBottom: 10 }}>Optionnel</p>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                {([{ id: 'photo' as const, I: Camera, l: 'Photo' }, { id: 'video' as const, I: Video, l: 'Vidéo' }, { id: 'audio' as const, I: Mic, l: 'Audio' }]).map((m) => {
-                  const sel = mediaType === m.id;
-                  return (
-                    <button key={m.id} onClick={() => {
-                      if (sel) { setMediaType(null); setMediaFile(null); return; }
-                      setMediaType(m.id);
-                      setMediaFile(null);
-                      if (m.id !== 'audio') setTimeout(() => fileInputRef.current?.click(), 0);
-                    }} style={{ flex: 1, padding: 12, borderRadius: 10, background: sel ? `${c.accent}14` : c.pill, border: `1px solid ${sel ? c.accent : c.border}`, color: sel ? c.accent : c.muted, fontSize: 11, fontWeight: 500, cursor: 'pointer', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 5, transition: 'all 150ms' }}>
-                      <m.I size={18} /> {m.l}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* File picker zone for photo/video */}
-              {(mediaType === 'photo' || mediaType === 'video') && (
-                <div style={{ marginBottom: 10 }}>
-                  {!mediaFile ? (
-                    <div onClick={() => fileInputRef.current?.click()} style={{ border: `1.5px dashed ${c.accent}50`, background: `${c.accent}06`, borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: `${c.accent}14`, border: `1px solid ${c.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {mediaType === 'photo' ? <Camera size={14} color={c.accent} /> : <Video size={14} color={c.accent} />}
-                      </div>
-                      <span style={{ fontSize: 12, color: c.muted }}>Appuyer pour choisir un fichier</span>
-                    </div>
-                  ) : (
-                    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: c.pill, border: `1px solid ${c.border}`, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {mediaType === 'photo' ? <Camera size={14} color={c.accent} /> : <Video size={14} color={c.accent} />}
-                      <span style={{ fontSize: 12, color: c.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaFile.name}</span>
-                      <button onClick={() => setMediaFile(null)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><X size={10} /></button>
-                    </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              style={{ textAlign: 'center', padding: '12px 0' }}
+            >
+              {/* Animated check with ripple */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }}
+                style={{
+                  width: 56, height: 56, borderRadius: '50%',
+                  background: 'rgba(52,211,153,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 14px',
+                  position: 'relative',
+                }}
+              >
+                <Check size={28} color="#34D399" />
+                <div style={{
+                  position: 'absolute', inset: -8, borderRadius: '50%',
+                  border: '2px solid rgba(52,211,153,0.20)',
+                  animation: 'pin-ripple 1.5s ease-out forwards',
+                }} />
+              </motion.div>
+
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: c.text, marginBottom: 4 }}>
+                Signalement envoyé !
+              </h3>
+              <p style={{ fontSize: 12, color: c.muted, marginBottom: 14 }}>
+                Visible par la communauté autour de toi
+              </p>
+
+              {/* Mini recap card */}
+              {catItem && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', borderRadius: 12,
+                  background: selectedGroup?.bg,
+                  border: `1px solid ${selectedGroup?.color}30`,
+                }}>
+                  <span style={{ fontSize: 14 }}>{catItem.emoji}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: selectedGroup?.color }}>{catItem.label}</span>
+                  {address && (
+                    <>
+                      <span style={{ fontSize: 10, color: c.muted }}>·</span>
+                      <span style={{ fontSize: 10, color: c.muted, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{address}</span>
+                    </>
                   )}
                 </div>
               )}
-              {/* Audio badge */}
-              {mediaType === 'audio' && (
-                <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: `${c.accent}10`, border: `1px solid ${c.accent}30` }}>
-                  <Mic size={14} color={c.accent} />
-                  <span style={{ fontSize: 12, color: c.accent, flex: 1 }}>Audio attaché</span>
-                  <button onClick={() => setMediaType(null)} style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={10} /></button>
-                </div>
-              )}
-              {/* Hidden file input */}
-              <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setMediaFile(e.target.files?.[0] ?? null)} />
-              <textarea placeholder="Description..." value={desc} onChange={e => setDesc(e.target.value)} rows={2} style={{ width: '100%', padding: 10, borderRadius: 10, background: c.pill, border: '1px solid ' + c.border, color: c.text, fontSize: 16, outline: 'none', resize: 'none' }} />
-            </>
-          )}
 
-          {/* Step 4: Done */}
-          {step === 4 && (
-            <div style={{ textAlign: 'center', padding: '10px 0' }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(52,211,153,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <Check size={26} color="#34D399" />
-              </div>
-              <h3 style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 6 }}>Merci !</h3>
-              <p style={{ fontSize: 13, color: c.muted }}>Ton signalement aide la communauté.</p>
-            </div>
+              {/* Engagement hint */}
+              <p style={{ fontSize: 11, color: C.textTertiary, marginTop: 12 }}>
+                Tu recevras une notification quand quelqu&apos;un confirme
+              </p>
+            </motion.div>
           )}
         </div>
       </motion.div>

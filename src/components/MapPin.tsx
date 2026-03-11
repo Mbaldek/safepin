@@ -22,6 +22,7 @@ interface MapPinProps {
   onClick: (pin: any) => void;
   showLabels?: boolean;
   opacity?: number;
+  isNew?: boolean;
 }
 
 const CATEGORY_CONFIG: Record<string, { color: string; emoji: string; label: string; group: string }> = {
@@ -233,7 +234,7 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
   return container;
 }
 
-export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1 }: MapPinProps) {
+export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNew = false }: MapPinProps) {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const labelRef = useRef<HTMLDivElement | null>(null);
   const onClickRef = useRef(onClick);
@@ -262,6 +263,11 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1 }: Ma
       container = createUrgentPin(size, config.emoji);
     } else {
       container = createStandardPin(size, config.color, config.emoji, pin.category, pin.created_at, pin.last_confirmed_at);
+    }
+
+    // Pin drop animation for newly created pins
+    if (isNew) {
+      container.style.animation = 'pin-drop-in 0.6s cubic-bezier(0.34,1.56,0.64,1) both';
     }
 
     // Add label (always create, toggle visibility via separate effect)

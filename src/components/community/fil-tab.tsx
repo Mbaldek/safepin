@@ -24,6 +24,7 @@ interface FilTabProps {
   refreshKey?: number;
   onSearchToggle?: () => void;
   onPinClick?: (pinId: string) => void;
+  renderSearchBar?: () => React.ReactNode;
 }
 
 const GRADIENTS = [
@@ -48,7 +49,7 @@ function timeAgo(d: string) {
   return `il y a ${Math.floor(s / 86400)}j`;
 }
 
-export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey, onSearchToggle, onPinClick }: FilTabProps) {
+export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafetyFilter, searchQuery, onHashtagClick, onHashtagsReady, refreshKey, onSearchToggle, onPinClick, renderSearchBar }: FilTabProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [sosPosts, setSosPosts] = useState<any[]>([]);
   const [pinPosts, setPinPosts] = useState<any[]>([]);
@@ -349,6 +350,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   return (
     <div style={{ paddingBottom: 20 }}>
       <StoriesRow isDark={isDark} userId={userId} communityIds={communityIds} onStoryClick={onStoryClick} onPublish={onPublish} refreshKey={refreshKey} activeHashtagFilter={activeHashtagFilter} />
+
+      {renderSearchBar?.()}
 
       {/* Trending bar: search + favoris + hashtag pills */}
       <div

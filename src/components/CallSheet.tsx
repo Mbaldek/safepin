@@ -250,9 +250,7 @@ export default function CallSheet() {
           width: 68, height: 68, borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative', cursor: 'pointer',
-          opacity: confirmingEnd ? 0.4 : 1,
-          filter: confirmingEnd ? 'grayscale(1)' : 'none',
-          transition: 'opacity 0.25s, filter 0.25s',
+          transition: 'opacity 0.25s',
           ...((!muted && !isConnecting) ? {
             background: 'radial-gradient(circle,rgba(59,180,193,0.22) 0%,rgba(59,180,193,0.04) 70%)',
           } : {}),
@@ -302,74 +300,87 @@ export default function CallSheet() {
   )
 
   const renderActionRow = () => (
-    !confirmingEnd ? (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44, padding: '4px 0 20px' }}>
-        {/* Speaker */}
-        <div
-          onClick={() => bToast.info({ title: 'Fonctionnalité bientôt disponible' }, isDark)}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
+    <AnimatePresence mode="wait">
+      {!confirmingEnd ? (
+        <motion.div
+          key="actions"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44, padding: '4px 0 20px' }}
         >
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: C.el, border: `1px solid ${C.border}`,
-          }}>
-            <Volume2 size={18} strokeWidth={2} color={C.txts} />
+          {/* Speaker */}
+          <div
+            onClick={() => bToast.info({ title: 'Fonctionnalité bientôt disponible' }, isDark)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: C.el, border: `1px solid ${C.border}`,
+            }}>
+              <Volume2 size={18} strokeWidth={2} color={C.txts} />
+            </div>
+            <span style={{ fontSize: 10.5, fontWeight: 500, color: C.txts }}>Haut-parleur</span>
           </div>
-          <span style={{ fontSize: 10.5, fontWeight: 500, color: C.txts }}>Haut-parleur</span>
-        </div>
-        {/* Quit */}
-        <div
-          onClick={() => setConfirmingEnd(true)}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
-        >
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(239,68,68,0.12)', border: `1.5px solid ${RED}`,
-            animation: 'call-sheet-call-pulse 2s ease-in-out infinite',
-          }}>
-            <PhoneOff size={18} strokeWidth={2} color={RED} />
+          {/* Quit */}
+          <div
+            onClick={() => setConfirmingEnd(true)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(239,68,68,0.12)', border: `1.5px solid ${RED}`,
+              animation: 'call-sheet-call-pulse 2s ease-in-out infinite',
+            }}>
+              <PhoneOff size={18} strokeWidth={2} color={RED} />
+            </div>
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: RED }}>Quitter</span>
           </div>
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: RED }}>Quitter</span>
-        </div>
-        {/* Duration */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(59,180,193,0.10)', border: `1.5px solid ${TEAL}`,
-          }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: TEAL }}>{formatTime(seconds)}</span>
+          {/* Duration */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(59,180,193,0.10)', border: `1.5px solid ${TEAL}`,
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: TEAL }}>{formatTime(seconds)}</span>
+            </div>
+            <span style={{ fontSize: 10.5, fontWeight: 500, color: TEAL }}>Durée</span>
           </div>
-          <span style={{ fontSize: 10.5, fontWeight: 500, color: TEAL }}>Durée</span>
-        </div>
-      </div>
-    ) : (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 16px 20px',
-        animation: 'call-sheet-morph-in 0.2s ease-out',
-      }}>
-        <button
-          onClick={() => setConfirmingEnd(false)}
-          style={{
-            flex: 1, maxWidth: 130, height: 44, borderRadius: 999,
-            background: C.el, border: `1px solid ${C.borderM}`, color: C.txt,
-            fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}
+        </motion.div>
+      ) : (
+        <motion.div
+          key="confirm"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '4px 16px 20px' }}
         >
-          Annuler
-        </button>
-        <button
-          onClick={() => { handleConfirmEnd(); setConfirmingEnd(false) }}
-          style={{
-            flex: 1, maxWidth: 130, height: 44, borderRadius: 999,
-            background: RED, border: 'none', color: 'white',
-            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            boxShadow: '0 4px 14px rgba(239,68,68,0.35)',
-          }}
-        >
-          {isDM ? 'Terminer' : 'Quitter'}
-        </button>
-      </div>
-    )
+          <button
+            onClick={() => setConfirmingEnd(false)}
+            style={{
+              flex: 1, maxWidth: 140, height: 40, borderRadius: 999,
+              background: 'transparent', border: `1.5px solid ${C.borderM}`, color: C.txt,
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => { handleConfirmEnd(); setConfirmingEnd(false) }}
+            style={{
+              flex: 1, maxWidth: 140, height: 40, borderRadius: 999,
+              background: RED, border: 'none', color: 'white',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: '0 4px 14px rgba(239,68,68,0.30)',
+            }}
+          >
+            {isDM ? 'Terminer' : 'Quitter'}
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 
 

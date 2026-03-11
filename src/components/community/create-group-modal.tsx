@@ -271,7 +271,7 @@ export default function CreateGroupModal({
     fontWeight: 600,
     color: d ? T.textTertiary : T.textTertiaryL,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: '0.1em',
     marginBottom: 8,
     display: "block",
   };
@@ -352,7 +352,7 @@ export default function CreateGroupModal({
               </button>
               <span
                 style={{
-                  fontSize: 17,
+                  fontSize: 19,
                   fontWeight: 600,
                   color: d ? T.textPrimary : T.textPrimaryL,
                 }}
@@ -482,7 +482,7 @@ export default function CreateGroupModal({
                     border: `1px solid ${d ? T.borderDefault : T.borderDefaultL}`,
                     backgroundColor: d ? T.surfaceCard : T.surfaceCardL,
                     color: d ? T.textPrimary : T.textPrimaryL,
-                    fontSize: 15,
+                    fontSize: 14,
                     outline: "none",
                     fontFamily: "inherit",
                     boxSizing: "border-box",
@@ -699,7 +699,7 @@ export default function CreateGroupModal({
                 />
                 <span
                   style={{
-                    fontSize: 17,
+                    fontSize: 19,
                     fontWeight: 600,
                     color: d ? T.textPrimary : T.textPrimaryL,
                   }}
@@ -1006,7 +1006,7 @@ export default function CreateGroupModal({
             <div style={{ textAlign: "center" }}>
               <div
                 style={{
-                  fontSize: 20,
+                  fontSize: 19,
                   fontWeight: 700,
                   color: d ? T.textPrimary : T.textPrimaryL,
                   marginBottom: 6,
@@ -1016,7 +1016,7 @@ export default function CreateGroupModal({
               </div>
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: 13,
                   color: d ? T.textSecondary : T.textSecondaryL,
                   display: "flex",
                   alignItems: "center",

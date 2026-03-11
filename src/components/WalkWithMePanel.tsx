@@ -126,10 +126,26 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
   const setGlobalMuted = useAudioCall((s) => s.setMuted);
   const startCallGlobal = useAudioCall((s) => s.startCall);
   const endCallGlobal = useAudioCall((s) => s.endCall);
+  const setChatOpen = useAudioCall((s) => s.setChatOpen);
   const callActive = globalSource === 'walk' && globalCallState !== 'idle';
 
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const checkinRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const checkinCountRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Participants state
+  const [participants, setParticipants] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
+  // Circle notification state
+  const [circleNotified, setCircleNotified] = useState(false);
+  const [circleCount, setCircleCount] = useState(0);
+  // Check-in countdown
+  const [checkinRemaining, setCheckinRemaining] = useState(0);
+
+  // Hide FloatingCallPill while this panel is open
+  useEffect(() => {
+    setChatOpen(true);
+    return () => setChatOpen(false);
+  }, [setChatOpen]);
 
 
   // Elapsed timer
@@ -142,12 +158,63 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
     }
   }, [session?.status, session?.started_at]);
 
-  // Safety check-in (every 15 min)
+  // Safety check-in (every 15 min) — sets a future timestamp
   useEffect(() => {
     if (session?.status !== 'active') return;
-    checkinRef.current = setInterval(() => setNextCheckin(Date.now()), 15 * 60 * 1000);
+    const scheduleNext = () => setNextCheckin(Date.now() + 15 * 60 * 1000);
+    scheduleNext();
+    checkinRef.current = setInterval(scheduleNext, 15 * 60 * 1000);
     return () => { if (checkinRef.current) clearInterval(checkinRef.current); };
   }, [session?.status]);
+
+  // Check-in countdown display (1s tick)
+  useEffect(() => {
+    if (!nextCheckin) { setCheckinRemaining(0); return; }
+    const tick = () => {
+      const rem = Math.max(0, Math.floor((nextCheckin - Date.now()) / 1000));
+      setCheckinRemaining(rem);
+    };
+    tick();
+    checkinCountRef.current = setInterval(tick, 1000);
+    return () => { if (checkinCountRef.current) clearInterval(checkinCountRef.current); };
+  }, [nextCheckin]);
+
+  // Real-time subscription for session updates (companion joins, etc.)
+  useEffect(() => {
+    if (!session?.id) return;
+    const channel = supabase
+      .channel(`walk-${session.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'walk_sessions',
+        filter: `id=eq.${session.id}`,
+      }, (payload) => {
+        setSession(payload.new as WalkSession);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.id]);
+
+  // Fetch real participants when session exists
+  useEffect(() => {
+    if (!session) { setParticipants([]); return; }
+    const ids = [session.creator_id, session.companion_id].filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', ids);
+      if (data) {
+        setParticipants(data.map(p => ({
+          id: p.id,
+          name: p.display_name ?? 'Anonyme',
+          avatar_url: p.avatar_url,
+        })));
+      }
+    })();
+  }, [session?.id, session?.companion_id]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -162,6 +229,35 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
     setSession(data as WalkSession);
     setLoading(false);
     bToast.success({ title: t('sessionCreated') }, isDark);
+
+    // Notify circle contacts (fire-and-forget)
+    notifyCircleContacts(data.id);
+  }
+
+  async function notifyCircleContacts(walkSessionId: string) {
+    try {
+      const { data: contacts } = await supabase
+        .from('trusted_contacts')
+        .select('contact_id')
+        .eq('user_id', userId)
+        .eq('status', 'accepted');
+
+      if (!contacts?.length) {
+        setCircleNotified(false);
+        setCircleCount(0);
+        return;
+      }
+
+      setCircleCount(contacts.length);
+      setCircleNotified(true);
+
+      // Fire-and-forget push via edge function
+      supabase.functions.invoke('notify-circle', {
+        body: { walk_session_id: walkSessionId, user_id: userId },
+      }).catch(() => { /* edge function optional */ });
+    } catch {
+      setCircleNotified(false);
+    }
   }
 
   async function joinSession() {
@@ -181,6 +277,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
   async function endSession() {
     if (!session) return;
+    if (callActive) endCallGlobal();
     await supabase
       .from('walk_sessions')
       .update({ status: 'completed', ended_at: new Date().toISOString() })
@@ -192,6 +289,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
   async function cancelSession() {
     if (!session) return;
+    if (callActive) endCallGlobal();
     await supabase.from('walk_sessions').update({ status: 'cancelled' }).eq('id', session.id);
     setSession(null);
   }
@@ -279,7 +377,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             </span>
           </div>
           <button
-            onClick={() => { if (session) { supabase.from('walk_sessions').update({ status: 'cancelled' }).eq('id', session.id); } onClose(); }}
+            onClick={() => { if (callActive) endCallGlobal(); if (session) { supabase.from('walk_sessions').update({ status: 'cancelled' }).eq('id', session.id); } onClose(); }}
             style={{
               width: 26, height: 26, borderRadius: '50%',
               background: C.hover, border: `1px solid ${C.border}`,
@@ -620,14 +718,22 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
             <div style={{ fontSize: 10, fontWeight: 700, color: C.ts2, letterSpacing: '.07em', textTransform: 'uppercase' as const, marginBottom: 6 }}>
               Protection active
             </div>
-            {/* N1 — done */}
+            {/* N1 — circle */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 10,
-              border: `1px solid ${C.border}`, marginBottom: 4, background: C.elev, opacity: 0.4,
+              border: `1px solid ${circleNotified ? C.border : AMBER30}`, marginBottom: 4,
+              background: circleNotified ? C.elev : AMBER10,
+              opacity: circleNotified ? 0.4 : 1,
             }}>
-              <div style={{ width: 20, height: 20, borderRadius: 7, background: GREEN12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, flexShrink: 0, color: GREEN }}>✓</div>
-              <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: C.tp }}>Cercle notifié</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: GREEN }}>Actif</div>
+              <div style={{ width: 20, height: 20, borderRadius: 7, background: circleNotified ? GREEN12 : AMBER10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, flexShrink: 0, color: circleNotified ? GREEN : AMBER }}>
+                {circleNotified ? '✓' : '!'}
+              </div>
+              <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: C.tp }}>
+                {circleNotified ? `Cercle notifié · ${circleCount} contact${circleCount > 1 ? 's' : ''}` : 'Cercle vide — ajouter des contacts'}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: circleNotified ? GREEN : AMBER }}>
+                {circleNotified ? 'Actif' : '—'}
+              </div>
             </div>
             {/* N2 — active */}
             <div style={{
@@ -637,7 +743,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               <div style={{ width: 20, height: 20, borderRadius: 7, background: TEAL12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Phone size={10} strokeWidth={2.5} color={TEAL} />
               </div>
-              <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: TEAL }}>Canal audio · {callActive ? '3' : '0'} personnes</div>
+              <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: TEAL }}>Canal audio · {callActive ? participants.length : '0'} personnes</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: TEAL }}>● Live</div>
             </div>
             {/* N3 — veille */}
@@ -670,7 +776,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.tp }}>Canal audio actif</div>
                 <div style={{ fontSize: 10, color: C.ts, display: 'flex', gap: 5, alignItems: 'center', marginTop: 1 }}>
-                  <span>{callActive ? '3' : '0'} participants</span>
+                  <span>{callActive ? participants.length : '0'} participants</span>
                   <span>·</span>
                   <span style={{ color: TEAL }}>{formatTime(elapsed)}</span>
                   <span>·</span>
@@ -737,24 +843,22 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
 
             {/* ── Participants scroll ── */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 9, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
-              {/* Host */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 8px', borderRadius: 10, background: C.elev, border: `1px solid ${C.border}`, minWidth: 50 }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg,${TEAL},#1E3A5F)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'white', position: 'relative' }}>
-                  {userInitial}
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: GREEN, border: `2px solid ${C.card}`, position: 'absolute', bottom: -1, right: -1 }} />
-                </div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.ts }}>Vous</div>
-              </div>
-              {/* Placeholder participants */}
-              {['Sara', 'Léa'].map((name, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 8px', borderRadius: 10, background: C.elev, border: `1px solid ${C.border}`, minWidth: 50 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg,${i === 0 ? '#F87171,#A78BFA' : '#34D399,#3BB4C1'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'white', position: 'relative' }}>
-                    {name[0]}
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: GREEN, border: `2px solid ${C.card}`, position: 'absolute', bottom: -1, right: -1 }} />
+              {participants.map((p, i) => {
+                const isMe = p.id === userId;
+                const initial = p.name[0]?.toUpperCase() ?? '?';
+                const gradients = [`${TEAL},#1E3A5F`, '#F87171,#A78BFA', '#34D399,#3BB4C1', '#FBBF24,#F97316'];
+                return (
+                  <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '6px 8px', borderRadius: 10, background: C.elev, border: `1px solid ${C.border}`, minWidth: 50 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg,${gradients[i % gradients.length]})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'white', position: 'relative', overflow: 'hidden' }}>
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : initial}
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: GREEN, border: `2px solid ${C.card}`, position: 'absolute', bottom: -1, right: -1 }} />
+                    </div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: C.ts }}>{isMe ? 'Vous' : p.name.split(' ')[0]}</div>
                   </div>
-                  <div style={{ fontSize: 9, fontWeight: 600, color: C.ts }}>{name}</div>
-                </div>
-              ))}
+                );
+              })}
               {/* Invite */}
               <div
                 onClick={shareCode}
@@ -780,7 +884,7 @@ export default function WalkWithMePanel({ userId, destination, onClose }: Props)
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.tp }}>⏱ Check-in dans 3 min</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.tp }}>⏱ Check-in dans {Math.floor(checkinRemaining / 60)}:{(checkinRemaining % 60).toString().padStart(2, '0')}</div>
                     <div style={{ fontSize: 10, color: C.ts, marginTop: 1 }}>Confirme que tu vas bien</div>
                   </div>
                   <button

@@ -13,7 +13,6 @@ interface AudioCallStore {
   muted: boolean
   seconds: number
   callSheetOpen: boolean
-  showConfirmEnd: boolean
   chatOpen: boolean
 
   // actions
@@ -30,7 +29,6 @@ interface AudioCallStore {
   tick: () => void
   toggleCallSheet: () => void
   setCallSheetOpen: (v: boolean) => void
-  setShowConfirmEnd: (v: boolean) => void
   setChatOpen: (v: boolean) => void
 }
 
@@ -44,7 +42,6 @@ export const useAudioCall = create<AudioCallStore>((set) => ({
   muted: false,
   seconds: 0,
   callSheetOpen: false,
-  showConfirmEnd: false,
   chatOpen: false,
 
   startCall: ({ roomName, source, sourceId, title, participantNames }) =>
@@ -71,8 +68,6 @@ export const useAudioCall = create<AudioCallStore>((set) => ({
       muted: false,
       seconds: 0,
       callSheetOpen: false,
-      showConfirmEnd: false,
-      chatOpen: false,
     }),
 
   setCallState: (s) => set({ callState: s }),
@@ -80,6 +75,5 @@ export const useAudioCall = create<AudioCallStore>((set) => ({
   tick: () => set((st) => ({ seconds: st.seconds + 1 })),
   toggleCallSheet: () => set((st) => ({ callSheetOpen: !st.callSheetOpen })),
   setCallSheetOpen: (v) => set({ callSheetOpen: v }),
-  setShowConfirmEnd: (v) => set({ showConfirmEnd: v }),
   setChatOpen: (v) => set({ chatOpen: v }),
 }))
