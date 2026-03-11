@@ -36,13 +36,13 @@ import VerificationGateModal from "@/components/VerificationGateModal";
 
 type Trip = {
   id: string;
-  destination: string | null;
-  duration_min: number | null;
-  safety_score: number | null;
+  to_label: string | null;
+  planned_duration_s: number | null;
+  danger_score: number | null;
   distance_m: number | null;
   mode: string | null;
   status: string | null;
-  created_at: string;
+  started_at: string;
 };
 
 type SavedPlace = {
@@ -135,7 +135,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     const now = Date.now();
     const cutoff = historyActivePeriod === 'week' ? 7 : historyActivePeriod === 'month' ? 30 : Infinity;
     if (cutoff === Infinity) return trips;
-    return trips.filter(t => (now - new Date(t.created_at).getTime()) <= cutoff * 24 * 60 * 60 * 1000);
+    return trips.filter(t => (now - new Date(t.started_at).getTime()) <= cutoff * 24 * 60 * 60 * 1000);
   }, [allTrips, recentTrips, historyActivePeriod]);
 
   const groupedTrips = useMemo(() => {
@@ -146,7 +146,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     const month: typeof filteredTrips = [];
     const older: typeof filteredTrips = [];
     filteredTrips.forEach(t => {
-      const age = (now - new Date(t.created_at).getTime()) / 86400000;
+      const age = (now - new Date(t.started_at).getTime()) / 86400000;
       if (age <= 7) week.push(t);
       else if (age <= 14) lastWeek.push(t);
       else if (age <= 30) month.push(t);
@@ -163,10 +163,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   useEffect(() => {
     if (!userId) return;
     supabase
-      .from("trips")
-      .select("id, destination, duration_min, safety_score, distance_m, mode, status, created_at")
+      .from("trip_log")
+      .select("id, to_label, planned_duration_s, danger_score, distance_m, mode, status, started_at")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false })
+      .order("started_at", { ascending: false })
       .limit(5)
       .then(({ data }) => { if (data) setRecentTrips(data); });
     supabase
@@ -178,10 +178,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     // If opened directly in history mode, pre-fetch all trips
     if (openToHistory) {
       supabase
-        .from("trips")
-        .select("id, destination, duration_min, safety_score, distance_m, mode, status, created_at")
+        .from("trip_log")
+        .select("id, to_label, planned_duration_s, danger_score, distance_m, mode, status, started_at")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false })
+        .order("started_at", { ascending: false })
         .then(({ data }) => { if (data) setAllTrips(data); });
     }
   }, [userId]);
@@ -663,7 +663,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
           TRAJETS RÉCENTS
         </span>
         <button
-          onClick={() => { setState("history"); if (!allTrips.length && userId) { supabase.from("trips").select("id, destination, duration_min, safety_score, distance_m, mode, status, created_at").eq("user_id", userId).order("created_at", { ascending: false }).then(({ data }) => { if (data) setAllTrips(data); }); } }}
+          onClick={() => { setState("history"); if (!allTrips.length && userId) { supabase.from("trip_log").select("id, to_label, planned_duration_s, danger_score, distance_m, mode, status, started_at").eq("user_id", userId).order("started_at", { ascending: false }).then(({ data }) => { if (data) setAllTrips(data); }); } }}
           style={{ fontSize: 13, color: colors.cyan, background: "none", border: "none", cursor: "pointer" }}
         >
           Voir tout ›
@@ -679,9 +679,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             </div>
           </div>
         ) : recentTrips.map((trip) => {
-          const date = new Date(trip.created_at);
+          const date = new Date(trip.started_at);
           const dayLabel = date.toLocaleDateString("fr-FR", { weekday: "short" });
-          const durLabel = trip.duration_min ? `${trip.duration_min}min` : "";
+          const durMin = trip.planned_duration_s ? Math.round(trip.planned_duration_s / 60) : null;
+          const durLabel = durMin ? `${durMin}min` : "";
           return (
             <motion.div
               key={trip.id}
@@ -711,13 +712,13 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary[theme] }}>
-                  {trip.destination || "Trajet"}
+                  {trip.to_label || "Trajet"}
                 </div>
                 <div style={{ fontSize: 12, color: colors.textTertiary[theme] }}>
                   {dayLabel}{durLabel ? ` · ${durLabel}` : ""}
                 </div>
               </div>
-              {trip.safety_score != null && (
+              {trip.danger_score != null && (
                 <span
                   style={{
                     backgroundColor: `${colors.cyan}20`,
@@ -728,7 +729,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                     borderRadius: 8,
                   }}
                 >
-                  {Math.round(trip.safety_score)}
+                  {Math.round(trip.danger_score)}
                 </span>
               )}
               <ChevronRight size={16} color={colors.textTertiary[theme]} />
@@ -959,6 +960,8 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
           if (userId) {
             try {
               const origin = await getCurrentPosition();
+              // Zoom in to user's GPS location
+              setTimeout(() => setMapFlyTo({ lat: origin.lat, lng: origin.lng, zoom: 16 }), 1400);
               const res = await fetch("/api/trips/start", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1447,7 +1450,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   {label}
                 </div>
                 {sectionTrips.map((trip, idx) => {
-                  const score = trip.safety_score ?? null;
+                  const score = trip.danger_score ?? null;
                   return (
                     <motion.div
                       key={trip.id}
@@ -1482,11 +1485,11 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                             fontSize: 13, fontWeight: 600, color: H.textPrimary,
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2,
                           }}>
-                            {trip.destination || 'Destination inconnue'}
+                            {trip.to_label || 'Destination inconnue'}
                           </div>
                           <div style={{ fontSize: 10, color: H.textTertiary }}>
-                            {new Date(trip.created_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                            {trip.duration_min ? ` · ${trip.duration_min} min` : ''}
+                            {new Date(trip.started_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            {trip.planned_duration_s ? ` · ${Math.round(trip.planned_duration_s / 60)} min` : ''}
                           </div>
                         </div>
                         {/* Status badge */}
@@ -1500,7 +1503,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                       </div>
 
                       {/* Route row */}
-                      {trip.destination && (
+                      {trip.to_label && (
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 7,
                           padding: '7px 10px', background: H.surfaceBase,
@@ -1522,7 +1525,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                               fontSize: 11, color: H.textSecond,
                               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                             }}>
-                              {trip.destination}
+                              {trip.to_label}
                             </span>
                           </div>
                         </div>
@@ -1531,10 +1534,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                       {/* Meta + score */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {trip.duration_min != null && (
-                            <span style={{ fontSize: 11, color: H.textTertiary }}>{'🕐'} {trip.duration_min} min</span>
+                          {trip.planned_duration_s != null && (
+                            <span style={{ fontSize: 11, color: H.textTertiary }}>{'🕐'} {Math.round(trip.planned_duration_s / 60)} min</span>
                           )}
-                          {trip.duration_min != null && (
+                          {trip.planned_duration_s != null && (
                             <div style={{ width: 2, height: 2, borderRadius: '50%', background: H.borderDef }} />
                           )}
                           <span style={{ fontSize: 11, color: H.textTertiary }}>
