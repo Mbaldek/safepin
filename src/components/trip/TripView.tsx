@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { fetchDirectionsMulti, formatDuration, formatDistance } from "@/lib/directions";
 import { fetchTransitRoute } from "@/lib/transit";
-import { scoreRoute } from "@/lib/route-scoring";
+import { scoreRoute, scoreTransitRoute } from "@/lib/route-scoring";
 import RouteCard from "@/components/trip/RouteCard";
 import type { RouteOption } from "@/stores/useStore";
 import { useIsDark } from "@/hooks/useIsDark";
@@ -101,6 +101,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const setActiveRoute = useStore((s) => s.setActiveRoute);
   const setSelectedRouteIdx = useStore((s) => s.setSelectedRouteIdx);
   const setTransitSegments = useStore((s) => s.setTransitSegments);
+  const setMapFlyTo = useStore((s) => s.setMapFlyTo);
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
   const { isGated, shouldNudge, isNonSkippable, daysLeft, snooze } = useVerificationGate();
@@ -285,12 +286,20 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             coords: tr.coords,
             duration: tr.totalDuration,
             distance: 0,
-            dangerScore: scoreRoute(tr.coords, pins),
+            dangerScore: scoreTransitRoute(tr.steps, pins),
+            steps: tr.steps,
           }));
           setFetchedRoutes(routeOptions);
           setSelectedIdx(0);
           setSelectedRouteIdx(0);
           setPendingRoutes(routeOptions);
+          if (routeOptions[0]?.steps) {
+            setTransitSegments(routeOptions[0].steps.map(s => ({
+              coords: s.coords,
+              color: s.mode === 'walking' ? '#94A3B8' : (s.lineColor || '#3BB4C1'),
+              dashed: s.mode === 'walking',
+            })));
+          }
           setLoadingRoutes(false);
           return;
         }
@@ -897,7 +906,19 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             <div key={route.id}>
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                onClick={() => { setSelectedIdx(idx); setSelectedRouteIdx(idx); }}
+                onClick={() => {
+                  setSelectedIdx(idx);
+                  setSelectedRouteIdx(idx);
+                  if (route.steps) {
+                    setTransitSegments(route.steps.map(s => ({
+                      coords: s.coords,
+                      color: s.mode === 'walking' ? '#94A3B8' : (s.lineColor || '#3BB4C1'),
+                      dashed: s.mode === 'walking',
+                    })));
+                  } else {
+                    setTransitSegments(null);
+                  }
+                }}
                 style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
               >
                 <RouteCard
@@ -907,6 +928,9 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   distance={formatDistance(route.distance)}
                   isSelected={selectedIdx === idx}
                   isDark={isDark}
+                  steps={route.steps}
+                  pins={pins}
+                  onStepLocationTap={(lat, lng) => setMapFlyTo({ lat, lng, zoom: 16 })}
                 />
               </motion.button>
               {idx < fetchedRoutes.length - 1 && (

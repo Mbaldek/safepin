@@ -16,6 +16,7 @@ export type RouteOption = {
   distance: number;
   dangerScore: number;
   rerouted?: boolean;
+  steps?: import('@/lib/transit').TransitStep[];
 };
 
 export type RouteSegment = {

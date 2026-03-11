@@ -19,9 +19,9 @@ import {
   formatElapsed, calcETA, calcDist, avatarColor
 } from '@/lib/escorteHelpers'
 import { fetchRoutesWithAvoidance, formatDuration, formatDistance } from '@/lib/directions'
-import { scoreRoute } from '@/lib/route-scoring'
+import { scoreRoute, scoreTransitRoute } from '@/lib/route-scoring'
 import RouteCard from '@/components/trip/RouteCard'
-import type { RouteOption } from '@/stores/useStore'
+import type { RouteOption, RouteSegment } from '@/stores/useStore'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
 import { useStore } from '@/stores/useStore'
 import FavorisManager from './FavorisManager'
@@ -63,7 +63,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
-  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx } = useStore()
+  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, setTransitSegments } = useStore()
   const pins = useStore((s) => s.pins)
   const setShowWalkWithMe  = useStore((s) => s.setShowWalkWithMe)
   const setShowWalkHistory = useStore((s) => s.setShowWalkHistory)
@@ -157,13 +157,21 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             coords: tr.coords,
             duration: tr.totalDuration,
             distance: 0,
-            dangerScore: scoreRoute(tr.coords, pins),
+            dangerScore: scoreTransitRoute(tr.steps, pins),
+            steps: tr.steps,
           }))
           setFetchedRoutes(opts)
           setSelectedIdx(0)
           setSelectedRouteIdx(0)
           setRouteInfo({ duration: opts[0].duration, distance: 0 })
           setPendingRoutes(opts)
+          if (opts[0].steps) {
+            setTransitSegments(opts[0].steps.map(s => ({
+              coords: s.coords,
+              color: s.mode === 'walking' ? '#94A3B8' : (s.lineColor || '#3BB4C1'),
+              dashed: s.mode === 'walking',
+            })))
+          }
         } else {
           const results = await fetchRoutesWithAvoidance(from, to, routeMode, pins)
           if (fetchId !== routeFetchRef.current) return
@@ -1338,6 +1346,16 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                             setSelectedIdx(idx)
                             setSelectedRouteIdx(idx)
                             setRouteInfo({ duration: route.duration, distance: route.distance })
+                            if (route.steps) {
+                              const segs: RouteSegment[] = route.steps.map(s => ({
+                                coords: s.coords,
+                                color: s.mode === 'walking' ? '#94A3B8' : (s.lineColor || '#3BB4C1'),
+                                dashed: s.mode === 'walking',
+                              }))
+                              setTransitSegments(segs)
+                            } else {
+                              setTransitSegments(null)
+                            }
                           }}
                           style={{ width:'100%', background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left' as const }}
                         >
@@ -1348,6 +1366,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                             distance={route.distance ? formatDistance(route.distance) : ''}
                             isSelected={selectedIdx === idx}
                             isDark={isDark}
+                            steps={route.steps}
+                            pins={pins}
+                            onStepLocationTap={(lat, lng) => setMapFlyTo({ lat, lng, zoom: 16 })}
                           />
                         </button>
                         {idx < fetchedRoutes.length - 1 && (
