@@ -57,7 +57,7 @@ export const useAudioCall = create<AudioCallStore>((set) => ({
       callState: 'connecting',
       muted: false,
       seconds: 0,
-      callSheetOpen: true,
+      callSheetOpen: false,
     }),
 
   endCall: () =>

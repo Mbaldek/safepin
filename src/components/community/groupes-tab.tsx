@@ -66,7 +66,6 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
   const globalSource = useAudioCall((s) => s.source)
   const globalSourceId = useAudioCall((s) => s.sourceId)
   const startCall = useAudioCall((s) => s.startCall)
-  const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
   const muted = useAudioCall((s) => s.muted)
   const seconds = useAudioCall((s) => s.seconds)
   const setMuted = useAudioCall((s) => s.setMuted)
@@ -332,7 +331,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
-              fontSize: 13, fontWeight: 700, margin: 0,
+              fontSize: 15, fontWeight: 700, margin: 0,
               color: isDark ? '#FFFFFF' : '#0F172A',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -345,7 +344,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           {/* Start call — only when not in call */}
           {!callActive && (
             <button
-              onClick={() => { if (activeGroup) { startCall({ roomName: `group-${activeGroup}`, source: 'group', sourceId: activeGroup, title: `Appel · ${activeGroupData?.name ?? 'Groupe'}` }); setCallSheetOpen(true) } }}
+              onClick={() => { if (activeGroup) { startCall({ roomName: `group-${activeGroup}`, source: 'group', sourceId: activeGroup, title: `Appel · ${activeGroupData?.name ?? 'Groupe'}` }) } }}
               style={{
                 width: 32, height: 32, borderRadius: '50%', padding: 0, flexShrink: 0,
                 background: 'rgba(59,180,193,0.10)',
@@ -586,7 +585,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '16px 20px 8px',
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
         color: text3,
       }}>
         <span>Mes Groupes</span>
@@ -690,7 +689,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '16px 20px 8px',
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
             color: text3,
           }}>
             <span>D&eacute;couvrir</span>

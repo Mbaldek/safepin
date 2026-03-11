@@ -698,7 +698,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               ) : post._isSos ? (
                 <SOSPostCard post={post} currentUserId={userId} />
               ) : (
-                <PostCard post={post} isDark={isDark} currentUserId={userId} onHide={handleHide} onSafetyFilter={onSafetyFilter} onHashtagClick={onHashtagClick} />
+                <PostCard post={post} isDark={isDark} currentUserId={userId} onHide={handleHide} onSafetyFilter={onSafetyFilter} onHashtagClick={(tag) => { setActiveHashtagFilter(tag.replace(/^#/, '')); }} />
               )}
             </motion.div>
           ));

@@ -71,7 +71,7 @@ export default function SettingsRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
             style={{
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: 500,
               color: danger ? '#EF4444' : isDark ? '#FFFFFF' : '#0F172A',
             }}

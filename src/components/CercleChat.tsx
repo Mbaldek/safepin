@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ChatTextBar from '@/components/chat/ChatTextBar'
+import CallBar from '@/components/CallBar'
 import { Phone } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
 import { supabase } from '@/lib/supabase'
@@ -17,6 +18,11 @@ interface CercleChatProps {
   onStartCall: () => void
   callState?: 'idle' | 'connecting' | 'active' | 'muted' | 'error'
   sendMessage: (content: string, type?: string, media_url?: string) => void
+  callActive?: boolean
+  muted?: boolean
+  seconds?: number
+  onMute?: () => void
+  onEnd?: () => void
 }
 
 const AVATAR_PALETTE = ['#A78BFA', '#34D399', '#F87171', '#F5C341', '#3BB4C1', '#F97316']
@@ -36,6 +42,11 @@ export default function CercleChat({
   onStartCall,
   callState = 'idle',
   sendMessage,
+  callActive,
+  muted: mutedProp,
+  seconds: secondsProp,
+  onMute,
+  onEnd,
 }: CercleChatProps) {
   const toast = useToast()
   const { theme } = useTheme()
@@ -217,6 +228,18 @@ export default function CercleChat({
           {'\u22EE'}
         </button>
       </div>
+
+      {/* CALL BAR */}
+      {callActive && onMute && onEnd && (
+        <CallBar
+          source="cercle"
+          title="Mon Cercle"
+          muted={mutedProp ?? false}
+          seconds={secondsProp ?? 0}
+          onMute={onMute}
+          onEnd={onEnd}
+        />
+      )}
 
       {/* 2. MESSAGES AREA */}
       <div style={{

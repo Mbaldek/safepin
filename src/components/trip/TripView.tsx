@@ -475,7 +475,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>Mon trajet</h1>
+          <h1 style={{ fontSize: 19, fontWeight: 600, color: colors.textPrimary[theme], margin: 0 }}>Mon trajet</h1>
           <p style={{ fontSize: 13, color: colors.textTertiary[theme], margin: 0 }}>{currentTime} ☁️</p>
         </div>
         <button
@@ -1173,7 +1173,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         <Check size={36} color={colors.success} />
       </motion.div>
 
-      <h1 style={{ fontSize: 22, fontWeight: 300, color: colors.textPrimary[theme], margin: "0 0 6px" }}>
+      <h1 style={{ fontSize: 19, fontWeight: 300, color: colors.textPrimary[theme], margin: "0 0 6px" }}>
         Vous êtes arrivée !
       </h1>
       <p style={{ fontSize: 14, color: colors.textSecondary[theme], margin: "0 0 4px" }}>

@@ -439,7 +439,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
       {phase === 'idle' && fabHoldProgress > 0 && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 40,
+            position: 'fixed', inset: 0, zIndex: 1098,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             pointerEvents: 'none',
             background: `rgba(240,64,96,${fabHoldProgress * 0.10})`,
@@ -474,7 +474,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
             background: 'rgba(0,0,0,0.55)',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
-            zIndex: 399,
+            zIndex: 1199,
             opacity: scrimVisible ? 1 : 0,
             transition: 'opacity 0.35s ease',
           }} />
@@ -496,7 +496,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
             border: '1px solid var(--border-default)',
             borderRadius: 28,
             boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
-            zIndex: 400,
+            zIndex: 1200,
             overflow: 'hidden',
             animation: 'sos-slideUp 0.3s cubic-bezier(0.16,1,0.3,1)',
           }}>
@@ -748,7 +748,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
       {showFlash && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 500,
+            position: 'fixed', inset: 0, zIndex: 1300,
             pointerEvents: 'none',
             backgroundColor: '#ef4444', opacity: 0.6,
             animation: 'flash-fade 2s ease-out forwards',
@@ -766,7 +766,7 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
             width: 46, height: 46,
             borderRadius: 9999,
             pointerEvents: 'none',
-            zIndex: 199,
+            zIndex: 1099,
           }}
         >
           <div style={{
@@ -798,8 +798,8 @@ export default function EmergencyButton({ userId, compact = false }: { userId: s
         style={{
           position: 'fixed',
           ...(compact
-            ? { top: 8, left: '50%', transform: 'translateX(-50%)', width: 38, height: 38, zIndex: 150 }
-            : { bottom: 80, right: 20, width: 46, height: 46, zIndex: 200 }
+            ? { top: 8, left: '50%', transform: 'translateX(-50%)', width: 38, height: 38, zIndex: 1100 }
+            : { bottom: 80, right: 20, width: 46, height: 46, zIndex: 1100 }
           ),
           borderRadius: 9999,
           background: 'linear-gradient(135deg, #F87171, #DC2626)',

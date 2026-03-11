@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, Phone } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
@@ -71,7 +71,18 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   const startCall = useAudioCall((s) => s.startCall)
   const endCallGlobal = useAudioCall((s) => s.endCall)
   const setCallSheetOpen = useAudioCall((s) => s.setCallSheetOpen)
+  const setChatOpen = useAudioCall((s) => s.setChatOpen)
+  const muted = useAudioCall((s) => s.muted)
+  const seconds = useAudioCall((s) => s.seconds)
+  const setMuted = useAudioCall((s) => s.setMuted)
   const callActive = globalSource === 'cercle' && globalCallState !== 'idle'
+
+  // Signal FloatingCallPill that the cercle chat is mounted
+  useEffect(() => {
+    if (!showChat) return
+    setChatOpen(true)
+    return () => setChatOpen(false)
+  }, [showChat, setChatOpen])
 
   // tokens
   const t = useMemo(() => ({
@@ -158,12 +169,15 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
                 onStartCall={() => {
                   if (!callActive) {
                     startCall({ roomName: `cercle-${userId}`, source: 'cercle', sourceId: userId, title: 'Appel groupe · Cercle', participantNames })
-                    setCallSheetOpen(true)
-                    onClose()
                   } else {
                     endCallGlobal()
                   }
                 }}
+                callActive={callActive}
+                muted={muted}
+                seconds={seconds}
+                onMute={() => setMuted(!muted)}
+                onEnd={() => endCallGlobal()}
                 callState={callActive ? 'active' : 'idle'}
                 sendMessage={sendMessage}
               />
