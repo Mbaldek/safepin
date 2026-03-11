@@ -99,6 +99,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const setIsSharingLocation = useStore((s) => s.setIsSharingLocation);
   const setPendingRoutes = useStore((s) => s.setPendingRoutes);
   const setActiveRoute = useStore((s) => s.setActiveRoute);
+  const setSelectedRouteIdx = useStore((s) => s.setSelectedRouteIdx);
   const setTransitSegments = useStore((s) => s.setTransitSegments);
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
   const pins = useStore((s) => s.pins);
@@ -288,6 +289,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
           }));
           setFetchedRoutes(routeOptions);
           setSelectedIdx(0);
+          setSelectedRouteIdx(0);
           setPendingRoutes(routeOptions);
           setLoadingRoutes(false);
           return;
@@ -331,6 +333,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
 
         setFetchedRoutes(routeOptions);
         setSelectedIdx(0);
+        setSelectedRouteIdx(0);
         setPendingRoutes(routeOptions);
       } catch (e) {
 
@@ -894,7 +897,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             <div key={route.id}>
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                onClick={() => { setSelectedIdx(idx); }}
+                onClick={() => { setSelectedIdx(idx); setSelectedRouteIdx(idx); }}
                 style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" as const }}
               >
                 <RouteCard

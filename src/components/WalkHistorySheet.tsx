@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -71,6 +71,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
   const [tab, setTab] = useState<'mes' | 'rejointes'>('mes');
   const [sessions, setSessions] = useState<SessionWithAudio[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
   const [audioMap, setAudioMap] = useState<Record<string, AudioCheckin>>({});
 
   // Filter state
@@ -97,7 +98,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
 
   // ─── Fetch sessions ─────────────────────────────────────────────────────────
   const fetchSessions = useCallback(async (currentTab: 'mes' | 'rejointes') => {
-    setLoading(true);
+    if (!initialLoadDone.current) setLoading(true);
     const field = currentTab === 'mes' ? 'creator_id' : 'companion_id';
     const { data: rows } = await supabase
       .from('walk_sessions')
@@ -154,6 +155,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
 
     setSessions(enriched);
     setLoading(false);
+    initialLoadDone.current = true;
   }, [userId]);
 
   useEffect(() => { fetchSessions(tab); }, [tab, fetchSessions]);

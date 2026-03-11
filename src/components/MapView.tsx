@@ -535,7 +535,7 @@ function MapView({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     pins, mapFilters, setSelectedPin, activeSheet, setActiveSheet, mapFlyTo, setMapFlyTo,
-    setUserLocation, activeRoute, pendingRoutes, transitSegments, watchedLocations, userId,
+    setUserLocation, activeRoute, pendingRoutes, setPendingRoutes, selectedRouteIdx, transitSegments, watchedLocations, userId,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
     setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords,
     setMapViewport, dbClusters,
@@ -544,7 +544,8 @@ function MapView({
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
     mapFlyTo: s.mapFlyTo, setMapFlyTo: s.setMapFlyTo,
     setUserLocation: s.setUserLocation, activeRoute: s.activeRoute,
-    pendingRoutes: s.pendingRoutes, transitSegments: s.transitSegments,
+    pendingRoutes: s.pendingRoutes, setPendingRoutes: s.setPendingRoutes,
+    selectedRouteIdx: s.selectedRouteIdx, transitSegments: s.transitSegments,
     watchedLocations: s.watchedLocations, userId: s.userId,
     safeSpaces: s.safeSpaces, setSafeSpaces: s.setSafeSpaces,
     showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
@@ -906,6 +907,7 @@ function MapView({
   }, [activeRoute, mapReady, layersReady]);
 
   // Draw / clear pending route options (colored multi-route selection)
+  const pendingRoutesDrawnRef = useRef(false);
   useEffect(() => {
     const m = map.current;
     if (!m || !mapReady || !layersReady) return;
@@ -914,7 +916,17 @@ function MapView({
     PENDING_LYRS.forEach((lyr) => { if (m.getLayer(lyr)) m.removeLayer(lyr); });
     PENDING_SRCS.forEach((src) => { if (m.getSource(src)) m.removeSource(src); });
 
-    if (!pendingRoutes || pendingRoutes.length === 0) return;
+    // Active trip overrides — clear any leftover pending routes
+    if (activeRoute) {
+      setPendingRoutes(null);
+      pendingRoutesDrawnRef.current = false;
+      return;
+    }
+
+    if (!pendingRoutes || pendingRoutes.length === 0) {
+      pendingRoutesDrawnRef.current = false;
+      return;
+    }
 
     pendingRoutes.forEach((route, i) => {
       m.addSource(PENDING_SRCS[i], {
@@ -932,23 +944,26 @@ function MapView({
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': route.color,
-          'line-width': 4,
-          'line-opacity': 0.85,
+          'line-width': i === selectedRouteIdx ? 5 : 3,
+          'line-opacity': i === selectedRouteIdx ? 0.9 : 0.3,
         },
       }, 'clusters-halo');
     });
 
-    // Fit bounds to show all routes
-    const allCoords = pendingRoutes.flatMap((r) => r.coords);
-    if (allCoords.length > 0) {
-      const lngs = allCoords.map((c) => c[0]);
-      const lats  = allCoords.map((c) => c[1]);
-      m.fitBounds(
-        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
-      );
+    // Only fitBounds on first draw (when routes are fetched), not on re-renders from selection change
+    if (!pendingRoutesDrawnRef.current) {
+      pendingRoutesDrawnRef.current = true;
+      const allCoords = pendingRoutes.flatMap((r) => r.coords);
+      if (allCoords.length > 0) {
+        const lngs = allCoords.map((c) => c[0]);
+        const lats  = allCoords.map((c) => c[1]);
+        m.fitBounds(
+          [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+          { padding: { top: 60, left: 60, right: 60, bottom: 60 + mapBottomPadding }, maxZoom: 15, duration: 1200 },
+        );
+      }
     }
-  }, [pendingRoutes, mapReady, layersReady]);
+  }, [pendingRoutes, selectedRouteIdx, activeRoute, mapReady, layersReady]);
 
   // ── Per-segment transit route colors ──────────────────────────────────────
   useEffect(() => {

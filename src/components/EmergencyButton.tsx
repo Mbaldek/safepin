@@ -765,7 +765,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           width: 46, height: 46,
           borderRadius: 9999,
           pointerEvents: 'none',
-          zIndex: 199,
+          zIndex: 99,
         }}
       >
         <div style={{
@@ -795,7 +795,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         className="sos-fab"
         style={{
           position: 'fixed',
-          bottom: 80, right: 20, width: 46, height: 46, zIndex: 200,
+          bottom: 80, right: 20, width: 46, height: 46, zIndex: 100,
           borderRadius: 9999,
           background: 'linear-gradient(135deg, #F87171, #DC2626)',
           boxShadow: '0 4px 18px rgba(239,68,68,0.42), inset 0 1px 0 rgba(255,255,255,0.20)',

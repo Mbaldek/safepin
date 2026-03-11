@@ -96,24 +96,13 @@ export default function MainSettings({ onNavigate, onClose }: MainSettingsProps)
           onPress={() => onNavigate('myProfile')}
         />
 
-        {/* Compte */}
-        <SettingsSection label="Compte">
-          <SettingsRow
-            icon="Lock"
-            iconColor="#F5C341"
-            label="Mon compte"
-            subtitle="Email, mot de passe, vérification"
-            onPress={() => onNavigate('compte')}
-          />
-        </SettingsSection>
-
         {/* Sécurité */}
         <SettingsSection label="Sécurité">
           <SettingsRow
             icon="Shield"
             iconColor="#34D399"
-            label="Sécurité & confidentialité"
-            subtitle="Alertes, localisation, RGPD"
+            label="Ma Sécurité & Confidentialité"
+            subtitle="Compte, alertes, localisation, RGPD"
             onPress={() => onNavigate('securite')}
           />
         </SettingsSection>

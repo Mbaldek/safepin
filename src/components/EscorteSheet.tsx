@@ -63,7 +63,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
-  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill } = useStore()
+  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx } = useStore()
   const pins = useStore((s) => s.pins)
   const setShowWalkWithMe  = useStore((s) => s.setShowWalkWithMe)
   const setShowWalkHistory = useStore((s) => s.setShowWalkHistory)
@@ -161,6 +161,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           }))
           setFetchedRoutes(opts)
           setSelectedIdx(0)
+          setSelectedRouteIdx(0)
           setRouteInfo({ duration: opts[0].duration, distance: 0 })
           setPendingRoutes(opts)
         } else {
@@ -178,6 +179,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           }))
           setFetchedRoutes(opts)
           setSelectedIdx(0)
+          setSelectedRouteIdx(0)
           setRouteInfo({ duration: opts[0].duration, distance: opts[0].distance })
           setPendingRoutes(opts)
         }
@@ -195,6 +197,13 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     const [lng, lat] = selectedDest.center
     setMapFlyTo({ lat, lng, zoom: 14 })
   }, [selectedDest, setMapFlyTo])
+
+  // ── Defensive cleanup: clear pending routes when trip goes active ──
+  useEffect(() => {
+    if (escorte.view === 'trip-active') {
+      setPendingRoutes(null)
+    }
+  }, [escorte.view, setPendingRoutes])
 
   // ── Start/stop global audio call for escorte vocal ──
   const shouldHaveAudio =
@@ -1327,8 +1336,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                         <button
                           onClick={() => {
                             setSelectedIdx(idx)
+                            setSelectedRouteIdx(idx)
                             setRouteInfo({ duration: route.duration, distance: route.distance })
-                            setPendingRoutes(fetchedRoutes)
                           }}
                           style={{ width:'100%', background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left' as const }}
                         >

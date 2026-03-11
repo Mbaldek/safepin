@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useIsDark } from '@/hooks/useIsDark';
 import MainSettings from './screens/MainSettings';
-import MonCompteScreen from './screens/compte/MonCompteScreen';
 import SecuriteScreen from './screens/SecuriteScreen';
 import PreferencesScreen from './screens/PreferencesScreen';
 import AideScreen from './screens/AideScreen';
@@ -79,8 +78,6 @@ export default function SettingsSheet({ isOpen, onClose, initialScreen }: Settin
 
   function renderScreen() {
     switch (currentScreen) {
-      case 'compte':
-        return <MonCompteScreen onBack={goBack} onNavigateParent={setCurrentScreen} />;
       case 'securite':
         return <SecuriteScreen onBack={goBack} onClose={onClose} onNavigate={setCurrentScreen} />;
       case 'preferences':
