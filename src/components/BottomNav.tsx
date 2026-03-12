@@ -16,7 +16,7 @@ const TABS: { id: Tab; labelKey: string; Icon: LucideIcon; disabled?: boolean }[
   { id: 'community', labelKey: 'community', Icon: MessageCircle },
   { id: 'cercle',    labelKey: 'cercle',    Icon: Heart         },
   { id: 'trip',      labelKey: 'trip',      Icon: Navigation    },
-  { id: 'me',        labelKey: 'me',        Icon: Sparkles, disabled: true },
+  { id: 'me',        labelKey: 'me',        Icon: Sparkles },
 ];
 
 const ACCENT = '#3BB4C1';

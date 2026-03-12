@@ -36,10 +36,9 @@ import { useEscorte } from '@/hooks/useEscorte';
 import { useUiStore } from '@/stores/uiStore';
 import FloatingCallPill from '@/components/FloatingCallPill';
 import CallSheet from '@/components/CallSheet';
-
 // Lazy-loaded heavy components — not on the critical rendering path
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
-const MyKovaView = dynamic(() => import('@/components/MyKovaView'), { ssr: false });
+const JuliaChat = dynamic(() => import('@/components/julia/JuliaChat'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
@@ -1410,13 +1409,12 @@ activeTrip, setActiveTrip,
           )}
         </AnimatePresence>
 
-        {/* Me tab — profile, trusted circle, community */}
+        {/* Julia AI tab */}
         <AnimatePresence>
           {activeTab === 'me' && userId && (
-            <MyKovaView
-              key="me-sheet"
+            <JuliaChat
+              key="julia-chat"
               userId={userId}
-              userEmail={userEmail}
               onClose={() => setActiveTab('map')}
             />
           )}
