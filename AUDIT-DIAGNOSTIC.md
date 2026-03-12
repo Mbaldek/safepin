@@ -1,6 +1,6 @@
 # BREVEIL — Audit Diagnostic
 
-> **Date** : 2026-03-09 | **Version app** : 0.1.0 | **Auteur** : Claude Opus 4.6 + Mathieu
+> **Date** : 2026-03-11 | **Version app** : 0.1.0 | **Auteur** : Claude Opus 4.6 + Mathieu
 
 ---
 
@@ -113,7 +113,7 @@
 ```
 src/
   app/                          # Next.js App Router
-    admin/                     # Dashboard admin (12 sous-pages)
+    admin/                     # Dashboard admin (12 sous-pages, 4 stubs)
     api/                       # 23 routes API
     auth/                      # OAuth callback
     login/                     # Page login
@@ -141,14 +141,14 @@ src/
 
   stores/           (4)        # useStore, useTheme, uiStore, notificationStore
   hooks/            (9)        # Custom hooks React
-  lib/              (31)       # Utilitaires (dont route-scoring.ts, geocode.ts)
+  lib/              (32)       # Utilitaires (dont route-scoring.ts, geocode.ts, simulation-data.ts)
   types/            (1)        # Types TypeScript centraux (60+ types exportes)
   messages/         (2)        # en.json, fr.json
   i18n/             (2)        # Config i18n
   __tests__/        (8)        # Tests unitaires
 
 supabase/
-  migrations/       (15)       # Migrations SQL
+  migrations/       (18)       # Migrations SQL
   functions/        (4)        # Edge Functions (emergency-dispatch, on-new-pin, send-push, weekly-digest)
 
 public/
@@ -197,7 +197,7 @@ public/
 | 15 | Abonnement Stripe | ACTIF | `PaywallScreen.tsx`, `/api/stripe/*` |
 | 16 | Gamification | PARTIEL | `milestones.ts`, `streaks.ts`, `levels.ts` actifs ; `ChallengesSection.tsx` orphelin |
 | 17 | Profil | ACTIF | `UserProfileModal.tsx`, `UserContextMenu.tsx`, `MyKovaView.tsx`, `MyProfileScreen.tsx` |
-| 18 | Admin dashboard | ACTIF | `admin/` (12 pages) |
+| 18 | Admin dashboard | ACTIF | `admin/` (12 pages, 4 stubs) |
 | 19 | PWA | ACTIF | `manifest.json`, `InstallPrompt.tsx`, `OfflineBanner.tsx` |
 | 20 | i18n | ACTIF | `next-intl` — en+fr complets, 28 locales squelettes |
 | 21 | Verification identite | PARTIEL | `/api/verify/*`, Veriff — UI "coming soon" |
@@ -205,8 +205,9 @@ public/
 | 23 | Route scoring & alternatives | ACTIF | `route-scoring.ts`, `fetchDirectionsMulti()`, `RouteCard.tsx` |
 | 24 | Walk With Me | **NOUVEAU** | `WalkWithMePanel.tsx`, `WalkHistorySheet.tsx`, audio player |
 | 25 | Viewport clustering | **NOUVEAU** | RPCs `pins_nearby`, `pins_clustered`, `mapViewport` Zustand, `DB_CLUSTER_SRC` layers |
+| 26 | Simulation lifecycle | **NOUVEAU** | `simulation-data.ts`, seed/tick/cleanup APIs, admin simulation panel |
 
-### Changements depuis dernier audit (2026-03-07)
+### Changements depuis dernier audit (2026-03-09)
 
 | Element | Avant | Apres |
 |---------|-------|-------|
@@ -225,7 +226,17 @@ public/
 | `WalkHistorySheet` | N'existait pas | **CREE** — historique marches Walk With Me + player audio |
 | `UserProfileModal` | Version initiale | **Redesign** — bottom sheet snap points, share menu |
 | `AutocompleteInput` | Bug onChange | **Fix** — API `(text, coords?)` correcte |
-| Migrations total | 11 | **15** (+circle_messages, delete_account, story_mentions, story_visibility) |
+| Admin RLS (6 policies) | Manquantes — stats a 0 | **CREE** — `20260311_admin_rls_policies.sql` (reports, pins, trips) |
+| Admin sim RLS (2 policies) | Manquantes — trip_log/contacts | **CREE** — `20260311_admin_sim_rls.sql` (admins_read_all) |
+| Simulation seed | Stub (users+pins only) | **REECRIT** — users, pins, communities, contacts, safe spaces + hard caps G3 |
+| Simulation tick | Stub (pin creation only) | **REECRIT** — 8 actions ponderees (pins, votes, comments, messages, trajets, contacts, marches) |
+| Simulation cleanup | Stub (basique) | **REECRIT** — 13 etapes ordonnees par dependances FK |
+| Simulation admin UI | Stub vide | **REECRIT** — 6 StatCards, seed panel, tick engine (auto 10/20/30s), G4 budget 100 ticks, cleanup panel |
+| Edge fn `on-new-pin` | Pas de garde sim | **G1** — early return pour `is_simulated` pins (zero cout edge fn) |
+| `simulation-data.ts` | N'existait pas | **CREE** — donnees sim (noms, lieux Paris, categories, messages groupe, modes trajet) |
+| TowerSidebar | Tous liens actifs | **4 stubs** (Live, SafeSpaces, Invites, Emails) avec badge "Bientot" |
+| WalkHistorySheet tabs | Jank au switch | **Fix** — hauteur stable 70vh, minHeight scroll area |
+| Migrations total | 11 | **17** (+circle_messages, delete_account, story_mentions, story_visibility, admin_rls, admin_sim_rls) |
 | Routes API total | 22 | **23** (+export-data) |
 | Composants total | 104 | **~106** |
 
@@ -265,6 +276,15 @@ public/
 - **DB clusters** : `dbClusters` dans Zustand, layers `DB_CLUSTER_SRC` rendus a zoom<10
 - **MapPin hide** : `mapZoom` state dans MapView — masque `<MapPin>` a zoom<10 (affiche clusters DB)
 - **Distance** : PinDetailSheet affiche `haversineMetersRaw(userLocation, pin)` inline
+
+#### 26. Simulation lifecycle (NOUVEAU)
+- **Fichiers** : `lib/simulation-data.ts`, `api/simulation/{seed,tick,cleanup}/route.ts`, `admin/simulation/page.tsx`
+- **Seed** : Cree users (auth+profiles+sim_places), pins, communities, trusted_contacts, safe_spaces avec hard caps (G3: 200 users, 1000 pins, 5 communities, 4 contacts/user, 100 safe spaces)
+- **Tick** : 8 actions ponderees — pin (30%), vote (10%), comment (10%), message groupe (15%), lancer trajet (10%), completer trajet (5%), ajouter contact (10%), marche accompagnee (10%)
+- **Cleanup** : 13 etapes ordonnees par dependances FK → auth users en dernier (batch 20)
+- **Admin UI** : 6 StatCards temps reel, panneau seed configurable, tick engine (1-tick + auto 10/20/30s), budget G4 (100 ticks max), feed d'actions, panneau purge avec confirmation "PURGER", banner warning G7 (>150 users ou >800 pins)
+- **Garde-fous** : G1 (edge fn skip sim), G2 (pas de notifications table), G3 (hard caps seed), G4 (budget ticks), G5 (1-3 actions/tick), G6 (batch inserts), G7 (warnings UI), G8 (dev-only guard)
+- **Donnees** : 20 prenoms + 20 noms FR, 15 quartiers Paris avec coords, 15 messages groupe FR, 10 noms communautes, 3 modes trajet
 
 ---
 
@@ -348,7 +368,7 @@ public/
 | `user_ids_near_point` | `(lat, lng, max_radius_m)` → user IDs | Pre-filtre spatial pour notify-nearby |
 | `delete_account` | `()` → void | Anonymise profil + supprime donnees sensibles (SECURITY DEFINER) |
 
-### Migrations appliquees (15)
+### Migrations appliquees (18)
 
 | # | Fichier | Tables/Actions |
 |---|---------|----------------|
@@ -367,6 +387,9 @@ public/
 | 13 | `20260309_delete_account_rpc.sql` | RPC delete_account (documentaire — deja en prod) |
 | 14 | `20260309_story_mentions.sql` | Mentions dans stories |
 | 15 | `20260309_story_visibility.sql` | Visibilite stories |
+| 16 | `20260311_admin_rls_policies.sql` | 6 RLS policies admin (reports CRUD, pins update/delete, trips SELECT) |
+| 17 | `20260311_admin_sim_rls.sql` | 2 RLS policies admin (trip_log SELECT, trusted_contacts SELECT) |
+| 18 | `20260311_profile_stat_triggers.sql` | Triggers stats profil (en attente) |
 
 ### PostGIS & indexes (appliques en prod, non migres)
 
@@ -382,7 +405,7 @@ public/
 | Fonction | Declencheur | Action |
 |----------|-------------|--------|
 | `emergency-dispatch` | Appel API | Dispatch SOS aux contacts via push + SMS |
-| `on-new-pin` | DB webhook INSERT pins | Alerte proximite routes sauvegardees (300m) |
+| `on-new-pin` | DB webhook INSERT pins | Alerte proximite routes sauvegardees (300m) — **G1: skip is_simulated** |
 | `send-push-notification` | DB webhook INSERT notifications | Envoi Web Push via VAPID/JWT |
 | `weekly-digest` | pg_cron lundi 9h UTC | Email digest hebdomadaire |
 
@@ -462,9 +485,9 @@ public/
 |-------|---------|-------|
 | `/api/livekit-token` | POST | Token audio/video |
 | `/api/admin-bypass` | GET | Bypass admin (dev/test) |
-| `/api/simulation/seed` | POST | Generer donnees test |
-| `/api/simulation/tick` | POST | Tick simulation |
-| `/api/simulation/cleanup` | POST | Nettoyer simulation |
+| `/api/simulation/seed` | POST | Seed complet (users, pins, communities, contacts, safe spaces) — hard caps G3 |
+| `/api/simulation/tick` | POST | 1-3 actions ponderees par tick (8 types d'actions) |
+| `/api/simulation/cleanup` | POST | Purge 13 etapes ordonnees FK → auth users |
 
 ---
 
@@ -517,7 +540,7 @@ public/
 |-----------|---------|--------|
 | CommunityHub | `components/community/CommunityHub.tsx` | 677 |
 | ThemeToggle | `components/ThemeToggle.tsx` | 35 |
-| SimulationTicker | `components/SimulationTicker.tsx` | 71 |
+| SimulationTicker | `components/SimulationTicker.tsx` | 71 (remplace par admin/simulation/page.tsx) |
 | LocationHistoryViewer | `components/LocationHistoryViewer.tsx` | 190 |
 | SessionBriefingCard | `components/SessionBriefingCard.tsx` | 189 |
 | TrendSparkline | `components/TrendSparkline.tsx` | 137 |
@@ -618,6 +641,8 @@ Emplacements edge functions :
 | 58 FK columns sans index | A indexer (batch suivant) |
 | 22 fonctions sans `SET search_path = ''` | `function_search_path_mutable` |
 | RPCs search (search_pins, search_users, search_hashtags, search_communities) | Crees en DB, pas wirees a l'UI |
+| Edge fn `on-new-pin` G1 guard | Code local modifie, **pas encore deploye** (`supabase functions deploy on-new-pin`) |
+| Admin pages stubs (4) | Live, SafeSpaces, Invites, Emails — marquees "Bientot" dans TowerSidebar |
 
 ---
 
@@ -746,17 +771,18 @@ Emplacements edge functions :
 
 | Metrique | Valeur |
 |----------|--------|
-| Fichiers TS/TSX | ~210 |
+| Fichiers TS/TSX | ~215 |
 | Composants React | ~106 |
 | Composants orphelins | 9 |
 | Routes API | 23 |
 | Pages publiques | 8 |
-| Pages admin | 12 |
+| Pages admin | 12 (8 actives, 4 stubs) |
 | Custom hooks | 9 |
 | Zustand stores | 4 |
-| Libs utilitaires | 31 |
+| Libs utilitaires | 32 (+simulation-data.ts) |
 | Types exportes | 60+ |
-| Migrations DB | 15 |
+| Migrations DB | 18 |
+| RLS policies admin | 8 (6 admin_rls_policies + 2 admin_sim_rls) |
 | RPCs spatiales | 4 (pins_nearby, pins_clustered, user_ids_near_point, delete_account) |
 | Tables Supabase | 62 |
 | Edge Functions | 4 |
@@ -765,7 +791,7 @@ Emplacements edge functions :
 | Variables env | 22 |
 | Locales i18n | 30 (2 completes) |
 | CSS custom properties | 201 |
-| Lignes code estimees | ~50,000 |
+| Lignes code estimees | ~52,000 |
 | Plus gros fichier | TripView.tsx (1,944 lignes) |
 | `as any` | 0 |
 | console.log client | 0 |

@@ -1,15 +1,29 @@
 // src/app/api/simulation/seed/route.ts
-// POST: Seed Paris with simulated users (per-user places), pins, and optionally partner safe spaces.
+// POST: Seed Paris with simulated users, pins, communities, trusted contacts, and optionally safe spaces.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 import {
   FIRST_NAMES, LAST_NAMES,
   SIM_CATEGORIES, SIM_SEVERITIES, SIM_ENVIRONMENTS, SIM_URBAN_CONTEXTS,
+  SIM_COMMUNITY_NAMES, SIM_COMMUNITY_EMOJIS,
   pick, randomDateWithinHours,
   generateUserPlaces, pickActivityLocation, generatePartnerSafeSpaces,
   SimPlace,
 } from '@/lib/simulation-data';
+
+// ── G3: Hard caps ──
+const CAPS = {
+  users:       { max: 200,  default: 50  },
+  pins:        { max: 1000, default: 100 },
+  communities: { max: 5,    default: 3   },
+  contacts:    { max: 4,    default: 2   },
+  safeSpaces:  { max: 100,  default: 30  },
+};
+
+function clamp(val: number | undefined, cap: { max: number; default: number }): number {
+  return Math.min(Math.max(val ?? cap.default, 1), cap.max);
+}
 
 export async function POST(req: NextRequest) {
   if (process.env.NODE_ENV !== 'development') {
@@ -18,12 +32,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const admin = createAdminClient();
-
     const body = await req.json();
-    const userCount = Math.min(Math.max(body.userCount ?? 200, 1), 1000);
-    const pinCount = Math.min(Math.max(body.pinCount ?? 500, 1), 5000);
+
+    const userCount      = clamp(body.userCount, CAPS.users);
+    const pinCount       = clamp(body.pinCount, CAPS.pins);
+    const communityCount = clamp(body.communityCount, CAPS.communities);
+    const contactsPerUser = clamp(body.contactsPerUser, CAPS.contacts);
     const seedSafeSpaces = body.seedSafeSpaces === true;
-    const safeSpaceCount = Math.min(Math.max(body.safeSpaceCount ?? 100, 1), 500);
+    const safeSpaceCount = clamp(body.safeSpaceCount, CAPS.safeSpaces);
 
     // ── Step 1: Create auth users + profiles with sim_places ──
     const createdUsers: { id: string; name: string; places: SimPlace[] }[] = [];
@@ -100,7 +116,67 @@ export async function POST(req: NextRequest) {
       if (!pinErr) pinsCreated += batchSize;
     }
 
-    // ── Step 3: Optionally seed partner safe spaces ──
+    // ── Step 3: Create simulated communities + members ──
+    let communitiesCreated = 0;
+    const actualCommunityCount = Math.min(communityCount, SIM_COMMUNITY_NAMES.length);
+
+    for (let c = 0; c < actualCommunityCount; c++) {
+      const owner = pick(createdUsers);
+      const { data: community, error: comErr } = await admin.from('communities').insert({
+        name: SIM_COMMUNITY_NAMES[c],
+        description: `Groupe de veille sécurité — ${SIM_COMMUNITY_NAMES[c]}`,
+        is_private: false,
+        owner_id: owner.id,
+        avatar_emoji: SIM_COMMUNITY_EMOJIS[c % SIM_COMMUNITY_EMOJIS.length],
+        community_type: 'group',
+      }).select('id').single();
+
+      if (comErr || !community) continue;
+
+      // Add 10-40 random members (including owner)
+      const memberCount = Math.min(10 + Math.floor(Math.random() * 30), createdUsers.length);
+      const shuffled = [...createdUsers].sort(() => Math.random() - 0.5);
+      const members = shuffled.slice(0, memberCount);
+      // Ensure owner is included
+      if (!members.find(m => m.id === owner.id)) {
+        members[0] = owner;
+      }
+
+      await admin.from('community_members').insert(
+        members.map(m => ({ community_id: community.id, user_id: m.id })),
+      );
+      communitiesCreated++;
+    }
+
+    // ── Step 4: Create trusted_contact pairs ──
+    let contactsCreated = 0;
+    const contactPairs = new Set<string>();
+
+    for (const user of createdUsers) {
+      const numContacts = Math.min(contactsPerUser, createdUsers.length - 1);
+      const candidates = createdUsers.filter(u => u.id !== user.id);
+      const shuffled = [...candidates].sort(() => Math.random() - 0.5).slice(0, numContacts);
+
+      const rows = [];
+      for (const contact of shuffled) {
+        const pairKey = [user.id, contact.id].sort().join(':');
+        if (contactPairs.has(pairKey)) continue;
+        contactPairs.add(pairKey);
+        rows.push({
+          user_id: user.id,
+          contact_id: contact.id,
+          contact_name: contact.name,
+          status: 'accepted',
+        });
+      }
+
+      if (rows.length > 0) {
+        const { error } = await admin.from('trusted_contacts').insert(rows);
+        if (!error) contactsCreated += rows.length;
+      }
+    }
+
+    // ── Step 5: Optionally seed partner safe spaces ──
     let safeSpacesCreated = 0;
     if (seedSafeSpaces) {
       const rows = generatePartnerSafeSpaces(safeSpaceCount);
@@ -115,6 +191,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       users_created: createdUsers.length,
       pins_created: pinsCreated,
+      communities_created: communitiesCreated,
+      contacts_created: contactsCreated,
       safe_spaces_created: safeSpacesCreated,
     });
   } catch (err) {

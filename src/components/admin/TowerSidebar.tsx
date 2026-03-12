@@ -4,9 +4,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAdminTheme } from './AdminThemeContext';
 
+type SidebarItem = { id: string; label: string; icon: string; count?: number; stub?: boolean };
 type SidebarSection = {
   label: string;
-  items: { id: string; label: string; icon: string; count?: number }[];
+  items: SidebarItem[];
 };
 
 const SECTIONS: SidebarSection[] = [
@@ -22,7 +23,7 @@ const SECTIONS: SidebarSection[] = [
     items: [
       { id: 'pins',       label: 'Pins',        icon: '\uD83D\uDCCD' },
       { id: 'reports',    label: 'Reports',      icon: '\uD83D\uDEA9' },
-      { id: 'safespaces', label: 'Safe Spaces',  icon: '\uD83D\uDEE1\uFE0F' },
+      { id: 'safespaces', label: 'Safe Spaces',  icon: '\uD83D\uDEE1\uFE0F', stub: true },
       { id: 'simulation', label: 'Simulation',   icon: '\uD83E\uDDEA' },
     ],
   },
@@ -31,14 +32,14 @@ const SECTIONS: SidebarSection[] = [
     items: [
       { id: 'users',   label: 'Users',   icon: '\uD83D\uDC65' },
       { id: 'support', label: 'Support',  icon: '\uD83D\uDCAC' },
-      { id: 'invites', label: 'Invites',  icon: '\uD83D\uDCE8' },
-      { id: 'emails',  label: 'Emails',   icon: '\u2709\uFE0F' },
+      { id: 'invites', label: 'Invites',  icon: '\uD83D\uDCE8', stub: true },
+      { id: 'emails',  label: 'Emails',   icon: '\u2709\uFE0F', stub: true },
     ],
   },
   {
     label: 'Syst\u00e8me',
     items: [
-      { id: 'live',   label: 'Live Sessions', icon: '\uD83D\uDD34' },
+      { id: 'live',   label: 'Live Sessions', icon: '\uD83D\uDD34', stub: true },
       { id: 'params', label: 'Parameters',    icon: '\u2699\uFE0F' },
     ],
   },
@@ -81,12 +82,12 @@ export default function TowerSidebar() {
             {section.label}
           </div>
           {section.items.map((item) => {
-            const active = pathname.includes(`/admin/${item.id}`);
+            const active = !item.stub && pathname.includes(`/admin/${item.id}`);
             return (
               <motion.button
                 key={item.id}
-                onClick={() => router.push(`/admin/${item.id}`)}
-                whileHover={{ x: 2 }}
+                onClick={() => { if (!item.stub) router.push(`/admin/${item.id}`); }}
+                whileHover={item.stub ? undefined : { x: 2 }}
                 transition={{ duration: 0.15 }}
                 style={{
                   display: 'flex',
@@ -97,10 +98,11 @@ export default function TowerSidebar() {
                   border: 'none',
                   borderLeft: active ? '3px solid #3BB4C1' : '3px solid transparent',
                   background: active ? theme.cyanSoft : 'transparent',
-                  color: active ? theme.cyan : theme.t2,
+                  color: item.stub ? theme.t3 : active ? theme.cyan : theme.t2,
                   fontSize: 12,
                   fontWeight: active ? 600 : 500,
-                  cursor: 'pointer',
+                  cursor: item.stub ? 'default' : 'pointer',
+                  opacity: item.stub ? 0.5 : 1,
                   textAlign: 'left',
                   transition: 'background 0.2s, color 0.2s',
                   boxShadow: active ? '0 0 8px rgba(59,180,193,0.1)' : 'none',
@@ -108,6 +110,22 @@ export default function TowerSidebar() {
               >
                 <span style={{ fontSize: 14 }}>{item.icon}</span>
                 <span style={{ flex: 1 }}>{item.label}</span>
+                {item.stub && (
+                  <span
+                    style={{
+                      fontSize: 8,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: theme.t3,
+                      background: theme.elevated,
+                      borderRadius: 4,
+                      padding: '2px 5px',
+                    }}
+                  >
+                    Bientôt
+                  </span>
+                )}
                 {item.count !== undefined && (
                   <span
                     style={{

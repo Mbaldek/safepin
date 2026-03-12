@@ -186,6 +186,34 @@ export const SIM_COMMENTS = [
   'Reported to local authorities as well.',
 ];
 
+export const SIM_GROUP_MESSAGES = [
+  'Faites attention ce soir dans le quartier, j\'ai vu quelqu\'un de suspect.',
+  'Quelqu\'un pour m\'accompagner de la gare jusqu\'à chez moi ce soir ?',
+  'Je confirme le signalement, j\'ai vu la même chose hier.',
+  'L\'éclairage est en panne rue de Charonne depuis 3 jours.',
+  'Bonne nouvelle, la police a fait une ronde ce soir !',
+  'Merci pour vos signalements, ça aide vraiment.',
+  'Qui est dispo pour une marche accompagnée vers 22h ?',
+  'Attention, travaux sur le trottoir boulevard Voltaire, passage dangereux la nuit.',
+  'J\'ai croisé une patrouille citoyenne ce soir, super initiative.',
+  'Est-ce que quelqu\'un a le numéro du commissariat du 11e ?',
+  'Rentrez bien ce soir, soyez prudentes.',
+  'J\'ai rajouté un pin sur la zone sombre près du parc.',
+  'Le café Le Petit Refuge est ouvert jusqu\'à minuit si besoin.',
+  'Quelqu\'un sait si le chemin par le canal est safe le soir ?',
+  'Merci à toutes pour la solidarité dans ce groupe !',
+];
+
+export const SIM_COMMUNITY_NAMES = [
+  'Sécurité Bastille', 'Veilleurs du 11e', 'Marais Safe', 'Quartier Belleville',
+  'Entraide 18e', 'Safe Walk Montmartre', 'République Solidaire', 'Oberkampf Ensemble',
+  'Nation Sécurité', 'Ménilmontant Veille',
+];
+
+export const SIM_COMMUNITY_EMOJIS = ['🛡️', '👁️', '🤝', '💜', '🏘️', '🔦', '🚶‍♀️', '⭐', '💪', '🌙'];
+
+export const SIM_TRIP_MODES = ['walk', 'bike', 'transit'] as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function pick<T>(arr: readonly T[] | T[]): T {

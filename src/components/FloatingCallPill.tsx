@@ -230,9 +230,9 @@ export default function FloatingCallPill() {
                   }
                 </button>
 
-                {/* End */}
+                {/* End — open CallSheet for confirmation */}
                 <button
-                  onClick={handleEnd}
+                  onClick={toggleCallSheet}
                   style={{
                     width: 24, height: 24, borderRadius: '50%',
                     background: 'rgba(239,68,68,0.12)',

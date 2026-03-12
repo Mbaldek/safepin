@@ -960,7 +960,9 @@ activeTrip, setActiveTrip,
           onMapTap={handleMapTap}
         />
 
-        <EmergencyButton userId={userId} />
+        {activeTab === 'map' && !showWalkWithMe && !showWalkHistory && !showTripHistory && escorte.view !== 'trip-active' && (
+          <EmergencyButton userId={userId} />
+        )}
 
         {/* Filter button — replaces old POI toggle */}
         {activeTab === 'map' && (

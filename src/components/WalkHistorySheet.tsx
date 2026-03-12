@@ -98,7 +98,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
 
   // ─── Fetch sessions ─────────────────────────────────────────────────────────
   const fetchSessions = useCallback(async (currentTab: 'mes' | 'rejointes') => {
-    if (!initialLoadDone.current) setLoading(true);
+    setLoading(true);
     const field = currentTab === 'mes' ? 'creator_id' : 'companion_id';
     const { data: rows } = await supabase
       .from('walk_sessions')
@@ -466,6 +466,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
       style={{
         position: 'fixed',
         bottom: 0, left: 0, right: 0,
+        height: '70vh',
         maxHeight: '84%',
         background: C.surfaceCard,
         borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -591,7 +592,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px', WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 200, padding: '8px 16px 100px', WebkitOverflowScrolling: 'touch' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textTertiary, fontSize: 13 }}>
             Chargement…

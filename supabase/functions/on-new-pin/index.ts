@@ -43,6 +43,11 @@ serve(async (req) => {
       return new Response('no record', { status: 400 });
     }
 
+    // G1 — Skip simulated pins to avoid edge function cost
+    if ((record as Record<string, unknown>).is_simulated) {
+      return new Response('skip — simulated pin', { status: 200 });
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',

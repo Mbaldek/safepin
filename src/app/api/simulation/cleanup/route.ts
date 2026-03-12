@@ -1,5 +1,5 @@
 // src/app/api/simulation/cleanup/route.ts
-// POST: Delete all simulated data (users, pins, safe spaces, votes, comments) using admin client.
+// POST: Delete all simulated data in strict dependency order.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
@@ -12,52 +12,104 @@ export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient();
 
-    // ── 1. Delete pin_votes by simulated users ──
+    // ── Fetch all simulated user IDs ──
     const { data: simProfiles } = await admin
       .from('profiles')
       .select('id')
       .eq('is_simulated', true);
     const simUserIds = (simProfiles ?? []).map((p) => p.id);
 
-    let deletedVotes = 0;
-    let deletedComments = 0;
+    const counts: Record<string, number> = {};
 
     if (simUserIds.length > 0) {
+      // ── 1. Community messages by sim users ──
+      const { count: cm } = await admin
+        .from('community_messages')
+        .delete({ count: 'exact' })
+        .in('user_id', simUserIds);
+      counts.community_messages = cm ?? 0;
+
+      // ── 2. Community members by sim users ──
+      const { count: cmem } = await admin
+        .from('community_members')
+        .delete({ count: 'exact' })
+        .in('user_id', simUserIds);
+      counts.community_members = cmem ?? 0;
+
+      // ── 3. Communities owned by sim users ──
+      const { count: com } = await admin
+        .from('communities')
+        .delete({ count: 'exact' })
+        .in('owner_id', simUserIds);
+      counts.communities = com ?? 0;
+
+      // ── 4. Walk sessions by sim users ──
+      const { count: ws } = await admin
+        .from('walk_sessions')
+        .delete({ count: 'exact' })
+        .or(`creator_id.in.(${simUserIds.join(',')}),companion_id.in.(${simUserIds.join(',')})`);
+      counts.walk_sessions = ws ?? 0;
+
+      // ── 5. Trip log (simulated) ──
+      const { count: tl } = await admin
+        .from('trip_log')
+        .delete({ count: 'exact' })
+        .eq('is_simulated', true);
+      counts.trips = tl ?? 0;
+
+      // ── 6. Trusted contacts by sim users ──
+      const { count: tcont } = await admin
+        .from('trusted_contacts')
+        .delete({ count: 'exact' })
+        .or(`user_id.in.(${simUserIds.join(',')}),contact_id.in.(${simUserIds.join(',')})`);
+      counts.contacts = tcont ?? 0;
+
+      // ── 7. Circle messages by sim users ──
+      const { count: circM } = await admin
+        .from('circle_messages')
+        .delete({ count: 'exact' })
+        .in('sender_id', simUserIds);
+      counts.circle_messages = circM ?? 0;
+
+      // ── 8. Pin votes by sim users ──
       const { count: vc } = await admin
         .from('pin_votes')
         .delete({ count: 'exact' })
         .in('user_id', simUserIds);
-      deletedVotes = vc ?? 0;
+      counts.votes = vc ?? 0;
 
+      // ── 9. Pin comments by sim users ──
       const { count: cc } = await admin
         .from('pin_comments')
         .delete({ count: 'exact' })
         .in('user_id', simUserIds);
-      deletedComments = cc ?? 0;
+      counts.comments = cc ?? 0;
     }
 
-    // ── 2. Delete simulated pins ──
+    // ── 10. Simulated pins ──
     const { count: deletedPins } = await admin
       .from('pins')
       .delete({ count: 'exact' })
       .eq('is_simulated', true);
+    counts.pins = deletedPins ?? 0;
 
-    // ── 3. Delete simulated safe spaces ──
-    const { count: deletedSafeSpaces } = await admin
+    // ── 11. Simulated safe spaces ──
+    const { count: deletedSS } = await admin
       .from('safe_spaces')
       .delete({ count: 'exact' })
       .eq('is_simulated', true);
+    counts.safe_spaces = deletedSS ?? 0;
 
-    // ── 4. Delete simulated profiles ──
+    // ── 12. Simulated profiles ──
     const { count: deletedProfiles } = await admin
       .from('profiles')
       .delete({ count: 'exact' })
       .eq('is_simulated', true);
+    counts.profiles = deletedProfiles ?? 0;
 
-    // ── 5. Delete auth users (must use admin API, batch) ──
+    // ── 13. Auth users (batch of 20) ──
     let deletedAuthUsers = 0;
     if (simUserIds.length > 0) {
-      // Delete in batches of 20 to avoid overwhelming the API
       const BATCH = 20;
       for (let i = 0; i < simUserIds.length; i += BATCH) {
         const batch = simUserIds.slice(i, i + BATCH);
@@ -67,15 +119,9 @@ export async function POST(req: NextRequest) {
         deletedAuthUsers += batch.length;
       }
     }
+    counts.auth_users = deletedAuthUsers;
 
-    return NextResponse.json({
-      deleted_users: deletedAuthUsers,
-      deleted_profiles: deletedProfiles ?? 0,
-      deleted_pins: deletedPins ?? 0,
-      deleted_safe_spaces: deletedSafeSpaces ?? 0,
-      deleted_votes: deletedVotes,
-      deleted_comments: deletedComments,
-    });
+    return NextResponse.json(counts);
   } catch (err) {
     console.error('[simulation-cleanup]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
