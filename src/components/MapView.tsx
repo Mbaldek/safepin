@@ -12,7 +12,7 @@ import { getPinOpacity as getPinOpacityUtil } from '@/lib/pin-utils';
 import type { Escorte, EscorteView } from '@/types';
 import { buildScoreGeoJSON } from '@/components/NeighborhoodScoreLayer';
 import { T } from '@/lib/tokens';
-import { Clock, AlertTriangle, Navigation, X } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import SafeSpaceDetailSheet from './SafeSpaceDetailSheet';
 import { MapPin } from './MapPin';
@@ -55,400 +55,45 @@ import {
   PENDING_LYRS,
 } from './map/layers/PendingRoutesLayer';
 
+// Import extracted modules
+import {
+  STYLE_URLS,
+  TRANSIT_SRC, TRANSIT_CIRCLE, TRANSIT_LABEL,
+  POI_SRC, POI_CIRCLE, POI_LABEL,
+  HEAT_SRC, HEAT_LYR,
+  SAFE_SRC, SAFE_CIRCLE, SAFE_LABEL, SAFE_PARTNER,
+  PIN_COLORS,
+  SAFE_SPACE_EMOJI,
+} from './map/constants';
+import {
+  fetchParisTransitStations,
+  addTransitLayer,
+  getTransitCache,
+  clearTransitCache,
+} from './map/transit-layer';
+import {
+  fetchParisPOIs,
+  addPOILayers,
+  buildPOIFilter,
+  getPOICache,
+  clearPOICache,
+} from './map/poi-layer';
+import {
+  addHeatmapLayer,
+  getHeatmapCache,
+  setHeatmapCache,
+  clearHeatmapCache,
+} from './map/heatmap-layer';
+import { makeSafePin, getEffectiveOpacity, getCategoryGroupId } from './map/pin-renderer';
+import { buildGeoJSON, pinMatchesSafetyFilter, getColors, hideBuiltinPOIDots } from './map/geo-utils';
+import CompassButton from './map/CompassButton';
+import SafetyFilterBadge from './map/SafetyFilterBadge';
+
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 // Prewarm WebGL dès le chargement du module
 if (typeof window !== 'undefined') {
   mapboxgl.prewarm();
-}
-
-const STYLE_URLS: Record<string, string> = {
-  custom:  'mapbox://styles/matlab244/cmm6okd7v005q01s49w19fac0',
-  streets: 'mapbox://styles/mapbox/streets-v12',
-  light:   'mapbox://styles/mapbox/light-v11',
-  dark:    'mapbox://styles/mapbox/dark-v11',
-};
-
-// ── Layer source / layer ID constants ────────────────────────────────────────
-const TRANSIT_SRC    = 'transit-src';
-const TRANSIT_CIRCLE = 'transit-circle';
-const TRANSIT_LABEL  = 'transit-label';
-const POI_SRC        = 'poi-src';
-const POI_CIRCLE     = 'poi-circle';
-const POI_LABEL      = 'poi-label';
-const HEAT_SRC       = 'heatmap-src';
-const HEAT_LYR       = 'heatmap-layer';
-const SAFE_SRC       = 'safe-spaces-src';
-const SAFE_CIRCLE    = 'safe-circle';
-const SAFE_LABEL     = 'safe-label';
-const SAFE_PARTNER   = 'safe-partner';
-
-const PIN_COLORS = {
-  urgent: '#EF4444', warning: '#FBBF24', infra: '#60A5FA', positive: '#34D399',
-  safeSpace: '#34D399', safePartner: '#F5C341',
-  emergency: '#EF4444', emergencyResolved: '#9CA3AF',
-  destination: '#34D399', transport: '#22D3EE',
-  watchContact: '#3BB4C1', surface: '#1E293B', elevated: '#334155', stroke: '#FFFFFF',
-};
-
-// Module-level layer event handler refs
-let _transitClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
-let _transitMouseEnter: (() => void) | null = null;
-let _transitMouseLeave: (() => void) | null = null;
-let _clusterClickHandler: ((e: mapboxgl.MapLayerMouseEvent) => void) | null = null;
-let _clusterMouseEnter: (() => void) | null = null;
-let _clusterMouseLeave: (() => void) | null = null;
-
-// All layer IDs we manage — preserved when hiding built-in Mapbox POI dot layers
-const OWN_LAYERS = new Set([
-  'clusters', 'clusters-halo', 'cluster-count',
-  DB_CLUSTER_CIRCLE, DB_CLUSTER_HALO, DB_CLUSTER_LABEL,
-  TRANSIT_CIRCLE, TRANSIT_LABEL,
-  POI_CIRCLE, POI_LABEL,
-  HEAT_LYR,
-  SAFE_CIRCLE, SAFE_LABEL, SAFE_PARTNER,
-  WATCH_CIRCLE, WATCH_LABEL,
-  SOS_TRAIL_LYR,
-  ROUTE_LYR,
-  ...PENDING_LYRS,
-  'safety-scores-fill',
-]);
-
-/** Hide built-in Mapbox circle/dot layers from the base style.
- *  Keeps our own layers (OWN_LAYERS) and all text/line/fill layers. */
-function hideBuiltinPOIDots(m: mapboxgl.Map) {
-  const style = m.getStyle();
-  if (!style?.layers) return;
-  for (const layer of style.layers) {
-    if (OWN_LAYERS.has(layer.id)) continue;
-    if (layer.type === 'circle') {
-      m.setLayoutProperty(layer.id, 'visibility', 'none');
-    }
-  }
-}
-
-// Module-level caches so they survive style switches
-let transitCache: GeoJSON.FeatureCollection | null = null;
-let poiCache: GeoJSON.FeatureCollection | null = null;
-let heatmapGeoJSON: GeoJSON.FeatureCollection | null = null;
-
-// Single Overpass request for transit stations + bus stops
-const PARIS_BBOX = '48.78,2.20,48.94,2.50'; // wider bbox covering all Paris + inner suburbs
-async function fetchParisTransitStations(): Promise<void> {
-  if (transitCache) return;
-  const query = `[out:json][timeout:40];(
-    node["railway"="station"]["station"~"subway|RER"](${PARIS_BBOX});
-    node["railway"="stop"]["train"="yes"](${PARIS_BBOX});
-    node["railway"="tram_stop"](${PARIS_BBOX});
-    node["highway"="bus_stop"](${PARIS_BBOX});
-  );out body;`;
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
-  const data = await res.json() as {
-    elements: Array<{
-      type: string; id: number; lat?: number; lon?: number;
-      tags?: Record<string, string>;
-    }>;
-  };
-
-  const nodes = data.elements.filter((el) => el.type === 'node' && el.lat != null);
-
-  function classifyNode(tags?: Record<string, string>): string {
-    if (!tags) return 'bus';
-    if (tags.highway === 'bus_stop') return 'bus';
-    if (tags.railway === 'tram_stop') return 'tram';
-    const station = tags.station?.toLowerCase() ?? '';
-    if (station.includes('rer') || station === 'light_rail') return 'rer';
-    if (station === 'subway') return 'metro';
-    const net = (tags.network ?? '').toLowerCase();
-    if (net.includes('rer')) return 'rer';
-    return 'metro';
-  }
-
-  transitCache = {
-    type: 'FeatureCollection',
-    features: nodes.map((el) => ({
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [el.lon!, el.lat!] },
-      properties: {
-        name: el.tags?.name ?? el.tags?.['name:fr'] ?? '',
-        kind: classifyNode(el.tags),
-      },
-    })),
-  };
-}
-
-const KIND_EMOJI: Record<string, string> = { metro: '🚇', rer: '🚆', tram: '🚊', bus: '🚌' };
-
-function addTransitLayer(m: mapboxgl.Map) {
-  if (!transitCache || m.getSource(TRANSIT_SRC)) return;
-  m.addSource(TRANSIT_SRC, { type: 'geojson', data: transitCache });
-  m.addLayer({
-    id: TRANSIT_CIRCLE,
-    type: 'circle',
-    source: TRANSIT_SRC,
-    minzoom: 13,
-    paint: {
-      'circle-radius': ['match', ['get', 'kind'], 'metro', 7, 'rer', 7, 'bus', 4, 5],
-      'circle-color':  ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', 'bus', '#f59e0b', '#10b981'],
-      'circle-stroke-width': ['match', ['get', 'kind'], 'bus', 1.5, 2],
-      'circle-stroke-color': '#fff',
-      'circle-opacity': 0.92,
-    },
-  }, 'clusters-halo');
-  m.addLayer({
-    id: TRANSIT_LABEL,
-    type: 'symbol',
-    source: TRANSIT_SRC,
-    minzoom: 14,
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-size': 10,
-      'text-offset': [0, 1.4],
-      'text-anchor': 'top',
-      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
-    },
-    paint: {
-      'text-color': ['match', ['get', 'kind'], 'metro', '#3b82f6', 'rer', '#8b5cf6', 'bus', '#f59e0b', '#10b981'],
-      'text-halo-color': '#fff',
-      'text-halo-width': 1.5,
-    },
-  }, 'clusters-halo');
-
-  // Remove previous transit listeners before adding new ones
-  if (_transitClickHandler) m.off('click', TRANSIT_CIRCLE, _transitClickHandler);
-  if (_transitMouseEnter)   m.off('mouseenter', TRANSIT_CIRCLE, _transitMouseEnter);
-  if (_transitMouseLeave)   m.off('mouseleave', TRANSIT_CIRCLE, _transitMouseLeave);
-
-  // Station click → popup with name + transport type
-  _transitClickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
-    const f = e.features?.[0];
-    if (!f) return;
-    const name = f.properties?.name || 'Station';
-    const kind: string = f.properties?.kind || 'metro';
-    const emoji = KIND_EMOJI[kind] || '🚉';
-    const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number];
-    new mapboxgl.Popup({ closeButton: false, maxWidth: '200px', offset: 12 })
-      .setLngLat(coords)
-      .setHTML(`<div style="font-size:13px;font-weight:600">${emoji} ${name}</div><div style="font-size:11px;color:#666;text-transform:capitalize">${kind}</div>`)
-      .addTo(m);
-  };
-  _transitMouseEnter = () => { m.getCanvas().style.cursor = 'pointer'; };
-  _transitMouseLeave = () => { m.getCanvas().style.cursor = ''; };
-
-  m.on('click', TRANSIT_CIRCLE, _transitClickHandler);
-  m.on('mouseenter', TRANSIT_CIRCLE, _transitMouseEnter);
-  m.on('mouseleave', TRANSIT_CIRCLE, _transitMouseLeave);
-}
-
-// ── POI (Points of Interest) ──────────────────────────────────────────────────
-
-async function fetchParisPOIs(): Promise<void> {
-  if (poiCache) return;
-  const query = `[out:json][timeout:40];(
-    node["amenity"="pharmacy"](${PARIS_BBOX});
-    node["amenity"="hospital"](${PARIS_BBOX});
-    node["amenity"="clinic"](${PARIS_BBOX});
-    node["amenity"="police"](${PARIS_BBOX});
-  );out body;`;
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
-  const data = await res.json() as {
-    elements: Array<{ type: string; id: number; lat?: number; lon?: number; tags?: Record<string, string> }>;
-  };
-  poiCache = {
-    type: 'FeatureCollection',
-    features: data.elements
-      .filter((el) => el.type === 'node' && el.lat != null)
-      .map((el) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [el.lon!, el.lat!] },
-        properties: {
-          name: el.tags?.name ?? '',
-          kind: el.tags?.amenity === 'police' ? 'police'
-            : el.tags?.amenity === 'pharmacy' ? 'pharmacy'
-            : 'hospital',
-        },
-      })),
-  };
-}
-
-function addPOILayers(m: mapboxgl.Map) {
-  if (!poiCache || m.getSource(POI_SRC)) return;
-  m.addSource(POI_SRC, { type: 'geojson', data: poiCache });
-  m.addLayer({
-    id: POI_CIRCLE,
-    type: 'circle',
-    source: POI_SRC,
-    minzoom: 12,
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 15, 7],
-      'circle-color': ['match', ['get', 'kind'], 'pharmacy', '#10b981', 'hospital', '#ef4444', 'police', '#3b82f6', '#6b7280'],
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#fff',
-      'circle-opacity': 0.9,
-    },
-  }, 'clusters-halo');
-  m.addLayer({
-    id: POI_LABEL,
-    type: 'symbol',
-    source: POI_SRC,
-    minzoom: 13,
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-size': 10,
-      'text-offset': [0, 1.4],
-      'text-anchor': 'top',
-      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
-    },
-    paint: {
-      'text-color': ['match', ['get', 'kind'], 'pharmacy', '#10b981', 'hospital', '#ef4444', 'police', '#3b82f6', '#6b7280'],
-      'text-halo-color': '#fff',
-      'text-halo-width': 1.5,
-    },
-  }, 'clusters-halo');
-}
-
-function buildPOIFilter(show: { pharmacy: boolean; hospital: boolean; police: boolean }): mapboxgl.FilterSpecification {
-  const conds: mapboxgl.FilterSpecification[] = [];
-  if (show.pharmacy) conds.push(['==', ['get', 'kind'], 'pharmacy']);
-  if (show.hospital) conds.push(['==', ['get', 'kind'], 'hospital']);
-  if (show.police)   conds.push(['==', ['get', 'kind'], 'police']);
-  if (conds.length === 0) return ['==', ['get', 'kind'], '__none__'];
-  return ['any', ...conds] as mapboxgl.FilterSpecification;
-}
-
-function addHeatmapLayer(m: mapboxgl.Map, geojson: GeoJSON.FeatureCollection) {
-  if (m.getSource(HEAT_SRC)) return;
-  m.addSource(HEAT_SRC, { type: 'geojson', data: geojson });
-  m.addLayer({
-    id: HEAT_LYR,
-    type: 'heatmap',
-    source: HEAT_SRC,
-    maxzoom: 17,
-    paint: {
-      'heatmap-weight': 1,
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 17, 3],
-      'heatmap-color': [
-        'interpolate', ['linear'], ['heatmap-density'],
-        0,   'rgba(244,63,94,0)',
-        0.2, 'rgba(244,63,94,0.2)',
-        0.5, 'rgba(244,63,94,0.5)',
-        1,   'rgba(244,63,94,0.85)',
-      ],
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 17, 20],
-      'heatmap-opacity': 0.55,
-    },
-  }, 'clusters-halo');
-}
-
-// ── Custom pin image helpers ──────────────────────────────────────────────────
-
-const GROUP_COLORS: Record<string, string> = {
-  urgent: '#EF4444',
-  warning: '#F59E0B',
-  infra: '#64748B',
-  positive: '#34D399',
-};
-
-/** Category-based canvas pin. Draws circle with optional border + glow. */
-function makeCategoryPin(
-  color: string,
-  displaySize: number,
-  hasBorder: boolean,
-  hasGlow: boolean,
-): { width: number; height: number; data: Uint8Array } {
-  // Canvas at 2× for HiDPI (pixelRatio:2 halves display size)
-  const S = displaySize * 2;
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  const cx = S / 2, cy = S / 2;
-  const dotR = S * 0.30;
-
-  // Glow shadow
-  if (hasGlow) {
-    ctx.beginPath(); ctx.arc(cx, cy, dotR + 6, 0, Math.PI * 2);
-    ctx.fillStyle = color + '44'; // 27% opacity glow
-    ctx.fill();
-    ctx.beginPath(); ctx.arc(cx, cy, dotR + 10, 0, Math.PI * 2);
-    ctx.fillStyle = color + '22'; // 13% opacity outer glow
-    ctx.fill();
-  }
-
-  // White outer ring (border)
-  if (hasBorder) {
-    ctx.beginPath(); ctx.arc(cx, cy, dotR + 3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-  }
-
-  // White base ring
-  ctx.beginPath(); ctx.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
-  ctx.fillStyle = '#fff'; ctx.fill();
-
-  // Colored dot
-  ctx.beginPath(); ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
-  ctx.fillStyle = color; ctx.fill();
-
-  // Highlight reflection
-  ctx.beginPath(); ctx.arc(cx - dotR * 0.18, cy - dotR * 0.18, dotR * 0.32, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-
-  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
-}
-
-/** Safe space pin: emoji inside a #6BA68E semi-transparent circle. */
-const SAFE_SPACE_EMOJI: Record<string, string> = {
-  pharmacy: '💊', hospital: '🏥', police: '🚔', cafe: '☕', shelter: '🏠', other: '🛡️',
-};
-function makeSafePin(emoji: string): { width: number; height: number; data: Uint8Array } {
-  const S = 28;
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2 - 1, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(107,166,142,0.2)'; ctx.fill();
-  ctx.strokeStyle = 'rgba(107,166,142,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.font = `${Math.round(S * 0.52)}px serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, S / 2, S / 2 + 1);
-  return { width: S, height: S, data: new Uint8Array(ctx.getImageData(0, 0, S, S).data) };
-}
-
-/** Compute effective opacity for a pin, accounting for last_confirmed_at. */
-function getEffectiveOpacity(pin: Pin): number {
-  return getPinOpacityUtil(pin);
-}
-
-/** Get category group id for a pin. */
-function getCategoryGroupId(pin: Pin): string {
-  const details = CATEGORY_DETAILS[pin.category];
-  return details?.group ?? 'infra';
-}
-
-function buildGeoJSON(regularPins: Pin[]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: regularPins.map((pin) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [pin.lng, pin.lat] },
-      properties: {
-        id: pin.id,
-        category: pin.category,
-        categoryGroup: getCategoryGroupId(pin),
-        confirmations: pin.confirmations ?? 1,
-        opacity: getEffectiveOpacity(pin),
-      },
-    })),
-  };
 }
 
 export type MapViewProps = {
@@ -470,38 +115,6 @@ export type MapViewProps = {
   onClearSafetyFilter?: () => void;
   onMapTap?: () => void;
 };
-
-// Mapping from safety hashtag to pin categories
-const SAFETY_FILTER_MAP: Record<string, string[]> = {
-  '#urgence':            ['assault', 'suspect', 'group'],
-  '#harcèlement':        ['harassment'],
-  '#harcelement':        ['harassment'],
-  '#unsafe':             ['lighting', 'blocked', 'unsafe'],
-  '#alerte':             ['assault', 'harassment'],
-  '#sos':                ['__sos__'],
-  '#eclairagefaible':    ['lighting'],
-  '#eclairageok':        ['safe', 'presence'],
-  '#zonecalme':          ['safe'],
-  '#trajetseul':         ['following', 'unsafe'],
-  '#nuit':               ['lighting', 'unsafe', 'following'],
-  '#soiree':             ['assault', 'harassment', 'suspect'],
-  '#ruepeufréquentée':   ['unsafe', 'following'],
-  '#ruepeufrequentee':   ['unsafe', 'following'],
-};
-
-function pinMatchesSafetyFilter(pin: { category: string; is_emergency?: boolean }, filter: string): boolean {
-  const key = filter.toLowerCase();
-  const categories = SAFETY_FILTER_MAP[key];
-  if (!categories) return false;
-  if (categories.includes('__sos__')) return !!pin.is_emergency;
-  return categories.includes(pin.category);
-}
-
-function getColors(isDark: boolean) {
-  return {
-    accent: isDark ? '#3BB4C1' : '#C48A1E',
-  };
-}
 
 function MapView({
   mapStyle,
@@ -1070,11 +683,12 @@ function MapView({
     if (!m) return;
 
     // Use cached data if available (e.g. after style switch)
-    if (heatmapGeoJSON) {
+    const cachedHeatmap = getHeatmapCache();
+    if (cachedHeatmap) {
       if (m.getSource(HEAT_SRC)) {
-        (m.getSource(HEAT_SRC) as mapboxgl.GeoJSONSource).setData(heatmapGeoJSON);
+        (m.getSource(HEAT_SRC) as mapboxgl.GeoJSONSource).setData(cachedHeatmap);
       } else {
-        addHeatmapLayer(m, heatmapGeoJSON);
+        addHeatmapLayer(m, cachedHeatmap);
       }
       return;
     }
@@ -1086,7 +700,7 @@ function MapView({
       .limit(2000)
       .then(({ data }) => {
         if (!map.current || !data?.length) return;
-        heatmapGeoJSON = {
+        const geojson: GeoJSON.FeatureCollection = {
           type: 'FeatureCollection',
           features: data.map((r) => ({
             type: 'Feature',
@@ -1094,7 +708,8 @@ function MapView({
             properties: {},
           })),
         };
-        addHeatmapLayer(map.current, heatmapGeoJSON);
+        setHeatmapCache(geojson);
+        addHeatmapLayer(map.current, geojson);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, mapReady, layersReady]);
@@ -1105,7 +720,9 @@ function MapView({
     // Skip if style hasn't changed — handles first run where constructor already loaded the correct style
     if (prevMapStyleRef.current === mapStyle) return;
     prevMapStyleRef.current = mapStyle;
-    transitCache = null; poiCache = null; heatmapGeoJSON = null;
+    clearTransitCache();
+    clearPOICache();
+    clearHeatmapCache();
     setLayersReady(false);
     map.current.once('style.load', () => {
       hideBuiltinPOIDots(map.current!);
@@ -1366,7 +983,7 @@ function MapView({
     if (showMetroRER) { kinds.push('metro', 'rer', 'tram'); }
     const filter: mapboxgl.ExpressionSpecification = ['in', ['get', 'kind'], ['literal', kinds]];
 
-    if (transitCache) {
+    if (getTransitCache()) {
       addTransitLayer(m);
       if (m.getLayer(TRANSIT_CIRCLE)) m.setFilter(TRANSIT_CIRCLE, filter);
       if (m.getLayer(TRANSIT_LABEL))  m.setFilter(TRANSIT_LABEL, filter);
@@ -1400,7 +1017,7 @@ function MapView({
       return;
     }
 
-    if (poiCache) {
+    if (getPOICache()) {
       addPOILayers(m);
       const f = buildPOIFilter({ pharmacy: showPharmacy, hospital: showHospital, police: showPolice });
       if (m.getLayer(POI_CIRCLE)) m.setFilter(POI_CIRCLE, f);
@@ -1658,6 +1275,10 @@ function MapView({
 
   const handleSafeSheetClose = useCallback(() => setSelectedSafeSpace(null), []);
 
+  const handleCompassReset = useCallback(() => {
+    map.current?.easeTo({ bearing: 0, duration: 400 });
+  }, []);
+
   // ── UI ───────────────────────────────────────────────────────────────────
 
   return (
@@ -1665,53 +1286,10 @@ function MapView({
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* Compass button — visible when map is rotated, below GPS control */}
-      {Math.abs(bearing) > 2 && (
-        <button
-          onClick={() => map.current?.easeTo({ bearing: 0, duration: 400 })}
-          style={{
-            position: 'absolute',
-            top: 56,
-            right: 10,
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            backgroundColor: '#fff',
-            border: '1px solid rgba(0,0,0,0.1)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 10,
-          }}
-          aria-label="Reset north"
-        >
-          <Navigation size={18} style={{ transform: `rotate(${-bearing}deg)`, transition: 'transform 0.2s' }} color="#1E3A5F" />
-        </button>
-      )}
+      <CompassButton bearing={bearing} isDark={isDark} onReset={handleCompassReset} />
 
       {/* Safety filter badge */}
-      {safetyFilter && (
-        <div style={{
-          position: 'absolute', top: 56, left: 12, zIndex: 20,
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(239,68,68,0.9)', backdropFilter: 'blur(8px)',
-          borderRadius: 100, padding: '6px 10px 6px 12px',
-          boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{safetyFilter}</span>
-          <button
-            onClick={onClearSafetyFilter}
-            style={{
-              width: 20, height: 20, borderRadius: '50%', border: 'none',
-              background: 'rgba(255,255,255,0.25)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-            }}
-          >
-            <X size={12} color="#fff" />
-          </button>
-        </div>
-      )}
+      <SafetyFilterBadge filter={safetyFilter ?? null} isDark={isDark} onClear={onClearSafetyFilter ?? (() => {})} />
 
       {map.current && mapZoom >= 10 && filteredRegularPins.map((pin) => (
         <MapPin

@@ -3,21 +3,24 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Users, Send, Navigation, Search, Shield, Clock,
-  ChevronLeft, ChevronRight, Check, AlertTriangle,
-  Star, MapPin, Zap, Mic, X, MoreHorizontal, Briefcase, Sparkles,
-  Footprints, Train, Bike, Car, Edit3, ArrowUpDown, History
+  Users, Navigation, Search, Clock,
+  ChevronLeft, ChevronRight, Check,
+  Star, MapPin, X,
+  ArrowUpDown, History
 } from 'lucide-react'
-import { T, tok, springConfig, gentleSpring } from '@/lib/tokens'
+import { T, tok, springConfig } from '@/lib/tokens'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
 import { useFavoris }       from '@/hooks/useFavoris'
 import { useRecents }       from '@/hooks/useRecents'
 import { useDestinationSearch, formatSearchDistance } from '@/hooks/useDestinationSearch'
 import type { SearchResult } from '@/hooks/useDestinationSearch'
 import { FavoriButton }     from './escorte/FavoriButton'
-import {
-  formatElapsed, calcETA, calcDist, avatarColor
-} from '@/lib/escorteHelpers'
+import { calcETA, calcDist } from '@/lib/escorteHelpers'
+import { getColors, getCardStyle, getBtnPrimary, SHEET_HEIGHTS } from './escorte/escorte-styles'
+import EscorteIntroView     from './escorte/EscorteIntroView'
+import EscorteNotifyingModal from './escorte/EscorteNotifyingModal'
+import EscorteArrivedModal  from './escorte/EscorteArrivedModal'
+import EscorteLiveOverlay   from './escorte/EscorteLiveOverlay'
 import { fetchRoutesWithAvoidance, formatDuration, formatDistance } from '@/lib/directions'
 import { scoreRoute, scoreTransitRoute } from '@/lib/route-scoring'
 import RouteCard from '@/components/trip/RouteCard'
@@ -42,19 +45,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const toast = useToast()
   const d  = isDark
   const tk = tok(isDark)
-  const C = {
-    t1:      isDark ? '#FFFFFF'                : '#0F172A',
-    t2:      isDark ? '#94A3B8'               : '#475569',
-    t3:      isDark ? '#64748B'               : '#94A3B8',
-    bg:      isDark ? 'rgba(15,23,42,0.93)'   : 'rgba(255,255,255,0.96)',
-    card:    isDark ? '#1E293B'               : '#FFFFFF',
-    el:      isDark ? '#243050'               : '#F1F5F9',
-    border:  isDark ? 'rgba(255,255,255,0.08)': 'rgba(15,23,42,0.08)',
-    borderS: isDark ? 'rgba(255,255,255,0.15)': 'rgba(15,23,42,0.16)',
-    handle:  isDark ? 'rgba(255,255,255,0.13)': 'rgba(15,23,42,0.13)',
-    btn:     isDark ? '#FFFFFF'               : '#0F172A',
-    btnTxt:  isDark ? '#0F172A'               : '#FFFFFF',
-  }
+  const C = getColors(isDark)
 
   // ── Hooks ──────────────────────────────────────
   const startCallGlobal = useAudioCall((s) => s.startCall)
@@ -237,16 +228,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   }, [shouldHaveAudio])
 
   // ── Sheet height per view ──────────────────────
-  const SHEET_HEIGHTS: Record<string, string> = {
-    'hub':               '52vh',
-    'escorte-intro':     '50vh',
-    'escorte-notifying': '52vh',
-    'escorte-live':      '72vh',
-    'trip-form':         '50vh',
-    'trip-active':       '0px',
-    'arrived':           '0px',
-  }
-
   const sheetH = SHEET_HEIGHTS[escorte.view] ?? '60vh'
 
   // ── Search handler ─────────────────────────────
@@ -412,27 +393,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   }
 
   // ── Shared styles ──────────────────────────────
-  const cardSt = {
-    background:   d ? T.surfaceCard : T.surfaceCardL,
-    border:       `1px solid ${tk.bd}`,
-    borderRadius: T.radiusLg,
-  }
-  const btnPrimary = {
-    width:          '100%',
-    padding:        '15px 20px',
-    background:     C.btn,
-    color:          C.btnTxt,
-    fontFamily:     'inherit',
-    fontSize:       '15px',
-    fontWeight:     600,
-    border:         'none',
-    borderRadius:   T.radius2xl,
-    cursor:         'pointer',
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            '8px',
-  } as React.CSSProperties
+  const cardSt = getCardStyle(isDark)
+  const btnPrimary = getBtnPrimary(C)
 
   // ─────────────────────────────────────────────
   //  RENDER VIEWS
@@ -670,279 +632,25 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     </motion.div>
   )
 
-  // ── VIEW : ESCORTE INTRO ───────────────────────
+  // ── VIEW : ESCORTE INTRO — extracted ───────────
   const renderEscorteIntro = () => (
-    <motion.div
-      key="escorte-intro"
-      initial={{ opacity: 0, x: 32 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -32 }}
-      transition={springConfig}
-      style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
-    >
-      {/* Back header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-        <button onClick={() => escorte.setView('hub')} style={{
-          width: 30, height: 30, borderRadius: '50%', background: tk.ih,
-          border: `1px solid ${tk.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-        }}>
-          <ChevronLeft size={14} strokeWidth={2} color={tk.ts} />
-        </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: tk.tp }}>Marche avec moi</div>
-          <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte instantanement</div>
-        </div>
-      </div>
-
-      {/* Cercle + CTA card */}
-      <div style={{
-        background: 'rgba(59,180,193,0.08)', border: '1px solid rgba(59,180,193,0.25)',
-        borderRadius: 16, padding: '12px 14px', marginBottom: 12,
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: T.gradientStart, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 10 }}>
-          TON CERCLE
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ display: 'flex' }}>
-              {['Marie','Tom','Alex','Sara'].map((name, i) => {
-                const col = avatarColor(name)
-                return (
-                  <div key={i} style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: `${col}25`, border: `2px solid ${d ? T.surfaceElevated : '#fff'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 700, color: col,
-                    marginLeft: i > 0 ? -9 : 0,
-                  }}>
-                    {name[0]}
-                  </div>
-                )
-              })}
-            </div>
-            <span style={{ fontSize: 12, color: tk.ts }}>4 personnes</span>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            style={{
-              ...btnPrimary,
-              width: 'auto', padding: '7px 14px',
-              fontSize: 12, gap: 6, borderRadius: 12,
-              opacity: escorte.isStarting ? 0.7 : 1,
-              cursor: escorte.isStarting ? 'default' : 'pointer',
-            }}
-            onClick={escorte.startEscorteImmediate}
-            disabled={escorte.isStarting}
-          >
-            <Users size={12} strokeWidth={2} />
-            {escorte.isStarting ? 'Connexion...' : 'Informer mon cercle'}
-          </motion.button>
-        </div>
-      </div>
-
-      {escorte.escorteError && (
-        <div style={{
-          marginBottom: 10, padding: '10px 14px',
-          background: 'rgba(239,68,68,0.08)',
-          border: '1px solid rgba(239,68,68,0.20)',
-          borderRadius: 12, fontSize: 12,
-          color: '#EF4444',
-        }}>
-          {escorte.escorteError}
-        </div>
-      )}
-
-      {/* 3 niveaux */}
-      {[
-        {
-          level: 'NIVEAU 1', color: T.accentGold, bg: 'rgba(245,195,65,0.10)',
-          icon: <AlertTriangle size={14} strokeWidth={1.5} color={T.accentGold} />,
-          title: 'Notification push',
-          desc: 'Tout le cercle recoit une alerte. En 1 tap, ils te suivent sur la carte.',
-          badge: null,
-        },
-        {
-          level: 'NIVEAU 2', color: T.gradientStart, bg: 'rgba(59,180,193,0.10)',
-          icon: <Mic size={14} strokeWidth={1.5} color={T.gradientStart} />,
-          title: 'Canal audio prive',
-          desc: 'Ils rejoignent une room audio. Vous parlez ensemble en direct.',
-          badge: null,
-        },
-        {
-          level: 'SI PERSONNE (2 min)', color: T.accentPurple, bg: 'rgba(167,139,250,0.10)',
-          icon: <Zap size={14} strokeWidth={1.5} color={T.accentPurple} />,
-          title: 'Julia te rejoint',
-          desc: "L'IA Julia reste avec toi jusqu'a ton arrivee.",
-          badge: 'BIENTOT',
-        },
-      ].map((item, i) => (
-        <div key={i} style={{ ...cardSt, padding: '12px 14px', display: 'flex', gap: 12, marginBottom: 8 }}>
-          <div style={{
-            width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-            background: item.bg, border: `1px solid ${item.color}35`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {item.icon}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: item.color, letterSpacing: '.06em', textTransform: 'uppercase' }}>
-                {item.level}
-              </span>
-              {item.badge && (
-                <span style={{ fontSize: 8, fontWeight: 700, color: T.accentPurple, background: 'rgba(167,139,250,0.15)', padding: '1px 5px', borderRadius: 4 }}>
-                  {item.badge}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>{item.title}</div>
-            <div style={{ fontSize: 11, color: tk.ts, lineHeight: 1.5 }}>{item.desc}</div>
-          </div>
-        </div>
-      ))}
-    </motion.div>
+    <EscorteIntroView
+      isDark={isDark}
+      escorte={escorte}
+      onBack={() => escorte.setView('hub')}
+      onStart={escorte.startEscorteImmediate}
+    />
   )
 
-  // ── VIEW : NOTIFYING ──────────────────────────
-  const renderNotifying = () => {
-    const hasResponded = escorte.circleMembers.some(
-      m => m.status === 'following' || m.status === 'vocal'
-    )
-    const activeCount = escorte.circleMembers.filter(
-      m => m.status === 'following' || m.status === 'vocal'
-    ).length
-
-    return (
-      <>
-        {/* Scrim */}
-        <motion.div
-          key="notifying-scrim"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(3px)',
-            WebkitBackdropFilter: 'blur(3px)',
-            zIndex: 299,
-          }}
-        />
-
-        {/* Modal card */}
-        <motion.div
-          key="notifying-card"
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.92 }}
-          transition={springConfig}
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            x: '-50%',
-            y: '-50%',
-            width: '88%',
-            maxWidth: 340,
-            background: 'var(--surface-card)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 20,
-            boxShadow: T.shadowLg,
-            padding: 0,
-            zIndex: 300,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Gradient accent strip */}
-          <div style={{
-            height: 4,
-            background: 'linear-gradient(90deg, #3BB4C1, #A78BFA)',
-            borderRadius: '20px 20px 0 0',
-          }} />
-
-          <div style={{ padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Row 1 — Icon + status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <motion.div
-                animate={!hasResponded ? { scale: [1, 1.15, 1] } : {}}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                style={{
-                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, rgba(59,180,193,0.15), rgba(167,139,250,0.15))',
-                  border: '1px solid rgba(59,180,193,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <Users size={16} strokeWidth={1.5} color="#3BB4C1" />
-              </motion.div>
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-                {hasResponded
-                  ? `${activeCount} contact${activeCount > 1 ? 's' : ''} actif${activeCount > 1 ? 's' : ''}`
-                  : 'Notification envoyée · En attente…'}
-              </span>
-            </div>
-
-            {/* Row 2 — Circle member avatars */}
-            {escorte.circleMembers.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {escorte.circleMembers.slice(0, 5).map((m, i) => {
-                  const name = m.profiles?.name ?? '?'
-                  const col = avatarColor(name)
-                  return (
-                    <div key={m.id} style={{
-                      width: 28, height: 28, borderRadius: '50%',
-                      background: `${col}25`,
-                      border: '2px solid var(--surface-card)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 700, color: col,
-                      marginLeft: i > 0 ? -6 : 0,
-                      flexShrink: 0,
-                    }}>
-                      {name[0]}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Row 3 — Actions */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => escorte.endEscorte()}
-                style={{
-                  flex: 1, padding: '10px',
-                  background: 'transparent',
-                  border: '1px solid var(--border-default)',
-                  color: 'var(--text-secondary)',
-                  borderRadius: 99,
-                  fontFamily: 'inherit', fontSize: 14,
-                  cursor: 'pointer',
-                }}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => escorte.setView('escorte-live')}
-                style={{
-                  flex: 2, padding: '10px 16px',
-                  background: 'linear-gradient(135deg, #3BB4C1, #A78BFA)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 99,
-                  fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {hasResponded ? 'Continuer →' : 'Démarrer →'}
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </>
-    )
-  }
+  // ── VIEW : NOTIFYING — extracted ────────────────
+  const renderNotifying = () => (
+    <EscorteNotifyingModal
+      isDark={isDark}
+      escorte={escorte}
+      onCancel={() => escorte.endEscorte()}
+      onStart={() => escorte.setView('escorte-live')}
+    />
+  )
 
   // ── VIEW : TRIP FORM ──────────────────────────
   const renderResultList = (
@@ -1425,261 +1133,27 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   // ── VIEW : TRIP ACTIVE — delegated to TripHUD on map ──
   const renderTripActive = () => null
 
-  // ── VIEW : ARRIVED ─────────────────────────────
+  // ── VIEW : ARRIVED — extracted ─────────────────
   const renderArrived = () => (
-    <>
-      {/* Scrim */}
-      <motion.div
-        key="arrived-scrim"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          zIndex: 299,
-        }}
-      />
-
-      {/* Modal card */}
-      <motion.div
-        key="arrived"
-        initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
-        animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-        exit={{ opacity: 0, x: '-50%', y: '-50%' }}
-        transition={gentleSpring}
-        style={{
-          position: 'fixed',
-          top: '50%', left: '50%',
-          width: '88%', maxWidth: 360,
-          borderRadius: 24,
-          background: 'var(--surface-card)',
-          zIndex: 300,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          border: '1px solid var(--border-default)',
-          padding: '28px 24px 24px',
-          textAlign: 'center',
-        }}
-      >
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: [0, 1.2, 1] }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: T.semanticSuccessSoft, border: `2px solid ${T.semanticSuccess}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px',
-          }}
-        >
-          <Check size={28} strokeWidth={2.5} color={T.semanticSuccess} />
-        </motion.div>
-
-        <div style={{ fontSize: 20, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous etes arrivee !</div>
-        <div style={{ fontSize: 13, color: tk.ts, marginBottom: 4 }}>
-          {escorte.activeEscorte?.dest_name ?? 'Destination'}
-        </div>
-        <div style={{ fontSize: 11, color: tk.tt, marginBottom: 16 }}>
-          Trajet enregistre · {Math.round(escorte.elapsed / 60)} min
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-          {[
-            { val: Math.round(escorte.elapsed / 60), unit: 'min',   color: tk.tp },
-            { val: '1,2',                            unit: 'km',    color: tk.tp },
-            { val: '6,8',                            unit: 'score', color: T.accentGold },
-          ].map((s, i) => (
-            <div key={i} style={{
-              background: i === 2 ? 'rgba(245,195,65,0.08)' : (d ? T.surfaceCard : T.surfaceBaseL),
-              border: `1px solid ${i === 2 ? 'rgba(245,195,65,0.18)' : tk.bd}`,
-              borderRadius: T.radiusLg, padding: '10px',
-            }}>
-              <div style={{ fontSize: 17, fontWeight: 600, color: s.color }}>{s.val}</div>
-              <div style={{ fontSize: 10, color: tk.tt }}>{s.unit}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Cercle merci */}
-        {escorte.circleMembers.filter(m => m.status !== 'inactive').length > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'center',
-            marginBottom: 14, padding: '8px 14px',
-            background: T.semanticSuccessSoft, border: `1px solid ${T.semanticSuccess}25`,
-            borderRadius: 12,
-          }}>
-            <div style={{ display: 'flex' }}>
-              {escorte.circleMembers.filter(m => m.status !== 'inactive').slice(0, 2).map((m, i) => {
-                const name = m.profiles?.name ?? '?'
-                const col = avatarColor(name)
-                return (
-                  <div key={m.id} style={{
-                    width: 22, height: 22, borderRadius: '50%', background: `${col}25`,
-                    border: `1.5px solid ${d ? T.surfaceCard : '#fff'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 8, fontWeight: 700, color: col, marginLeft: i > 0 ? -8 : 0,
-                  }}>
-                    {name[0]}
-                  </div>
-                )
-              })}
-            </div>
-            <span style={{ fontSize: 11, color: T.semanticSuccess }}>
-              {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' et ')} t'ont accompagnee
-            </span>
-          </div>
-        )}
-
-        <button style={btnPrimary} onClick={() => { escorte.setView('hub'); onClose() }}>
-          <MapPin size={14} strokeWidth={2} />
-          Retour a la carte
-        </button>
-        <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }} onClick={() => toast.info('Résumé du trajet bientôt disponible')}>
-          Voir le resume du trajet
-        </button>
-      </motion.div>
-    </>
+    <EscorteArrivedModal
+      isDark={isDark}
+      escorte={escorte}
+      onClose={() => { escorte.setView('hub'); onClose() }}
+      onShowSummary={() => toast.info('Résumé du trajet bientôt disponible')}
+    />
   )
 
   // ─────────────────────────────────────────────
-  //  RENDER ESCORTE LIVE (overlay plein ecran)
+  //  RENDER ESCORTE LIVE (overlay plein ecran) — extracted
   // ─────────────────────────────────────────────
   if (escorte.view === 'escorte-live') {
     return (
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {/* Audio channel banner */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            position: 'absolute', top: 16, left: 16, right: 16,
-            background: tk.glass, backdropFilter: 'blur(16px)',
-            border: `1px solid ${T.gradientStart}30`, borderRadius: T.radiusXl,
-            padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
-            pointerEvents: 'auto',
-          }}
-        >
-          <motion.div
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            style={{ width: 8, height: 8, borderRadius: '50%', background: T.semanticSuccess, flexShrink: 0 }}
-          />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: T.gradientStart }}>Canal audio actif</div>
-            <div style={{ fontSize: 10, color: tk.ts }}>
-              {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' · ')} vous ecoutent
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: T.semanticSuccessSoft, border: `1px solid ${T.semanticSuccess}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Mic size={13} strokeWidth={1.5} color={T.semanticSuccess} />
-            </div>
-            <button onClick={() => escorte.endEscorte(false)} style={{ width: 28, height: 28, borderRadius: 8, background: T.semanticDangerSoft, border: `1px solid ${T.semanticDanger}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <X size={13} strokeWidth={2} color={T.semanticDanger} />
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Julia banner (escorte-live) */}
-        <AnimatePresence>
-          {escorte.juliaActive && (
-            <motion.div
-              key="julia-live"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              style={{
-                position: 'absolute', top: 80, left: 16, right: 16,
-                background: 'rgba(167,139,250,0.10)',
-                border: '1px solid rgba(167,139,250,0.25)',
-                borderRadius: 14, padding: '10px 14px',
-                display: 'flex', alignItems: 'center', gap: 10,
-                pointerEvents: 'auto',
-              }}
-            >
-              <Sparkles size={16} color="#A78BFA" />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#A78BFA', flex: 1 }}>
-                Julia vous accompagne · canal actif
-              </span>
-              <span style={{
-                fontSize: 8, fontWeight: 700,
-                background: 'rgba(167,139,250,0.15)', color: '#A78BFA',
-                padding: '2px 6px', borderRadius: 4,
-              }}>
-                IA
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Bottom live card */}
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          style={{
-            position: 'absolute', bottom: 72, left: 12, right: 12,
-            background: tk.glass, backdropFilter: 'blur(20px)',
-            border: `1px solid ${tk.bd}`, borderRadius: 20,
-            padding: '14px 16px', pointerEvents: 'auto',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
-              style={{ width: 7, height: 7, borderRadius: '50%', background: T.gradientStart }}
-            />
-            <span style={{ fontSize: 13, fontWeight: 600, color: tk.tp, flex: 1 }}>Trajet en cours</span>
-            <span style={{ fontSize: 10, color: tk.tt, fontVariantNumeric: 'tabular-nums' }}>
-              {formatElapsed(escorte.elapsed)}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 7, marginBottom: 10 }}>
-            {escorte.circleMembers.map(m => {
-              const name = m.profiles?.name ?? '?'
-              const col  = avatarColor(name)
-              const isActive = m.status !== 'inactive'
-              const bgColor  = m.status === 'following' ? T.semanticSuccessSoft : m.status === 'vocal' ? 'rgba(59,180,193,0.08)' : tk.ih
-              const bdColor  = m.status === 'following' ? `${T.semanticSuccess}35` : m.status === 'vocal' ? `${T.gradientStart}35` : tk.bd
-              return (
-                <div key={m.id} style={{
-                  flex: 1, background: bgColor, border: `1px solid ${bdColor}`,
-                  borderRadius: 10, padding: '7px 8px',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  opacity: isActive ? 1 : 0.45,
-                }}>
-                  <div style={{
-                    width: 22, height: 22, borderRadius: '50%', background: `${col}25`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 8, fontWeight: 700, color: col, flexShrink: 0,
-                  }}>{name[0]}</div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: tk.tp }}>{name}</div>
-                    <div style={{ fontSize: 9, color: m.status === 'following' ? T.semanticSuccess : m.status === 'vocal' ? T.gradientStart : tk.tt }}>
-                      {m.status === 'following' ? '● Suit' : m.status === 'vocal' ? '🎙' : 'Hors ligne'}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <button
-            onClick={() => escorte.endEscorte(false)}
-            style={{
-              width: '100%', padding: '10px', background: T.semanticDangerSoft,
-              border: `1px solid ${T.semanticDanger}30`, borderRadius: 14,
-              fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: T.semanticDanger, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            Arreter
-          </button>
-        </motion.div>
-      </div>
+      <EscorteLiveOverlay
+        isDark={isDark}
+        escorte={escorte}
+        onEndCall={() => escorte.endEscorte(false)}
+        onStop={() => escorte.endEscorte(false)}
+      />
     )
   }
 

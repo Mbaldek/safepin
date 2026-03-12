@@ -1,25 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  X,
-  ChevronRight,
-  ChevronLeft,
-  Map,
-  Star,
-  Signal,
-  Users,
-  Clock,
-  Shield,
-  Search,
-  AlertTriangle,
-  Share2,
-  Check,
-  Plus,
-  Trash2,
-  Repeat2,
-} from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Map, Star, Signal, Users } from "lucide-react";
 import { fetchDirectionsMulti, formatDuration, formatDistance } from "@/lib/directions";
 import { fetchTransitRoute } from "@/lib/transit";
 import { scoreRoute, scoreTransitRoute } from "@/lib/route-scoring";
@@ -33,57 +16,11 @@ import FavorisSheet from "@/components/trip/FavorisSheet";
 import useVerificationGate from "@/hooks/useVerificationGate";
 import VerificationNudgeSheet from "@/components/VerificationNudgeSheet";
 import VerificationGateModal from "@/components/VerificationGateModal";
-
-type Trip = {
-  id: string;
-  to_label: string | null;
-  planned_duration_s: number | null;
-  danger_score: number | null;
-  distance_m: number | null;
-  mode: string | null;
-  status: string | null;
-  started_at: string;
-};
-
-type SavedPlace = {
-  id: string;
-  label: string;
-  lat: number;
-  lng: number;
-  icon: string | null;
-};
-
-type CircleContact = {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-};
-
-// Brand colors
-const colors = {
-  sheet: { dark: "#1A2540", light: "#FFFFFF" },
-  card: { dark: "#1E293B", light: "#F8FAFC" },
-  elevated: { dark: "#243050", light: "#F1F5F9" },
-  cyan: "#3BB4C1",
-  gold: "#F5C341",
-  success: "#34D399",
-  danger: "#EF4444",
-  purple: "#A78BFA",
-  warning: "#FBBF24",
-  textPrimary: { dark: "#FFFFFF", light: "#0F172A" },
-  textSecondary: { dark: "#94A3B8", light: "#475569" },
-  textTertiary: { dark: "#64748B", light: "#94A3B8" },
-};
-
-// Spring animation config
-const spring = { type: "spring" as const, stiffness: 300, damping: 30 };
-
-// No scrollbar styles
-const noScrollbar: React.CSSProperties = {
-  overflow: "auto",
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
-};
+import TripSummaryModal from "@/components/trip/TripSummaryModal";
+import TripActiveHUD from "@/components/trip/TripActiveHUD";
+import TripHistoryView from "@/components/trip/TripHistoryView";
+import { colors, spring, noScrollbar, getCardStyle, getElevatedStyle } from "@/lib/trip-constants";
+import type { Trip, SavedPlace, CircleContact } from "@/lib/trip-constants";
 
 type AppState = "idle" | "planifier" | "active" | "arrived" | "favoris" | "history";
 
@@ -124,40 +61,6 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   );
 
-  // ─── History filter state ───────────────────────────────────────────────────
-  const [historyFilterOpen, setHistoryFilterOpen] = useState(false);
-  const [historySelectedPeriod, setHistorySelectedPeriod] = useState<'week' | 'month' | 'all' | null>(null);
-  const [historyActivePeriod, setHistoryActivePeriod] = useState<'week' | 'month' | 'all' | null>(null);
-
-  const filteredTrips = useMemo(() => {
-    const trips = allTrips.length ? allTrips : recentTrips;
-    if (!historyActivePeriod) return trips;
-    const now = Date.now();
-    const cutoff = historyActivePeriod === 'week' ? 7 : historyActivePeriod === 'month' ? 30 : Infinity;
-    if (cutoff === Infinity) return trips;
-    return trips.filter(t => (now - new Date(t.started_at).getTime()) <= cutoff * 24 * 60 * 60 * 1000);
-  }, [allTrips, recentTrips, historyActivePeriod]);
-
-  const groupedTrips = useMemo(() => {
-    const now = Date.now();
-    const sections: { label: string; trips: typeof filteredTrips }[] = [];
-    const week: typeof filteredTrips = [];
-    const lastWeek: typeof filteredTrips = [];
-    const month: typeof filteredTrips = [];
-    const older: typeof filteredTrips = [];
-    filteredTrips.forEach(t => {
-      const age = (now - new Date(t.started_at).getTime()) / 86400000;
-      if (age <= 7) week.push(t);
-      else if (age <= 14) lastWeek.push(t);
-      else if (age <= 30) month.push(t);
-      else older.push(t);
-    });
-    if (week.length) sections.push({ label: 'Cette semaine', trips: week });
-    if (lastWeek.length) sections.push({ label: 'La semaine dernière', trips: lastWeek });
-    if (month.length) sections.push({ label: 'Ce mois', trips: month });
-    if (older.length) sections.push({ label: 'Plus ancien', trips: older });
-    return sections;
-  }, [filteredTrips]);
 
   // Fetch recent trips + saved places
   useEffect(() => {
@@ -197,7 +100,6 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const [showVerifGate, setShowVerifGate] = useState(false);
 
   const theme = isDark ? "dark" : "light";
-  const CONTACT_COLORS = [colors.purple, colors.cyan, colors.gold, colors.success, "#60A5FA", "#F97316"];
 
   // Timer for active state
   useEffect(() => {
@@ -351,17 +253,6 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     })();
   }, [destCoords, transportMode, state]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
-  const formatElapsed = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
 
   // Geolocation helper
   const getCurrentPosition = (): Promise<{ lat: number; lng: number }> =>
@@ -442,39 +333,9 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   );
 
   // Shared styles
-  const cardStyle: React.CSSProperties = {
-    backgroundColor: colors.card[theme],
-    borderRadius: 14,
-    border: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-  };
+  const cardStyle = getCardStyle(isDark);
+  const elevatedStyle = getElevatedStyle(isDark);
 
-  const elevatedStyle: React.CSSProperties = {
-    backgroundColor: colors.elevated[theme],
-    borderRadius: 14,
-    border: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-  };
-
-  // Render contact avatar
-  const Avatar = ({ name, color, size = 36 }: { name: string; color: string; size?: number }) => (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: `${color}30`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.4,
-        fontWeight: 600,
-        color: color,
-        border: `2px solid ${colors.sheet[theme]}`,
-        flexShrink: 0,
-      }}
-    >
-      {name[0]}
-    </div>
-  );
 
   // Render State 1 - Idle
   const renderIdle = () => (
@@ -1002,273 +863,51 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     </motion.div>
   );
 
-  // Render State 4 - Active HUD
+  // Render State 4 - Active HUD (extracted to TripActiveHUD)
   const renderActive = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={spring}
-      style={{ ...noScrollbar, height: "100%", padding: "0 20px 20px" }}
-    >
-      {/* Destination card */}
-      <div style={{ ...cardStyle, padding: "14px", marginBottom: 12, borderRadius: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ minWidth: 0 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: colors.textPrimary[theme], margin: "0 0 3px" }}>
-              {destination || "Gare du Nord"}
-            </h2>
-            <p style={{ fontSize: 12, color: colors.warning, margin: 0 }}>
-              ~{Math.max(0, Math.round((plannedDurationS - elapsedSeconds) / 60))} min · {(Math.max(0, distanceM * (1 - (plannedDurationS > 0 ? elapsedSeconds / plannedDurationS : 0))) / 1000).toFixed(1)} km restants
-            </p>
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary[theme], fontVariantNumeric: "tabular-nums" }}>
-              {formatElapsed(elapsedSeconds)}
-            </div>
-            <div style={{ fontSize: 10, color: colors.textTertiary[theme] }}>écoulé</div>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div style={{ height: 6, backgroundColor: colors.elevated[theme], borderRadius: 3, marginTop: 12, overflow: "hidden" }}>
-          <motion.div
-            initial={{ width: "0%" }}
-            animate={{ width: `${Math.min(100, plannedDurationS > 0 ? (elapsedSeconds / plannedDurationS) * 100 : 0)}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            style={{
-              height: "100%",
-              background: `linear-gradient(90deg, ${colors.cyan}, ${colors.success})`,
-              borderRadius: 3,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Status chips */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-        {circleContacts.length > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 500, padding: "5px 10px", borderRadius: 16, backgroundColor: `${colors.purple}15`, color: colors.purple }}>
-            {circleContacts.length} proches
-          </span>
-        )}
-        {isSharingLocation && (
-          <span style={{ fontSize: 11, fontWeight: 500, padding: "5px 10px", borderRadius: 16, backgroundColor: `${colors.success}15`, color: colors.success }}>
-            Position partagée
-          </span>
-        )}
-      </div>
-
-      {/* Action row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setIsSharingLocation(!isSharingLocation)}
-          style={{
-            ...elevatedStyle,
-            padding: "12px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            cursor: "pointer",
-            border: isSharingLocation ? `1px solid ${colors.success}40` : undefined,
-            backgroundColor: isSharingLocation ? `${colors.success}15` : colors.elevated[theme],
-          }}
-        >
-          <Share2 size={16} color={isSharingLocation ? colors.success : colors.textPrimary[theme]} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: isSharingLocation ? colors.success : colors.textPrimary[theme] }}>
-            {isSharingLocation ? "Partagé ✓" : "Partager"}
-          </span>
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => {
-            // Trigger SOS — dispatch custom event for EmergencyButton
-            window.dispatchEvent(new CustomEvent("sos-trigger"));
-          }}
-          style={{
-            padding: "12px",
-            borderRadius: 14,
-            backgroundColor: colors.danger,
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            cursor: "pointer",
-          }}
-        >
-          <AlertTriangle size={16} color="white" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: "white" }}>SOS</span>
-        </motion.button>
-      </div>
-
-      {/* Hero CTA */}
-      <motion.button
-        onClick={async () => {
-          await endTrip();
-          setActiveRoute(null);
-          setPendingRoutes(null);
-          setTransitSegments(null);
-          setState("arrived");
-          if (isGated) setShowVerifGate(true);
-          else if (shouldNudge) setShowVerifNudge(true);
-        }}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.97 }}
-        style={{
-          width: "100%",
-          padding: "14px",
-          borderRadius: 14,
-          background: "linear-gradient(135deg, #F5C341, #E8A800)",
-          boxShadow: "0 4px 20px rgba(245,195,65,0.3)",
-          border: "none",
-          fontSize: 15,
-          fontWeight: 700,
-          color: "white",
-          cursor: "pointer",
-          marginBottom: 12,
-        }}
-      >
-        Je suis arrivée ✓
-      </motion.button>
-
-      {/* Watchers */}
-      {circleContacts.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-          <div style={{ display: "flex" }}>
-            {circleContacts.slice(0, 3).map((c, i) => (
-              <div key={c.id} style={{ marginLeft: i > 0 ? -8 : 0 }}>
-                <Avatar name={c.name} color={CONTACT_COLORS[i % CONTACT_COLORS.length]} size={26} />
-              </div>
-            ))}
-          </div>
-          <span style={{ fontSize: 11, color: colors.textTertiary[theme] }}>
-            {circleContacts.length <= 2
-              ? circleContacts.map((c) => c.name).join(" et ") + " vous suivent"
-              : `${circleContacts[0].name}, ${circleContacts[1].name} et ${circleContacts.length - 2} autre${circleContacts.length - 2 > 1 ? "s" : ""} vous suivent`}
-          </span>
-        </div>
-      )}
-    </motion.div>
+    <TripActiveHUD
+      destination={destination}
+      elapsedSeconds={elapsedSeconds}
+      plannedDurationS={plannedDurationS}
+      distanceM={distanceM}
+      circleContacts={circleContacts}
+      circleEnabled={circleEnabled}
+      isSharingLocation={isSharingLocation}
+      isDark={isDark}
+      onComplete={async () => {
+        await endTrip();
+        setActiveRoute(null);
+        setPendingRoutes(null);
+        setTransitSegments(null);
+        setState("arrived");
+        if (isGated) setShowVerifGate(true);
+        else if (shouldNudge) setShowVerifNudge(true);
+      }}
+      onSOS={() => {
+        window.dispatchEvent(new CustomEvent("sos-trigger"));
+      }}
+      onToggleSharing={() => setIsSharingLocation(!isSharingLocation)}
+    />
   );
 
-  // Render State 5 - Arrived
+  // Render State 5 - Arrived (extracted to TripSummaryModal)
   const renderArrived = () => (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 300,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0,0,0,0.4)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
+    <TripSummaryModal
+      isOpen={state === "arrived"}
+      destination={destination}
+      tripSummary={tripSummary}
+      elapsedSeconds={elapsedSeconds}
+      distanceM={distanceM}
+      isDark={isDark}
+      onClose={() => {
+        goBack();
+        setDestination("");
+        setDestCoords(null);
+        setTripSummary(null);
+        setDistanceM(0);
+        setPlannedDurationS(0);
       }}
-    >
-    <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.92 }}
-      transition={spring}
-      style={{
-        width: "min(340px, 90vw)",
-        padding: "28px 20px 20px",
-        borderRadius: 24,
-        backgroundColor: colors.sheet[theme],
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      {/* Success icon */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: [0, 1.2, 1] }}
-        transition={{ duration: 0.5 }}
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: "50%",
-          backgroundColor: `${colors.success}20`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 16,
-        }}
-      >
-        <Check size={36} color={colors.success} />
-      </motion.div>
-
-      <h1 style={{ fontSize: 19, fontWeight: 300, color: colors.textPrimary[theme], margin: "0 0 6px" }}>
-        Vous êtes arrivée !
-      </h1>
-      <p style={{ fontSize: 14, color: colors.textSecondary[theme], margin: "0 0 4px" }}>
-        {destination || "Gare du Nord"}
-      </p>
-      <p style={{ fontSize: 12, color: colors.textTertiary[theme], margin: "0 0 24px" }}>
-        Trajet enregistré · {Math.round((tripSummary?.duration_s ?? elapsedSeconds) / 60)} min · {((tripSummary?.distance_m ?? distanceM) / 1000).toFixed(1)} km
-      </p>
-
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, width: "100%", marginBottom: 24 }}>
-        {[
-          { value: String(Math.round((tripSummary?.duration_s ?? elapsedSeconds) / 60)), unit: "min", delay: 0 },
-          { value: ((tripSummary?.distance_m ?? distanceM) / 1000).toFixed(1), unit: "km", delay: 0.05 },
-          { value: (tripSummary?.score ?? 0).toFixed(1), unit: "score", delay: 0.1 },
-        ].map((stat, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: stat.delay, ...spring }}
-            style={{
-              ...cardStyle,
-              padding: "14px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: 20, fontWeight: 600, color: colors.textPrimary[theme] }}>{stat.value}</div>
-            <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>{stat.unit}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* CTA */}
-      <motion.button
-        onClick={() => {
-          goBack();
-          setDestination("");
-          setDestCoords(null);
-          setTripSummary(null);
-          setDistanceM(0);
-          setPlannedDurationS(0);
-        }}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.97 }}
-        style={{
-          width: "100%",
-          padding: "14px",
-          borderRadius: 14,
-          backgroundColor: colors.cyan,
-          border: "none",
-          fontSize: 15,
-          fontWeight: 700,
-          color: "white",
-          cursor: "pointer",
-        }}
-      >
-        Retour
-      </motion.button>
-    </motion.div>
-    </motion.div>
+    />
   );
 
   // Render Favoris screen — now uses dedicated FavorisSheet
@@ -1291,396 +930,15 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     );
   };
 
-  // Render History screen
-  const renderHistory = () => {
-    const H = {
-      surfaceBase:   isDark ? '#0F172A' : '#F1F5F9',
-      surfaceCard:   isDark ? '#1E293B' : '#FFFFFF',
-      surfaceEl:     isDark ? '#253347' : '#F8FAFC',
-      textPrimary:   isDark ? '#FFFFFF' : '#0F172A',
-      textSecond:    isDark ? '#94A3B8' : '#475569',
-      textTertiary:  isDark ? '#64748B' : '#94A3B8',
-      borderSubtle:  isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)',
-      borderDef:     isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)',
-      teal:          '#3BB4C1',
-      purple:        '#A78BFA',
-      success:       '#34D399',
-      warning:       '#FBBF24',
-      danger:        '#EF4444',
-    };
-
-    const scoreColor = (score: number | null) => {
-      if (!score) return H.textTertiary;
-      if (score >= 70) return H.success;
-      if (score >= 40) return H.warning;
-      return H.danger;
-    };
-    const scoreBg = (score: number | null) => {
-      if (!score) return 'rgba(148,163,184,0.10)';
-      if (score >= 70) return 'rgba(52,211,153,0.10)';
-      if (score >= 40) return 'rgba(251,191,36,0.10)';
-      return 'rgba(239,68,68,0.10)';
-    };
-    const modeIcon = (trip: Trip) => {
-      const m = trip.mode;
-      if (m === 'cycling') return '🚴‍♀️';
-      if (m === 'driving') return '🚗';
-      return '🚶‍♀️';
-    };
-    const periodMeta: Record<string, { icon: string; name: string; desc: string }> = {
-      week:  { icon: '📅', name: 'Cette semaine', desc: '7 derniers jours' },
-      month: { icon: '🗓', name: 'Ce mois', desc: '30 derniers jours' },
-      all:   { icon: '∞', name: "Tout l'historique", desc: 'Depuis le début' },
-    };
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, x: 40 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -40 }}
-        transition={spring}
-        style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
-      >
-        {/* HEADER */}
-        <div style={{ padding: '12px 16px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            {/* Left */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                onClick={() => openToHistory ? onClose() : setState('idle')}
-                style={{
-                  width: 28, height: 28, borderRadius: 9999,
-                  background: H.surfaceEl, border: `1px solid ${H.borderDef}`,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: H.textSecond, fontSize: 13, fontFamily: 'inherit',
-                }}
-              >
-                {'‹'}
-              </button>
-              <div style={{
-                width: 30, height: 30, borderRadius: 8,
-                background: 'linear-gradient(135deg,#3BB4C1,#1E3A5F)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
-              }}>
-                {'🗺'}
-              </div>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: H.textPrimary }}>Mes trajets</div>
-                <div style={{ fontSize: 11, color: H.textTertiary, marginTop: 1 }}>Trajet avec destination · historique</div>
-              </div>
-            </div>
-            {/* Filter button */}
-            <button
-              onClick={() => { setHistorySelectedPeriod(historyActivePeriod); setHistoryFilterOpen(true); }}
-              style={{
-                width: 28, height: 28, borderRadius: 9999, position: 'relative',
-                background: historyActivePeriod ? 'rgba(59,180,193,0.12)' : H.surfaceEl,
-                border: `1px solid ${historyActivePeriod ? 'rgba(59,180,193,0.4)' : H.borderDef}`,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: historyActivePeriod ? H.teal : H.textTertiary, fontSize: 13, fontFamily: 'inherit',
-              }}
-            >
-              {'⚙'}
-              {historyActivePeriod && (
-                <div style={{
-                  position: 'absolute', top: 3, right: 3, width: 7, height: 7,
-                  borderRadius: '50%', background: H.teal,
-                  border: `2px solid ${H.surfaceCard}`,
-                }} />
-              )}
-            </button>
-          </div>
-
-          {/* Active filter pill */}
-          <div style={{
-            overflow: 'hidden',
-            maxHeight: historyActivePeriod ? 36 : 0,
-            opacity: historyActivePeriod ? 1 : 0,
-            transition: 'max-height 0.25s ease, opacity 0.2s',
-          }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              background: 'rgba(59,180,193,0.10)', border: '1px solid rgba(59,180,193,0.25)',
-              borderRadius: 9999, padding: '4px 10px', fontSize: 11, fontWeight: 500,
-              color: H.teal, marginBottom: 8,
-            }}>
-              <span>{historyActivePeriod ? periodMeta[historyActivePeriod]?.name ?? '' : ''}</span>
-              <button
-                onClick={() => { setHistoryActivePeriod(null); setHistorySelectedPeriod(null); }}
-                style={{
-                  background: 'none', border: 'none', color: H.teal,
-                  cursor: 'pointer', fontSize: 10, opacity: 0.7, fontFamily: 'inherit', padding: 0,
-                }}
-              >
-                {'✕'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 80px', WebkitOverflowScrolling: 'touch' }}>
-          {filteredTrips.length === 0 ? (
-            /* Empty state */
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', padding: '60px 24px', textAlign: 'center', gap: 10,
-            }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: 16,
-                background: 'linear-gradient(135deg,rgba(59,180,193,0.15),rgba(167,139,250,0.15))',
-                border: `1px solid ${H.borderSubtle}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 24, marginBottom: 4,
-              }}>
-                {'🗺'}
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: H.textPrimary }}>Aucun trajet enregistré</div>
-              <div style={{ fontSize: 13, color: H.textTertiary, lineHeight: 1.5, maxWidth: 220 }}>
-                Tes trajets avec destination apparaîtront ici une fois complétés.
-              </div>
-            </div>
-          ) : (
-            groupedTrips.map(({ label, trips: sectionTrips }) => (
-              <div key={label}>
-                <div style={{
-                  fontSize: 10, fontWeight: 600, color: H.textTertiary,
-                  textTransform: 'uppercase', letterSpacing: '0.06em', margin: '12px 0 7px',
-                }}>
-                  {label}
-                </div>
-                {sectionTrips.map((trip, idx) => {
-                  const score = trip.danger_score ?? null;
-                  return (
-                    <motion.div
-                      key={trip.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1], delay: idx * 0.04 }}
-                      style={{
-                        background: H.surfaceCard,
-                        border: `1px solid ${score !== null && score < 40 ? 'rgba(251,191,36,0.15)' : H.borderSubtle}`,
-                        borderRadius: 12, padding: 11, marginBottom: 8,
-                      }}
-                    >
-                      {/* Card top */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
-                        {/* Mode icon + score dot */}
-                        <div style={{
-                          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                          background: H.surfaceEl, display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: 16, position: 'relative',
-                        }}>
-                          {modeIcon(trip)}
-                          <div style={{
-                            position: 'absolute', bottom: -2, right: -2,
-                            width: 10, height: 10, borderRadius: '50%',
-                            background: scoreColor(score),
-                            border: `2px solid ${H.surfaceCard}`,
-                          }} />
-                        </div>
-                        {/* Info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontSize: 13, fontWeight: 600, color: H.textPrimary,
-                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2,
-                          }}>
-                            {trip.to_label || 'Destination inconnue'}
-                          </div>
-                          <div style={{ fontSize: 10, color: H.textTertiary }}>
-                            {new Date(trip.started_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                            {trip.planned_duration_s ? ` · ${Math.round(trip.planned_duration_s / 60)} min` : ''}
-                          </div>
-                        </div>
-                        {/* Status badge */}
-                        <div style={{
-                          padding: '2px 7px', borderRadius: 9999, fontSize: 10, fontWeight: 600, flexShrink: 0,
-                          background: trip.status === 'completed' ? 'rgba(52,211,153,0.12)' : 'rgba(251,191,36,0.12)',
-                          color: trip.status === 'completed' ? H.success : H.warning,
-                        }}>
-                          {trip.status === 'completed' ? '✓ Arrivée' : '↩ Abandonné'}
-                        </div>
-                      </div>
-
-                      {/* Route row */}
-                      {trip.to_label && (
-                        <div style={{
-                          display: 'flex', alignItems: 'center', gap: 7,
-                          padding: '7px 10px', background: H.surfaceBase,
-                          borderRadius: 8, marginBottom: 7,
-                        }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: H.teal }} />
-                            <div style={{ width: 1, height: 8, background: H.borderDef }} />
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: H.purple }} />
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-                            <span style={{
-                              fontSize: 11, fontWeight: 500, color: H.textPrimary,
-                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                            }}>
-                              Ma position
-                            </span>
-                            <span style={{
-                              fontSize: 11, color: H.textSecond,
-                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                            }}>
-                              {trip.to_label}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Meta + score */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {trip.planned_duration_s != null && (
-                            <span style={{ fontSize: 11, color: H.textTertiary }}>{'🕐'} {Math.round(trip.planned_duration_s / 60)} min</span>
-                          )}
-                          {trip.planned_duration_s != null && (
-                            <div style={{ width: 2, height: 2, borderRadius: '50%', background: H.borderDef }} />
-                          )}
-                          <span style={{ fontSize: 11, color: H.textTertiary }}>
-                            {'📍'} {trip.distance_m ? `${(trip.distance_m / 1000).toFixed(1)} km` : '—'}
-                          </span>
-                        </div>
-                        {score !== null && (
-                          <div style={{
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            padding: '2px 7px', borderRadius: 9999, fontSize: 10, fontWeight: 600,
-                            background: scoreBg(score), color: scoreColor(score),
-                          }}>
-                            <div style={{
-                              width: 28, height: 3, borderRadius: 2,
-                              background: H.borderSubtle, overflow: 'hidden',
-                            }}>
-                              <div style={{
-                                width: `${Math.min(score, 100)}%`, height: '100%',
-                                borderRadius: 2, background: scoreColor(score),
-                              }} />
-                            </div>
-                            Score {Math.round(score)}
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* FILTER MODAL */}
-        <AnimatePresence>{historyFilterOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setHistoryFilterOpen(false)}
-              style={{
-                position: 'absolute', inset: 0,
-                background: 'rgba(7,16,31,0.65)',
-                backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-                zIndex: 500, borderRadius: 'inherit',
-              }}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: H.surfaceCard,
-              borderTopLeftRadius: 20, borderTopRightRadius: 20,
-              zIndex: 600, borderTop: `1px solid ${H.borderSubtle}`,
-            }}>
-              <div style={{ width: 32, height: 3, background: H.borderDef, borderRadius: 9999, margin: '10px auto 0' }} />
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 16px 12px', borderBottom: `1px solid ${H.borderSubtle}`,
-              }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: H.textPrimary }}>Période</div>
-                  <div style={{ fontSize: 11, color: H.textTertiary, marginTop: 2 }}>Filtrer l&apos;historique</div>
-                </div>
-                <button
-                  onClick={() => { setHistoryActivePeriod(historySelectedPeriod); setHistoryFilterOpen(false); }}
-                  disabled={!historySelectedPeriod}
-                  style={{
-                    width: 30, height: 30, borderRadius: 9999,
-                    background: historySelectedPeriod ? H.teal : H.surfaceEl,
-                    border: 'none', cursor: historySelectedPeriod ? 'pointer' : 'default',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: historySelectedPeriod ? 'white' : H.textTertiary,
-                    fontSize: 14, fontFamily: 'inherit',
-                  }}
-                >
-                  {'→'}
-                </button>
-              </div>
-              {(['week', 'month', 'all'] as const).map(k => {
-                const meta = periodMeta[k];
-                const on = historySelectedPeriod === k;
-                return (
-                  <div
-                    key={k}
-                    onClick={() => setHistorySelectedPeriod(k)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '11px 16px', cursor: 'pointer',
-                      background: on ? 'rgba(59,180,193,0.06)' : 'transparent',
-                      transition: 'background 0.15s',
-                    }}
-                  >
-                    <div style={{
-                      width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
-                      background: on ? 'rgba(59,180,193,0.15)' : H.surfaceEl,
-                      transition: 'background 0.15s',
-                    }}>
-                      {meta.icon}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: on ? H.teal : H.textPrimary, transition: 'color 0.15s' }}>
-                        {meta.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: H.textTertiary, marginTop: 1 }}>{meta.desc}</div>
-                    </div>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: '50%',
-                      border: on ? 'none' : `1.5px solid ${H.borderDef}`,
-                      background: on ? H.teal : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: on ? 10 : 0, color: 'white',
-                      transform: on ? 'scale(1.15)' : 'scale(1)',
-                      transition: 'all 0.2s',
-                    }}>
-                      {on ? '✓' : ''}
-                    </div>
-                  </div>
-                );
-              })}
-              <div style={{ height: 1, background: H.borderSubtle, margin: '4px 16px' }} />
-              <button
-                onClick={() => { setHistoryActivePeriod(null); setHistorySelectedPeriod(null); setHistoryFilterOpen(false); }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '12px 16px 16px', fontSize: 12, color: H.textTertiary,
-                  gap: 4, background: 'none', border: 'none', width: '100%',
-                  fontFamily: 'inherit', cursor: 'pointer',
-                }}
-              >
-                {'↺'}&nbsp;&nbsp;Réinitialiser
-              </button>
-            </motion.div>
-          </>
-        )}</AnimatePresence>
-      </motion.div>
-    );
-  };
+  // Render History screen (extracted to TripHistoryView)
+  const renderHistory = () => (
+    <TripHistoryView
+      allTrips={allTrips}
+      recentTrips={recentTrips}
+      isDark={isDark}
+      onBack={() => openToHistory ? onClose() : setState('idle')}
+    />
+  );
 
   return (
     <motion.div
