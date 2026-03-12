@@ -1,0 +1,40 @@
+-- Fix search_path for all public functions to prevent search_path injection
+-- This addresses the function_search_path_mutable security advisory
+
+ALTER FUNCTION public.auto_hide_flagged_pin() SET search_path = '';
+ALTER FUNCTION public.circle_members_enriched(uuid) SET search_path = '';
+ALTER FUNCTION public.confirm_pin(uuid, boolean, text, text) SET search_path = '';
+ALTER FUNCTION public.dec_comment_count() SET search_path = '';
+ALTER FUNCTION public.dec_pin_count() SET search_path = '';
+ALTER FUNCTION public.dec_vote_count() SET search_path = '';
+ALTER FUNCTION public.delete_account() SET search_path = '';
+ALTER FUNCTION public.flag_pin(uuid, text) SET search_path = '';
+ALTER FUNCTION public.handle_new_user() SET search_path = '';
+ALTER FUNCTION public.immutable_unaccent(text) SET search_path = 'public, extensions';
+ALTER FUNCTION public.inc_comment_count() SET search_path = '';
+ALTER FUNCTION public.inc_escort_count() SET search_path = '';
+ALTER FUNCTION public.inc_pin_count() SET search_path = '';
+ALTER FUNCTION public.inc_vote_count() SET search_path = '';
+ALTER FUNCTION public.increment_hashtag_count(uuid) SET search_path = '';
+ALTER FUNCTION public.increment_hashtag_counts(uuid[]) SET search_path = '';
+ALTER FUNCTION public.is_admin() SET search_path = '';
+ALTER FUNCTION public.is_escorte_owner(uuid) SET search_path = '';
+ALTER FUNCTION public.is_user_verified() SET search_path = '';
+ALTER FUNCTION public.on_safe_space_vote() SET search_path = '';
+ALTER FUNCTION public.pins_clustered(double precision, double precision, double precision, double precision) SET search_path = 'public, extensions';
+ALTER FUNCTION public.pins_compute_expires_at(text, timestamptz) SET search_path = '';
+ALTER FUNCTION public.pins_nearby(double precision, double precision, double precision) SET search_path = 'public, extensions';
+ALTER FUNCTION public.pins_set_expires_at() SET search_path = '';
+ALTER FUNCTION public.pins_set_location() SET search_path = 'public, extensions';
+ALTER FUNCTION public.profiles_set_location() SET search_path = 'public, extensions';
+ALTER FUNCTION public.resolve_pin(uuid) SET search_path = '';
+ALTER FUNCTION public.rls_auto_enable() SET search_path = '';
+ALTER FUNCTION public.search_communities(text, integer) SET search_path = '';
+ALTER FUNCTION public.search_hashtags(text, integer) SET search_path = '';
+ALTER FUNCTION public.search_pins(text, integer, integer) SET search_path = '';
+ALTER FUNCTION public.search_users(text, integer) SET search_path = '';
+ALTER FUNCTION public.set_verification_deadline() SET search_path = '';
+ALTER FUNCTION public.update_follow_counts() SET search_path = '';
+ALTER FUNCTION public.update_updated_at() SET search_path = '';
+ALTER FUNCTION public.user_feed(uuid, double precision, double precision, integer, timestamptz) SET search_path = 'public, extensions';
+ALTER FUNCTION public.user_ids_near_point(double precision, double precision, double precision) SET search_path = 'public, extensions';
