@@ -6,6 +6,7 @@ import { Sparkles, Send } from 'lucide-react'
 import { useIsDark } from '@/hooks/useIsDark'
 import { useJuliaChat } from '@/hooks/useJuliaChat'
 import { useStore } from '@/stores/useStore'
+import { useAudioCall } from '@/stores/useAudioCall'
 import JuliaHeader from './JuliaHeader'
 import JuliaContextChips from './JuliaContextChips'
 import JuliaBubble from './JuliaBubble'
@@ -31,6 +32,20 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
     loadHistory,
     newConversation,
   } = useJuliaChat()
+
+  const startCall = useAudioCall((s) => s.startCall)
+  const callState = useAudioCall((s) => s.callState)
+
+  const handleCallJulia = useCallback(() => {
+    if (callState !== 'idle') return
+    startCall({
+      roomName: `julia-${userId}-${Date.now()}`,
+      source: 'julia',
+      sourceId: userId,
+      title: 'Julia IA',
+      participantNames: ['Julia'],
+    })
+  }, [callState, startCall, userId])
 
   const userLocation = useStore((s) => s.userLocation)
   const pins = useStore((s) => s.pins)
@@ -113,8 +128,14 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
         background: surfaceBg,
       }}
     >
+      <style>{`
+        @keyframes julia-glow {
+          0%, 100% { box-shadow: 0 0 32px rgba(167,139,250,0.3); }
+          50% { box-shadow: 0 0 48px rgba(167,139,250,0.5), 0 0 96px rgba(139,92,246,0.15); }
+        }
+      `}</style>
       {/* Header */}
-      <JuliaHeader isDark={isDark} onClose={onClose} onNewChat={newConversation} />
+      <JuliaHeader isDark={isDark} onClose={onClose} onNewChat={newConversation} onCall={handleCallJulia} />
 
       {/* Context chips */}
       <JuliaContextChips
@@ -158,6 +179,7 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 0 32px rgba(167,139,250,0.3)',
+                animation: 'julia-glow 3s ease-in-out infinite',
               }}
             >
               <Sparkles size={28} color="#FFFFFF" />
@@ -167,8 +189,8 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
               Bonjour, je suis Julia
             </div>
             <div style={{ fontSize: 13, color: textSecondary, lineHeight: 1.5, maxWidth: 280 }}>
-              Votre assistante s&eacute;curit&eacute; personnelle. Je peux analyser votre environnement,
-              planifier des trajets s&ucirc;rs et vous donner des conseils en temps r&eacute;el.
+              Votre assistante sécurité personnelle. Je peux analyser votre environnement,
+              planifier des trajets sûrs et vous donner des conseils en temps réel.
             </div>
           </div>
         )}

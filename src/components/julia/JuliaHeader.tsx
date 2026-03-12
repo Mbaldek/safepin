@@ -1,16 +1,17 @@
 'use client'
 
-import { Sparkles, Plus, X } from 'lucide-react'
+import { Sparkles, Plus, X, Phone } from 'lucide-react'
 
 interface JuliaHeaderProps {
   isDark: boolean
   onClose: () => void
   onNewChat: () => void
+  onCall?: () => void
 }
 
 const JULIA_ACCENT = '#A78BFA'
 
-export default function JuliaHeader({ isDark, onClose, onNewChat }: JuliaHeaderProps) {
+export default function JuliaHeader({ isDark, onClose, onNewChat, onCall }: JuliaHeaderProps) {
   const textPrimary = isDark ? '#FFFFFF' : '#0F172A'
   const textTertiary = isDark ? '#64748B' : '#94A3B8'
   const borderColor = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.10)'
@@ -77,6 +78,29 @@ export default function JuliaHeader({ isDark, onClose, onNewChat }: JuliaHeaderP
           </div>
         </div>
       </div>
+
+      {/* Call Julia button */}
+      {onCall && (
+        <button
+          onClick={onCall}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            background: isDark ? 'rgba(167,139,250,0.12)' : 'rgba(167,139,250,0.10)',
+            border: `1px solid rgba(167,139,250,0.25)`,
+            cursor: 'pointer',
+            color: JULIA_ACCENT,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+          aria-label="Appeler Julia"
+        >
+          <Phone size={14} />
+        </button>
+      )}
 
       {/* New chat button */}
       <button

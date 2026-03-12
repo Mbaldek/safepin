@@ -132,6 +132,15 @@ export async function POST(req: NextRequest) {
           content: fullResponse,
         });
 
+        // Auto-generate title from first user message (only on first exchange)
+        if (!conversationId) {
+          const title = message.trim().slice(0, 60) + (message.trim().length > 60 ? '...' : '');
+          await admin
+            .from('julia_conversations')
+            .update({ title, updated_at: new Date().toISOString() })
+            .eq('id', convId);
+        }
+
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       } catch (err) {
         console.error('[Julia] Stream error:', err);

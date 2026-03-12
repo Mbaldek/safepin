@@ -76,6 +76,7 @@ export default function CallSheet() {
     : source === 'group' ? 'Groupe'
     : source === 'walk' ? 'Marche'
     : source === 'escorte' ? 'Escorte'
+    : source === 'julia' ? 'Julia IA'
     : source === 'dm' ? participantNames[0] ?? 'DM'
     : ''
 

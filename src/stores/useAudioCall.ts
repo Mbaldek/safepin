@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type CallSource = 'cercle' | 'dm' | 'group' | 'walk' | 'escorte'
+export type CallSource = 'cercle' | 'dm' | 'group' | 'walk' | 'escorte' | 'julia'
 export type CallState = 'idle' | 'connecting' | 'active' | 'error'
 
 interface AudioCallStore {

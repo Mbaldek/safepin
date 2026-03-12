@@ -106,11 +106,15 @@ export default function FloatingCallPill() {
     endCall()
   }, [endCall])
 
+  const isJulia = source === 'julia'
+  const accent = isJulia ? '#A78BFA' : TEAL
+  const accentSoft = isJulia ? 'rgba(167,139,250,0.25)' : 'rgba(59,180,193,0.25)'
+  const accentGlow = isJulia ? '0 0 20px rgba(167,139,250,0.1)' : '0 0 20px rgba(59,180,193,0.1)'
   const bg = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.95)'
-  const borderColor = callState === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(59,180,193,0.25)'
+  const borderColor = callState === 'error' ? 'rgba(239,68,68,0.3)' : accentSoft
   const glow = callState === 'error'
     ? '0 0 20px rgba(239,68,68,0.1)'
-    : '0 0 20px rgba(59,180,193,0.1)'
+    : accentGlow
 
   return (
     <AnimatePresence>
@@ -186,7 +190,7 @@ export default function FloatingCallPill() {
                       transition={{ duration: 1.1, delay: delay / 1000, repeat: Infinity, ease: 'easeInOut' }}
                       style={{
                         width: 2.5, borderRadius: 2,
-                        background: (callState === 'active' && !muted) ? TEAL : '#94A3B8',
+                        background: (callState === 'active' && !muted) ? accent : '#94A3B8',
                         minHeight: 3,
                         opacity: muted ? 0.3 : 1,
                       }}
@@ -205,7 +209,7 @@ export default function FloatingCallPill() {
                   </span>
                   {callState === 'active' && (
                     <span style={{
-                      fontSize: 9, fontWeight: 500, color: TEAL,
+                      fontSize: 9, fontWeight: 500, color: accent,
                       fontVariantNumeric: 'tabular-nums', lineHeight: 1.2,
                     }}>
                       {formatTime(seconds)}
@@ -218,15 +222,15 @@ export default function FloatingCallPill() {
                   onClick={handleToggleMute}
                   style={{
                     width: 24, height: 24, borderRadius: '50%',
-                    background: muted ? 'rgba(239,68,68,0.12)' : 'rgba(59,180,193,0.12)',
-                    border: `1px solid ${muted ? RED + '40' : TEAL + '40'}`,
+                    background: muted ? 'rgba(239,68,68,0.12)' : (isJulia ? 'rgba(167,139,250,0.12)' : 'rgba(59,180,193,0.12)'),
+                    border: `1px solid ${muted ? RED + '40' : accent + '40'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', padding: 0, flexShrink: 0,
                   }}
                 >
                   {muted
                     ? <MicOff size={11} strokeWidth={1.5} color={RED} />
-                    : <Mic size={11} strokeWidth={1.5} color={TEAL} />
+                    : <Mic size={11} strokeWidth={1.5} color={accent} />
                   }
                 </button>
 
