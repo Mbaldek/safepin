@@ -58,6 +58,8 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   const [filterMode, setFilterMode] = useState(false);
   const { trending } = useTrendingHashtags();
   const userLocation = useStore((s) => s.userLocation);
+  const feedCache = useStore((s) => s.feedCache);
+  const setFeedCache = useStore((s) => s.setFeedCache);
 
   const handleHide = useCallback((postId: string) => {
     setHiddenIds((prev) => new Set(prev).add(postId));
@@ -108,100 +110,74 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
     onHashtagsReady(tagCounts);
   }, [posts, onHashtagsReady]);
 
+  // Hydrate from cache instantly on mount (stale-while-revalidate)
+  const hydratedFromCache = useCallback(() => {
+    if (!feedCache) return false;
+    if (Date.now() - feedCache.fetchedAt > 5 * 60 * 1000) return false;
+    setPosts(feedCache.posts);
+    setSosPosts(feedCache.sosPosts);
+    setPinPosts(feedCache.pinPosts);
+    setCommunityIds(feedCache.communityIds);
+    setLoading(false);
+    return true;
+  }, [feedCache]);
+
   useEffect(() => {
     if (!userId) return;
-    (async () => {
-      setLoading(true);
 
-      // Wave 1: fetch memberships + social graph in parallel
-      const [{ data: memberships }, { data: myFollows }, { data: myCircle1 }, { data: myCircle2 }] = await Promise.all([
-        supabase.from("community_members").select("community_id").eq("user_id", userId),
-        supabase.from("follows").select("following_id").eq("follower_id", userId),
-        supabase.from("trusted_contacts").select("contact_id").eq("user_id", userId).eq("status", "accepted"),
-        supabase.from("trusted_contacts").select("user_id").eq("contact_id", userId).eq("status", "accepted"),
+    const hadCache = hydratedFromCache();
+
+    (async () => {
+      if (!hadCache) setLoading(true);
+
+      const lat = userLocation?.lat ?? 48.8566;
+      const lng = userLocation?.lng ?? 2.3522;
+
+      // Single RPC: social graph + posts + pins — 1 round-trip
+      const [feedResult, sosResult] = await Promise.all([
+        supabase.rpc("user_feed", { p_user_id: userId, p_lat: lat, p_lng: lng, p_limit: 50 }),
+        supabase.from("community_posts").select("*").eq("type", "sos_alert").order("created_at", { ascending: false }).limit(20).then(r => r, () => ({ data: null })),
       ]);
 
-      const ids = memberships?.map((m) => m.community_id) ?? [];
+      const feed = feedResult.data as any;
+      if (!feed || feedResult.error) {
+        if (!hadCache) setLoading(false);
+        return;
+      }
+
+      const ids: string[] = feed.community_ids ?? [];
       setCommunityIds(ids);
 
       if (!ids.length) {
+        setPosts([]); setSosPosts([]); setPinPosts([]);
+        setFeedCache({ posts: [], sosPosts: [], pinPosts: [], communityIds: [], fetchedAt: Date.now() });
         setLoading(false);
         return;
       }
 
-      const followingSet = new Set((myFollows || []).map((f: any) => f.following_id));
-      const circleSet = new Set([
-        ...(myCircle1 || []).map((c: any) => c.contact_id),
-        ...(myCircle2 || []).map((c: any) => c.user_id),
-      ]);
-      const socialIds = [...followingSet, ...circleSet];
-
-      // Wave 2: feed RPC + SOS + pins — all in parallel
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-      const pinSelect = 'id, user_id, lat, lng, category, severity, description, photo_url, address, confirmations, created_at';
-      const lat = userLocation?.lat ?? 48.8566;
-      const lng = userLocation?.lng ?? 2.3522;
-      const latDelta = 0.0045;
-      const lngDelta = 0.0055;
-
-      const [feedResult, sosResult, nearbyPinsRes, socialPinsRes] = await Promise.all([
-        // Single RPC replaces: messages + profiles + comment counts
-        supabase.rpc("community_feed", { p_community_ids: ids, p_limit: 50 }),
-        // SOS posts (graceful)
-        supabase.from("community_posts").select("*").eq("type", "sos_alert").order("created_at", { ascending: false }).limit(20).then(r => r, () => ({ data: null, error: null, count: null, status: 0, statusText: '' })),
-        // Nearby pins
-        supabase.from('pins').select(pinSelect)
-          .gte('created_at', sevenDaysAgo).is('resolved_at', null)
-          .gte('lat', lat - latDelta).lte('lat', lat + latDelta)
-          .gte('lng', lng - lngDelta).lte('lng', lng + lngDelta)
-          .order('created_at', { ascending: false }).limit(20),
-        // Social pins
-        socialIds.length > 0
-          ? supabase.from('pins').select(pinSelect)
-              .gte('created_at', sevenDaysAgo).is('resolved_at', null)
-              .in('user_id', socialIds)
-              .order('created_at', { ascending: false }).limit(15)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-
-      // Process feed posts (already joined with profiles + comment counts)
-      const feedRows = (feedResult.data ?? []) as any[];
-      const visible = feedRows.filter((m: any) => {
-        const vis = m.visibility || "public";
-        if (vis === "public") return true;
-        if (m.user_id === userId) return true;
-        if (vis === "followers") return followingSet.has(m.user_id);
-        if (vis === "cercle") return circleSet.has(m.user_id);
-        return true;
+      // Process posts (visibility already filtered server-side)
+      const processedPosts = (feed.posts ?? []).map((m: any) => {
+        const displayName = m.author_display_name || m.author_first_name || m.display_name || "Anonyme";
+        const name = m.author_username || displayName;
+        const avatar = m.author_avatar_emoji || name.charAt(0).toUpperCase();
+        return {
+          id: m.id,
+          type: "quartier" as const,
+          user: { name, avatar, avatarUrl: m.author_avatar_url || null, gradientColors: pickGradient(m.user_id) },
+          time: timeAgo(m.created_at),
+          title: "",
+          content: m.content,
+          comments: Number(m.comment_count) || 0,
+          userId: m.user_id,
+          username: m.author_username || null,
+          displayName,
+          _createdAt: m.created_at,
+        };
       });
-
-      setPosts(
-        visible.map((m: any) => {
-          const displayName = m.author_display_name || m.author_first_name || m.display_name || "Anonyme";
-          const name = m.author_username || displayName;
-          const avatar = m.author_avatar_emoji || name.charAt(0).toUpperCase();
-          return {
-            id: m.id,
-            type: "quartier" as const,
-            user: {
-              name,
-              avatar,
-              avatarUrl: m.author_avatar_url || null,
-              gradientColors: pickGradient(m.user_id),
-            },
-            time: timeAgo(m.created_at),
-            title: "",
-            content: m.content,
-            comments: Number(m.comment_count) || 0,
-            userId: m.user_id,
-            username: m.author_username || null,
-            displayName,
-            _createdAt: m.created_at,
-          };
-        })
-      );
+      setPosts(processedPosts);
 
       // Process SOS posts
+      let processedSos: any[] = [];
       try {
         const sosRows = (sosResult as any)?.data;
         if (sosRows?.length) {
@@ -220,7 +196,7 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
             .in("id", sosAuthorIds);
           const sosProfileMap = new Map((sosProfiles || []).map((p: any) => [p.id, p]));
 
-          setSosPosts(visibleSos.map((s: any) => {
+          processedSos = visibleSos.map((s: any) => {
             const prof = sosProfileMap.get(s.author_id);
             return {
               ...s,
@@ -229,62 +205,59 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
               _isSos: true,
               _createdAt: s.created_at,
             };
-          }));
+          });
+          setSosPosts(processedSos);
         }
       } catch {
         // community_posts table may not exist — silent
       }
 
-      // Process pins
-      try {
-        const allPins = [...(nearbyPinsRes.data ?? []), ...(socialPinsRes.data ?? [])];
-        const seenPinIds = new Set<string>();
-        const uniquePins = allPins.filter(p => {
-          if (seenPinIds.has(p.id)) return false;
-          seenPinIds.add(p.id);
-          return true;
-        });
+      // Process pins (profiles already joined server-side, deduplicate nearby + social)
+      const allPins = [...(feed.nearby_pins ?? []), ...(feed.social_pins ?? [])];
+      const seenPinIds = new Set<string>();
+      const uniquePins = allPins.filter((p: any) => {
+        if (seenPinIds.has(p.id)) return false;
+        seenPinIds.add(p.id);
+        return true;
+      });
 
-        const pinAuthorIds = [...new Set(uniquePins.map(p => p.user_id))];
-        let pinProfileMap = new Map<string, any>();
-        if (pinAuthorIds.length > 0) {
-          const { data: pinProfiles } = await supabase
-            .from('profiles')
-            .select('id, display_name, first_name, username, avatar_emoji, avatar_url')
-            .in('id', pinAuthorIds);
-          pinProfileMap = new Map((pinProfiles || []).map((p: any) => [p.id, p]));
-        }
+      const processedPins = uniquePins.map((pin: any) => {
+        const displayName = pin.display_name || pin.first_name || 'Anonyme';
+        const name = pin.username || displayName;
+        const avatar = pin.avatar_emoji || name.charAt(0).toUpperCase();
+        return {
+          id: pin.id,
+          type: 'pin' as const,
+          _isPin: true,
+          _isSos: false,
+          _createdAt: pin.created_at,
+          category: pin.category,
+          severity: pin.severity,
+          description: pin.description,
+          address: pin.address,
+          photo_url: pin.photo_url,
+          confirmations: pin.confirmations || 0,
+          lat: pin.lat,
+          lng: pin.lng,
+          userId: pin.user_id,
+          user: { name, avatar, avatarUrl: pin.avatar_url || null, gradientColors: pickGradient(pin.user_id) },
+          content: pin.description || '',
+        };
+      });
+      setPinPosts(processedPins);
 
-        setPinPosts(uniquePins.map(pin => {
-          const prof = pinProfileMap.get(pin.user_id);
-          const displayName = prof?.display_name || prof?.first_name || 'Anonyme';
-          const name = prof?.username || displayName;
-          const avatar = prof?.avatar_emoji || name.charAt(0).toUpperCase();
-          return {
-            id: pin.id,
-            type: 'pin' as const,
-            _isPin: true,
-            _isSos: false,
-            _createdAt: pin.created_at,
-            category: pin.category,
-            severity: pin.severity,
-            description: pin.description,
-            address: pin.address,
-            photo_url: pin.photo_url,
-            confirmations: pin.confirmations || 0,
-            lat: pin.lat,
-            lng: pin.lng,
-            userId: pin.user_id,
-            user: { name, avatar, avatarUrl: prof?.avatar_url || null, gradientColors: pickGradient(pin.user_id) },
-            content: pin.description || '',
-          };
-        }));
-      } catch {
-        // pins table query failed — silent
-      }
+      // Write to cache for instant next open
+      setFeedCache({
+        posts: processedPosts,
+        sosPosts: processedSos,
+        pinPosts: processedPins,
+        communityIds: ids,
+        fetchedAt: Date.now(),
+      });
 
       setLoading(false);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, refreshKey]);
 
   // Realtime for new posts
@@ -333,9 +306,40 @@ export default function FilTab({ isDark, userId, onStoryClick, onPublish, onSafe
   }, [userId, communityIds]);
 
   if (loading) {
+    const skBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)", fontSize: 12 }}>
-        Chargement…
+      <div style={{ paddingBottom: 20 }}>
+        {/* Stories skeleton */}
+        <div style={{ display: 'flex', gap: 12, padding: '12px 16px', overflowX: 'hidden' }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} style={{ width: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <div className="animate-pulse" style={{ width: 48, height: 48, borderRadius: '50%', background: skBg }} />
+              <div className="animate-pulse" style={{ width: 36, height: 8, borderRadius: 4, background: skBg }} />
+            </div>
+          ))}
+        </div>
+        {/* Post card skeletons */}
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ borderRadius: 16, padding: 16, background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div className="animate-pulse" style={{ width: 36, height: 36, borderRadius: '50%', background: skBg }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div className="animate-pulse" style={{ width: 100, height: 10, borderRadius: 5, background: skBg }} />
+                  <div className="animate-pulse" style={{ width: 60, height: 8, borderRadius: 4, background: skBg }} />
+                </div>
+              </div>
+              <div className="animate-pulse" style={{ width: '100%', height: 10, borderRadius: 5, background: skBg, marginBottom: 8 }} />
+              <div className="animate-pulse" style={{ width: '75%', height: 10, borderRadius: 5, background: skBg, marginBottom: 8 }} />
+              <div className="animate-pulse" style={{ width: '50%', height: 10, borderRadius: 5, background: skBg, marginBottom: 16 }} />
+              <div style={{ display: 'flex', gap: 16 }}>
+                <div className="animate-pulse" style={{ width: 48, height: 8, borderRadius: 4, background: skBg }} />
+                <div className="animate-pulse" style={{ width: 48, height: 8, borderRadius: 4, background: skBg }} />
+                <div className="animate-pulse" style={{ width: 48, height: 8, borderRadius: 4, background: skBg }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

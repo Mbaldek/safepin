@@ -260,6 +260,10 @@ type Store = {
   dbClusters: import('@/types').DbCluster[];
   setDbClusters: (c: import('@/types').DbCluster[]) => void;
 
+  // Feed cache — stale-while-revalidate for instant community tab opening
+  feedCache: { posts: any[]; sosPosts: any[]; pinPosts: any[]; communityIds: string[]; fetchedAt: number } | null;
+  setFeedCache: (cache: { posts: any[]; sosPosts: any[]; pinPosts: any[]; communityIds: string[]; fetchedAt: number } | null) => void;
+
 };
 
 export const useStore = create<Store>((set) => ({
@@ -438,5 +442,9 @@ export const useStore = create<Store>((set) => ({
   // DB spatial clusters
   dbClusters: [],
   setDbClusters: (c) => set({ dbClusters: c }),
+
+  // Feed cache
+  feedCache: null,
+  setFeedCache: (cache) => set({ feedCache: cache }),
 
 }));

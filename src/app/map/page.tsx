@@ -36,6 +36,7 @@ import { useEscorte } from '@/hooks/useEscorte';
 import { useUiStore } from '@/stores/uiStore';
 import FloatingCallPill from '@/components/FloatingCallPill';
 import CallSheet from '@/components/CallSheet';
+import { prefetchFeed } from '@/lib/prefetchFeed';
 // Lazy-loaded heavy components — not on the critical rendering path
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
 const JuliaChat = dynamic(() => import('@/components/julia/JuliaChat'), { ssr: false });
@@ -511,6 +512,13 @@ activeTrip, setActiveTrip,
       }
     });
   }, [router, setUserProfile, setUserId]);
+
+  // Prefetch community feed in background for instant tab opening
+  useEffect(() => {
+    if (!userId) return;
+    const timer = setTimeout(() => prefetchFeed(userId), 2000);
+    return () => clearTimeout(timer);
+  }, [userId]);
 
   // Fetch unread DM count periodically
   const { unreadDmCount, setUnreadDmCount } = useStore();

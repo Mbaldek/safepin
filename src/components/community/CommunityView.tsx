@@ -53,7 +53,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
   const setCommunityDefaultTab = useStore((s) => s.setCommunityDefaultTab);
 
   const [activeTab, setActiveTab] = useState(0);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -298,7 +298,7 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      onAnimationComplete={() => setReady(true)}
+      onAnimationComplete={() => {}}
       style={{
         willChange: 'transform',
         position: 'fixed',
