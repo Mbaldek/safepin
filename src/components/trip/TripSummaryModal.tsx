@@ -96,28 +96,30 @@ export default function TripSummaryModal({
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         style={{
           flex: 1,
+          position: "relative",
           background: C.sheet[th],
           borderRadius: "28px 28px 0 0",
           borderTop: `1px solid ${C.bd[th]}`,
           display: "flex", flexDirection: "column",
           overflow: "hidden",
           pointerEvents: "auto",
+          paddingBottom: 20,
         }}
       >
-        {/* Handle + icons row */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <div style={{ padding: "10px 0 0", display: "flex", justifyContent: "center" }}>
-            <div style={{ width: 36, height: 4, borderRadius: 9999, background: C.bdS[th] }} />
-          </div>
-          <div style={{ position: "absolute", top: 8, right: 14, display: "flex", gap: 4, alignItems: "center" }}>
-            <div style={icBtnStyle}><Activity size={16} color={C.t3[th]} /></div>
-            <div style={icBtnStyle}><Share2 size={16} color={C.t3[th]} /></div>
-            <div style={{ ...icBtnStyle }} onClick={onClose}><X size={16} color={C.t2[th]} /></div>
-          </div>
+        {/* Handle */}
+        <div style={{ padding: "10px 0 0", display: "flex", justifyContent: "center", flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 9999, background: C.bdS[th] }} />
+        </div>
+
+        {/* Icons — absolute, aligned with check ring center */}
+        <div style={{ position: "absolute", top: 28, right: 14, display: "flex", gap: 4, alignItems: "center", zIndex: 5 }}>
+          <div style={icBtnStyle}><Activity size={16} color={C.t3[th]} /></div>
+          <div style={icBtnStyle}><Share2 size={16} color={C.t3[th]} /></div>
+          <div style={{ ...icBtnStyle }} onClick={onClose}><X size={16} color={C.t2[th]} /></div>
         </div>
 
         {/* Check hero */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "20px 0 16px", flexShrink: 0 }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 10px", flexShrink: 0 }}>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: [0, 1.15, 1] }}
@@ -136,7 +138,7 @@ export default function TripSummaryModal({
         </div>
 
         {/* Title block */}
-        <div style={{ textAlign: "center", padding: "0 24px 16px", flexShrink: 0 }}>
+        <div style={{ textAlign: "center", padding: "0 24px 10px", flexShrink: 0 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: C.t1[th], letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 6 }}>
             Vous êtes arrivée !
           </div>
@@ -149,7 +151,7 @@ export default function TripSummaryModal({
         </div>
 
         {/* Score badge */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, flexShrink: 0 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, flexShrink: 0 }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "6px 14px", borderRadius: 9999,
@@ -166,7 +168,7 @@ export default function TripSummaryModal({
         {/* Circle notification */}
         {activeMembers.length > 0 && (
           <div style={{
-            margin: "0 20px 16px",
+            margin: "0 20px 10px",
             display: "flex", alignItems: "center", gap: 10,
             padding: "11px 14px", borderRadius: 14,
             background: "rgba(52,211,153,0.06)",
@@ -205,7 +207,7 @@ export default function TripSummaryModal({
         )}
 
         {/* Stats cards with gold shimmer */}
-        <div style={{ display: "flex", gap: 8, padding: "0 20px", marginBottom: 16, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, padding: "0 20px", flexShrink: 0 }}>
           {[
             { icon: <Clock size={16} color={C.teal} />, value: String(durationMin), unit: "min", accent: false, delay: 0 },
             { icon: <Send size={16} color={C.purple} />, value: distKm, unit: "km", accent: false, delay: 0.05 },
