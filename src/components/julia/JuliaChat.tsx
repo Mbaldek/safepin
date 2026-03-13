@@ -243,7 +243,7 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
           value={inputText}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Demandez \u00e0 Julia..."
+          placeholder="Écris à Julia..."
           disabled={isStreaming}
           rows={1}
           style={{
