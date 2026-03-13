@@ -139,7 +139,7 @@ export default function TripHUD({
             textAlign: 'center', marginTop: 8,
             fontSize: 12, color: C.t3, cursor: 'pointer',
           }}>
-            Terminer le trajet
+            Annuler
           </div>
         </motion.div>
       )}

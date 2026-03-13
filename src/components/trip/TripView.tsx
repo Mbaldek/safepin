@@ -54,6 +54,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const [tripId, setTripId] = useState<string | null>(null);
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
   const [tripSummary, setTripSummary] = useState<{ duration_s: number; distance_m: number; score: number } | null>(null);
+  const [incidentsAvoided, setIncidentsAvoided] = useState(0);
   const [favAddMode, setFavAddMode] = useState(false);
   const [plannedDurationS, setPlannedDurationS] = useState(0);
   const [distanceM, setDistanceM] = useState(0);
@@ -903,6 +904,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
           setElapsedSeconds(0);
           setDistanceM(Math.round(route.distance));
           setPlannedDurationS(Math.round(route.duration));
+          setIncidentsAvoided(maxIncidents - (route.nearbyIncidents ?? 0));
           setActiveRoute({ coords: route.coords, destination });
           setPendingRoutes(null);
           if (userId) {
@@ -985,6 +987,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
       tripSummary={tripSummary}
       elapsedSeconds={elapsedSeconds}
       distanceM={distanceM}
+      incidentsAvoided={incidentsAvoided}
       isDark={isDark}
       onClose={() => {
         goBack();

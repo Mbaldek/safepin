@@ -1386,7 +1386,7 @@ activeTrip, setActiveTrip,
             setTransitSegments(null);
           }}
           onTerminate={() => {
-            escorte.endEscorte(false);
+            escorte.setView('hub');
             setActiveRoute(null);
             setTransitSegments(null);
           }}

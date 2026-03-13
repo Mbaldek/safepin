@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Shield } from "lucide-react";
 import { colors, spring, getCardStyle } from "@/lib/trip-constants";
 
 interface TripSummaryModalProps {
@@ -10,6 +10,7 @@ interface TripSummaryModalProps {
   tripSummary: { duration_s: number; distance_m: number; score: number } | null;
   elapsedSeconds: number;
   distanceM: number;
+  incidentsAvoided: number;
   isDark: boolean;
   onClose: () => void;
 }
@@ -19,6 +20,7 @@ export default function TripSummaryModal({
   tripSummary,
   elapsedSeconds,
   distanceM,
+  incidentsAvoided,
   isDark,
   onClose,
 }: TripSummaryModalProps) {
@@ -90,9 +92,9 @@ export default function TripSummaryModal({
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, width: "100%", marginBottom: 24 }}>
           {[
-            { value: String(Math.round((tripSummary?.duration_s ?? elapsedSeconds) / 60)), unit: "min", delay: 0 },
-            { value: ((tripSummary?.distance_m ?? distanceM) / 1000).toFixed(1), unit: "km", delay: 0.05 },
-            { value: (tripSummary?.score ?? 0).toFixed(1), unit: "score", delay: 0.1 },
+            { value: String(Math.round((tripSummary?.duration_s ?? elapsedSeconds) / 60)), unit: "min", delay: 0, accent: false },
+            { value: ((tripSummary?.distance_m ?? distanceM) / 1000).toFixed(1), unit: "km", delay: 0.05, accent: false },
+            { value: String(incidentsAvoided), unit: "évités", delay: 0.1, accent: true },
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -105,31 +107,35 @@ export default function TripSummaryModal({
                 textAlign: "center",
               }}
             >
-              <div style={{ fontSize: 20, fontWeight: 600, color: colors.textPrimary[theme] }}>{stat.value}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                {stat.accent && <Shield size={16} color={colors.success} />}
+                <span style={{ fontSize: 20, fontWeight: 600, color: stat.accent ? colors.success : colors.textPrimary[theme] }}>{stat.value}</span>
+              </div>
               <div style={{ fontSize: 11, color: colors.textTertiary[theme] }}>{stat.unit}</div>
             </motion.div>
           ))}
         </div>
 
         {/* CTA */}
-        <motion.button
-          onClick={onClose}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.97 }}
-          style={{
-            width: "100%",
-            padding: "14px",
-            borderRadius: 14,
-            backgroundColor: colors.cyan,
-            border: "none",
-            fontSize: 15,
-            fontWeight: 700,
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
-          Retour
-        </motion.button>
+        <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          <motion.button
+            onClick={onClose}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              padding: "10px 24px",
+              borderRadius: 28,
+              backgroundColor: colors.cyan,
+              border: "none",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "white",
+              cursor: "pointer",
+            }}
+          >
+            Retour à la carte
+          </motion.button>
+        </div>
       </motion.div>
     </motion.div>
   );
