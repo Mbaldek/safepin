@@ -24,15 +24,15 @@ interface MapPinProps {
   showLabels?: boolean;
   opacity?: number;
   isNew?: boolean;
+  highlighted?: boolean;
   zoom?: number;
 }
 
-/** Zoom-based scale factor — current sizes = max (close-up only) */
+/** Zoom-based scale — current size is max, scale down when zoomed out */
 function getZoomScale(zoom: number): number {
   if (zoom >= 16) return 1.0;
-  if (zoom >= 14) return 0.75;
-  if (zoom >= 12) return 0.55;
-  return 0.45;
+  if (zoom >= 14) return 0.85;
+  return 0.6;
 }
 
 const CATEGORY_CONFIG: Record<string, { color: string; emoji: string; label: string; group: string }> = {
@@ -217,7 +217,7 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
   return container;
 }
 
-export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNew = false, zoom = 14 }: MapPinProps) {
+export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNew = false, highlighted = false, zoom = 14 }: MapPinProps) {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const labelRef = useRef<HTMLDivElement | null>(null);
   const onClickRef = useRef(onClick);
@@ -303,15 +303,48 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
     }
   }, [opacity]);
 
-  // Zoom-based scaling — smooth CSS transition
+  // Zoom-based scaling — applied on inner pin wrapper (not marker container)
   useEffect(() => {
     const el = markerRef.current?.getElement();
-    if (el) {
+    if (!el) return;
+    const pinEl = el.firstElementChild as HTMLElement;
+    if (!pinEl) return;
+
+    // Skip if highlighted (highlight takes priority)
+    if (highlighted) return;
+
+    const scale = getZoomScale(zoom);
+    pinEl.style.transform = `scale(${scale})`;
+    pinEl.style.transition = 'transform 0.25s ease';
+
+    // Disable ring/pulse animations at quartier level (zoom 12-13) for perf
+    const rings = pinEl.querySelectorAll<HTMLElement>('[class^="pin-"]');
+    rings.forEach((ring) => {
+      ring.style.animationPlayState = zoom < 14 ? 'paused' : 'running';
+    });
+  }, [zoom, highlighted]);
+
+  // Highlight effect — scale up + glow when pin is in a selected route corridor
+  useEffect(() => {
+    const el = markerRef.current?.getElement();
+    if (!el) return;
+    const pinEl = el.firstElementChild as HTMLElement;
+    if (!pinEl) return;
+
+    if (highlighted) {
+      pinEl.style.transform = 'scale(1.6)';
+      pinEl.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+      pinEl.style.boxShadow = '0 0 16px rgba(239,68,68,0.5), 0 0 32px rgba(239,68,68,0.25)';
+      pinEl.style.zIndex = '20';
+      pinEl.style.animation = 'pin-highlight-breathe 2s ease-in-out infinite';
+    } else {
       const scale = getZoomScale(zoom);
-      el.style.transform = `scale(${scale})`;
-      el.style.transition = 'transform 0.3s ease';
+      pinEl.style.transform = `scale(${scale})`;
+      pinEl.style.boxShadow = '';
+      pinEl.style.zIndex = '';
+      pinEl.style.animation = '';
     }
-  }, [zoom]);
+  }, [highlighted, zoom]);
 
   return null;
 }

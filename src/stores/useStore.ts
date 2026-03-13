@@ -15,6 +15,8 @@ export type RouteOption = {
   duration: number;
   distance: number;
   dangerScore: number;
+  nearbyIncidents?: number;
+  nearbyPinIds?: string[];
   rerouted?: boolean;
   steps?: import('@/lib/transit').TransitStep[];
 };
@@ -166,6 +168,10 @@ type Store = {
   setPendingRoutes: (routes: RouteOption[] | null) => void;
   selectedRouteIdx: number;
   setSelectedRouteIdx: (idx: number) => void;
+  tappedRouteIdx: number | null;
+  setTappedRouteIdx: (idx: number | null) => void;
+  highlightedPinIds: Set<string>;
+  setHighlightedPinIds: (ids: Set<string>) => void;
 
   // Transit per-segment colored route lines
   transitSegments: RouteSegment[] | null;
@@ -315,6 +321,10 @@ export const useStore = create<Store>((set) => ({
   setPendingRoutes: (routes) => set({ pendingRoutes: routes }),
   selectedRouteIdx: 0,
   setSelectedRouteIdx: (idx) => set({ selectedRouteIdx: idx }),
+  tappedRouteIdx: null,
+  setTappedRouteIdx: (idx) => set({ tappedRouteIdx: idx }),
+  highlightedPinIds: new Set<string>(),
+  setHighlightedPinIds: (ids) => set({ highlightedPinIds: ids }),
   transitSegments: null,
   setTransitSegments: (s) => set({ transitSegments: s }),
 

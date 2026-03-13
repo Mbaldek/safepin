@@ -172,3 +172,39 @@ export function getStepAlerts(
 
   return count > 0 ? { count, maxSeverity: maxSev } : null;
 }
+
+/**
+ * Count unique active pins within CORRIDOR_M of a route.
+ * Returns count, max severity, and the list of pin IDs (for highlighting on map).
+ */
+export function countCorridorIncidents(
+  coords: [number, number][],
+  pins: Pin[],
+): { count: number; maxSeverity: 'low' | 'med' | 'high'; pinIds: string[] } {
+  if (!coords.length || !pins.length) return { count: 0, maxSeverity: 'low', pinIds: [] };
+
+  const now = Date.now();
+  const activePins = pins.filter((p) => {
+    if (p.resolved_at) return false;
+    const maxH = DECAY_HOURS[p.category] || 24;
+    return (now - getEffectiveDate(p).getTime()) / 3600_000 < maxH;
+  });
+  if (activePins.length === 0) return { count: 0, maxSeverity: 'low', pinIds: [] };
+
+  const samples = samplePoints(coords, MAX_SAMPLES);
+  const seen = new Set<string>();
+  let maxSev: 'low' | 'med' | 'high' = 'low';
+
+  for (const pt of samples) {
+    for (const pin of activePins) {
+      if (seen.has(pin.id)) continue;
+      if (haversineMetersLngLat(pt, [pin.lng, pin.lat]) <= CORRIDOR_M) {
+        seen.add(pin.id);
+        if (pin.severity === 'high') maxSev = 'high';
+        else if (pin.severity === 'med' && maxSev !== 'high') maxSev = 'med';
+      }
+    }
+  }
+
+  return { count: seen.size, maxSeverity: maxSev, pinIds: Array.from(seen) };
+}

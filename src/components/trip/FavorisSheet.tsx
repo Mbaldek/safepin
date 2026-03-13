@@ -165,7 +165,7 @@ export default function FavorisSheet({ isOpen, onClose, onSelect, userId, userLa
         const proximity = `${userLng},${userLat}`;
         const url =
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
-          `?access_token=${token}&language=fr&limit=5&proximity=${proximity}&types=poi,address,place`;
+          `?access_token=${token}&language=fr&limit=5&proximity=${proximity}&types=poi,address,place,locality,neighborhood&autocomplete=true`;
         try {
           const res = await fetch(url);
           const json = await res.json();

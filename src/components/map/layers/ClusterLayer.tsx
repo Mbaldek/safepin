@@ -137,9 +137,10 @@ export function addClusterLayers(m: mapboxgl.Map) {
     filter: ['has', 'point_count'],
     paint: {
       'circle-radius': [
-        'interpolate', ['linear'], ['zoom'],
-        12, ['step', ['get', 'point_count'], 12, 10, 14, 30, 16],
-        14, ['step', ['get', 'point_count'], 18, 10, 21, 30, 24],
+        'step', ['get', 'point_count'],
+        18,
+        10, 21,
+        30, 24,
       ],
       'circle-color': [
         'case',
@@ -164,9 +165,10 @@ export function addClusterLayers(m: mapboxgl.Map) {
     filter: ['has', 'point_count'],
     paint: {
       'circle-radius': [
-        'interpolate', ['linear'], ['zoom'],
-        12, ['step', ['get', 'point_count'], 16, 10, 18, 30, 20],
-        14, ['step', ['get', 'point_count'], 24, 10, 27, 30, 30],
+        'step', ['get', 'point_count'],
+        24,
+        10, 27,
+        30, 30,
       ],
       'circle-color': [
         'case',
@@ -253,12 +255,7 @@ export function addClusterLayers(m: mapboxgl.Map) {
       type: 'circle',
       source: DB_CLUSTER_SRC,
       paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['zoom'],
-          3, ['interpolate', ['linear'], ['get', 'count'], 1, 10, 20, 18, 100, 28],
-          7, ['interpolate', ['linear'], ['get', 'count'], 1, 16, 20, 26, 100, 38],
-          11, ['interpolate', ['linear'], ['get', 'count'], 1, 22, 20, 34, 100, 50],
-        ],
+        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 22, 20, 34, 100, 50],
         'circle-color': [
           'match', ['get', 'dominant_group'],
           'urgent', '#F87171',
@@ -277,12 +274,7 @@ export function addClusterLayers(m: mapboxgl.Map) {
       type: 'circle',
       source: DB_CLUSTER_SRC,
       paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['zoom'],
-          3, ['interpolate', ['linear'], ['get', 'count'], 1, 8, 20, 14, 100, 22],
-          7, ['interpolate', ['linear'], ['get', 'count'], 1, 12, 20, 20, 100, 32],
-          11, ['interpolate', ['linear'], ['get', 'count'], 1, 16, 20, 26, 100, 40],
-        ],
+        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 16, 20, 26, 100, 40],
         'circle-color': [
           'match', ['get', 'dominant_group'],
           'urgent', '#F87171',

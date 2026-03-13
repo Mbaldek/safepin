@@ -152,6 +152,7 @@ function MapView({
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
     setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords,
     setMapViewport, dbClusters,
+    highlightedPinIds, setSelectedRouteIdx, setTappedRouteIdx,
   } = useStore(useShallow((s) => ({
     pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
@@ -167,6 +168,9 @@ function MapView({
     newPinCoords: s.newPinCoords,
     setMapViewport: s.setMapViewport,
     dbClusters: s.dbClusters,
+    highlightedPinIds: s.highlightedPinIds,
+    setSelectedRouteIdx: s.setSelectedRouteIdx,
+    setTappedRouteIdx: s.setTappedRouteIdx,
   })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -561,6 +565,16 @@ function MapView({
           'line-opacity': i === selectedRouteIdx ? 0.9 : 0.3,
         },
       }, 'clusters-halo');
+
+      // Click handler on route line — select route + show QuickCard
+      m.on('click', PENDING_LYRS[i], (e) => {
+        e.originalEvent.stopPropagation();
+        setSelectedRouteIdx(i);
+        setTappedRouteIdx(i);
+      });
+      // Cursor pointer on hover
+      m.on('mouseenter', PENDING_LYRS[i], () => { m.getCanvas().style.cursor = 'pointer'; });
+      m.on('mouseleave', PENDING_LYRS[i], () => { m.getCanvas().style.cursor = ''; });
     });
 
     // Only fitBounds on first draw (when routes are fetched), not on re-renders from selection change
@@ -1300,6 +1314,7 @@ function MapView({
           showLabels={effectiveLabels}
           opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
           isNew={newPinIds.has(pin.id)}
+          highlighted={highlightedPinIds.has(pin.id)}
           zoom={mapZoom}
         />
       ))}

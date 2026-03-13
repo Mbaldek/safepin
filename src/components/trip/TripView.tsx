@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, ChevronLeft, Map, Star, Signal, Users } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Map, Star, Signal, Users } from "lucide-react";
 import { fetchDirectionsMulti, formatDuration, formatDistance } from "@/lib/directions";
 import { fetchTransitRoute } from "@/lib/transit";
-import { scoreRoute, scoreTransitRoute } from "@/lib/route-scoring";
+import { scoreRoute, scoreTransitRoute, countCorridorIncidents } from "@/lib/route-scoring";
 import RouteCard from "@/components/trip/RouteCard";
 import type { RouteOption } from "@/stores/useStore";
 import { useIsDark } from "@/hooks/useIsDark";
@@ -40,12 +40,13 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const setTransitSegments = useStore((s) => s.setTransitSegments);
   const setMapFlyTo = useStore((s) => s.setMapFlyTo);
   const setShowWalkWithMe = useStore((s) => s.setShowWalkWithMe);
+  const setHighlightedPinIds = useStore((s) => s.setHighlightedPinIds);
   const pins = useStore((s) => s.pins);
   const { isGated, shouldNudge, isNonSkippable, daysLeft, snooze } = useVerificationGate();
   const [state, setState] = useState<AppState>(openToHistory ? "history" : "idle");
   // When opened directly to history (openToHistory=true), "going back" means returning
   // to history state, not idle — idle is only the hub when opened normally from EscorteSheet
-  const goBack = () => openToHistory ? setState("history") : setState("idle");
+  const goBack = () => { setHighlightedPinIds(new Set()); openToHistory ? setState("history") : setState("idle"); };
   const [circleEnabled, setCircleEnabled] = useState(false);
   const [destination, setDestination] = useState("");
   const [recentTrips, setRecentTrips] = useState<Trip[]>([]);
@@ -98,8 +99,15 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   const [circleContacts, setCircleContacts] = useState<CircleContact[]>([]);
   const [showVerifNudge, setShowVerifNudge] = useState(false);
   const [showVerifGate, setShowVerifGate] = useState(false);
+  const [panelSnap, setPanelSnap] = useState<'expanded' | 'collapsed'>('expanded');
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const theme = isDark ? "dark" : "light";
+
+  // Reset panel to expanded when entering planifier
+  useEffect(() => {
+    if (state === 'planifier') setPanelSnap('expanded');
+  }, [state]);
 
   // Timer for active state
   useEffect(() => {
@@ -111,7 +119,49 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     }
   }, [state]);
 
-
+  // Handle route-quick-launch event from RouteQuickCard
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const idx = (e as CustomEvent).detail?.idx;
+      const route = fetchedRoutes[idx];
+      if (!route || !destination) return;
+      setSelectedIdx(idx);
+      setSelectedRouteIdx(idx);
+      setState("active");
+      setElapsedSeconds(0);
+      setDistanceM(Math.round(route.distance));
+      setPlannedDurationS(Math.round(route.duration));
+      setActiveRoute({ coords: route.coords, destination });
+      setPendingRoutes(null);
+      setHighlightedPinIds(new Set());
+      if (userId) {
+        try {
+          const origin = await getCurrentPosition();
+          setTimeout(() => setMapFlyTo({ lat: origin.lat, lng: origin.lng, zoom: 16 }), 1400);
+          const res = await fetch("/api/trips/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: userId,
+              from_label: "Ma position",
+              to_label: destination,
+              mode: transportMode,
+              origin_lat: origin.lat, origin_lng: origin.lng,
+              dest_lat: destCoords ? destCoords[1] : origin.lat,
+              dest_lng: destCoords ? destCoords[0] : origin.lng,
+              planned_duration_s: Math.round(route.duration),
+              danger_score: route.dangerScore,
+              distance_m: Math.round(route.distance),
+            }),
+          });
+          const data = await res.json();
+          if (data.trip_id) setTripId(data.trip_id);
+        } catch {}
+      }
+    };
+    window.addEventListener('route-quick-launch', handler);
+    return () => window.removeEventListener('route-quick-launch', handler);
+  }, [fetchedRoutes, destination, userId, transportMode, destCoords]);
 
   // Fetch circle contacts
   useEffect(() => {
@@ -181,20 +231,28 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoutes(false);
             return;
           }
-          const routeOptions: RouteOption[] = transitRoutes.slice(0, 3).map((tr, i) => ({
-            id: `transit-${i}`,
-            label: i === 0 ? "Plus rapide" : i === 1 ? "Équilibrée" : "Moins de marche",
-            color: ROUTE_COLORS[i] ?? "#94A3B8",
-            coords: tr.coords,
-            duration: tr.totalDuration,
-            distance: 0,
-            dangerScore: scoreTransitRoute(tr.steps, pins),
-            steps: tr.steps,
-          }));
+          const routeOptions: RouteOption[] = transitRoutes.slice(0, 3).map((tr, i) => {
+            const incidents = countCorridorIncidents(tr.coords, pins);
+            return {
+              id: `transit-${i}`,
+              label: i === 0 ? "Plus rapide" : i === 1 ? "Équilibrée" : "Moins de marche",
+              color: ROUTE_COLORS[i] ?? "#94A3B8",
+              coords: tr.coords,
+              duration: tr.totalDuration,
+              distance: 0,
+              dangerScore: scoreTransitRoute(tr.steps, pins),
+              nearbyIncidents: incidents.count,
+              nearbyPinIds: incidents.pinIds,
+              steps: tr.steps,
+            };
+          });
           setFetchedRoutes(routeOptions);
           setSelectedIdx(0);
           setSelectedRouteIdx(0);
           setPendingRoutes(routeOptions);
+          if (routeOptions[0]?.nearbyPinIds) {
+            setHighlightedPinIds(new Set(routeOptions[0].nearbyPinIds));
+          }
           if (routeOptions[0]?.steps) {
             setTransitSegments(routeOptions[0].steps.map(s => ({
               coords: s.coords,
@@ -217,10 +275,15 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         }
 
         // Score each route
-        const scored = results.map((r) => ({
-          ...r,
-          dangerScore: scoreRoute(r.coords, pins),
-        }));
+        const scored = results.map((r) => {
+          const incidents = countCorridorIncidents(r.coords, pins);
+          return {
+            ...r,
+            dangerScore: scoreRoute(r.coords, pins),
+            nearbyIncidents: incidents.count,
+            nearbyPinIds: incidents.pinIds,
+          };
+        });
         // Sort by danger score ascending (safest first)
         scored.sort((a, b) => a.dangerScore - b.dangerScore);
 
@@ -239,6 +302,8 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             duration: r.duration,
             distance: r.distance,
             dangerScore: r.dangerScore,
+            nearbyIncidents: r.nearbyIncidents,
+            nearbyPinIds: r.nearbyPinIds,
           };
         });
 
@@ -246,6 +311,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         setSelectedIdx(0);
         setSelectedRouteIdx(0);
         setPendingRoutes(routeOptions);
+        // Highlight pins for the initially selected (safest) route
+        if (routeOptions[0]?.nearbyPinIds) {
+          setHighlightedPinIds(new Set(routeOptions[0].nearbyPinIds));
+        }
       } catch (e) {
 
       }
@@ -609,6 +678,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
   ];
 
   const selectedRoute = fetchedRoutes[selectedIdx] ?? null;
+  const maxIncidents = fetchedRoutes.length > 0 ? Math.max(...fetchedRoutes.map(r => r.nearbyIncidents ?? 0)) : 0;
 
   const renderPlanifier = () => (
     <motion.div
@@ -771,6 +841,7 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                 onClick={() => {
                   setSelectedIdx(idx);
                   setSelectedRouteIdx(idx);
+                  setHighlightedPinIds(new Set(route.nearbyPinIds));
                   if (route.steps) {
                     setTransitSegments(route.steps.map(s => ({
                       coords: s.coords,
@@ -793,6 +864,10 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
                   steps={route.steps}
                   pins={pins}
                   onStepLocationTap={(lat, lng) => setMapFlyTo({ lat, lng, zoom: 16 })}
+                  incidentsAvoided={maxIncidents - (route.nearbyIncidents ?? 0)}
+                  nearbyIncidents={route.nearbyIncidents ?? 0}
+                  nearbyPinIds={route.nearbyPinIds ?? []}
+                  onPinFocus={(pin) => setMapFlyTo({ lat: pin.lat, lng: pin.lng, zoom: 16 })}
                 />
               </motion.button>
               {idx < fetchedRoutes.length - 1 && (
@@ -940,18 +1015,35 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     />
   );
 
+  const isCollapsible = state === 'planifier' && fetchedRoutes.length > 0;
+  const isCollapsed = isCollapsible && panelSnap === 'collapsed';
+
+  const handleDragEnd = useCallback((_: unknown, info: { velocity: { y: number }; offset: { y: number } }) => {
+    if (!isCollapsible) return;
+    // Swipe down or drag past threshold → collapse
+    if (info.velocity.y > 100 || info.offset.y > 80) {
+      setPanelSnap('collapsed');
+    } else if (info.velocity.y < -100 || info.offset.y < -80) {
+      setPanelSnap('expanded');
+    }
+  }, [isCollapsible]);
+
   return (
     <motion.div
+      ref={panelRef}
       initial={{ y: "100%" }}
-      animate={{ y: 0 }}
+      animate={{ y: 0, maxHeight: isCollapsed ? 160 : (openToHistory ? '78%' : '72dvh') }}
       exit={{ y: "100%" }}
       transition={spring}
+      drag={isCollapsible ? "y" : false}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={0.1}
+      onDragEnd={handleDragEnd}
       style={{
         position: "fixed",
         bottom: 0,
         left: 0,
         right: 0,
-        maxHeight: openToHistory ? '78%' : "72dvh",
         zIndex: openToHistory ? 310 : 50,
         backgroundColor: colors.sheet[theme],
         borderTopLeftRadius: 26,
@@ -960,10 +1052,22 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
         flexDirection: "column",
         overflow: "hidden",
         boxShadow: "0 -4px 30px rgba(0,0,0,0.15)",
+        touchAction: isCollapsible ? "none" : "auto",
       }}
     >
       {/* Handle */}
-      <div style={{ padding: "10px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
+      <div
+        onClick={() => { if (isCollapsible) setPanelSnap(panelSnap === 'collapsed' ? 'expanded' : 'collapsed'); }}
+        style={{
+          padding: "10px 0 4px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 2,
+          flexShrink: 0,
+          cursor: isCollapsible ? "pointer" : "default",
+        }}
+      >
         <div
           style={{
             width: 36,
@@ -972,6 +1076,14 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
             backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
           }}
         />
+        {isCollapsible && (
+          <div style={{ marginTop: 2 }}>
+            {isCollapsed
+              ? <ChevronUp size={14} color={isDark ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"} />
+              : <ChevronDown size={14} color={isDark ? "rgba(255,255,255,0.25)" : "rgba(15,23,42,0.25)"} />
+            }
+          </div>
+        )}
       </div>
 
       {/* Content */}

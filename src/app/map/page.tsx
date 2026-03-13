@@ -45,6 +45,7 @@ const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { 
 const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
 const TripView = dynamic(() => import('@/components/trip/TripView'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
+const RouteQuickCard = dynamic(() => import('@/components/trip/RouteQuickCard'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
 const CercleSheet = dynamic(() => import('@/components/CercleSheet'), { ssr: false });
 
@@ -177,6 +178,7 @@ activeTrip, setActiveTrip,
     showPinLabels, setShowPinLabels,
     setTripPrefill,
     mapViewport, setDbClusters,
+    pendingRoutes, tappedRouteIdx, setTappedRouteIdx,
   } = useStore();
   const isDark = useIsDark();
   const tMap = useTranslations('map');
@@ -414,8 +416,12 @@ activeTrip, setActiveTrip,
     setShowWalkHistory(false);
     setShowTripHistory(false);
     // Close trip/community/cercle panels — return to map
-    const tab = useStore.getState().activeTab;
-    if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
+    const s = useStore.getState();
+    const tab = s.activeTab;
+    if (tab === 'trip' && s.pendingRoutes?.length) {
+      // Don't close trip panel when viewing routes — just dismiss QuickCard
+      s.setTappedRouteIdx(null);
+    } else if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
       setActiveTab('map');
     }
   }, [setActiveSheet, setShowIncidentsList, setShowWalkHistory, setShowTripHistory, setActiveTab]);
@@ -970,6 +976,23 @@ activeTrip, setActiveTrip,
         {activeTab === 'map' && !showWalkWithMe && !showWalkHistory && !showTripHistory && escorte.view !== 'trip-active' && (
           <EmergencyButton userId={userId} />
         )}
+
+        {/* RouteQuickCard — appears when user taps a route line on the map */}
+        <AnimatePresence>
+          {tappedRouteIdx !== null && pendingRoutes?.[tappedRouteIdx] && (
+            <RouteQuickCard
+              key="route-quick-card"
+              route={pendingRoutes[tappedRouteIdx]}
+              maxIncidents={Math.max(...(pendingRoutes?.map(r => r.nearbyIncidents ?? 0) ?? [0]))}
+              onLaunch={() => {
+                // Dispatch event for TripView to handle the launch
+                window.dispatchEvent(new CustomEvent('route-quick-launch', { detail: { idx: tappedRouteIdx } }));
+                setTappedRouteIdx(null);
+              }}
+              onDismiss={() => setTappedRouteIdx(null)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Filter button — replaces old POI toggle */}
         {activeTab === 'map' && (

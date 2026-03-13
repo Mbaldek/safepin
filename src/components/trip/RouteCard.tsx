@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Shield } from 'lucide-react';
 import type { TransitStep } from '@/lib/transit';
 import { getLineIcon, formatTransitDuration } from '@/lib/transit';
 import { getStepAlerts } from '@/lib/route-scoring';
@@ -18,17 +18,54 @@ interface RouteCardProps {
   steps?: TransitStep[];
   pins?: Pin[];
   onStepLocationTap?: (lat: number, lng: number) => void;
+  incidentsAvoided?: number;
+  nearbyIncidents?: number;
+  nearbyPinIds?: string[];
+  onPinFocus?: (pin: Pin) => void;
 }
 
 const SEV_COLORS = { low: '#F59E0B', med: '#F97316', high: '#EF4444' } as const;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  aggression: 'Agression',
+  vol: 'Vol',
+  harcelement: 'Harcèlement',
+  accident: 'Accident',
+  incivilite: 'Incivilité',
+  alerte: 'Alerte',
+  safe_space: 'Safe space',
+};
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return 'à l\'instant';
+  if (min < 60) return `il y a ${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h}h`;
+  return `il y a ${Math.floor(h / 24)}j`;
+}
 
 export default function RouteCard({
   color, label, duration, distance,
   isSelected, isDark, steps, pins,
   onStepLocationTap,
+  incidentsAvoided = 0, nearbyIncidents = 0, nearbyPinIds = [],
+  onPinFocus,
 }: RouteCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [incidentsExpanded, setIncidentsExpanded] = useState(false);
   const hasSteps = steps && steps.length > 0;
+
+  // Resolve nearby pin objects for the incident list
+  const nearbyPins = pins?.filter(p => nearbyPinIds.includes(p.id)) ?? [];
+
+  // Incident badge
+  const hasBadge = incidentsAvoided > 0 || nearbyIncidents > 0;
+  const badgeColor = incidentsAvoided > 0 ? '#34D399' : '#F59E0B';
+  const badgeText = incidentsAvoided > 0
+    ? `-${incidentsAvoided}`
+    : nearbyIncidents > 0 ? `${nearbyIncidents}` : '';
 
   return (
     <div>
@@ -69,9 +106,30 @@ export default function RouteCard({
 
         {/* Distance */}
         {distance && (
-          <span style={{ fontSize: 11, color: isDark ? '#64748B' : '#6B7280', marginRight: hasSteps ? 6 : 0 }}>
+          <span style={{ fontSize: 11, color: isDark ? '#64748B' : '#6B7280', marginRight: hasBadge ? 6 : (hasSteps ? 6 : 0) }}>
             {distance}
           </span>
+        )}
+
+        {/* Incident badge */}
+        {hasBadge && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setIncidentsExpanded(v => !v); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 10, fontWeight: 700,
+              color: badgeColor,
+              background: `${badgeColor}18`,
+              padding: '2px 7px',
+              borderRadius: 8,
+              border: 'none', cursor: 'pointer',
+              marginRight: hasSteps ? 6 : 0,
+              flexShrink: 0,
+            }}
+          >
+            <Shield size={10} strokeWidth={2.5} />
+            {badgeText}
+          </button>
         )}
 
         {/* Expand chevron */}
@@ -85,6 +143,67 @@ export default function RouteCard({
           </motion.div>
         )}
       </div>
+
+      {/* Expandable incident list */}
+      <AnimatePresence>
+        {incidentsExpanded && nearbyPins.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: 'hidden', paddingLeft: 36, paddingRight: 20 }}
+          >
+            <div style={{
+              borderLeft: `2px solid ${incidentsAvoided > 0 ? '#34D39940' : '#F59E0B40'}`,
+              paddingLeft: 12,
+              paddingBottom: 6,
+              paddingTop: 4,
+            }}>
+              {nearbyPins.map((pin) => (
+                <button
+                  key={pin.id}
+                  onClick={(e) => { e.stopPropagation(); onPinFocus?.(pin); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '4px 0',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    width: '100%', textAlign: 'left',
+                  }}
+                >
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                    background: SEV_COLORS[pin.severity as keyof typeof SEV_COLORS] ?? '#F59E0B',
+                  }} />
+                  <span style={{
+                    fontSize: 11, fontWeight: 500,
+                    color: isDark ? '#CBD5E1' : '#475569',
+                  }}>
+                    {CATEGORY_LABELS[pin.category] ?? pin.category}
+                  </span>
+                  {pin.address && (
+                    <span style={{
+                      fontSize: 10,
+                      color: isDark ? '#64748B' : '#94A3B8',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      flex: 1, minWidth: 0,
+                    }}>
+                      {pin.address}
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: 10,
+                    color: isDark ? '#475569' : '#94A3B8',
+                    flexShrink: 0,
+                  }}>
+                    {timeAgo(pin.created_at)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Expanded step detail */}
       <AnimatePresence>

@@ -292,6 +292,7 @@ export default function FavorisManager({ userId, isDark, onClose, onSelect }: Pr
                       border: `1px solid ${tk.bd}`,
                       borderRadius: 10, overflow: 'hidden',
                       boxShadow: T.shadowLg,
+                      maxHeight: 200, overflowY: 'auto' as const,
                     }}>
                       {mapbox.suggestions.map((s) => (
                         <button
