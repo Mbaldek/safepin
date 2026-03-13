@@ -529,7 +529,9 @@ function MapView({
     const m = map.current;
     if (!m || !mapReady || !layersReady) return;
 
-    // Remove previous pending layers + sources
+    // Remove previous pending layers + sources (hitbox + visible)
+    const HITBOX_LYRS = PENDING_LYRS.map(l => `${l}-hitbox`);
+    HITBOX_LYRS.forEach((lyr) => { if (m.getLayer(lyr)) m.removeLayer(lyr); });
     PENDING_LYRS.forEach((lyr) => { if (m.getLayer(lyr)) m.removeLayer(lyr); });
     PENDING_SRCS.forEach((src) => { if (m.getSource(src)) m.removeSource(src); });
 
@@ -554,6 +556,17 @@ function MapView({
           properties: {},
         },
       });
+      // Invisible hitbox layer (wide 24px target for easy tapping)
+      const hitboxId = `${PENDING_LYRS[i]}-hitbox`;
+      m.addLayer({
+        id: hitboxId,
+        type: 'line',
+        source: PENDING_SRCS[i],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#000', 'line-width': 24, 'line-opacity': 0 },
+      }, 'clusters-halo');
+
+      // Visible route line on top
       m.addLayer({
         id: PENDING_LYRS[i],
         type: 'line',
@@ -566,15 +579,16 @@ function MapView({
         },
       }, 'clusters-halo');
 
-      // Click handler on route line — select route + show QuickCard
-      m.on('click', PENDING_LYRS[i], (e) => {
+      // Click handler on hitbox — select route + show QuickCard + collapse panel
+      m.on('click', hitboxId, (e) => {
         e.originalEvent.stopPropagation();
         setSelectedRouteIdx(i);
         setTappedRouteIdx(i);
+        window.dispatchEvent(new CustomEvent('route-tap-collapse'));
       });
       // Cursor pointer on hover
-      m.on('mouseenter', PENDING_LYRS[i], () => { m.getCanvas().style.cursor = 'pointer'; });
-      m.on('mouseleave', PENDING_LYRS[i], () => { m.getCanvas().style.cursor = ''; });
+      m.on('mouseenter', hitboxId, () => { m.getCanvas().style.cursor = 'pointer'; });
+      m.on('mouseleave', hitboxId, () => { m.getCanvas().style.cursor = ''; });
     });
 
     // Only fitBounds on first draw (when routes are fetched), not on re-renders from selection change

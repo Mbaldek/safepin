@@ -119,6 +119,18 @@ export default function TripView({ onClose, openToHistory = false }: TripViewPro
     }
   }, [state]);
 
+  // Handle route-tap-collapse / route-tap-expand from map interactions
+  useEffect(() => {
+    const collapseHandler = () => setPanelSnap('collapsed');
+    const expandHandler = () => setPanelSnap('expanded');
+    window.addEventListener('route-tap-collapse', collapseHandler);
+    window.addEventListener('route-tap-expand', expandHandler);
+    return () => {
+      window.removeEventListener('route-tap-collapse', collapseHandler);
+      window.removeEventListener('route-tap-expand', expandHandler);
+    };
+  }, []);
+
   // Handle route-quick-launch event from RouteQuickCard
   useEffect(() => {
     const handler = async (e: Event) => {

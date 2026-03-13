@@ -29,10 +29,10 @@ export default function RouteQuickCard({ route, maxIncidents, onLaunch, onDismis
       onClick={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
-        bottom: 172,
+        bottom: 180,
         left: 16,
         right: 16,
-        zIndex: 45,
+        zIndex: 55,
         ...getCardStyle(isDark),
         padding: '12px 14px',
         boxShadow: '0 4px 24px rgba(0,0,0,0.18)',

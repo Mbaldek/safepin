@@ -28,13 +28,6 @@ interface MapPinProps {
   zoom?: number;
 }
 
-/** Zoom-based scale — current size is max, scale down when zoomed out */
-function getZoomScale(zoom: number): number {
-  if (zoom >= 16) return 1.0;
-  if (zoom >= 14) return 0.85;
-  return 0.6;
-}
-
 const CATEGORY_CONFIG: Record<string, { color: string; emoji: string; label: string; group: string }> = {
   assault: { color: '#EF4444', emoji: '🚨', label: 'Agression', group: 'urgent' },
   harassment: { color: '#EF4444', emoji: '🚫', label: 'Harcèlement', group: 'urgent' },
@@ -109,7 +102,8 @@ function createStandardPin(
 
   if (showRings) {
     const pinWrapper = document.createElement('div');
-    pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease;`;
+    pinWrapper.dataset.baseSize = String(size);
+    pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease, width 0.25s ease, height 0.25s ease;`;
 
     if (glowCfg.group === 'urgent') {
       for (const cls of ['pin-urgent-ring1', 'pin-urgent-ring2']) {
@@ -131,7 +125,8 @@ function createStandardPin(
     }
 
     const main = document.createElement('div');
-    main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:${glowShadow};`;
+    main.dataset.mainDot = '';
+    main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:${glowShadow};transition:font-size 0.2s ease;`;
     if (size >= 18) main.textContent = emoji;
     pinWrapper.appendChild(main);
 
@@ -171,7 +166,8 @@ function createUrgentPin(
   container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transition:opacity 1s ease;`;
 
   const pinWrapper = document.createElement('div');
-  pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease;`;
+  pinWrapper.dataset.baseSize = String(size);
+  pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease, width 0.25s ease, height 0.25s ease;`;
 
   // 3 pulse rings
   for (let i = 1; i <= 3; i++) {
@@ -182,7 +178,8 @@ function createUrgentPin(
   }
 
   const main = document.createElement('div');
-  main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;`;
+  main.dataset.mainDot = '';
+  main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;transition:font-size 0.2s ease;`;
   if (size >= 18) main.textContent = emoji;
   pinWrapper.appendChild(main);
 
@@ -198,7 +195,8 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
   container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;`;
 
   const pinWrapper = document.createElement('div');
-  pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease;`;
+  pinWrapper.dataset.baseSize = String(size);
+  pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease, width 0.25s ease, height 0.25s ease;`;
 
   // 3 pulse rings with transport color
   for (let i = 1; i <= 3; i++) {
@@ -209,7 +207,8 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
   }
 
   const main = document.createElement('div');
-  main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;`;
+  main.dataset.mainDot = '';
+  main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;transition:font-size 0.2s ease;`;
   if (size >= 18) main.textContent = emoji;
   pinWrapper.appendChild(main);
 
@@ -267,7 +266,7 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
     // Hover effect
     const pinEl = container.firstElementChild as HTMLElement;
     container.addEventListener('mouseenter', () => { if (pinEl) pinEl.style.transform = 'scale(1.25)'; });
-    container.addEventListener('mouseleave', () => { if (pinEl) pinEl.style.transform = 'scale(1)'; });
+    container.addEventListener('mouseleave', () => { if (pinEl) pinEl.style.transform = ''; });
 
     // Click handler (uses ref to always get current pin/onClick)
     container.addEventListener('click', (e) => { e.stopPropagation(); onClickRef.current(pinRef.current); });
@@ -303,25 +302,34 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
     }
   }, [opacity]);
 
-  // Zoom-based scaling — applied on inner pin wrapper (not marker container)
+  // Zoom-based DOM adaptation — hide rings & compact wrapper at low zoom
   useEffect(() => {
     const el = markerRef.current?.getElement();
-    if (!el) return;
+    if (!el || highlighted) return;
     const pinEl = el.firstElementChild as HTMLElement;
     if (!pinEl) return;
 
-    // Skip if highlighted (highlight takes priority)
-    if (highlighted) return;
+    const isCompact = zoom < 14;
+    const baseSize = pinEl.dataset.baseSize;
 
-    const scale = getZoomScale(zoom);
-    pinEl.style.transform = `scale(${scale})`;
-    pinEl.style.transition = 'transform 0.25s ease';
+    // Toggle rings/pulse visibility
+    const rings = pinEl.querySelectorAll<HTMLElement>(
+      '.pin-urgent-ring1,.pin-urgent-ring2,.pin-attention-ring,.pin-positif-ring,.pin-pulse1,.pin-pulse2,.pin-pulse3'
+    );
+    rings.forEach(ring => { ring.style.display = isCompact ? 'none' : ''; });
 
-    // Disable ring/pulse animations at quartier level (zoom 12-13) for perf
-    const rings = pinEl.querySelectorAll<HTMLElement>('[class^="pin-"]');
-    rings.forEach((ring) => {
-      ring.style.animationPlayState = zoom < 14 ? 'paused' : 'running';
-    });
+    // Resize wrapper: size*3 → size (compact) or restore
+    if (baseSize) {
+      const s = parseInt(baseSize);
+      pinEl.style.width = isCompact ? `${s}px` : `${s * 3}px`;
+      pinEl.style.height = isCompact ? `${s}px` : `${s * 3}px`;
+    }
+
+    // Hide emoji in main dot at low zoom (dot too small)
+    const mainDot = pinEl.querySelector('[data-main-dot]') as HTMLElement;
+    if (mainDot) {
+      mainDot.style.fontSize = isCompact ? '0px' : '';
+    }
   }, [zoom, highlighted]);
 
   // Highlight effect — scale up + glow when pin is in a selected route corridor
@@ -338,13 +346,12 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
       pinEl.style.zIndex = '20';
       pinEl.style.animation = 'pin-highlight-breathe 2s ease-in-out infinite';
     } else {
-      const scale = getZoomScale(zoom);
-      pinEl.style.transform = `scale(${scale})`;
+      pinEl.style.transform = '';
       pinEl.style.boxShadow = '';
       pinEl.style.zIndex = '';
       pinEl.style.animation = '';
     }
-  }, [highlighted, zoom]);
+  }, [highlighted]);
 
   return null;
 }

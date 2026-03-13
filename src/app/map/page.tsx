@@ -419,8 +419,9 @@ activeTrip, setActiveTrip,
     const s = useStore.getState();
     const tab = s.activeTab;
     if (tab === 'trip' && s.pendingRoutes?.length) {
-      // Don't close trip panel when viewing routes — just dismiss QuickCard
+      // Don't close trip panel when viewing routes — just dismiss QuickCard + re-expand panel
       s.setTappedRouteIdx(null);
+      window.dispatchEvent(new CustomEvent('route-tap-expand'));
     } else if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
       setActiveTab('map');
     }
