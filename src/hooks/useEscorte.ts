@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useStore } from '@/stores/useStore'
+import { haversineMetersRaw } from '@/lib/utils'
 import type { Escorte, EscorteCircleMember, EscorteView, RouteMode } from '@/types'
 
 export type UseEscorteReturn = ReturnType<typeof useEscorte>
@@ -14,10 +15,14 @@ export function useEscorte(userId: string) {
   const [juliaActive, setJuliaActive] = useState(false)
   const [escorteError, setEscorteError] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
+  const [incidentsAvoided, setIncidentsAvoided] = useState(0)
+  const [distanceM, setDistanceM] = useState(0)
   const watchRef = useRef<number | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const juliaCdRef = useRef<NodeJS.Timeout | null>(null)
   const loadingRef = useRef(false)
+  const prevCoordsRef = useRef<{ lat: number; lng: number } | null>(null)
+  const distanceAccRef = useRef(0)
 
   // ── START ESCORTE IMMEDIATE ──────────────────────
   const startEscorteImmediate = useCallback(async () => {
@@ -181,10 +186,21 @@ export function useEscorte(userId: string) {
   // ── GPS TRACKING ─────────────────────────────────
   const startGPSTracking = useCallback((escorteId: string) => {
     if (!navigator.geolocation) return
+    prevCoordsRef.current = null
+    distanceAccRef.current = 0
     watchRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
         useStore.getState().setUserLocation({ lat, lng })
+        // Accumulate walked distance
+        if (prevCoordsRef.current) {
+          const d = haversineMetersRaw(prevCoordsRef.current.lat, prevCoordsRef.current.lng, lat, lng)
+          if (d > 3 && d < 500) { // ignore GPS jitter (<3m) and teleports (>500m)
+            distanceAccRef.current += d
+            setDistanceM(distanceAccRef.current)
+          }
+        }
+        prevCoordsRef.current = { lat, lng }
         await supabase
           .from('escortes')
           .update({
@@ -300,6 +316,8 @@ export function useEscorte(userId: string) {
     juliaActive,
     escorteError,
     isStarting,
+    incidentsAvoided, setIncidentsAvoided,
+    distanceM, setDistanceM,
     startEscorteImmediate,
     startTrip,
     endEscorte,

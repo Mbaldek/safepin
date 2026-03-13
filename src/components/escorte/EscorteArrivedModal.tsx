@@ -1,11 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Check, MapPin } from 'lucide-react'
+import { Check, Shield } from 'lucide-react'
 import { T, tok, gentleSpring } from '@/lib/tokens'
 import { avatarColor } from '@/lib/escorteHelpers'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
-import { getBtnPrimary, getColors } from './escorte-styles'
+import { getColors } from './escorte-styles'
 
 interface Props {
   isDark: boolean
@@ -18,7 +18,8 @@ export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSu
   const d  = isDark
   const tk = tok(isDark)
   const C  = getColors(isDark)
-  const btnPrimary = getBtnPrimary(C)
+
+  const distKm = (escorte.distanceM / 1000).toFixed(1)
 
   return (
     <>
@@ -71,27 +72,30 @@ export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSu
           <Check size={28} strokeWidth={2.5} color={T.semanticSuccess} />
         </motion.div>
 
-        <div style={{ fontSize: 20, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous etes arrivee !</div>
+        <div style={{ fontSize: 20, fontWeight: 300, color: tk.tp, marginBottom: 4 }}>Vous êtes arrivée !</div>
         <div style={{ fontSize: 13, color: tk.ts, marginBottom: 4 }}>
           {escorte.activeEscorte?.dest_name ?? 'Destination'}
         </div>
         <div style={{ fontSize: 11, color: tk.tt, marginBottom: 16 }}>
-          Trajet enregistre · {Math.round(escorte.elapsed / 60)} min
+          Trajet enregistré · {Math.round(escorte.elapsed / 60)} min · {distKm} km
         </div>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
           {[
-            { val: Math.round(escorte.elapsed / 60), unit: 'min',   color: tk.tp },
-            { val: '1,2',                            unit: 'km',    color: tk.tp },
-            { val: '6,8',                            unit: 'score', color: T.accentGold },
+            { val: String(Math.round(escorte.elapsed / 60)), unit: 'min',    color: tk.tp, accent: false },
+            { val: distKm,                                    unit: 'km',     color: tk.tp, accent: false },
+            { val: String(escorte.incidentsAvoided),           unit: 'évités', color: T.semanticSuccess, accent: true },
           ].map((s, i) => (
             <div key={i} style={{
-              background: i === 2 ? 'rgba(245,195,65,0.08)' : (d ? T.surfaceCard : T.surfaceBaseL),
-              border: `1px solid ${i === 2 ? 'rgba(245,195,65,0.18)' : tk.bd}`,
+              background: s.accent ? T.semanticSuccessSoft : (d ? T.surfaceCard : T.surfaceBaseL),
+              border: `1px solid ${s.accent ? `${T.semanticSuccess}30` : tk.bd}`,
               borderRadius: T.radiusLg, padding: '10px',
             }}>
-              <div style={{ fontSize: 17, fontWeight: 600, color: s.color }}>{s.val}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                {s.accent && <Shield size={16} color={T.semanticSuccess} />}
+                <span style={{ fontSize: 17, fontWeight: 600, color: s.color }}>{s.val}</span>
+              </div>
               <div style={{ fontSize: 10, color: tk.tt }}>{s.unit}</div>
             </div>
           ))}
@@ -122,17 +126,31 @@ export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSu
               })}
             </div>
             <span style={{ fontSize: 11, color: T.semanticSuccess }}>
-              {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' et ')} t&apos;ont accompagnee
+              {escorte.circleMembers.filter(m => m.status !== 'inactive').map(m => m.profiles?.name).slice(0,2).join(' et ')} t&apos;ont accompagnée
             </span>
           </div>
         )}
 
-        <button style={btnPrimary} onClick={onClose}>
-          <MapPin size={14} strokeWidth={2} />
-          Retour a la carte
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 24px',
+              borderRadius: 28,
+              background: '#3BB4C1',
+              border: 'none',
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'white',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Retour à la carte
+          </button>
+        </div>
         <button style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: T.gradientStart, marginTop: 4 }} onClick={onShowSummary}>
-          Voir le resume du trajet
+          Voir le résumé du trajet
         </button>
       </motion.div>
     </>

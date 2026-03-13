@@ -381,6 +381,14 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     }
     setPendingRoutes(null)
 
+    // Compute incidents avoided (max danger across routes minus selected route's danger)
+    const selectedRoute = fetchedRoutes[selectedIdx] ?? fetchedRoutes[0]
+    if (selectedRoute && fetchedRoutes.length > 0) {
+      const maxDanger = Math.max(...fetchedRoutes.map(r => r.dangerScore))
+      escorte.setIncidentsAvoided(Math.max(0, maxDanger - selectedRoute.dangerScore))
+      escorte.setDistanceM(selectedRoute.distance || 0)
+    }
+
     await escorte.startTrip({
       destName:    selectedDest.text,
       destLat:     lat,
