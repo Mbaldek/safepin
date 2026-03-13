@@ -43,7 +43,6 @@ const JuliaChat = dynamic(() => import('@/components/julia/JuliaChat'), { ssr: f
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
-const TripView = dynamic(() => import('@/components/trip/TripView'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const RouteQuickCard = dynamic(() => import('@/components/trip/RouteQuickCard'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
@@ -172,7 +171,6 @@ activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     showWalkWithMe, setShowWalkWithMe,
     showWalkHistory, setShowWalkHistory,
-    showTripHistory, setShowTripHistory,
     mapFilters, setMapFilters,
     showSafeSpaces, setShowSafeSpaces,
     showPinLabels, setShowPinLabels,
@@ -349,7 +347,7 @@ activeTrip, setActiveTrip,
   const [showFilterPopover, setShowFilterPopover] = useState(false);
 
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
-  // showWalkWithMe is now in the Zustand store (shared with TripView)
+  // showWalkWithMe is now in the Zustand store
 
   // Debounced DB search — fires when searchQuery changes
   useEffect(() => {
@@ -414,7 +412,6 @@ activeTrip, setActiveTrip,
     setShowCityContext(false);
     setShowIncidentsList(false);
     setShowWalkHistory(false);
-    setShowTripHistory(false);
     // Close trip/community/cercle panels — return to map
     const s = useStore.getState();
     const tab = s.activeTab;
@@ -425,7 +422,7 @@ activeTrip, setActiveTrip,
     } else if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
       setActiveTab('map');
     }
-  }, [setActiveSheet, setShowIncidentsList, setShowWalkHistory, setShowTripHistory, setActiveTab]);
+  }, [setActiveSheet, setShowIncidentsList, setShowWalkHistory, setActiveTab]);
 
   // When a store-driven overlay opens (pin detail, report), close all local overlays
   useEffect(() => {
@@ -987,7 +984,7 @@ activeTrip, setActiveTrip,
           onMapTap={handleMapTap}
         />
 
-        {activeTab === 'map' && !showWalkWithMe && !showWalkHistory && !showTripHistory && escorte.view !== 'trip-active' && (
+        {activeTab === 'map' && !showWalkWithMe && !showWalkHistory && escorte.view !== 'trip-active' && (
           <EmergencyButton userId={userId} />
         )}
 
@@ -999,7 +996,7 @@ activeTrip, setActiveTrip,
               route={pendingRoutes[tappedRouteIdx]}
               maxIncidents={Math.max(...(pendingRoutes?.map(r => r.nearbyIncidents ?? 0) ?? [0]))}
               onLaunch={() => {
-                // Dispatch event for TripView to handle the launch
+                // Dispatch event for EscorteSheet to handle the launch
                 window.dispatchEvent(new CustomEvent('route-quick-launch', { detail: { idx: tappedRouteIdx } }));
                 setTappedRouteIdx(null);
               }}
@@ -1556,15 +1553,7 @@ activeTrip, setActiveTrip,
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showTripHistory && userId && (
-          <TripView
-            key="trip-history"
-            onClose={() => { setShowTripHistory(false); setActiveTab('trip'); }}
-            openToHistory
-          />
-        )}
-      </AnimatePresence>
+      {/* TripView removed — trip history now accessible via EscorteSheet */}
 
       {/* Post-onboarding community tooltip */}
       <CommunityTooltip show={showCommunityTooltip} />

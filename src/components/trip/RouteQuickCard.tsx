@@ -5,7 +5,20 @@ import { Shield, ChevronRight } from 'lucide-react';
 import type { RouteOption } from '@/stores/useStore';
 import { formatDuration, formatDistance } from '@/lib/directions';
 import { useIsDark } from '@/hooks/useIsDark';
-import { colors, getCardStyle } from '@/lib/trip-constants';
+import type React from 'react';
+
+const colors = {
+  cyan: '#3BB4C1',
+  success: '#34D399',
+  textPrimary: { dark: '#FFFFFF', light: '#0F172A' } as Record<string, string>,
+  textTertiary: { dark: '#64748B', light: '#94A3B8' } as Record<string, string>,
+};
+
+const getCardStyle = (isDark: boolean): React.CSSProperties => ({
+  backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+  borderRadius: 14,
+  border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+});
 
 interface RouteQuickCardProps {
   route: RouteOption;

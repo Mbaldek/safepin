@@ -3,8 +3,9 @@
 import Link from "next/link";
 
 const mockups = [
-  { href: "/mockup/trip-summary", label: "Trip Summary Modal", description: "End-of-trip arrival modal with stats" },
+  { href: "/mockup/funnel-escorte", label: "EscorteSheet Funnel", description: "Hub + trip-form · favoris_trajets + trajets_recents" },
   { href: "/mockup/trip-hud", label: "Unified Trip HUD", description: "ActiveHUD — merged TripHUD + TripActiveHUD with live timer, Julia, circle, SOS" },
+  { href: "/mockup/trip-summary", label: "Trip Summary Modal", description: "End-of-trip arrival modal with stats" },
 ];
 
 export default function MockupIndex() {

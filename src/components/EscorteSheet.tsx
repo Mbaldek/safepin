@@ -58,7 +58,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const pins = useStore((s) => s.pins)
   const setShowWalkWithMe  = useStore((s) => s.setShowWalkWithMe)
   const setShowWalkHistory = useStore((s) => s.setShowWalkHistory)
-  const setShowTripHistory = useStore((s) => s.setShowTripHistory)
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -491,7 +490,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </motion.button>
         {/* History pill */}
         <button
-          onClick={(e) => { e.stopPropagation(); setShowTripHistory(false); setShowWalkHistory(true); onClose(); }}
+          onClick={(e) => { e.stopPropagation(); setShowWalkHistory(true); onClose(); }}
           style={{
             width: 62, flexShrink: 0,
             borderRadius: 12,
@@ -539,7 +538,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         </motion.button>
         {/* History pill */}
         <button
-          onClick={(e) => { e.stopPropagation(); setShowWalkHistory(false); setShowTripHistory(true); onClose(); }}
+          onClick={(e) => { e.stopPropagation(); /* TODO: wire trip history */ }}
           style={{
             width: 62, flexShrink: 0,
             borderRadius: 12,
