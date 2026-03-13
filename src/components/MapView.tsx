@@ -184,13 +184,13 @@ function MapView({
   const [filteredTransportPins, setFilteredTransportPins] = useState<Pin[]>([]);
   const [filteredRegularPins, setFilteredRegularPins] = useState<Pin[]>([]);
   const [labelsVisible, setLabelsVisible] = useState(false);
-  const [mapZoom, setMapZoom] = useState(13);
-  const zoomRef = useRef(13);
+  const [mapZoom, setMapZoom] = useState(12);
+  const zoomRef = useRef(12);
   const prevPinIdsRef = useRef<Set<string>>(new Set());
   const [newPinIds, setNewPinIds] = useState<Set<string>>(new Set());
   const ghostTrailRef = useRef<mapboxgl.Marker[]>([]);
   const prevMapStyleRef = useRef(mapStyle); // tracks last-applied style to skip redundant setStyle
-  const LABEL_ZOOM_THRESHOLD = 13;
+  const LABEL_ZOOM_THRESHOLD = 14;
   const effectiveLabels = showPinLabels && labelsVisible;
 
   // Initialize map
@@ -201,7 +201,7 @@ function MapView({
       container: mapContainer.current,
       style: STYLE_URLS.custom,
       center: [2.3522, 48.8566],
-      zoom: 13,
+      zoom: 12,
       performanceMetricsCollection: false,
       fadeDuration: 0,
       antialias: false,
@@ -914,8 +914,8 @@ function MapView({
 
     const source = map.current.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
-      // At zoom < 10 DB clusters are shown instead — clear individual pins from GL source
-      source.setData(mapZoom < 10
+      // At zoom < 12 DB clusters are shown instead — clear individual pins from GL source
+      source.setData(mapZoom < 12
         ? { type: 'FeatureCollection', features: [] }
         : buildGeoJSON(regularPins));
     }
@@ -945,12 +945,12 @@ function MapView({
     ghostTrailRef.current = [];
   }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet, mapZoom]);
 
-  // ── DB spatial cluster layer update (zoom < 10) ───────────────────────────
+  // ── DB spatial cluster layer update (zoom < 12) ───────────────────────────
   useEffect(() => {
     if (!map.current || !mapReady || !layersReady) return;
     const clusterSrc = map.current.getSource(DB_CLUSTER_SRC) as mapboxgl.GeoJSONSource | undefined;
     if (!clusterSrc) return;
-    if (mapZoom < 10 && dbClusters.length > 0) {
+    if (mapZoom < 12 && dbClusters.length > 0) {
       clusterSrc.setData({
         type: 'FeatureCollection',
         features: dbClusters.map((c) => ({
@@ -1291,7 +1291,7 @@ function MapView({
       {/* Safety filter badge */}
       <SafetyFilterBadge filter={safetyFilter ?? null} isDark={isDark} onClear={onClearSafetyFilter ?? (() => {})} />
 
-      {map.current && mapZoom >= 10 && filteredRegularPins.map((pin) => (
+      {map.current && mapZoom >= 12 && filteredRegularPins.map((pin) => (
         <MapPin
           key={pin.id}
           map={map.current!}
@@ -1300,10 +1300,11 @@ function MapView({
           showLabels={effectiveLabels}
           opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
           isNew={newPinIds.has(pin.id)}
+          zoom={mapZoom}
         />
       ))}
 
-      {map.current && mapZoom >= 10 && filteredTransportPins.map((pin) => (
+      {map.current && mapZoom >= 12 && filteredTransportPins.map((pin) => (
         <MapPin
           key={pin.id}
           map={map.current!}
@@ -1312,6 +1313,7 @@ function MapView({
           showLabels={effectiveLabels}
           opacity={safetyFilter ? (pinMatchesSafetyFilter(pin, safetyFilter) ? 1 : 0.25) : 1}
           isNew={newPinIds.has(pin.id)}
+          zoom={mapZoom}
         />
       ))}
 

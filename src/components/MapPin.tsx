@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { CATEGORY_DETAILS, CATEGORY_GROUPS, DECAY_HOURS } from '@/types';
-import { getEffectiveDate } from '@/lib/pin-utils';
+import { getPinOpacity, getPinColorWithAge, getPinAgeRatio } from '@/lib/pin-utils';
 
 interface MapPinProps {
   map: mapboxgl.Map;
@@ -24,6 +24,15 @@ interface MapPinProps {
   showLabels?: boolean;
   opacity?: number;
   isNew?: boolean;
+  zoom?: number;
+}
+
+/** Zoom-based scale factor — current sizes = max (close-up only) */
+function getZoomScale(zoom: number): number {
+  if (zoom >= 16) return 1.0;
+  if (zoom >= 14) return 0.75;
+  if (zoom >= 12) return 0.55;
+  return 0.45;
 }
 
 const CATEGORY_CONFIG: Record<string, { color: string; emoji: string; label: string; group: string }> = {
@@ -56,26 +65,6 @@ function getSize(confirmations: number): number {
   return 16;
 }
 
-/* ── Pin degradation ─────────────────────────────────────────────── */
-
-const POSITIF_CATS = new Set(['safe', 'help', 'presence']);
-
-function getPinDegradationState(
-  category: string,
-  createdAt: string,
-  lastConfirmedAt?: string | null,
-): 'active' | 'degraded' | 'expired' {
-  if (POSITIF_CATS.has(category)) return 'active';
-
-  const referenceDate = getEffectiveDate({ created_at: createdAt, last_confirmed_at: lastConfirmedAt });
-  const hoursElapsed = (Date.now() - referenceDate.getTime()) / (1000 * 60 * 60);
-  const lifetime = DECAY_HOURS[category] ?? 24;
-
-  if (hoursElapsed >= lifetime) return 'expired';
-  if (hoursElapsed >= lifetime * 0.5) return 'degraded';
-  return 'active';
-}
-
 /* ── Glow config per category ────────────────────────────────────── */
 
 const GLOW_CONFIG: Record<string, { glow: string; group: string }> = {
@@ -98,67 +87,60 @@ const GLOW_CONFIG: Record<string, { glow: string; group: string }> = {
   presence:   { glow: 'rgba(52,211,153,0.4)', group: 'positif' },
 };
 
-// Standard pin — with v2 animation rings + degradation
+// Standard pin — continuous opacity + color fade based on age
 function createStandardPin(
   size: number,
-  color: string,
+  _originalColor: string,
   emoji: string,
-  category: string,
-  createdAt: string,
-  lastConfirmedAt?: string | null,
+  pin: { category: string; created_at: string; last_confirmed_at?: string | null },
 ): HTMLDivElement {
-  const degradation = getPinDegradationState(category, createdAt, lastConfirmedAt);
-  const glowCfg = GLOW_CONFIG[category] ?? { glow: 'none', group: 'infra' };
-  const finalColor = degradation === 'expired' ? '#94A3B8' : color;
-  const finalGlow = degradation === 'active' && glowCfg.glow !== 'none' ? glowCfg.glow : 'none';
-  const opacityClass =
-    degradation === 'expired' ? 'pin-opacity-expired' :
-    degradation === 'degraded' ? 'pin-opacity-degraded' : 'pin-opacity-full';
+  const ageRatio = getPinAgeRatio(pin);
+  const pinOpacity = getPinOpacity(pin);
+  const fadedColor = getPinColorWithAge(pin);
+  const glowCfg = GLOW_CONFIG[pin.category] ?? { glow: 'none', group: 'infra' };
 
-  const needsRings = degradation === 'active' && glowCfg.group !== 'infra';
+  // Show rings only in the first ~35% of life (fresh pins)
+  const showRings = ageRatio < 0.35 && glowCfg.group !== 'infra';
+  const showGlow = showRings && glowCfg.glow !== 'none';
+  const glowShadow = showGlow ? `0 0 10px ${glowCfg.glow}` : '0 2px 6px rgba(0,0,0,0.3)';
 
   const container = document.createElement('div');
-  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;`;
-  container.className = opacityClass;
+  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transition:opacity 1s ease;`;
 
-  if (needsRings) {
-    // Wrapper with room for animated rings
+  if (showRings) {
     const pinWrapper = document.createElement('div');
     pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease;`;
 
-    // Add ring divs based on group
     if (glowCfg.group === 'urgent') {
       for (const cls of ['pin-urgent-ring1', 'pin-urgent-ring2']) {
         const ring = document.createElement('div');
         ring.className = cls;
-        ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};`;
+        ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};`;
         pinWrapper.appendChild(ring);
       }
     } else if (glowCfg.group === 'attention') {
       const ring = document.createElement('div');
       ring.className = 'pin-attention-ring';
-      ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};`;
+      ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};`;
       pinWrapper.appendChild(ring);
     } else if (glowCfg.group === 'positif') {
       const ring = document.createElement('div');
       ring.className = 'pin-positif-ring';
-      ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};`;
+      ring.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};`;
       pinWrapper.appendChild(ring);
     }
 
-    // Main circle
     const main = document.createElement('div');
-    const glowShadow = finalGlow !== 'none' ? `0 0 10px ${finalGlow}` : '0 2px 6px rgba(0,0,0,0.3)';
-    main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:${glowShadow};`;
+    main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:${glowShadow};`;
     if (size >= 18) main.textContent = emoji;
     pinWrapper.appendChild(main);
 
     container.appendChild(pinWrapper);
   } else {
-    // Simple circle — infra or degraded/expired pins
+    // Simple circle — no rings (older pins or infra)
     const circle = document.createElement('div');
     circle.style.cssText = `
-      width:${size}px;height:${size}px;border-radius:50%;background:${finalColor};
+      width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};
       display:flex;align-items:center;justify-content:center;
       cursor:pointer;transition:transform 0.2s ease;
       box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:${size * 0.5}px;
@@ -170,10 +152,23 @@ function createStandardPin(
   return container;
 }
 
-// Urgent pin - pulsing radar effect (RED)
-function createUrgentPin(size: number, emoji: string): HTMLDivElement {
+// Urgent pin - pulsing radar effect (RED), but fades with age
+function createUrgentPin(
+  size: number,
+  emoji: string,
+  pin: { category: string; created_at: string; last_confirmed_at?: string | null },
+): HTMLDivElement {
+  const ageRatio = getPinAgeRatio(pin);
+  const pinOpacity = getPinOpacity(pin);
+  const fadedColor = getPinColorWithAge(pin);
+
+  // If pin is old enough (>35% of life), fall back to standard rendering
+  if (ageRatio >= 0.35) {
+    return createStandardPin(size, '', emoji, pin);
+  }
+
   const container = document.createElement('div');
-  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;`;
+  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transition:opacity 1s ease;`;
 
   const pinWrapper = document.createElement('div');
   pinWrapper.style.cssText = `position:relative;width:${size * 3}px;height:${size * 3}px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s ease;`;
@@ -182,13 +177,12 @@ function createUrgentPin(size: number, emoji: string): HTMLDivElement {
   for (let i = 1; i <= 3; i++) {
     const pulse = document.createElement('div');
     pulse.className = `pin-pulse${i}`;
-    pulse.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:#EF4444;`;
+    pulse.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};`;
     pinWrapper.appendChild(pulse);
   }
 
-  // Main circle
   const main = document.createElement('div');
-  main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:#EF4444;display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;`;
+  main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${fadedColor};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;`;
   if (size >= 18) main.textContent = emoji;
   pinWrapper.appendChild(main);
 
@@ -214,7 +208,6 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
     pinWrapper.appendChild(pulse);
   }
 
-  // Main circle
   const main = document.createElement('div');
   main.style.cssText = `position:relative;z-index:10;width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;`;
   if (size >= 18) main.textContent = emoji;
@@ -224,7 +217,7 @@ function createTransportPin(size: number, emoji: string, transportType?: string)
   return container;
 }
 
-export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNew = false }: MapPinProps) {
+export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNew = false, zoom = 14 }: MapPinProps) {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const labelRef = useRef<HTMLDivElement | null>(null);
   const onClickRef = useRef(onClick);
@@ -250,9 +243,9 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
     if (isTransport) {
       container = createTransportPin(size, config.emoji, pin.transport_type);
     } else if (isUrgent) {
-      container = createUrgentPin(size, config.emoji);
+      container = createUrgentPin(size, config.emoji, pin);
     } else {
-      container = createStandardPin(size, config.color, config.emoji, pin.category, pin.created_at, pin.last_confirmed_at);
+      container = createStandardPin(size, config.color, config.emoji, pin);
     }
 
     // Pin drop animation for newly created pins
@@ -309,6 +302,16 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
       el.style.transition = 'opacity 300ms ease';
     }
   }, [opacity]);
+
+  // Zoom-based scaling — smooth CSS transition
+  useEffect(() => {
+    const el = markerRef.current?.getElement();
+    if (el) {
+      const scale = getZoomScale(zoom);
+      el.style.transform = `scale(${scale})`;
+      el.style.transition = 'transform 0.3s ease';
+    }
+  }, [zoom]);
 
   return null;
 }

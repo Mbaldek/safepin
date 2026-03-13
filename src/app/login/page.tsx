@@ -18,9 +18,11 @@ const COUNTRY_CODES = [
 function translateError(msg: string): string {
   const lower = msg.toLowerCase();
   if (lower.includes('already registered')) return 'Ce numéro est déjà utilisé';
-  if (lower.includes('invalid') && lower.includes('otp')) return 'Code incorrect — vérifie le SMS';
+  if (lower.includes('invalid') && lower.includes('email')) return 'Adresse email invalide';
+  if (lower.includes('invalid') && lower.includes('otp')) return 'Code incorrect — vérifie ton email ou SMS';
   if (lower.includes('expired')) return 'Code expiré — demande un nouveau code';
-  if (lower.includes('too many') || lower.includes('rate')) return 'Trop de tentatives — réessaie dans 1 heure';
+  if (lower.includes('too many') || lower.includes('rate')) return 'Trop de tentatives — réessaie dans quelques minutes';
+  if (lower.includes('signups not allowed')) return 'Les inscriptions sont temporairement désactivées';
   return 'Une erreur est survenue — réessaie';
 }
 
@@ -29,8 +31,9 @@ export default function LoginPage() {
   const nextPath = searchParams.get('next');
   const router = useRouter();
 
-  // Step: 'phone' or 'otp'
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
+  const [step, setStep] = useState<'input' | 'otp'>('input');
+  const [email, setEmail] = useState('');
   const [countryCode, setCountryCode] = useState('+33');
   const [localNumber, setLocalNumber] = useState('');
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -83,38 +86,62 @@ export default function LoginPage() {
     }
   };
 
-  // ── Step A: Send OTP ────────────────────────────────────────────────────
+  // ── Send OTP (email or phone) ─────────────────────────────────────────
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const digits = localNumber.replace(/\D/g, '');
-    if (digits.length < 8) {
-      setError('Numéro trop court — 8 chiffres minimum');
-      return;
-    }
-    if (!countryCode) {
-      setError('Sélectionne un indicatif pays');
-      return;
-    }
-    setLoading(true);
     setError(null);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
-      if (error) throw error;
-      setStep('otp');
-      startResendCd();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? translateError(e.message) : 'Une erreur est survenue — réessaie');
-    } finally {
-      setLoading(false);
+
+    if (authMode === 'email') {
+      const trimmed = email.trim();
+      if (!trimmed || !trimmed.includes('@')) {
+        setError('Entre une adresse email valide');
+        return;
+      }
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.signInWithOtp({ email: trimmed });
+        if (error) throw error;
+        setStep('otp');
+        startResendCd();
+      } catch (e: unknown) {
+        setError(e instanceof Error ? translateError(e.message) : 'Une erreur est survenue — réessaie');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      const digits = localNumber.replace(/\D/g, '');
+      if (digits.length < 8) {
+        setError('Numéro trop court — 8 chiffres minimum');
+        return;
+      }
+      if (!countryCode) {
+        setError('Sélectionne un indicatif pays');
+        return;
+      }
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
+        if (error) throw error;
+        setStep('otp');
+        startResendCd();
+      } catch (e: unknown) {
+        setError(e instanceof Error ? translateError(e.message) : 'Une erreur est survenue — réessaie');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  // ── Step B: Verify OTP ──────────────────────────────────────────────────
+  // ── Verify OTP ────────────────────────────────────────────────────────
   const verifyOtp = useCallback(async (token: string) => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({ phone: fullPhone, token, type: 'sms' });
+      const verifyPayload = authMode === 'email'
+        ? { email: email.trim(), token, type: 'email' as const }
+        : { phone: fullPhone, token, type: 'sms' as const };
+
+      const { data, error } = await supabase.auth.verifyOtp(verifyPayload);
       if (error) throw error;
 
       // Check if profile exists → redirect accordingly
@@ -133,9 +160,9 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [fullPhone, nextPath, router]);
+  }, [authMode, email, fullPhone, nextPath, router]);
 
-  // ── OTP input handlers ──────────────────────────────────────────────────
+  // ── OTP input handlers ────────────────────────────────────────────────
   const handleOtpChange = useCallback((index: number, value: string) => {
     // Handle paste
     if (value.length > 1) {
@@ -176,14 +203,19 @@ export default function LoginPage() {
     }
   }, [otp]);
 
-  // ── Resend OTP ──────────────────────────────────────────────────────────
+  // ── Resend OTP ────────────────────────────────────────────────────────
   const handleResend = async () => {
     if (resendCd > 0) return;
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
-      if (error) throw error;
+      if (authMode === 'email') {
+        const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
+        if (error) throw error;
+      }
       startResendCd();
     } catch (e: unknown) {
       setError(e instanceof Error ? translateError(e.message) : 'Une erreur est survenue — réessaie');
@@ -192,7 +224,27 @@ export default function LoginPage() {
     }
   };
 
-  // ── Styles ──────────────────────────────────────────────────────────────
+  // ── Switch auth mode ──────────────────────────────────────────────────
+  const switchMode = () => {
+    setAuthMode(authMode === 'email' ? 'phone' : 'email');
+    setError(null);
+  };
+
+  // ── Back to input ─────────────────────────────────────────────────────
+  const handleBack = () => {
+    setStep('input');
+    setOtp(['', '', '', '', '', '']);
+    setError(null);
+  };
+
+  // ── Subtitle text ─────────────────────────────────────────────────────
+  const subtitleText = step === 'input'
+    ? 'Connecte-toi pour continuer'
+    : authMode === 'email'
+      ? `Code envoyé à ${email.trim()}`
+      : `Code envoyé au ${fullPhone}`;
+
+  // ── Styles ────────────────────────────────────────────────────────────
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '14px 18px',
@@ -245,6 +297,16 @@ export default function LoginPage() {
     outline: 'none',
   };
 
+  const toggleStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    color: '#3BB4C1',
+    fontSize: 14,
+    cursor: 'pointer',
+    padding: 0,
+    marginTop: 8,
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: gradient, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
@@ -256,12 +318,10 @@ export default function LoginPage() {
             <circle cx="40" cy="22" r="4" fill="#FFFFFF" />
           </svg>
           <h1 style={{ fontSize: 28, fontWeight: 300, color: '#FFFFFF', marginBottom: 8 }}>Ta communauté veille sur toi</h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-            {step === 'phone' ? 'Connecte-toi pour continuer' : `Code envoyé au ${fullPhone}`}
-          </p>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{subtitleText}</p>
         </div>
 
-        {step === 'phone' && (
+        {step === 'input' && (
           <>
             {/* OAuth buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
@@ -282,41 +342,61 @@ export default function LoginPage() {
               <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
             </div>
 
-            {/* Phone form */}
+            {/* Email or Phone form */}
             <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  style={{
-                    ...inputStyle,
-                    width: 120,
-                    padding: '14px 8px',
-                    appearance: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <option key={c.code || 'other'} value={c.code} style={{ color: '#0F172A' }}>
-                      {c.flag} {c.code || '...'}
-                    </option>
-                  ))}
-                </select>
+              {authMode === 'email' ? (
                 <input
-                  type="tel"
-                  placeholder="6 12 34 56 78"
-                  value={localNumber}
-                  onChange={(e) => setLocalNumber(e.target.value)}
-                  style={{ ...inputStyle, flex: 1 }}
+                  type="email"
+                  placeholder="ton@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={inputStyle}
                   autoFocus
+                  autoComplete="email"
                 />
-              </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    style={{
+                      ...inputStyle,
+                      width: 120,
+                      padding: '14px 8px',
+                      appearance: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.code || 'other'} value={c.code} style={{ color: '#0F172A' }}>
+                        {c.flag} {c.code || '...'}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    placeholder="6 12 34 56 78"
+                    value={localNumber}
+                    onChange={(e) => setLocalNumber(e.target.value)}
+                    style={{ ...inputStyle, flex: 1 }}
+                    autoFocus
+                  />
+                </div>
+              )}
+
               {error && (
                 <p style={{ fontSize: 14, color: '#F87171', textAlign: 'center' }}>{error}</p>
               )}
+
               <button type="submit" disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, marginTop: 8 }}>
-                {loading ? 'Envoi...' : 'Recevoir le code SMS'}
+                {loading ? 'Envoi...' : authMode === 'email' ? 'Recevoir le code' : 'Recevoir le code SMS'}
               </button>
+
+              <div style={{ textAlign: 'center' }}>
+                <button type="button" onClick={switchMode} style={toggleStyle}>
+                  {authMode === 'email' ? 'Utiliser mon téléphone →' : '← Utiliser mon email'}
+                </button>
+              </div>
             </form>
           </>
         )}
@@ -368,10 +448,10 @@ export default function LoginPage() {
 
             {/* Back */}
             <button
-              onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(null); }}
+              onClick={handleBack}
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer' }}
             >
-              Changer de numéro
+              {authMode === 'email' ? "Changer d'email" : 'Changer de numéro'}
             </button>
           </div>
         )}
