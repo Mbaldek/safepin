@@ -6,6 +6,7 @@ import { Sparkles, Send } from 'lucide-react'
 import { useIsDark } from '@/hooks/useIsDark'
 import { useJuliaChat } from '@/hooks/useJuliaChat'
 import { useStore } from '@/stores/useStore'
+import { haversineMetersRaw } from '@/lib/utils'
 import { useAudioCall } from '@/stores/useAudioCall'
 import JuliaHeader from './JuliaHeader'
 import JuliaContextChips from './JuliaContextChips'
@@ -45,7 +46,8 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
       title: 'Julia IA',
       participantNames: ['Julia'],
     })
-  }, [callState, startCall, userId])
+    onClose()
+  }, [callState, startCall, userId, onClose])
 
   const userLocation = useStore((s) => s.userLocation)
   const pins = useStore((s) => s.pins)
@@ -100,8 +102,10 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
     [sendMessage],
   )
 
-  // Computed context
-  const nearbyPinCount = pins.length
+  // Computed context — count active pins within 1km of user
+  const nearbyPinCount = userLocation
+    ? pins.filter((p) => haversineMetersRaw(userLocation.lat, userLocation.lng, p.lat, p.lng) <= 1000).length
+    : 0
 
   // Theme tokens
   const surfaceBg = isDark ? '#0F172A' : '#F8FAFC'
