@@ -866,10 +866,16 @@ activeTrip, setActiveTrip,
   return (
     <div id="main-content" role="main" className="h-dvh flex flex-col overflow-hidden">
 
-      {/* ── Top bar (always visible, 56px) ────────────────────────── */}
-      <div className="shrink-0 z-50 relative"
-        style={{ backgroundColor: 'var(--surface-card)', borderBottom: '1px solid var(--border)', height: 56 }}>
-        <div className="flex items-center gap-3 px-4 h-full">
+      {/* ── Top bar (floating transparent overlay) ────────────────── */}
+      <div
+        className="absolute top-0 left-0 right-0 z-50"
+        style={{
+          height: 56,
+          pointerEvents: 'none',
+          ...(showSearch && activeTab === 'map' ? { backgroundColor: 'var(--surface-card)', borderBottom: '1px solid var(--border)', pointerEvents: 'auto' as const } : {}),
+        }}
+      >
+        <div className="flex items-center gap-3 px-4 h-full" style={{ pointerEvents: 'auto' }}>
           {showSearch && activeTab === 'map' ? (
             <>
               {/* Back arrow — exit search */}
@@ -897,12 +903,12 @@ activeTrip, setActiveTrip,
             <>
               {/* Logo */}
               <div className="flex items-center gap-2">
-                <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true" className="text-[var(--text-primary)]">
+                <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true" className="text-[var(--text-primary)]" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
                   <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" />
                   <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
                   <circle cx="40" cy="22" r="4" fill="currentColor" />
                 </svg>
-                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.05em' }}>BREVEIL</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.05em', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>BREVEIL</span>
               </div>
               <div className="flex-1" />
               {/* Right icons */}
@@ -912,7 +918,8 @@ activeTrip, setActiveTrip,
                   <button
                     onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowNotifications(false); setShowSettings(false); setShowCityContext(false); setShowSearch(true); }}
                     aria-label="Search location"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                    className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
+                    style={{ background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
                   >
                     <Search size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
                   </button>
@@ -921,11 +928,13 @@ activeTrip, setActiveTrip,
                 <button
                   onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowSettings(false); setShowSearch(false); setShowCityContext(false); setShowNotifications((v) => !v); }}
                   aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-                  className="relative w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
+                  className="relative w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
                   style={{
                     background: showNotifications
                       ? '#3BB4C1'
-                      : (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)'),
+                      : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
                     boxShadow: showNotifications ? '0 0 0 3px rgba(59,180,193,0.30)' : 'none',
                   }}
                 >
@@ -943,8 +952,12 @@ activeTrip, setActiveTrip,
                 {/* Settings / burger menu */}
                 <button
                   aria-label="Settings"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg transition hover:opacity-80"
-                  style={{ backgroundColor: showSettings ? 'var(--accent)' : 'transparent' }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
+                  style={{
+                    backgroundColor: showSettings ? 'var(--accent)' : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                  }}
                   onClick={() => { if (!showSettings) { setActiveSheet('none'); setShowIncidentsList(false); setShowNotifications(false); setShowSearch(false); setShowCityContext(false); } setShowSettings((v) => !v); }}
                 >
                   <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
