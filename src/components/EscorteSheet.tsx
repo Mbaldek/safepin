@@ -56,7 +56,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const departSearch = useDestinationSearch(userLat, userLng)
   const { setPendingRoutes, setActiveRoute, setMapFlyTo, setMapFitBounds, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, selectedRouteIdx: storeSelectedRouteIdx, setTransitSegments } = useStore()
   const pins = useStore((s) => s.pins)
-
+  const pinsRef = useRef(pins)
+  pinsRef.current = pins
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -119,6 +120,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   }, [userLat, userLng])
 
   // ── Fetch multi-route + score when depart + dest + mode change ─
+  // NOTE: pins is accessed via pinsRef to avoid re-triggering fetches on every pin load
   useEffect(() => {
     if (!departCoords || !selectedDest) {
       setRouteInfo(null)
@@ -136,12 +138,13 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
 
     ;(async () => {
       try {
+        const currentPins = pinsRef.current
         if (routeMode === 'transit') {
           const routes = await fetchTransitRoute(from, to)
           if (fetchId !== routeFetchRef.current) return
           if (!routes.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
           const transitScored = routes.slice(0, 3).map((tr, i) => {
-            const incidents = countCorridorIncidents(tr.coords, pins)
+            const incidents = countCorridorIncidents(tr.coords, currentPins)
             return {
               id: `transit-${i}`,
               label: i === 0 ? 'Plus rapide' : i === 1 ? 'Équilibrée' : 'Moins de marche',
@@ -149,7 +152,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               coords: tr.coords,
               duration: tr.totalDuration,
               distance: 0,
-              dangerScore: scoreTransitRoute(tr.steps, pins),
+              dangerScore: scoreTransitRoute(tr.steps, currentPins),
               steps: tr.steps,
               nearbyIncidents: incidents.count,
               nearbyPinIds: incidents.pinIds,
@@ -173,14 +176,14 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
             })))
           }
         } else {
-          const results = await fetchRoutesWithAvoidance(from, to, routeMode, pins)
+          const results = await fetchRoutesWithAvoidance(from, to, routeMode, currentPins)
           if (fetchId !== routeFetchRef.current) return
           if (!results.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
           const scored = results.map(r => {
-            const incidents = countCorridorIncidents(r.coords, pins)
+            const incidents = countCorridorIncidents(r.coords, currentPins)
             return {
               ...r,
-              dangerScore: scoreRoute(r.coords, pins),
+              dangerScore: scoreRoute(r.coords, currentPins),
               nearbyIncidents: incidents.count,
               nearbyPinIds: incidents.pinIds,
             }
@@ -213,7 +216,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         if (fetchId === routeFetchRef.current) setLoadingRoute(false)
       }
     })()
-  }, [departCoords, selectedDest, routeMode, setPendingRoutes, pins])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departCoords, selectedDest, routeMode, setPendingRoutes])
 
   // ── Fit map to show both depart + destination ─────────
   useEffect(() => {
@@ -1356,6 +1360,12 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               {loadingRoute && fetchedRoutes.length === 0 && (
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:16, color: C.t3, fontSize:12 }}>
                   Recherche d&apos;itinéraires…
+                </div>
+              )}
+
+              {!loadingRoute && fetchedRoutes.length === 0 && !departCoords && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:16, color: C.t3, fontSize:12 }}>
+                  Localisation en cours…
                 </div>
               )}
 
