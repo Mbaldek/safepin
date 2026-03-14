@@ -425,6 +425,20 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── Map tap outside routes → back to trip-form ──
+  const escorteViewRef = useRef(escorte.view)
+  escorteViewRef.current = escorte.view
+  useEffect(() => {
+    function onBackToForm() {
+      if (escorteViewRef.current === 'trip-detail') {
+        escorte.setView('trip-form')
+      }
+    }
+    window.addEventListener('route-tap-back-to-form', onBackToForm)
+    return () => window.removeEventListener('route-tap-back-to-form', onBackToForm)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // ── Sync trip-detail when user taps a different route on the map ──
   useEffect(() => {
     if (escorte.view !== 'trip-detail') return

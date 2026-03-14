@@ -152,7 +152,7 @@ function MapView({
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
     setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords, reportPlaceMode, setNewPinCoords,
     setMapViewport, dbClusters,
-    highlightedPinIds, setSelectedRouteIdx, setTappedRouteIdx,
+    highlightedPinIds, setSelectedRouteIdx,
   } = useStore(useShallow((s) => ({
     pins: s.pins, mapFilters: s.mapFilters, setSelectedPin: s.setSelectedPin,
     activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet,
@@ -170,7 +170,6 @@ function MapView({
     dbClusters: s.dbClusters,
     highlightedPinIds: s.highlightedPinIds,
     setSelectedRouteIdx: s.setSelectedRouteIdx,
-    setTappedRouteIdx: s.setTappedRouteIdx,
   })));
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -606,12 +605,11 @@ function MapView({
         },
       }, 'clusters-halo');
 
-      // Click handler on hitbox — select route + show QuickCard + collapse panel
+      // Click handler on hitbox — select route + open trip-detail directly
       m.on('click', hitboxId, (e) => {
         e.originalEvent.stopPropagation();
         setSelectedRouteIdx(i);
-        setTappedRouteIdx(i);
-        window.dispatchEvent(new CustomEvent('route-tap-collapse'));
+        window.dispatchEvent(new CustomEvent('route-quick-launch', { detail: { idx: i } }));
       });
       // Cursor pointer on hover
       m.on('mouseenter', hitboxId, () => { m.getCanvas().style.cursor = 'pointer'; });

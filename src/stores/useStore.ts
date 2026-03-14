@@ -174,8 +174,6 @@ type Store = {
   setPendingRoutes: (routes: RouteOption[] | null) => void;
   selectedRouteIdx: number;
   setSelectedRouteIdx: (idx: number) => void;
-  tappedRouteIdx: number | null;
-  setTappedRouteIdx: (idx: number | null) => void;
   highlightedPinIds: Set<string>;
   setHighlightedPinIds: (ids: Set<string>) => void;
 
@@ -323,8 +321,6 @@ export const useStore = create<Store>((set) => ({
   setPendingRoutes: (routes) => set({ pendingRoutes: routes }),
   selectedRouteIdx: 0,
   setSelectedRouteIdx: (idx) => set({ selectedRouteIdx: idx }),
-  tappedRouteIdx: null,
-  setTappedRouteIdx: (idx) => set({ tappedRouteIdx: idx }),
   highlightedPinIds: new Set<string>(),
   setHighlightedPinIds: (ids) => set({ highlightedPinIds: ids }),
   transitSegments: null,

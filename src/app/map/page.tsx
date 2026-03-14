@@ -44,7 +44,6 @@ const JuliaChat = dynamic(() => import('@/components/julia/JuliaChat'), { ssr: f
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
 const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
-const RouteQuickCard = dynamic(() => import('@/components/trip/RouteQuickCard'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
 const CercleSheet = dynamic(() => import('@/components/CercleSheet'), { ssr: false });
 const TripSummaryModal = dynamic(() => import('@/components/trip/TripSummaryModal'), { ssr: false });
@@ -176,7 +175,7 @@ activeTrip, setActiveTrip,
     showPinLabels, setShowPinLabels,
     setTripPrefill,
     mapViewport, setDbClusters,
-    pendingRoutes, tappedRouteIdx, setTappedRouteIdx,
+    pendingRoutes,
     reportPlaceMode,
   } = useStore();
   const isDark = useIsDark();
@@ -438,9 +437,8 @@ activeTrip, setActiveTrip,
     const s = useStore.getState();
     const tab = s.activeTab;
     if (tab === 'trip' && s.pendingRoutes?.length) {
-      // Don't close trip panel when viewing routes — just dismiss QuickCard + re-expand panel
-      s.setTappedRouteIdx(null);
-      window.dispatchEvent(new CustomEvent('route-tap-expand'));
+      // If trip-detail is showing, go back to trip-form; otherwise do nothing
+      window.dispatchEvent(new CustomEvent('route-tap-back-to-form'));
       return;
     }
     closeAllPanels();
@@ -1017,22 +1015,6 @@ activeTrip, setActiveTrip,
           <EmergencyButton userId={userId} />
         )}
 
-        {/* RouteQuickCard — appears when user taps a route line on the map */}
-        <AnimatePresence>
-          {tappedRouteIdx !== null && pendingRoutes?.[tappedRouteIdx] && escorte.view !== 'trip-detail' && (
-            <RouteQuickCard
-              key="route-quick-card"
-              route={pendingRoutes[tappedRouteIdx]}
-              maxIncidents={Math.max(...(pendingRoutes?.map(r => r.nearbyIncidents ?? 0) ?? [0]))}
-              onLaunch={() => {
-                // Dispatch event for EscorteSheet to handle the launch
-                window.dispatchEvent(new CustomEvent('route-quick-launch', { detail: { idx: tappedRouteIdx } }));
-                setTappedRouteIdx(null);
-              }}
-              onDismiss={() => setTappedRouteIdx(null)}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Filter button — replaces old POI toggle */}
         {activeTab === 'map' && (
