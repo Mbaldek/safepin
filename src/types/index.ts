@@ -798,6 +798,7 @@ export type EscorteView =
   | 'escorte-notifying'
   | 'escorte-live'
   | 'trip-form'
+  | 'trip-detail'
   | 'trip-active'
   | 'arrived';
 

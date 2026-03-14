@@ -7,6 +7,7 @@ import { formatElapsed, avatarColor } from '@/lib/escorteHelpers'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
 import { getColors } from './escorte-styles'
 import { useAudioCall } from '@/stores/useAudioCall'
+import { bToast } from '@/components/GlobalToast'
 
 interface Props {
   isDark: boolean
@@ -223,11 +224,23 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
           })}
 
           {/* Invite card */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-            padding: '6px 8px', borderRadius: 10, background: selev,
-            border: `1.5px dashed ${b2}`, minWidth: 50, flexShrink: 0, cursor: 'pointer',
-          }}>
+          <div
+            onClick={async () => {
+              const code = (escorte.activeEscorte as any)?.invite_code
+              if (!code) return
+              if (navigator.share) {
+                try { await navigator.share({ text: `Rejoins ma marche sur Breveil : ${code}` }) } catch {}
+              } else {
+                await navigator.clipboard.writeText(code)
+                bToast.success({ title: 'Code copié !' }, isDark)
+              }
+            }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              padding: '6px 8px', borderRadius: 10, background: selev,
+              border: `1.5px dashed ${b2}`, minWidth: 50, flexShrink: 0, cursor: 'pointer',
+            }}
+          >
             <div style={{
               width: 28, height: 28, borderRadius: '50%',
               background: teal12, border: `1.5px dashed ${teal24}`,

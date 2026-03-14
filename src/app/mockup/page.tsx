@@ -7,6 +7,7 @@ const mockups = [
   { href: "/mockup/mam-panel", label: "MAM 3 États", description: "Marche avec moi — 3 états : démarrer, attente, active" },
   { href: "/mockup/trip-hud", label: "Unified Trip HUD", description: "ActiveHUD — merged TripHUD + TripActiveHUD with live timer, Julia, circle, SOS" },
   { href: "/mockup/trip-summary", label: "Trip Summary Modal", description: "End-of-trip arrival modal with stats" },
+  { href: "/mockup/route-detail", label: "Route Detail", description: "Détail route — hero incidents évités, stats, itinéraire walk/transit, segments timeline" },
 ];
 
 export default function MockupIndex() {

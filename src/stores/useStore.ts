@@ -17,8 +17,10 @@ export type RouteOption = {
   dangerScore: number;
   nearbyIncidents?: number;
   nearbyPinIds?: string[];
+  incidentsAvoided?: number;
   rerouted?: boolean;
   steps?: import('@/lib/transit').TransitStep[];
+  walkSteps?: import('@/lib/directions').WalkStep[];
 };
 
 export type RouteSegment = {

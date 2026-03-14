@@ -22,7 +22,7 @@ import EscorteNotifyingView  from './escorte/EscorteNotifyingView'
 import EscorteArrivedModal  from './escorte/EscorteArrivedModal'
 import EscorteLiveView      from './escorte/EscorteLiveView'
 import { fetchRoutesWithAvoidance, formatDuration, formatDistance } from '@/lib/directions'
-import { scoreRoute, scoreTransitRoute } from '@/lib/route-scoring'
+import { scoreRoute, scoreTransitRoute, countCorridorIncidents, getStepAlerts } from '@/lib/route-scoring'
 import RouteCard from '@/components/trip/RouteCard'
 import type { RouteOption, RouteSegment } from '@/stores/useStore'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
@@ -139,16 +139,26 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           const routes = await fetchTransitRoute(from, to)
           if (fetchId !== routeFetchRef.current) return
           if (!routes.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
-          const opts: RouteOption[] = routes.slice(0, 3).map((tr, i) => ({
-            id: `transit-${i}`,
-            label: i === 0 ? 'Plus rapide' : i === 1 ? 'Équilibrée' : 'Moins de marche',
-            color: ROUTE_COLORS[i] ?? '#94A3B8',
-            coords: tr.coords,
-            duration: tr.totalDuration,
-            distance: 0,
-            dangerScore: scoreTransitRoute(tr.steps, pins),
-            steps: tr.steps,
-          }))
+          const transitScored = routes.slice(0, 3).map((tr, i) => {
+            const incidents = countCorridorIncidents(tr.coords, pins)
+            return {
+              id: `transit-${i}`,
+              label: i === 0 ? 'Plus rapide' : i === 1 ? 'Équilibrée' : 'Moins de marche',
+              color: ROUTE_COLORS[i] ?? '#94A3B8',
+              coords: tr.coords,
+              duration: tr.totalDuration,
+              distance: 0,
+              dangerScore: scoreTransitRoute(tr.steps, pins),
+              steps: tr.steps,
+              nearbyIncidents: incidents.count,
+              nearbyPinIds: incidents.pinIds,
+            }
+          })
+          const allTransitPinIds = new Set(transitScored.flatMap(r => r.nearbyPinIds))
+          const opts: RouteOption[] = transitScored.map(r => {
+            const myPinIds = new Set(r.nearbyPinIds)
+            return { ...r, incidentsAvoided: [...allTransitPinIds].filter(id => !myPinIds.has(id)).length }
+          })
           setFetchedRoutes(opts)
           setSelectedIdx(0)
           setSelectedRouteIdx(0)
@@ -165,15 +175,31 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           const results = await fetchRoutesWithAvoidance(from, to, routeMode, pins)
           if (fetchId !== routeFetchRef.current) return
           if (!results.length) { setRouteInfo(null); setFetchedRoutes([]); setPendingRoutes(null); setLoadingRoute(false); return }
-          const scored = results.map(r => ({ ...r, dangerScore: scoreRoute(r.coords, pins) }))
+          const scored = results.map(r => {
+            const incidents = countCorridorIncidents(r.coords, pins)
+            return {
+              ...r,
+              dangerScore: scoreRoute(r.coords, pins),
+              nearbyIncidents: incidents.count,
+              nearbyPinIds: incidents.pinIds,
+            }
+          })
           scored.sort((a, b) => a.dangerScore - b.dangerScore)
           const fastestIdx = scored.reduce((best, r, i) => r.duration < scored[best].duration ? i : best, 0)
-          const opts: RouteOption[] = scored.map((r, i) => ({
-            id: `${routeMode}-${i}`,
-            label: i === 0 ? 'Plus sûre' : (i === fastestIdx && fastestIdx !== 0) ? 'Plus rapide' : 'Équilibrée',
-            color: ROUTE_COLORS[i] ?? '#94A3B8',
-            coords: r.coords, duration: r.duration, distance: r.distance, dangerScore: r.dangerScore,
-          }))
+          const allPinIds = new Set(scored.flatMap(r => r.nearbyPinIds))
+          const opts: RouteOption[] = scored.map((r, i) => {
+            const myPinIds = new Set(r.nearbyPinIds)
+            return {
+              id: `${routeMode}-${i}`,
+              label: i === 0 ? 'Plus sûre' : (i === fastestIdx && fastestIdx !== 0) ? 'Plus rapide' : 'Équilibrée',
+              color: ROUTE_COLORS[i] ?? '#94A3B8',
+              coords: r.coords, duration: r.duration, distance: r.distance, dangerScore: r.dangerScore,
+              nearbyIncidents: r.nearbyIncidents,
+              nearbyPinIds: r.nearbyPinIds,
+              incidentsAvoided: [...allPinIds].filter(id => !myPinIds.has(id)).length,
+              walkSteps: r.walkSteps,
+            }
+          })
           setFetchedRoutes(opts)
           setSelectedIdx(0)
           setSelectedRouteIdx(0)
@@ -203,8 +229,18 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   }, [escorte.view, setPendingRoutes])
 
   // ── Start/stop global audio call for escorte vocal ──
+  // Auto-transition: notifying → live when first circle member responds
+  useEffect(() => {
+    if (
+      escorte.view === 'escorte-notifying' &&
+      escorte.circleMembers.some(m => m.status === 'following' || m.status === 'vocal')
+    ) {
+      escorte.setView('escorte-live')
+    }
+  }, [escorte.view, escorte.circleMembers, escorte.setView])
+
   const shouldHaveAudio =
-    (escorte.view === 'escorte-notifying' || escorte.view === 'trip-active') &&
+    (escorte.view === 'escorte-notifying' || escorte.view === 'escorte-live' || escorte.view === 'trip-active') &&
     !!escorte.activeEscorte &&
     escorte.circleMembers.some(m => m.status === 'vocal')
 
@@ -448,51 +484,65 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         }
       `}</style>
 
-      {/* CTA 1 — Marche avec moi */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 8 }}>
+      {/* CTA side-by-side */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 12 }}>
+        {/* MAM */}
         <motion.button
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => escorte.setView('escorte-intro')}
           style={{
-            flex:           1,
-            background:     d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
-            border:         `1px solid ${T.gradientStart}35`,
-            borderRadius:   T.radiusLg,
-            padding:        '14px',
-            display:        'flex',
-            alignItems:     'center',
-            gap:            12,
-            cursor:         'pointer',
-            textAlign:      'left',
+            flex: 1, padding: '14px 10px', borderRadius: 14,
+            background: d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
+            border: `1px solid ${T.gradientStart}35`,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 6,
+            cursor: 'pointer', textAlign: 'center',
           }}
         >
-          <div className="escorte-ico-teal" style={{
-            width: 44, height: 44, flexShrink: 0,
-            background: 'rgba(59,180,193,0.12)',
-          }}>
-            <Users size={20} strokeWidth={1.5} color={T.gradientStart} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
-              Marche avec moi
-            </div>
-            <div style={{ fontSize: 11, color: tk.tt }}>Ton cercle alerte · sans destination</div>
-          </div>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0,
-            background: 'rgba(59,180,193,0.10)', border: `1px solid ${T.gradientStart}30`,
-            borderRadius: 100, padding: '4px 8px',
+            width: 30, height: 30, borderRadius: 9,
+            background: 'rgba(59,180,193,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.gradientStart }} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: T.gradientStart }}>1 TAP</span>
+            <Users size={15} strokeWidth={1.5} color={T.gradientStart} />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>Marche avec moi</div>
+            <div style={{ fontSize: 9, color: tk.tt, marginTop: 2 }}>Cercle alerté · sans destination</div>
           </div>
         </motion.button>
+
+        {/* DEST */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => escorte.setView('trip-form')}
+          style={{
+            flex: 1, padding: '14px 10px', borderRadius: 14,
+            background: 'rgba(167,139,250,0.07)',
+            border: '1px solid rgba(167,139,250,0.20)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 6,
+            cursor: 'pointer', textAlign: 'center',
+          }}
+        >
+          <div style={{
+            width: 30, height: 30, borderRadius: 9,
+            background: 'rgba(167,139,250,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Navigation size={15} strokeWidth={1.5} color={'#A78BFA'} />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>Trajet avec destination</div>
+            <div style={{ fontSize: 9, color: tk.tt, marginTop: 2 }}>Itinéraire protégé · arrivée tracée</div>
+          </div>
+        </motion.button>
+
         {/* History pill */}
         <button
           onClick={(e) => { e.stopPropagation(); setShowWalkHistory(true); onClose(); }}
           style={{
-            width: 62, flexShrink: 0,
-            borderRadius: 12,
+            width: 52, flexShrink: 0, borderRadius: 12,
             background: 'rgba(59,180,193,0.08)',
             border: '1px solid rgba(59,180,193,0.20)',
             display: 'flex', flexDirection: 'column',
@@ -502,57 +552,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         >
           <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,180,193,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
           <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(59,180,193,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
-          <History size={15} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
-          <span style={{ fontSize: 8, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
-            Historique
-          </span>
-        </button>
-      </div>
-
-      {/* CTA 2 — Trajet destination */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 12 }}>
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => escorte.setView('trip-form')}
-          style={{
-            flex: 1, background: 'rgba(167,139,250,0.07)', border: `1px solid rgba(167,139,250,0.20)`,
-            borderRadius: T.radiusLg, padding: '14px',
-            display: 'flex', alignItems: 'center', gap: 12,
-            cursor: 'pointer', textAlign: 'left',
-          }}
-        >
-          <div className="escorte-ico-violet" style={{
-            width: 44, height: 44, flexShrink: 0,
-            background: 'rgba(167,139,250,0.12)',
-          }}>
-            <Navigation size={20} strokeWidth={1.5} color={'#A78BFA'} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: tk.tp, marginBottom: 2 }}>
-              Trajet avec destination
-            </div>
-            <div style={{ fontSize: 11, color: tk.tt }}>Itineraire protege · arrivee tracee</div>
-          </div>
-          <ChevronRight size={16} strokeWidth={1.5} color={'#A78BFA'} />
-        </motion.button>
-        {/* History pill */}
-        <button
-          onClick={(e) => { e.stopPropagation(); /* TODO: wire trip history */ }}
-          style={{
-            width: 62, flexShrink: 0,
-            borderRadius: 12,
-            background: 'rgba(167,139,250,0.08)',
-            border: '1px solid rgba(167,139,250,0.20)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: 5,
-            cursor: 'pointer', position: 'relative', overflow: 'hidden',
-          }}
-        >
-          <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(167,139,250,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
-          <History size={15} color={'#A78BFA'} style={{ position: 'relative', zIndex: 2 }} />
-          <span style={{ fontSize: 8, fontWeight: 700, color: '#A78BFA', textAlign: 'center', lineHeight: 1.3, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
-            Historique
+          <History size={14} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
+          <span style={{ fontSize: 7, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.2, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
+            Marches
           </span>
         </button>
       </div>
@@ -655,7 +657,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       isDark={isDark}
       escorte={escorte}
       onCancel={() => escorte.endEscorte()}
-      onStart={() => escorte.setView('escorte-live')}
     />
   )
 
@@ -1071,6 +1072,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                             } else {
                               setTransitSegments(null)
                             }
+                            escorte.setView('trip-detail')
                           }}
                           style={{ width:'100%', background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left' as const }}
                         >
@@ -1084,6 +1086,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                             steps={route.steps}
                             pins={pins}
                             onStepLocationTap={(lat, lng) => setMapFlyTo({ lat, lng, zoom: 16 })}
+                            incidentsAvoided={route.incidentsAvoided}
+                            nearbyIncidents={route.nearbyIncidents}
+                            nearbyPinIds={route.nearbyPinIds}
                           />
                         </button>
                         {idx < fetchedRoutes.length - 1 && (
@@ -1130,6 +1135,255 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 </div>
               )}
 
+            </>
+          )}
+        </div>
+      </motion.div>
+    )
+  }
+
+  // ── VIEW : TRIP DETAIL — route detail before starting ───────
+  const renderTripDetail = () => {
+    const route = fetchedRoutes[selectedIdx] ?? fetchedRoutes[0]
+    if (!route) return null
+    const isTransit = routeMode === 'transit'
+    const accentColor = isTransit ? '#3BB4C1' : '#34D399'
+    const avoided = route.incidentsAvoided ?? 0
+    const nearby = route.nearbyIncidents ?? 0
+    const nearbyPins = pins.filter(p => route.nearbyPinIds?.includes(p.id))
+
+    const SEV_C = { low: '#F59E0B', med: '#F97316', high: '#EF4444' } as const
+    const CAT_L: Record<string, string> = {
+      aggression: 'Agression', vol: 'Vol', harcelement: 'Harcèlement',
+      accident: 'Accident', incivilite: 'Incivilité', alerte: 'Alerte', safe_space: 'Safe space',
+    }
+    const SEV_L: Record<string, string> = { low: 'Faible', med: 'Moyen', high: 'Élevé' }
+
+    const timeAgo = (d: string) => {
+      const min = Math.floor((Date.now() - new Date(d).getTime()) / 60_000)
+      if (min < 1) return "à l'instant"
+      if (min < 60) return `il y a ${min}min`
+      const h = Math.floor(min / 60)
+      if (h < 24) return `il y a ${h}h`
+      return `il y a ${Math.floor(h / 24)}j`
+    }
+
+    return (
+      <motion.div
+        key="trip-detail"
+        initial={{ opacity: 0, x: 32 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -32 }}
+        transition={springConfig}
+        style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}
+      >
+        {/* Mini bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px', flexShrink: 0,
+          borderBottom: `1px solid ${C.border}`,
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: '10%', right: '10%', height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(59,180,193,0.3), transparent)',
+          }} />
+          <button
+            onClick={() => escorte.setView('trip-form')}
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              border: `1px solid ${C.borderS}`, background: C.el,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, cursor: 'pointer', color: C.t2,
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>
+              {isTransit ? 'Transit' : 'Route'} · {route.label}
+            </div>
+            <div style={{ fontSize: 10, color: C.t2 }}>
+              {formatDuration(route.duration)}{route.distance ? ` · ${formatDistance(route.distance)}` : ''}
+            </div>
+          </div>
+          <button
+            onClick={handleStartTrip}
+            style={{
+              height: 32, padding: '0 12px', borderRadius: 9999, border: 'none',
+              fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+              fontFamily: 'inherit', background: accentColor, color: 'white',
+            }}
+          >
+            Démarrer →
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div style={{
+          flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          padding: '14px 14px 20px',
+          display: 'flex', flexDirection: 'column', gap: 10,
+          scrollbarWidth: 'none' as const,
+        }}>
+          {/* Hero avoided */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px', borderRadius: 16,
+            background: `${accentColor}12`, border: `1px solid ${accentColor}33`,
+          }}>
+            <div style={{ fontSize: 36, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1, color: accentColor, flexShrink: 0 }}>
+              {avoided}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp }}>incidents évités</div>
+              <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>par rapport aux autres itinéraires</div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4, marginTop: 5,
+                padding: '3px 8px', borderRadius: 9999, fontSize: 10, fontWeight: 700,
+                width: 'fit-content',
+                background: `${accentColor}18`, border: `1px solid ${accentColor}33`, color: accentColor,
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                {route.label}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, fontWeight: 300, color: tk.tp, letterSpacing: '-0.02em' }}>{formatDuration(route.duration)}</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Durée</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, fontWeight: 300, color: tk.tp, letterSpacing: '-0.02em' }}>
+                {route.distance ? formatDistance(route.distance) : (isTransit ? `${route.steps?.length ?? 0} seg.` : '—')}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {route.distance ? 'km' : 'Segments'}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, fontWeight: 300, color: nearby > 0 ? '#FBBF24' : '#34D399', letterSpacing: '-0.02em' }}>{nearby}</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>sur ce trajet</div>
+            </div>
+          </div>
+
+          {/* Mode-specific content */}
+          {isTransit && route.steps ? (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Détail du trajet</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {route.steps.map((step, i) => {
+                  const isWalking = step.mode === 'walking'
+                  const isLast = i === route.steps!.length - 1
+                  const alerts = !isWalking ? getStepAlerts(step, pins) : null
+                  const dotColor = isWalking ? '#34D399' : (step.lineColor || '#A78BFA')
+                  const connColor = isWalking ? 'rgba(52,211,153,0.3)' : `${dotColor}66`
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 28, flexShrink: 0 }}>
+                        <div style={{
+                          width: 10, height: 10, borderRadius: '50%', border: '2px solid white',
+                          background: dotColor, boxShadow: `0 0 0 2px ${dotColor}`, marginTop: 3, flexShrink: 0,
+                        }} />
+                        {!isLast && <div style={{ width: 2, flex: 1, minHeight: 20, margin: '2px 0', background: connColor }} />}
+                      </div>
+                      <div style={{ flex: 1, paddingBottom: isLast ? 0 : 14 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>
+                          {i === 0 ? `Départ · ${step.from || 'Position'}` : isLast ? `Arrivée · ${step.to || 'Destination'}` : step.from || step.to || step.mode}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.t2, marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{
+                            padding: '2px 7px', borderRadius: 9999, fontSize: 10, fontWeight: 700,
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            background: `${dotColor}18`, color: dotColor, border: `1px solid ${dotColor}33`,
+                          }}>
+                            {isWalking ? 'À pied' : step.line ? `${step.mode === 'rer' ? 'RER' : 'M'} ${step.line}` : step.mode.toUpperCase()}
+                          </span>
+                          {!isWalking && step.to && <span style={{ color: C.t2 }}>dir. {step.to}</span>}
+                          <span style={{ fontSize: 10, color: C.t3 }}>
+                            {isWalking ? `${formatTransitDuration(step.duration)} · ${Math.round((step.duration / 60) * 80)}m` : `${step.stops ?? '?'} arrêts · ${formatTransitDuration(step.duration)}`}
+                          </span>
+                        </div>
+                        {alerts && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 4, marginTop: 4,
+                            padding: '4px 8px', borderRadius: 7, fontSize: 10, fontWeight: 600,
+                            background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.24)', color: '#FBBF24',
+                          }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                              <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            {alerts.count} incident{alerts.count > 1 ? 's' : ''} signalé{alerts.count > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Incidents évités list */}
+              {nearbyPins.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                    {avoided > 0 ? 'Incidents évités' : 'Incidents à proximité'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {nearbyPins.slice(0, 5).map(pin => {
+                      const sevColor = SEV_C[pin.severity as keyof typeof SEV_C] ?? '#F59E0B'
+                      return (
+                        <div key={pin.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: sevColor, flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: tk.tp }}>{CAT_L[pin.category] ?? pin.category}</div>
+                            <div style={{ fontSize: 10, color: C.t3 }}>{pin.address ? `${pin.address} · ` : ''}{timeAgo(pin.created_at)}</div>
+                          </div>
+                          <div style={{
+                            fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                            background: `${sevColor}18`, color: sevColor,
+                          }}>
+                            {SEV_L[pin.severity] ?? pin.severity}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Walk steps / itinéraire */}
+              {route.walkSteps && route.walkSteps.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Itinéraire</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {route.walkSteps.map((ws, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 0' }}>
+                        <div style={{
+                          width: 24, height: 24, borderRadius: 7,
+                          background: 'rgba(59,180,193,0.12)', border: '1px solid rgba(59,180,193,0.24)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3BB4C1" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: tk.tp, flex: 1 }}>{ws.name}</div>
+                        <div style={{ fontSize: 10, color: C.t3, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                          {formatDistance(ws.distance)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -1204,6 +1458,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           {escorte.view === 'escorte-notifying'&& renderNotifying()}
           {escorte.view === 'escorte-live'    && renderLive()}
           {escorte.view === 'trip-form'        && renderTripForm()}
+          {escorte.view === 'trip-detail'      && renderTripDetail()}
           {escorte.view === 'trip-active'      && renderTripActive()}
           {escorte.view === 'arrived'          && renderArrived()}
         </AnimatePresence>

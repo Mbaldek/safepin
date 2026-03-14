@@ -31,7 +31,7 @@ export function getPinOpacity(pin: { created_at: string; last_confirmed_at?: str
   const hoursAgo = (Date.now() - effectiveDate.getTime()) / (1000 * 60 * 60);
   const maxHours = DECAY_HOURS[pin.category] || 24;
   const ratio = Math.min(hoursAgo / maxHours, 1);
-  return Math.max(1 - ratio * 0.7, 0.3);
+  return Math.max(1 - ratio * 0.85, 0.15);
 }
 
 /**
@@ -112,4 +112,13 @@ export function getPinAgeRatio(pin: { created_at: string; last_confirmed_at?: st
   const hoursAgo = (Date.now() - effectiveDate.getTime()) / 3600000;
   const maxHours = DECAY_HOURS[pin.category] ?? 24;
   return Math.min(hoursAgo / maxHours, 1);
+}
+
+/**
+ * Get pin scale factor based on age (shrinks old pins).
+ * Fresh = 1.0, expired = 0.75
+ */
+export function getPinScale(pin: { created_at: string; last_confirmed_at?: string | null; category: string }): number {
+  const ratio = getPinAgeRatio(pin);
+  return 1 - ratio * 0.25;
 }

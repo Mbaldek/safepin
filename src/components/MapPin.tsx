@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { CATEGORY_DETAILS, CATEGORY_GROUPS, DECAY_HOURS } from '@/types';
-import { getPinOpacity, getPinColorWithAge, getPinAgeRatio } from '@/lib/pin-utils';
+import { getPinOpacity, getPinColorWithAge, getPinAgeRatio, getPinScale } from '@/lib/pin-utils';
 
 interface MapPinProps {
   map: mapboxgl.Map;
@@ -89,6 +89,7 @@ function createStandardPin(
 ): HTMLDivElement {
   const ageRatio = getPinAgeRatio(pin);
   const pinOpacity = getPinOpacity(pin);
+  const pinScale = getPinScale(pin);
   const fadedColor = getPinColorWithAge(pin);
   const glowCfg = GLOW_CONFIG[pin.category] ?? { glow: 'none', group: 'infra' };
 
@@ -98,7 +99,7 @@ function createStandardPin(
   const glowShadow = showGlow ? `0 0 10px ${glowCfg.glow}` : '0 2px 6px rgba(0,0,0,0.3)';
 
   const container = document.createElement('div');
-  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transition:opacity 1s ease;`;
+  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transform:scale(${pinScale});transition:opacity 1s ease,transform 1s ease;`;
 
   if (showRings) {
     const pinWrapper = document.createElement('div');
@@ -162,8 +163,9 @@ function createUrgentPin(
     return createStandardPin(size, '', emoji, pin);
   }
 
+  const pinScale = getPinScale(pin);
   const container = document.createElement('div');
-  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transition:opacity 1s ease;`;
+  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transform:scale(${pinScale});transition:opacity 1s ease,transform 1s ease;`;
 
   const pinWrapper = document.createElement('div');
   pinWrapper.dataset.baseSize = String(size);

@@ -46,6 +46,7 @@ const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const RouteQuickCard = dynamic(() => import('@/components/trip/RouteQuickCard'), { ssr: false });
 const CommunityView = dynamic(() => import('@/components/community/CommunityView'), { ssr: false });
 const CercleSheet = dynamic(() => import('@/components/CercleSheet'), { ssr: false });
+const TripSummaryModal = dynamic(() => import('@/components/trip/TripSummaryModal'), { ssr: false });
 
 const tabVariants = {
   initial: { opacity: 0 },
@@ -182,6 +183,14 @@ activeTrip, setActiveTrip,
   const { communityDMTarget, closeCommunityDM } = useUiStore();
   const [dmTarget, setDmTarget] = useState<{ userId: string; userName: string } | null>(null);
   const [pendingPinId, setPendingPinId] = useState<string | null>(null);
+  const [tripSummaryData, setTripSummaryData] = useState<{
+    destination: string;
+    elapsedSeconds: number;
+    distanceM: number;
+    incidentsAvoided: number;
+    score: number;
+    circleMembers: { id: string; name: string }[];
+  } | null>(null);
 
   const [onboardingDone, markOnboardingDone] = useOnboardingDone(userProfile);
   const justCompletedOnboardingRef = useRef(false);
@@ -1396,6 +1405,16 @@ activeTrip, setActiveTrip,
           }
           juliaActive={escorte.juliaActive}
           onArrived={() => {
+            setTripSummaryData({
+              destination: escorte.activeEscorte?.dest_name ?? '',
+              elapsedSeconds: escorte.elapsed,
+              distanceM: escorte.distanceM,
+              incidentsAvoided: escorte.incidentsAvoided,
+              score: 75,
+              circleMembers: escorte.circleMembers
+                .filter(m => m.profiles?.name)
+                .map(m => ({ id: m.contact_id, name: m.profiles!.name })),
+            });
             escorte.endEscorte(true);
             setActiveRoute(null);
             setTransitSegments(null);
@@ -1410,6 +1429,30 @@ activeTrip, setActiveTrip,
             window.dispatchEvent(new Event('breveil:trigger-sos'));
           }}
         />
+
+        {/* Trip summary modal — shown after "Je suis arrivée" */}
+        <AnimatePresence>
+          {tripSummaryData && (
+            <TripSummaryModal
+              isOpen
+              destination={tripSummaryData.destination}
+              tripSummary={{
+                duration_s: tripSummaryData.elapsedSeconds,
+                distance_m: tripSummaryData.distanceM,
+                score: tripSummaryData.score,
+              }}
+              elapsedSeconds={tripSummaryData.elapsedSeconds}
+              distanceM={tripSummaryData.distanceM}
+              incidentsAvoided={tripSummaryData.incidentsAvoided}
+              isDark={isDark}
+              circleMembers={tripSummaryData.circleMembers}
+              onClose={() => {
+                setTripSummaryData(null);
+                escorte.setView('hub');
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Community tab — trusted circle, groups, messages */}
         <AnimatePresence onExitComplete={() => {

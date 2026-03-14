@@ -13,10 +13,18 @@ const PROFILE_MAP: Record<string, string> = {
   car: 'driving',
 };
 
+export type WalkStep = {
+  instruction: string;
+  name: string;
+  distance: number; // meters
+  duration: number; // seconds
+};
+
 export type DirectionsResult = {
   coords: [number, number][];
   duration: number; // seconds
   distance: number; // meters
+  walkSteps?: WalkStep[];
 };
 
 /**
@@ -72,7 +80,7 @@ export async function fetchDirectionsMulti(
     const coords = `${from[0]},${from[1]};${to[0]},${to[1]}`;
     const url =
       `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coords}` +
-      `?geometries=geojson&overview=full&alternatives=true&access_token=${TOKEN}`;
+      `?geometries=geojson&overview=full&alternatives=true&steps=true&access_token=${TOKEN}`;
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -87,6 +95,14 @@ export async function fetchDirectionsMulti(
       coords: route.geometry.coordinates as [number, number][],
       duration: route.duration ?? 0,
       distance: route.distance ?? 0,
+      walkSteps: route.legs?.[0]?.steps
+        ?.map((s: any) => ({
+          instruction: s.maneuver?.instruction ?? '',
+          name: s.name ?? '',
+          distance: s.distance ?? 0,
+          duration: s.duration ?? 0,
+        }))
+        .filter((s: WalkStep) => s.name && s.distance > 20),
     }));
   } catch (err) {
     console.error('[directions] Failed to fetch routes:', err);
@@ -129,7 +145,7 @@ async function fetchDirectionsViaWaypoint(
     const coords = `${from[0]},${from[1]};${via[0]},${via[1]};${to[0]},${to[1]}`;
     const url =
       `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coords}` +
-      `?geometries=geojson&overview=full&access_token=${TOKEN}`;
+      `?geometries=geojson&overview=full&steps=true&access_token=${TOKEN}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
@@ -139,6 +155,14 @@ async function fetchDirectionsViaWaypoint(
       coords: route.geometry.coordinates as [number, number][],
       duration: route.duration ?? 0,
       distance: route.distance ?? 0,
+      walkSteps: route.legs?.[0]?.steps
+        ?.map((s: any) => ({
+          instruction: s.maneuver?.instruction ?? '',
+          name: s.name ?? '',
+          distance: s.distance ?? 0,
+          duration: s.duration ?? 0,
+        }))
+        .filter((s: WalkStep) => s.name && s.distance > 20),
     };
   } catch {
     return null;

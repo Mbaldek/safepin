@@ -80,14 +80,16 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
   const overflow = contacts.length > 3 ? contacts.length - 3 : 0
 
   return (
-    <motion.div
-      key="escorte-intro"
-      initial={{ opacity: 0, x: 32 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -32 }}
-      transition={springConfig}
-      style={{ padding: '0 16px 16px', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}
-    >
+    <>
+      <style>{`@keyframes escorte-shimmer{0%,100%{left:-60%}50%{left:120%}}`}</style>
+      <motion.div
+        key="escorte-intro"
+        initial={{ opacity: 0, x: 32 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -32 }}
+        transition={springConfig}
+        style={{ padding: '0 16px 16px', height: '100%', display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}
+      >
       {/* ── Header ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -95,9 +97,10 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: 'rgba(52,211,153,0.1)',
+            width: 28, height: 28, borderRadius: 9,
+            background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.22)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 12px rgba(52,211,153,0.12)',
           }}>
             <Users size={14} strokeWidth={2.2} color={GREEN} />
           </div>
@@ -107,7 +110,7 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
         </div>
         <button onClick={onBack} style={{
           width: 26, height: 26, borderRadius: '50%',
-          border: `1px solid ${b2}`, background: s2,
+          border: `1px solid ${b2}`, background: b1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', color: C.t3,
         }}>
@@ -121,13 +124,16 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
         onClick={onStart}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 12px', borderRadius: 13,
-          background: 'rgba(52,211,153,0.07)',
-          border: '1px solid rgba(52,211,153,0.18)',
+          padding: '10px 12px', borderRadius: 14,
+          background: 'rgba(52,211,153,0.06)',
+          border: '1px solid rgba(52,211,153,0.2)',
           cursor: escorte.isStarting ? 'default' : 'pointer',
           opacity: escorte.isStarting ? 0.7 : 1,
+          boxShadow: '0 4px 16px rgba(52,211,153,0.07),inset 0 1px 0 rgba(52,211,153,0.06)',
+          position: 'relative', overflow: 'hidden',
         }}
       >
+        <div style={{ position: 'absolute', top: 0, left: '-100%', width: '55%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(52,211,153,0.06),transparent)', animation: 'escorte-shimmer 5s ease-in-out infinite 1s', pointerEvents: 'none' }} />
         <div style={{
           width: 30, height: 30, borderRadius: 9,
           background: 'rgba(52,211,153,0.14)',
@@ -145,11 +151,11 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
                   return (
                     <div key={c.id} style={{
                       width: 22, height: 22, borderRadius: '50%',
-                      border: `1.5px solid ${d ? '#131F30' : '#FFFFFF'}`,
+                      border: `1.5px solid ${d ? 'rgba(8,17,30,0.7)' : 'rgba(255,255,255,0.8)'}`,
                       background: `linear-gradient(135deg, ${col}, ${d ? '#1E3A5F' : '#C0D0E0'})`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 7, fontWeight: 700, color: 'white', flexShrink: 0,
-                      marginLeft: i > 0 ? -7 : 0,
+                      marginLeft: i > 0 ? -6 : 0,
                     }}>
                       {c.name[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -158,11 +164,11 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
                 {overflow > 0 && (
                   <div style={{
                     width: 22, height: 22, borderRadius: '50%',
-                    border: `1.5px solid ${d ? '#131F30' : '#FFFFFF'}`,
+                    border: `1.5px solid ${d ? 'rgba(8,17,30,0.7)' : 'rgba(255,255,255,0.8)'}`,
                     background: s3,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 7, fontWeight: 700, color: C.t2, flexShrink: 0,
-                    marginLeft: -7,
+                    marginLeft: -6,
                   }}>
                     +{overflow}
                   </div>
@@ -173,7 +179,7 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
               <span style={{ fontSize: 11, color: C.t3 }}>Chargement…</span>
             )}
           </div>
-          <span style={{ fontSize: 11, fontWeight: 600, color: GREEN, marginLeft: 8, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: GREEN, marginLeft: 9, whiteSpace: 'nowrap' }}>
             {escorte.isStarting ? 'Connexion…' : 'Démarrer'}
           </span>
         </div>
@@ -200,7 +206,7 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
       {/* ── Separator ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <div style={{ flex: 1, height: 1, background: b2 }} />
-        <span style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>
           ou rejoindre
         </span>
         <div style={{ flex: 1, height: 1, background: b2 }} />
@@ -214,7 +220,7 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
           maxLength={8}
           placeholder="Code (ex. A3F9)"
           style={{
-            width: 130, height: 34, padding: '0 10px', borderRadius: 9,
+            width: 128, height: 34, padding: '0 10px', borderRadius: 10,
             border: `1px solid ${b2}`, background: s2, color: tk.tp,
             fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
             letterSpacing: '0.1em', textTransform: 'uppercase',
@@ -225,15 +231,16 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
           onClick={handleJoin}
           disabled={joining || !joinCode.trim()}
           style={{
-            width: 34, height: 34, borderRadius: 9, border: 'none',
+            width: 34, height: 34, borderRadius: 10, border: 'none',
             background: TEAL, color: 'white', cursor: joining ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             opacity: joining || !joinCode.trim() ? 0.5 : 1,
+            boxShadow: '0 4px 12px rgba(59,180,193,0.28),0 0 18px rgba(59,180,193,0.12)',
           }}
         >
           <ChevronRight size={14} strokeWidth={2.5} />
         </button>
-        <span style={{ fontSize: 11, color: C.t3, flex: 1 }}>8 caractères max</span>
+        <span style={{ fontSize: 10, color: C.t3, flex: 1 }}>8 caractères max</span>
       </div>
 
       {/* ── Niveaux N1 / N2 / N3 ── */}
@@ -281,5 +288,6 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
         </div>
       ))}
     </motion.div>
+    </>
   )
 }

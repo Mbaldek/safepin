@@ -334,57 +334,48 @@ export default function FunnelEscorteMockup() {
                   padding: "6px 0 2px",
                 }}>Mon trajet</div>
 
-                {/* MAM button */}
-                <div onClick={() => {}} style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  padding: "15px 16px", borderRadius: 18,
-                  background: `linear-gradient(135deg, ${tk.greenS}, rgba(52,211,153,0.04))`,
-                  border: `1.5px solid ${tk.greenB}`,
-                  cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 46, height: 46, borderRadius: 14,
-                    background: "rgba(52,211,153,0.12)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                {/* CTA side-by-side */}
+                <div style={{ display: "flex", gap: 8 }}>
+                  {/* MAM */}
+                  <div onClick={() => {}} style={{
+                    flex: 1, padding: "14px 10px", borderRadius: 14,
+                    background: `linear-gradient(135deg, ${tk.greenS}, rgba(52,211,153,0.04))`,
+                    border: `1.5px solid ${tk.greenB}`,
+                    display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 6,
+                    cursor: "pointer", textAlign: "center" as const,
                   }}>
-                    <IcUsers />
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 9,
+                      background: "rgba(52,211,153,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <IcUsers />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: tk.green, lineHeight: 1.2 }}>Marche avec moi</div>
+                      <div style={{ fontSize: 9, color: tk.t3, marginTop: 2, lineHeight: 1.3 }}>Cercle alerté · sans destination</div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.25, color: tk.green }}>Marche avec moi</div>
-                    <div style={{ fontSize: 12, color: tk.t2, marginTop: 3, lineHeight: 1.4 }}>Cercle alerté · sans destination</div>
-                  </div>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: "50%", background: tk.b2,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <IcChevronRight color={tk.green} />
-                  </div>
-                </div>
 
-                {/* DEST button */}
-                <div onClick={() => go(3)} style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  padding: "15px 16px", borderRadius: 18,
-                  background: `linear-gradient(135deg, ${tk.purpleS}, rgba(167,139,250,0.04))`,
-                  border: `1.5px solid ${tk.purpleB}`,
-                  cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 46, height: 46, borderRadius: 14,
-                    background: "rgba(167,139,250,0.12)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  {/* DEST */}
+                  <div onClick={() => go(3)} style={{
+                    flex: 1, padding: "14px 10px", borderRadius: 14,
+                    background: `linear-gradient(135deg, ${tk.purpleS}, rgba(167,139,250,0.04))`,
+                    border: `1.5px solid ${tk.purpleB}`,
+                    display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 6,
+                    cursor: "pointer", textAlign: "center" as const,
                   }}>
-                    <IcSend />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.25, color: tk.purple }}>Trajet avec destination</div>
-                    <div style={{ fontSize: 12, color: tk.t2, marginTop: 3, lineHeight: 1.4 }}>Itinéraire protégé · arrivée tracée</div>
-                  </div>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: "50%", background: tk.b2,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <IcChevronRight color={tk.purple} />
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 9,
+                      background: "rgba(167,139,250,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <IcSend />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: tk.purple, lineHeight: 1.2 }}>Trajet avec destination</div>
+                      <div style={{ fontSize: 9, color: tk.t3, marginTop: 2, lineHeight: 1.3 }}>Itinéraire protégé · arrivée tracée</div>
+                    </div>
                   </div>
                 </div>
               </div>

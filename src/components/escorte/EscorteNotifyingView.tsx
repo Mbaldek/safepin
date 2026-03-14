@@ -12,10 +12,9 @@ interface Props {
   isDark: boolean
   escorte: UseEscorteReturn
   onCancel: () => void
-  onStart: () => void
 }
 
-export default function EscorteNotifyingView({ isDark, escorte, onCancel, onStart }: Props) {
+export default function EscorteNotifyingView({ isDark, escorte, onCancel }: Props) {
   const d = isDark
   const tk = tok(isDark)
   const C = getColors(isDark)
