@@ -139,8 +139,6 @@ export default function SettingsSheet({ isOpen, onClose, initialScreen }: Settin
               right: 0,
               height: '85%',
               background: isDark ? '#0B1628' : '#FFFFFF',
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
               zIndex: 901,
               display: 'flex',
               flexDirection: 'column',

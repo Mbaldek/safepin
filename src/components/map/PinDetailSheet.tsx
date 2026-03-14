@@ -23,6 +23,7 @@ import { ConfirmIncidentModal } from '@/components/ConfirmIncidentModal'
 import { HashtagPill } from '@/components/map/hashtags'
 import type { Hashtag } from '@/types'
 import { avatarColor } from '@/lib/escorteHelpers'
+import { isPinDead } from '@/lib/pin-utils'
 
 // ─── Category config ─────────────────────────────
 const CAT: Record<string, {
@@ -396,8 +397,19 @@ function PinDetailSheet({
                       fontSize: 19, fontWeight: 600,
                       color: d ? T.textPrimary : T.textPrimaryL,
                       lineHeight: 1.2, marginBottom: 4,
+                      display: 'flex', alignItems: 'center', gap: 8,
                     }}>
                       {catDetails?.label ?? pin.category}
+                      {isPinDead(pin) && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 600,
+                          color: d ? T.textTertiary : T.textTertiaryL,
+                          background: d ? 'rgba(148,163,184,0.15)' : 'rgba(148,163,184,0.12)',
+                          padding: '2px 7px',
+                          borderRadius: 6,
+                          letterSpacing: 0.3,
+                        }}>Expiré</span>
+                      )}
                     </div>
                     <div style={{
                       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,

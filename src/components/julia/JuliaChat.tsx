@@ -125,8 +125,8 @@ export default function JuliaChat({ userId, onClose }: JuliaChatProps) {
       transition={springConfig}
       style={{
         position: 'fixed',
-        inset: 0,
-        zIndex: 500,
+        top: 0, left: 0, right: 0, bottom: 64,
+        zIndex: 310,
         display: 'flex',
         flexDirection: 'column',
         background: surfaceBg,

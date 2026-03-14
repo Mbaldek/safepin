@@ -500,7 +500,7 @@ export const T = {
   easeSpring: 'cubic-bezier(0.34,1.56,0.64,1)',
 } as const;
 
-export const springConfig = { type: 'spring' as const, stiffness: 300, damping: 30 };
+export const springConfig = { type: 'spring' as const, stiffness: 300, damping: 36 };
 export const gentleSpring = { type: 'spring' as const, stiffness: 200, damping: 25 };
 
 // Helper: returns resolved tokens for current theme

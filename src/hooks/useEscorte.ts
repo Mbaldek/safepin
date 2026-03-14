@@ -11,7 +11,7 @@ export function useEscorte(userId: string) {
   const [activeEscorte, setActiveEscorte] = useState<Escorte | null>(null)
   const [circleMembers, setCircleMembers] = useState<EscorteCircleMember[]>([])
   const [elapsed, setElapsed] = useState(0)
-  const [juliaCd, setJuliaCd] = useState(120) // 2min countdown
+  const [juliaCd, setJuliaCd] = useState(30) // 30s countdown
   const [juliaActive, setJuliaActive] = useState(false)
   const [escorteError, setEscorteError] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
@@ -155,7 +155,7 @@ export function useEscorte(userId: string) {
     } catch { /* edge function optionnelle pour demo */ }
 
     // 5. Start Julia countdown (2 min → si personne ne répond)
-    setJuliaCd(120)
+    setJuliaCd(30)
     setJuliaActive(false)
     juliaCdRef.current = setInterval(() => {
       setJuliaCd(s => {
@@ -307,13 +307,20 @@ export function useEscorte(userId: string) {
     }
   }, [])
 
+  const reset = useCallback(() => {
+    setView('hub')
+    setActiveEscorte(null)
+    setCircleMembers([])
+    setElapsed(0)
+  }, [])
+
   return {
     view, setView,
     activeEscorte,
     circleMembers,
     elapsed,
     juliaCd,
-    juliaActive,
+    juliaActive, setJuliaActive,
     escorteError,
     isStarting,
     incidentsAvoided, setIncidentsAvoided,
@@ -322,5 +329,6 @@ export function useEscorte(userId: string) {
     startTrip,
     endEscorte,
     triggerSOS,
+    reset,
   }
 }

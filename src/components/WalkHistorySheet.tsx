@@ -472,8 +472,6 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
         background: isDark ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.12)',
         display: 'flex', flexDirection: 'column',
         zIndex: 310,
         overflow: 'hidden',

@@ -99,7 +99,6 @@ export default function TripSummaryModal({
           flex: 1,
           position: "relative",
           background: th === 'dark' ? 'rgba(19,31,48,0.88)' : 'rgba(255,255,255,0.92)',
-          borderRadius: "28px 28px 0 0",
           borderTop: `1px solid ${C.bd[th]}`,
           display: "flex", flexDirection: "column",
           overflow: "hidden",

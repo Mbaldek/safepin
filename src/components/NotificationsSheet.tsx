@@ -124,7 +124,6 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
             top: 56,
             left: 10,
             right: 10,
-            borderRadius: 18,
             maxHeight: 'calc(100vh - 76px)',
             overflow: 'hidden',
             display: 'flex',
@@ -134,7 +133,6 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
             WebkitBackdropFilter: 'blur(40px)',
             background: isDark ? 'rgba(18,26,44,0.88)' : 'rgba(255,255,255,0.92)',
             border: `1px solid ${brd}`,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           }}
         >
           {/* Arrow pointing to bell */}

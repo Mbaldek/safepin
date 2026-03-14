@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { CATEGORY_DETAILS, CATEGORY_GROUPS, DECAY_HOURS } from '@/types';
-import { getPinOpacity, getPinColorWithAge, getPinAgeRatio, getPinScale } from '@/lib/pin-utils';
+import { getPinOpacity, getPinColorWithAge, getPinAgeRatio, getPinScale, isPinDead } from '@/lib/pin-utils';
 
 interface MapPinProps {
   map: mapboxgl.Map;
@@ -15,6 +15,7 @@ interface MapPinProps {
     confirmations?: number;
     created_at: string;
     last_confirmed_at?: string | null;
+    expires_at?: string | null;
     is_transport?: boolean;
     transport_type?: string;
     transport_line?: string;
@@ -85,21 +86,23 @@ function createStandardPin(
   size: number,
   _originalColor: string,
   emoji: string,
-  pin: { category: string; created_at: string; last_confirmed_at?: string | null },
+  pin: { category: string; created_at: string; last_confirmed_at?: string | null; expires_at?: string | null },
 ): HTMLDivElement {
+  const dead = isPinDead(pin);
   const ageRatio = getPinAgeRatio(pin);
-  const pinOpacity = getPinOpacity(pin);
-  const pinScale = getPinScale(pin);
-  const fadedColor = getPinColorWithAge(pin);
+  const pinOpacity = dead ? 0.18 : getPinOpacity(pin);
+  const pinScale = dead ? 0.7 : getPinScale(pin);
+  const fadedColor = dead ? '#94A3B8' : getPinColorWithAge(pin);
   const glowCfg = GLOW_CONFIG[pin.category] ?? { glow: 'none', group: 'infra' };
 
-  // Show rings only in the first ~35% of life (fresh pins)
-  const showRings = ageRatio < 0.35 && glowCfg.group !== 'infra';
+  // No rings for dead pins; show rings only in the first ~35% of life (fresh pins)
+  const showRings = !dead && ageRatio < 0.35 && glowCfg.group !== 'infra';
   const showGlow = showRings && glowCfg.glow !== 'none';
   const glowShadow = showGlow ? `0 0 10px ${glowCfg.glow}` : '0 2px 6px rgba(0,0,0,0.3)';
 
   const container = document.createElement('div');
-  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transform:scale(${pinScale});transition:opacity 1s ease,transform 1s ease;`;
+  const deadFilter = dead ? 'filter:grayscale(1);' : '';
+  container.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:8px;opacity:${pinOpacity};transform:scale(${pinScale});transition:opacity 1s ease,transform 1s ease;${deadFilter}`;
 
   if (showRings) {
     const pinWrapper = document.createElement('div');
@@ -152,14 +155,15 @@ function createStandardPin(
 function createUrgentPin(
   size: number,
   emoji: string,
-  pin: { category: string; created_at: string; last_confirmed_at?: string | null },
+  pin: { category: string; created_at: string; last_confirmed_at?: string | null; expires_at?: string | null },
 ): HTMLDivElement {
+  const dead = isPinDead(pin);
   const ageRatio = getPinAgeRatio(pin);
-  const pinOpacity = getPinOpacity(pin);
-  const fadedColor = getPinColorWithAge(pin);
+  const pinOpacity = dead ? 0.18 : getPinOpacity(pin);
+  const fadedColor = dead ? '#94A3B8' : getPinColorWithAge(pin);
 
-  // If pin is old enough (>35% of life), fall back to standard rendering
-  if (ageRatio >= 0.35) {
+  // Dead pins or old pins (>35% of life) → standard rendering
+  if (dead || ageRatio >= 0.35) {
     return createStandardPin(size, '', emoji, pin);
   }
 

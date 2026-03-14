@@ -47,6 +47,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} data-theme="dark" suppressHydrationWarning>
       <head>
+        <link href="https://api.mapbox.com/mapbox-gl-js/v3.18.1/mapbox-gl.css" rel="stylesheet" />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('breveil_theme');if(!t){t=localStorage.getItem('brume-theme');if(t){localStorage.setItem('breveil_theme',t);localStorage.removeItem('brume-theme')}}if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`,

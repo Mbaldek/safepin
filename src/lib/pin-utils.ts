@@ -122,3 +122,22 @@ export function getPinScale(pin: { created_at: string; last_confirmed_at?: strin
   const ratio = getPinAgeRatio(pin);
   return 1 - ratio * 0.25;
 }
+
+/**
+ * Is the pin expired (past its expires_at)?
+ */
+export function isPinDead(pin: { expires_at?: string | null }): boolean {
+  if (!pin.expires_at) return false;
+  return new Date(pin.expires_at).getTime() <= Date.now();
+}
+
+/**
+ * Is the pin beyond its grace period (DECAY_HOURS/2 after expiration)?
+ * Pins beyond grace should be completely hidden.
+ */
+export function isPinBeyondGrace(pin: { expires_at?: string | null; category: string }): boolean {
+  if (!pin.expires_at) return false;
+  const expiresAt = new Date(pin.expires_at).getTime();
+  const graceMs = ((DECAY_HOURS[pin.category] ?? 24) / 2) * 3600000;
+  return Date.now() > expiresAt + graceMs;
+}

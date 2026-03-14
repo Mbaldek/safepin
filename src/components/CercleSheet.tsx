@@ -110,7 +110,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
   // ── render ─────────────────────────────────────────────
   return (
     <>
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {open && (
         <>
           {/* overlay */}
@@ -132,19 +132,17 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 36 }}
             style={{
               position: 'fixed',
-              bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+              bottom: 64,
               left: 0,
               right: 0,
               height: '65%',
-              background: isDark ? 'rgba(13,20,40,0.88)' : 'rgba(255,255,255,0.92)',
-              backdropFilter: 'blur(40px)',
-              WebkitBackdropFilter: 'blur(40px)',
-              borderTopLeftRadius: 26,
-              borderTopRightRadius: 26,
-              zIndex: 201,
+              background: isDark ? 'rgba(10,18,32,0.88)' : 'rgba(248,250,252,0.92)',
+              backdropFilter: 'blur(32px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+              zIndex: 250,
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',

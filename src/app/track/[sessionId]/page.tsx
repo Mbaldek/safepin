@@ -5,7 +5,6 @@
 import { useEffect, useState, useRef, use } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

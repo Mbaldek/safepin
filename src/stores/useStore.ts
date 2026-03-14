@@ -119,10 +119,14 @@ type Store = {
   setSelectedPin: (pin: Pin | null) => void;
 
   // Map
+  reportPlaceMode: boolean;
+  setReportPlaceMode: (v: boolean) => void;
   newPinCoords: { lat: number; lng: number } | null;
   setNewPinCoords: (coords: { lat: number; lng: number } | null) => void;
   mapFlyTo: { lat: number; lng: number; zoom: number } | null;
   setMapFlyTo: (coords: { lat: number; lng: number; zoom: number } | null) => void;
+  mapFitBounds: { sw: [number, number]; ne: [number, number]; bottomPadding?: number } | null;
+  setMapFitBounds: (v: { sw: [number, number]; ne: [number, number]; bottomPadding?: number } | null) => void;
   departDragPin: [number, number] | null;
   setDepartDragPin: (coords: [number, number] | null) => void;
   userLocation: { lat: number; lng: number } | null;
@@ -288,10 +292,14 @@ export const useStore = create<Store>((set) => ({
   setSelectedPin: (pin) => set({ selectedPin: pin }),
 
   // Map
+  reportPlaceMode: false,
+  setReportPlaceMode: (v) => set({ reportPlaceMode: v }),
   newPinCoords: null,
   setNewPinCoords: (coords) => set({ newPinCoords: coords }),
   mapFlyTo: null,
   setMapFlyTo: (coords) => set({ mapFlyTo: coords }),
+  mapFitBounds: null,
+  setMapFitBounds: (v) => set({ mapFitBounds: v }),
   departDragPin: null,
   setDepartDragPin: (coords) => set({ departDragPin: coords }),
   userLocation: null,

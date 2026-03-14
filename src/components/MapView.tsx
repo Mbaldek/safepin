@@ -150,7 +150,7 @@ function MapView({
     pins, mapFilters, setSelectedPin, activeSheet, setActiveSheet, mapFlyTo, setMapFlyTo,
     setUserLocation, activeRoute, pendingRoutes, setPendingRoutes, selectedRouteIdx, transitSegments, watchedLocations, userId,
     safeSpaces, setSafeSpaces, showSafeSpaces, mapBottomPadding,
-    setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords,
+    setTripPrefill, setActiveTab, departDragPin, setDepartDragPin, newPinCoords, reportPlaceMode, setNewPinCoords,
     setMapViewport, dbClusters,
     highlightedPinIds, setSelectedRouteIdx, setTappedRouteIdx,
   } = useStore(useShallow((s) => ({
@@ -165,7 +165,7 @@ function MapView({
     showSafeSpaces: s.showSafeSpaces, mapBottomPadding: s.mapBottomPadding,
     setTripPrefill: s.setTripPrefill, setActiveTab: s.setActiveTab,
     departDragPin: s.departDragPin, setDepartDragPin: s.setDepartDragPin,
-    newPinCoords: s.newPinCoords,
+    newPinCoords: s.newPinCoords, reportPlaceMode: s.reportPlaceMode, setNewPinCoords: s.setNewPinCoords,
     setMapViewport: s.setMapViewport,
     dbClusters: s.dbClusters,
     highlightedPinIds: s.highlightedPinIds,
@@ -329,6 +329,20 @@ function MapView({
     setMapFlyTo(null);
   }, [mapFlyTo, setMapFlyTo]);
 
+  // Fit bounds (used by trip-detail to show depart+dest)
+  const mapFitBounds = useStore((s) => s.mapFitBounds);
+  const setMapFitBounds = useStore((s) => s.setMapFitBounds);
+  useEffect(() => {
+    if (!mapFitBounds || !map.current) return;
+    const { sw, ne, bottomPadding } = mapFitBounds;
+    map.current.fitBounds([sw, ne], {
+      padding: { top: 60, left: 60, right: 60, bottom: 60 + (bottomPadding ?? 0) },
+      maxZoom: 13,
+      duration: 800,
+    });
+    setMapFitBounds(null);
+  }, [mapFitBounds, setMapFitBounds]);
+
   // ── User location pulsing dot ──────────────────────────────────────────────
   useEffect(() => {
     if (!map.current) return;
@@ -437,8 +451,9 @@ function MapView({
   }, [mapReady]);
 
   // Report pin preview marker — follows newPinCoords in real time
+  // Hidden during place mode (crosshair shown instead)
   useEffect(() => {
-    if (!map.current || !newPinCoords) {
+    if (!map.current || !newPinCoords || reportPlaceMode) {
       previewMarkerRef.current?.remove();
       previewMarkerRef.current = null;
       return;
@@ -465,7 +480,19 @@ function MapView({
     } else {
       previewMarkerRef.current.setLngLat(lngLat);
     }
-  }, [activeSheet, newPinCoords]);
+  }, [activeSheet, newPinCoords, reportPlaceMode]);
+
+  // Place mode: sync map center → newPinCoords on moveend
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !reportPlaceMode) return;
+    const onMoveEnd = () => {
+      const center = m.getCenter();
+      setNewPinCoords({ lat: center.lat, lng: center.lng });
+    };
+    m.on('moveend', onMoveEnd);
+    return () => { m.off('moveend', onMoveEnd); };
+  }, [reportPlaceMode, setNewPinCoords]);
 
   // Draw / clear trip route
   useEffect(() => {
@@ -1318,6 +1345,14 @@ function MapView({
   return (
     <div className="relative w-full h-full overflow-hidden">
       <div ref={mapContainer} className="w-full h-full" />
+      {/* Bottom fade — bloom into sheets */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: 140, pointerEvents: 'none', zIndex: 5,
+        background: isDark
+          ? 'linear-gradient(0deg, rgba(10,18,32,0.95) 0%, rgba(10,18,32,0.5) 35%, transparent 100%)'
+          : 'linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.75) 45%, transparent 100%)',
+      }} />
 
       {/* Compass button — visible when map is rotated, below GPS control */}
       <CompassButton bearing={bearing} isDark={isDark} onReset={handleCompassReset} />

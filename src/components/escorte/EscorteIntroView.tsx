@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, X, ChevronRight, Star, Bell, Phone } from 'lucide-react'
+import { Users, ChevronLeft, ChevronRight, Star, Bell, Phone } from 'lucide-react'
 import { springConfig } from '@/lib/tokens'
 import { avatarColor } from '@/lib/escorteHelpers'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
@@ -51,7 +51,7 @@ const LEVELS: {
   { tag: 'N2', color: '#3BB4C1', bg: 'rgba(59,180,193,.12)', bd: 'rgba(59,180,193,.24)',
     iconType: 'phone', title: 'Canal audio privé', desc: 'Ils rejoignent une room audio, vous parlez en direct' },
   { tag: 'N3', color: '#A78BFA', bg: 'rgba(167,139,250,.1)', bd: 'rgba(167,139,250,.2)',
-    iconType: 'star', title: 'Julia intervient', desc: "L\u2019IA alerte les secours si aucune réponse sous 30 min", soon: true },
+    iconType: 'star', title: 'Julia intervient', desc: "Julia t\u2019accompagne si ton cercle ne répond pas sous 30 secondes" },
 ]
 
 export default function EscorteIntroView({ isDark, escorte, userId, onBack, onStart }: Props) {
@@ -144,7 +144,7 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', color: t.t3,
         }}>
-          <X size={9} strokeWidth={2.5} />
+          <ChevronLeft size={13} strokeWidth={2.5} />
         </button>
       </div>
 
@@ -256,7 +256,7 @@ export default function EscorteIntroView({ isDark, escorte, userId, onBack, onSt
           style={{
             width: 128, height: 34, padding: '0 10px', borderRadius: 10,
             border: `1px solid ${t.b2}`, background: t.s2, color: t.t1,
-            fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+            fontFamily: 'inherit', fontSize: 10, fontWeight: 600,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             outline: 'none',
           }}

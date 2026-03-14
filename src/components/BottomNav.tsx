@@ -22,7 +22,7 @@ const TABS: { id: Tab; labelKey: string; Icon: LucideIcon; disabled?: boolean }[
 const ACCENT = '#3BB4C1';
 const DANGER = '#EF4444';
 
-export default function BottomNav() {
+export default function BottomNav({ onTabPress }: { onTabPress?: (tab: Tab) => void }) {
   const isDark = useIsDark();
   const { activeTab, setActiveTab, unreadDmCount } = useStore();
   const badgeCount = useNotificationStore((s) => s.badgeCount);
@@ -40,7 +40,8 @@ export default function BottomNav() {
 
     setPressedTab(tab.id);
     setPoppingTab(tab.id);
-    setActiveTab(tab.id);
+    if (onTabPress) onTabPress(tab.id);
+    else setActiveTab(tab.id);
 
     setTimeout(() => setPressedTab(null), 400);
     setTimeout(() => setPoppingTab(null), 350);
@@ -56,10 +57,13 @@ export default function BottomNav() {
         left: 0,
         right: 0,
         zIndex: 300,
-        background: isDark ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.82)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
+        background: activeTab !== 'map'
+          ? (isDark ? '#0F172A' : '#F8FAFC')
+          : (isDark ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.82)'),
+        backdropFilter: activeTab !== 'map' ? 'none' : 'blur(20px)',
+        WebkitBackdropFilter: activeTab !== 'map' ? 'none' : 'blur(20px)',
+        borderTop: activeTab !== 'map' ? 'none' : `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
+        transition: 'background 200ms, border-top 200ms',
       }}
     >
       <div style={{ display: 'flex', height: 64 }}>

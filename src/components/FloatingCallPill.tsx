@@ -18,7 +18,11 @@ function formatTime(s: number) {
   return `${m}:${sec}`
 }
 
-export default function FloatingCallPill() {
+interface FloatingCallPillProps {
+  onEscorteTap?: () => void
+}
+
+export default function FloatingCallPill({ onEscorteTap }: FloatingCallPillProps = {}) {
   const isDark = useIsDark()
   const userId = useStore((s) => s.userId) ?? ''
 
@@ -156,6 +160,7 @@ export default function FloatingCallPill() {
             }}
             onClick={(e) => {
               if ((e.target as HTMLElement).closest('button')) return
+              if (onEscorteTap) { onEscorteTap(); return }
               toggleCallSheet()
             }}
           >

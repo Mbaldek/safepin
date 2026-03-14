@@ -14,6 +14,7 @@ import { bToast } from '@/components/GlobalToast';
 import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { updateStreak } from '@/lib/streaks';
 import { haversineMeters } from '@/lib/utils';
+import { isPinBeyondGrace } from '@/lib/pin-utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search, Menu, X, List, ChevronLeft, Shield, SlidersHorizontal } from 'lucide-react';
 import MapView from '@/components/MapView';
@@ -176,6 +177,7 @@ activeTrip, setActiveTrip,
     setTripPrefill,
     mapViewport, setDbClusters,
     pendingRoutes, tappedRouteIdx, setTappedRouteIdx,
+    reportPlaceMode,
   } = useStore();
   const isDark = useIsDark();
   const tMap = useTranslations('map');
@@ -196,6 +198,35 @@ activeTrip, setActiveTrip,
   const justCompletedOnboardingRef = useRef(false);
   const [showCommunityTooltip, setShowCommunityTooltip] = useState(false);
 
+  // ── Overlay / panel local state (declared early for closeAllPanels) ────────
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSections, setSearchSections] = useState<AutocompleteSection[]>([]);
+  const [showCityContext, setShowCityContext] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialScreen, setSettingsInitialScreen] = useState<string | undefined>(undefined);
+  const [showFilterPopover, setShowFilterPopover] = useState(false);
+
+  // ── Close all panels (exclusive panels rule) ─────────────────────────────
+  const closeAllPanels = useCallback((except?: 'tab' | 'sheet') => {
+    if (except !== 'sheet') { setActiveSheet('none'); setSelectedPin(null); }
+    if (except !== 'tab') setActiveTab('map');
+    setShowIncidentsList(false);
+    setShowWalkHistory(false);
+    setShowNotifications(false);
+    setShowSettings(false);
+    setShowSearch(false);
+    setShowCityContext(false);
+    setShowFilterPopover(false);
+    setSearchQuery('');
+    setSearchSections([]);
+    // Reset escorte planning state (but not if a trip is active)
+    if (except !== 'tab' && escorte.view !== 'trip-active') {
+      escorte.reset();
+    }
+  }, [setActiveSheet, setSelectedPin, setActiveTab, setShowIncidentsList, setShowWalkHistory, escorte]);
+
   const handleOnboardingDone = useCallback(() => {
     justCompletedOnboardingRef.current = true;
     markOnboardingDone();
@@ -214,22 +245,23 @@ activeTrip, setActiveTrip,
   // Open CommunityView DM when triggered from CercleSheet
   useEffect(() => {
     if (!communityDMTarget) return;
+    closeAllPanels('tab');
     setDmTarget(communityDMTarget);
     setActiveTab('community');
     closeCommunityDM();
-  }, [communityDMTarget, closeCommunityDM, setActiveTab]);
+  }, [communityDMTarget, closeCommunityDM, setActiveTab, closeAllPanels]);
 
 
   // Listen for locate-pin events from community cards
   useEffect(() => {
     const handler = (e: Event) => {
       const { lat, lng } = (e as CustomEvent).detail;
+      closeAllPanels();
       useStore.getState().setMapFlyTo({ lat, lng, zoom: 16 });
-      setActiveTab('map');
     };
     window.addEventListener('breveil:locate-pin', handler);
     return () => window.removeEventListener('breveil:locate-pin', handler);
-  }, [setActiveTab]);
+  }, [closeAllPanels]);
 
   // Clear pending route options whenever the user leaves the trip tab
   useEffect(() => {
@@ -343,16 +375,7 @@ activeTrip, setActiveTrip,
 
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchSections, setSearchSections] = useState<AutocompleteSection[]>([]);
-  const [showCityContext, setShowCityContext] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsInitialScreen, setSettingsInitialScreen] = useState<string | undefined>(undefined);
   const [sosPin, setSosPin] = useState<import('@/types').Pin | null>(null);
-  const [showFilterPopover, setShowFilterPopover] = useState(false);
-
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
 
   // Debounced DB search — fires when searchQuery changes
@@ -374,6 +397,7 @@ activeTrip, setActiveTrip,
           coords: [p.lng, p.lat] as [number, number],
           icon: '📍',
           onClick: () => {
+            closeAllPanels('sheet');
             useStore.getState().setSelectedPin(p);
             setActiveSheet('detail');
             useStore.getState().setMapFlyTo({ lat: p.lat, lng: p.lng, zoom: 16 });
@@ -411,36 +435,26 @@ activeTrip, setActiveTrip,
   }, [searchQuery]);
 
   const handleMapTap = useCallback(() => {
-    setActiveSheet('none');
-    setShowNotifications(false);
-    setShowSettings(false);
-    setShowSearch(false);
-    setShowCityContext(false);
-    setShowIncidentsList(false);
-    setShowWalkHistory(false);
-    // Close trip/community/cercle panels — return to map
     const s = useStore.getState();
     const tab = s.activeTab;
     if (tab === 'trip' && s.pendingRoutes?.length) {
       // Don't close trip panel when viewing routes — just dismiss QuickCard + re-expand panel
       s.setTappedRouteIdx(null);
       window.dispatchEvent(new CustomEvent('route-tap-expand'));
-    } else if (tab === 'trip' || tab === 'community' || tab === 'cercle') {
-      setActiveTab('map');
+      return;
     }
-  }, [setActiveSheet, setShowIncidentsList, setShowWalkHistory, setActiveTab]);
+    closeAllPanels();
+  }, [closeAllPanels]);
 
-  // When a store-driven overlay opens (pin detail, report), close all local overlays
-  useEffect(() => {
-    if (activeSheet !== 'none') {
-      setShowNotifications(false);
-      setShowSettings(false);
-      setShowSearch(false);
-      setShowCityContext(false);
-      setShowIncidentsList(false);
-      setActiveTab('map');
+  // ── Tab toggle (re-click = close, different tab = exclusive switch) ────────
+  const handleTabPress = useCallback((tab: 'map' | 'community' | 'cercle' | 'trip' | 'me') => {
+    if (activeTab === tab) {
+      closeAllPanels();
+    } else {
+      closeAllPanels('tab');
+      setActiveTab(tab);
     }
-  }, [activeSheet]);
+  }, [activeTab, closeAllPanels, setActiveTab]);
 
   // Layer state (controls passed to MapView)
   const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>(isDark ? 'custom' : 'light');
@@ -616,6 +630,7 @@ activeTrip, setActiveTrip,
         for (const p of (ownPins as Pin[] ?? [])) merged.set(p.id, p);
         let result = [...merged.values()];
         if (!showSimulated) result = result.filter((p) => !p.is_simulated);
+        result = result.filter((p) => !isPinBeyondGrace(p));
         setPins(result);
         setDbClusters([]);
 
@@ -638,7 +653,7 @@ activeTrip, setActiveTrip,
         // ── Fallback: global load (no viewport yet) ──────────────────────────
         const q1 = supabase
           .from('pins').select('*')
-          .is('hidden_at', null).gt('expires_at', now)
+          .is('hidden_at', null)
           .order('created_at', { ascending: false });
         const q2 = userId
           ? supabase.from('pins').select('*').eq('user_id', userId).order('created_at', { ascending: false })
@@ -655,6 +670,7 @@ activeTrip, setActiveTrip,
         for (const p of (ownPins as Pin[] ?? [])) merged.set(p.id, p);
         let result = [...merged.values()];
         if (!showSimulated) result = result.filter((p) => !p.is_simulated);
+        result = result.filter((p) => !isPinBeyondGrace(p));
         setPins(result);
         setDbClusters([]);
       }
@@ -692,9 +708,8 @@ activeTrip, setActiveTrip,
           .from('pins')
           .select('*')
           .is('hidden_at', null)
-          .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: false })
-          .then(({ data }) => { if (data) setPins(data as Pin[]); });
+          .then(({ data }) => { if (data) setPins((data as Pin[]).filter((p) => !isPinBeyondGrace(p))); });
         // Reset offline queue count
         import('@/lib/offlineQueue').then(({ getCount }) =>
           getCount().then((n) => useStore.getState().setOfflineQueueCount(n))
@@ -875,7 +890,7 @@ activeTrip, setActiveTrip,
 
   // ── App layout ────────────────────────────────────────────────────────────
   return (
-    <div id="main-content" role="main" className="h-dvh flex flex-col overflow-hidden">
+    <div id="main-content" role="main" className="h-dvh flex flex-col">
 
       {/* ── Top bar (floating transparent overlay) ────────────────── */}
       <div
@@ -927,7 +942,7 @@ activeTrip, setActiveTrip,
                 {/* Search icon — map tab only */}
                 {activeTab === 'map' && (
                   <button
-                    onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowNotifications(false); setShowSettings(false); setShowCityContext(false); setShowSearch(true); }}
+                    onClick={() => { if (showSearch) { setShowSearch(false); return; } closeAllPanels(); setShowSearch(true); }}
                     aria-label="Search location"
                     className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
                     style={{ background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
@@ -937,7 +952,7 @@ activeTrip, setActiveTrip,
                 )}
                 {/* Notification bell */}
                 <button
-                  onClick={() => { setActiveSheet('none'); setShowIncidentsList(false); setShowSettings(false); setShowSearch(false); setShowCityContext(false); setShowNotifications((v) => !v); }}
+                  onClick={() => { if (showNotifications) { setShowNotifications(false); return; } closeAllPanels(); setShowNotifications(true); }}
                   aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                   className="relative w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
                   style={{
@@ -969,7 +984,7 @@ activeTrip, setActiveTrip,
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
                   }}
-                  onClick={() => { if (!showSettings) { setActiveSheet('none'); setShowIncidentsList(false); setShowNotifications(false); setShowSearch(false); setShowCityContext(false); } setShowSettings((v) => !v); }}
+                  onClick={() => { if (showSettings) { setShowSettings(false); return; } closeAllPanels(); setShowSettings(true); }}
                 >
                   <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
                 </button>
@@ -1004,7 +1019,7 @@ activeTrip, setActiveTrip,
 
         {/* RouteQuickCard — appears when user taps a route line on the map */}
         <AnimatePresence>
-          {tappedRouteIdx !== null && pendingRoutes?.[tappedRouteIdx] && (
+          {tappedRouteIdx !== null && pendingRoutes?.[tappedRouteIdx] && escorte.view !== 'trip-detail' && (
             <RouteQuickCard
               key="route-quick-card"
               route={pendingRoutes[tappedRouteIdx]}
@@ -1233,7 +1248,7 @@ activeTrip, setActiveTrip,
               background: 'rgba(76,175,121,0.12)',
               border: '1px solid rgba(76,175,121,0.25)',
             }}
-            onClick={() => { setActiveTab('trip'); escorte.setView('escorte-intro'); }}
+            onClick={() => { closeAllPanels('tab'); setActiveTab('trip'); escorte.setView('escorte-intro'); }}
           >
             <span className="w-2 h-2 rounded-full animate-pulse"
                   style={{ backgroundColor: 'var(--safe)' }} />
@@ -1256,7 +1271,7 @@ activeTrip, setActiveTrip,
           <>
             {/* Incidents list toggle — top left pill */}
             <button
-              onClick={() => setShowIncidentsList(!showIncidentsList)}
+              onClick={() => { if (showIncidentsList) { setShowIncidentsList(false); return; } closeAllPanels(); setShowIncidentsList(true); }}
               aria-label={showIncidentsList ? 'Hide incidents list' : 'Show incidents list'}
 
               className="absolute rounded-xl shadow-lg z-50 hover:scale-105 active:scale-95 transition"
@@ -1300,99 +1315,11 @@ activeTrip, setActiveTrip,
                 </span>
               </div>
             </button>
-            {/* Walk With Me — Diamond button */}
-            {(() => {
-              const isMAMActive = escorte.view !== 'hub';
-              return (
-                <div
-                  onClick={() => { setActiveTab('trip'); escorte.setView('escorte-intro'); }}
-                  style={{
-                    position: 'fixed',
-                    bottom: 260,
-                    right: 20,
-                    width: 50,
-                    height: 50,
-                    borderRadius: '26%',
-                    cursor: 'pointer',
-                    overflow: 'visible',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transform: isMAMActive ? 'rotate(-45deg)' : 'rotate(45deg)',
-                    transition: 'transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                    zIndex: 15,
-                  }}
-                >
-                  {/* INNER — breathe scale */}
-                  <div style={{
-                    position: 'relative',
-                    width: 50,
-                    height: 50,
-                    borderRadius: '26%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    animation: 'mamBreathe 5s ease-in-out infinite',
-                  }}>
-                    {/* shadow */}
-                    <div style={{
-                      position: 'absolute', borderRadius: '26%', zIndex: 0, pointerEvents: 'none',
-                      width: 110, height: 110,
-                      top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-                      filter: 'blur(8px)',
-                      background: isMAMActive
-                        ? 'radial-gradient(ellipse at 58% 62%, rgba(25,110,135,0.18) 0%, rgba(18,95,118,0.08) 42%, transparent 68%)'
-                        : 'radial-gradient(ellipse at 58% 62%, rgba(155,163,178,0.24) 0%, rgba(145,155,172,0.10) 42%, transparent 68%)',
-                      transition: 'background 0.6s ease',
-                    }} />
-                    {/* glow2 teal — visible only active */}
-                    <div style={{
-                      position: 'absolute', borderRadius: '50%', zIndex: 0, pointerEvents: 'none',
-                      width: 108, height: 108,
-                      top: '50%', left: '50%',
-                      filter: 'blur(8px)',
-                      opacity: isMAMActive ? 1 : 0,
-                      background: 'radial-gradient(circle, rgba(59,180,193,0.55) 0%, rgba(34,168,184,0.30) 38%, rgba(20,155,175,0.10) 62%, transparent 80%)',
-                      transition: 'opacity 0.6s ease',
-                      animation: 'mamGlow2 3.5s ease-in-out infinite 0.5s',
-                    }} />
-                    {/* glow1 */}
-                    <div style={{
-                      position: 'absolute', borderRadius: '50%', zIndex: 1, pointerEvents: 'none',
-                      width: 96, height: 96,
-                      top: '50%', left: '50%',
-                      background: isMAMActive
-                        ? 'radial-gradient(circle, rgba(195,245,252,0.72) 0%, rgba(110,222,238,0.46) 28%, rgba(59,180,193,0.22) 50%, rgba(18,148,170,0.07) 68%, transparent 82%)'
-                        : 'radial-gradient(circle, rgba(255,255,248,0.60) 0%, rgba(255,248,224,0.38) 30%, rgba(255,238,190,0.15) 52%, transparent 70%)',
-                      transition: 'background 0.6s ease',
-                      animation: 'mamGlow1 3.5s ease-in-out infinite',
-                    }} />
-                    {/* tile */}
-                    <div style={{
-                      position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 2,
-                      background: isMAMActive
-                        ? 'linear-gradient(145deg, #E6F7FA 0%, #C4ECF5 45%, #A2E1EF 100%)'
-                        : 'linear-gradient(145deg, #F9F9F9 0%, #F1F1F1 45%, #E7E7E7 100%)',
-                      boxShadow: isMAMActive
-                        ? '-4px -4px 10px rgba(255,255,255,0.90), 5px 7px 16px rgba(25,95,115,0.28), 2px 3px 8px rgba(18,85,105,0.20), inset -2px -2px 5px rgba(255,255,255,0.75), inset 1px 1px 3px rgba(30,140,160,0.12), 0 0 0 1.5px rgba(59,180,193,0.38), 0 0 16px rgba(59,180,193,0.28)'
-                        : '-5px -5px 12px rgba(255,255,255,0.95), 6px 8px 18px rgba(170,178,194,0.55), 3px 4px 9px rgba(160,170,186,0.38), inset -2px -2px 5px rgba(255,255,255,0.85), inset 1px 1px 3px rgba(150,160,176,0.10)',
-                      transition: 'background 0.6s ease, box-shadow 0.6s ease',
-                    }} />
-                    {/* specular */}
-                    <div style={{
-                      position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 3, pointerEvents: 'none',
-                      opacity: isMAMActive ? 0.55 : 1,
-                      transition: 'opacity 0.6s ease',
-                      background: 'radial-gradient(ellipse at 28% 26%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.46) 24%, rgba(255,255,255,0.10) 52%, transparent 68%)',
-                    }} />
-                  </div>
-                </div>
-              );
-            })()}
-
             {/* Report button — stacked above SOS on the right */}
             <div
               onClick={() => {
+                if (activeSheet === 'report') { closeAllPanels(); return; }
+                closeAllPanels();
                 const loc = useStore.getState().userLocation;
                 if (loc) setNewPinCoords({ lat: loc.lat, lng: loc.lng });
                 setActiveSheet('report');
@@ -1482,6 +1409,98 @@ activeTrip, setActiveTrip,
           </>
         )}
 
+        {/* Walk With Me — Diamond button (outside activeTab===map so animation plays on tab switch) */}
+        {(activeTab === 'map' || escorte.view !== 'hub') && (() => {
+          const isMAMActive = escorte.view !== 'hub';
+          return (
+            <div
+              onClick={() => {
+                escorte.setView('escorte-intro');
+                setTimeout(() => { closeAllPanels('tab'); setActiveTab('trip'); }, 400);
+              }}
+              style={{
+                position: 'fixed',
+                bottom: 260,
+                right: 20,
+                width: 50,
+                height: 50,
+                borderRadius: '26%',
+                cursor: 'pointer',
+                overflow: 'visible',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transform: isMAMActive ? 'rotate(-45deg)' : 'rotate(45deg)',
+                transition: 'transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                zIndex: 15,
+              }}
+            >
+              {/* INNER — breathe scale */}
+              <div style={{
+                position: 'relative',
+                width: 50,
+                height: 50,
+                borderRadius: '26%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                animation: 'mamBreathe 5s ease-in-out infinite',
+              }}>
+                {/* shadow */}
+                <div style={{
+                  position: 'absolute', borderRadius: '26%', zIndex: 0, pointerEvents: 'none',
+                  width: 110, height: 110,
+                  top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                  filter: 'blur(8px)',
+                  background: isMAMActive
+                    ? 'radial-gradient(ellipse at 58% 62%, rgba(25,110,135,0.18) 0%, rgba(18,95,118,0.08) 42%, transparent 68%)'
+                    : 'radial-gradient(ellipse at 58% 62%, rgba(155,163,178,0.24) 0%, rgba(145,155,172,0.10) 42%, transparent 68%)',
+                  transition: 'background 0.6s ease',
+                }} />
+                {/* glow2 teal — visible only active */}
+                <div style={{
+                  position: 'absolute', borderRadius: '50%', zIndex: 0, pointerEvents: 'none',
+                  width: 108, height: 108,
+                  top: '50%', left: '50%',
+                  filter: 'blur(8px)',
+                  opacity: isMAMActive ? 1 : 0,
+                  background: 'radial-gradient(circle, rgba(59,180,193,0.55) 0%, rgba(34,168,184,0.30) 38%, rgba(20,155,175,0.10) 62%, transparent 80%)',
+                  transition: 'opacity 0.6s ease',
+                  animation: 'mamGlow2 3.5s ease-in-out infinite 0.5s',
+                }} />
+                {/* glow1 */}
+                <div style={{
+                  position: 'absolute', borderRadius: '50%', zIndex: 1, pointerEvents: 'none',
+                  width: 96, height: 96,
+                  top: '50%', left: '50%',
+                  background: isMAMActive
+                    ? 'radial-gradient(circle, rgba(195,245,252,0.72) 0%, rgba(110,222,238,0.46) 28%, rgba(59,180,193,0.22) 50%, rgba(18,148,170,0.07) 68%, transparent 82%)'
+                    : 'radial-gradient(circle, rgba(255,255,248,0.60) 0%, rgba(255,248,224,0.38) 30%, rgba(255,238,190,0.15) 52%, transparent 70%)',
+                  transition: 'background 0.6s ease',
+                  animation: 'mamGlow1 3.5s ease-in-out infinite',
+                }} />
+                {/* tile */}
+                <div style={{
+                  position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 2,
+                  background: isMAMActive
+                    ? 'linear-gradient(145deg, #E6F7FA 0%, #C4ECF5 45%, #A2E1EF 100%)'
+                    : 'linear-gradient(145deg, #F9F9F9 0%, #F1F1F1 45%, #E7E7E7 100%)',
+                  boxShadow: isMAMActive
+                    ? '-4px -4px 10px rgba(255,255,255,0.90), 5px 7px 16px rgba(25,95,115,0.28), 2px 3px 8px rgba(18,85,105,0.20), inset -2px -2px 5px rgba(255,255,255,0.75), inset 1px 1px 3px rgba(30,140,160,0.12), 0 0 0 1.5px rgba(59,180,193,0.38), 0 0 16px rgba(59,180,193,0.28)'
+                    : '-5px -5px 12px rgba(255,255,255,0.95), 6px 8px 18px rgba(170,178,194,0.55), 3px 4px 9px rgba(160,170,186,0.38), inset -2px -2px 5px rgba(255,255,255,0.85), inset 1px 1px 3px rgba(150,160,176,0.10)',
+                  transition: 'background 0.6s ease, box-shadow 0.6s ease',
+                }} />
+                {/* specular */}
+                <div style={{
+                  position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 3, pointerEvents: 'none',
+                  opacity: isMAMActive ? 0.55 : 1,
+                  transition: 'opacity 0.6s ease',
+                  background: 'radial-gradient(ellipse at 28% 26%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.46) 24%, rgba(255,255,255,0.10) 52%, transparent 68%)',
+                }} />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Map contextual card — shows area info */}
 
@@ -1548,7 +1567,7 @@ activeTrip, setActiveTrip,
         </AnimatePresence>
 
         {/* Community tab — trusted circle, groups, messages */}
-        <AnimatePresence onExitComplete={() => {
+        <AnimatePresence mode="wait" onExitComplete={() => {
           if (pendingPinId) {
             const pinId = pendingPinId;
             setPendingPinId(null);
@@ -1571,7 +1590,7 @@ activeTrip, setActiveTrip,
         <CercleSheet open={activeTab === 'cercle'} onClose={() => setActiveTab('map')} />
 
         {/* Escorte sheet — trip tab */}
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {activeTab === 'trip' && userId && (
             <EscorteSheet
               key="escorte-sheet"
@@ -1593,7 +1612,7 @@ activeTrip, setActiveTrip,
         </AnimatePresence>
 
         {/* Julia AI tab */}
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {activeTab === 'me' && userId && (
             <JuliaChat
               key="julia-chat"
@@ -1665,6 +1684,50 @@ activeTrip, setActiveTrip,
         }}
       />
 
+      {/* ── Crosshair overlay for pin placement ── */}
+      <AnimatePresence>
+        {reportPlaceMode && (
+          <motion.div
+            key="report-crosshair"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              top: 'calc((100vh - 174px) / 2)',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 50,
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            {/* Crosshair icon */}
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="8" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="2" fill="none" opacity="0.7" />
+              <line x1="24" y1="4" x2="24" y2="16" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
+              <line x1="24" y1="32" x2="24" y2="44" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
+              <line x1="4" y1="24" x2="16" y2="24" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
+              <line x1="32" y1="24" x2="44" y2="24" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
+              <circle cx="24" cy="24" r="2.5" fill={isDark ? '#3BB4C1' : '#1E3A5F'} />
+            </svg>
+            <span style={{
+              fontSize: 10, fontWeight: 600,
+              color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.6)',
+              background: isDark ? 'rgba(15,23,42,0.6)' : 'rgba(255,255,255,0.8)',
+              padding: '2px 8px', borderRadius: 6,
+              backdropFilter: 'blur(8px)',
+            }}>
+              Déplace la carte
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── New Report Sheet (v2) ── */}
       <AnimatePresence>
         <ReportSheet />
@@ -1689,7 +1752,7 @@ activeTrip, setActiveTrip,
       <CommunityTooltip show={showCommunityTooltip} />
 
       {/* ── Bottom navigation ──────────────────────────────────────── */}
-      <BottomNav />
+      <BottomNav onTabPress={handleTabPress} />
 
       {/* ── City context overlay ───────────────────────────────────── */}
       <AnimatePresence>
@@ -1727,7 +1790,12 @@ activeTrip, setActiveTrip,
       <OfflineBanner />
 
       {/* ── Global audio call UI ─────────────────────────────────────── */}
-      <FloatingCallPill />
+      <FloatingCallPill
+        onEscorteTap={escorte.view === 'escorte-live' || escorte.view === 'escorte-notifying'
+          ? () => setActiveTab('trip')
+          : undefined
+        }
+      />
       <CallSheet />
 
     </div>

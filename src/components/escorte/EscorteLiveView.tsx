@@ -52,38 +52,60 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
       style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: 9 }}
     >
       {/* HUD row */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-        borderRadius: 16, border: `1px solid ${b2}`,
-        background: d ? 'rgba(18,28,48,0.80)' : 'rgba(241,246,250,0.90)',
-        backdropFilter: 'blur(20px)',
-      }}>
-        <div>
-          <div style={{ fontSize: 22, fontWeight: 300, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: tk.tp, lineHeight: 1 }}>
-            {formatElapsed(escorte.elapsed)}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {/* Timer + En marche */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+          borderRadius: 16, border: `1px solid ${b2}`,
+          background: d ? 'rgba(18,28,48,0.80)' : 'rgba(241,246,250,0.90)',
+          backdropFilter: 'blur(20px)',
+        }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 300, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: tk.tp, lineHeight: 1 }}>
+              {formatElapsed(escorte.elapsed)}
+            </div>
+            <div style={{ fontSize: 9, color: C.t2, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <motion.div
+                animate={{ opacity: [1, 0.35, 1], scale: [1, 0.55, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ width: 5, height: 5, borderRadius: '50%', background: RED }}
+              />
+              <span style={{ color: RED, fontWeight: 700 }}>REC</span>
+            </div>
           </div>
-          <div style={{ fontSize: 9, color: C.t2, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ flex: 1 }} />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 20,
+            background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.30)',
+            color: GREEN, fontSize: 10, fontWeight: 700,
+          }}>
             <motion.div
               animate={{ opacity: [1, 0.35, 1], scale: [1, 0.55, 1] }}
               transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ width: 5, height: 5, borderRadius: '50%', background: RED }}
+              style={{ width: 5, height: 5, borderRadius: '50%', background: GREEN }}
             />
-            <span style={{ color: RED, fontWeight: 700 }}>REC</span>
+            En marche
           </div>
         </div>
-        <div style={{ flex: 1 }} />
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 20,
-          background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.30)',
-          color: GREEN, fontSize: 10, fontWeight: 700,
-        }}>
-          <motion.div
-            animate={{ opacity: [1, 0.35, 1], scale: [1, 0.55, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ width: 5, height: 5, borderRadius: '50%', background: GREEN }}
-          />
-          En marche
-        </div>
+
+        {/* Je suis en sécurité */}
+        <button
+          onClick={onStop}
+          style={{
+            width: 80, borderRadius: 16,
+            background: 'rgba(52,211,153,0.08)',
+            border: '1px solid rgba(52,211,153,0.25)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 3, cursor: 'pointer', fontFamily: 'inherit',
+            padding: '6px 4px', flexShrink: 0,
+          }}
+        >
+          <Check size={16} strokeWidth={2.5} color={GREEN} />
+          <div style={{ fontSize: 8, fontWeight: 700, color: GREEN, textAlign: 'center', lineHeight: 1.2 }}>
+            Je suis en{'\n'}sécurité
+          </div>
+        </button>
       </div>
 
       {/* Protection active */}
@@ -104,20 +126,6 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
             Cercle notifié · {escorte.circleMembers.length} contact{escorte.circleMembers.length > 1 ? 's' : ''}
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, color: GREEN }}>Actif</div>
-        </div>
-
-        {/* Canal audio */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', borderRadius: 10,
-          background: teal12, border: `1px solid ${teal24}`, marginBottom: 4,
-        }}>
-          <div style={{ width: 22, height: 22, borderRadius: 7, background: teal12, border: `1px solid ${teal24}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Phone size={10} strokeWidth={2.2} color={TEAL} />
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: tk.tp, flex: 1 }}>
-            Canal audio · {isAudioLive ? `${vocalCount + 1} personnes` : 'en attente'}
-          </div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: TEAL }}>{isAudioLive ? '● Live' : '…'}</div>
         </div>
 
         {/* Julia veille */}
@@ -252,19 +260,6 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
         </div>
       </div>
 
-      {/* End button */}
-      <button onClick={onStop} style={{
-        width: '100%', padding: 9, borderRadius: 10,
-        background: 'transparent', border: `1px solid ${b2}`,
-        color: C.t3, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-        fontFamily: 'inherit',
-      }}>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-        </svg>
-        Terminer la marche
-      </button>
     </motion.div>
   )
 }

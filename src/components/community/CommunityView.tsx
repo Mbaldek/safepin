@@ -297,13 +297,13 @@ export default function CommunityView({ onClose, onSafetyFilter, dmTarget, onDMO
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 36 }}
       onAnimationComplete={() => {}}
       style={{
         willChange: 'transform',
         position: 'fixed',
         top: 0,
-        bottom: 0,
+        bottom: 64,
         left: 0,
         right: 0,
         paddingBottom: 0,

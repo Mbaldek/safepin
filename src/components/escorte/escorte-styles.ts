@@ -55,7 +55,7 @@ export const SHEET_HEIGHTS: Record<string, string> = {
   'escorte-intro':     '58vh',
   'escorte-notifying': '55vh',
   'escorte-live':      '62vh',
-  'trip-form':         '55vh',
+  'trip-form':         '48vh',
   'trip-detail':       '55vh',
   'trip-active':       '0px',
   'arrived':           '0px',

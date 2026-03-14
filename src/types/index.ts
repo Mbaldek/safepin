@@ -35,6 +35,7 @@ export type Pin = {
   decay_type?: 'people' | 'infra' | 'positive';
   category_label?: string;
   username?: string;
+  expires_at?: string | null;
   created_at: string;
 };
 

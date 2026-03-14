@@ -179,13 +179,10 @@ export default function NearbySheet({ onClose }: Props) {
         left: 0,
         right: 0,
         backgroundColor: isDark ? 'rgba(26,37,64,0.88)' : 'rgba(255,255,255,0.92)',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
         zIndex: 301,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 -4px 30px rgba(0,0,0,0.2)',
         backdropFilter: 'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
       }}

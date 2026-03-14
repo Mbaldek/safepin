@@ -1,7 +1,8 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Phone, Copy, Share2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Phone, Copy, Share2, Sparkles } from 'lucide-react'
 import { tok, springConfig } from '@/lib/tokens'
 import { avatarColor } from '@/lib/escorteHelpers'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
@@ -12,9 +13,10 @@ interface Props {
   isDark: boolean
   escorte: UseEscorteReturn
   onCancel: () => void
+  onContinueWithJulia: () => void
 }
 
-export default function EscorteNotifyingView({ isDark, escorte, onCancel }: Props) {
+export default function EscorteNotifyingView({ isDark, escorte, onCancel, onContinueWithJulia }: Props) {
   const d = isDark
   const tk = tok(isDark)
   const C = getColors(isDark)
@@ -22,6 +24,14 @@ export default function EscorteNotifyingView({ isDark, escorte, onCancel }: Prop
   const TEAL = '#3BB4C1'
   const GREEN = '#34D399'
   const AMBER = '#FBBF24'
+  const PURPLE = '#A78BFA'
+
+  // Julia fallback button appears after 10s
+  const [showJuliaBtn, setShowJuliaBtn] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setShowJuliaBtn(true), 10_000)
+    return () => clearTimeout(t)
+  }, [])
 
   const hasResponded = escorte.circleMembers.some(
     m => m.status === 'following' || m.status === 'vocal'
@@ -60,7 +70,7 @@ export default function EscorteNotifyingView({ isDark, escorte, onCancel }: Prop
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -32 }}
       transition={springConfig}
-      style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: 9 }}
+      style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column', gap: 9 }}
     >
       {/* Status pill */}
       <div style={{
@@ -172,6 +182,51 @@ export default function EscorteNotifyingView({ isDark, escorte, onCancel }: Prop
           <div style={{ fontSize: 10, color: C.t2, marginTop: 1 }}>Ton cercle peut rejoindre dès maintenant</div>
         </div>
       </div>
+
+      {/* Julia fallback — appears after 10s if no one responded */}
+      <AnimatePresence>
+        {showJuliaBtn && !hasResponded && (
+          <motion.button
+            key="julia-btn"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            onClick={onContinueWithJulia}
+            style={{
+              width: '100%', position: 'relative', overflow: 'hidden',
+              padding: '10px 14px', borderRadius: 11,
+              background: 'transparent',
+              border: `1px solid rgba(167,139,250,0.25)`,
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const,
+            }}
+          >
+            {/* Liquid fill — fills over 20s (30s total - 10s delay) */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 20, ease: 'linear' }}
+              style={{
+                position: 'absolute', inset: 0,
+                background: `linear-gradient(90deg, rgba(167,139,250,0.08), rgba(167,139,250,0.18))`,
+                transformOrigin: 'left',
+                borderRadius: 11,
+              }}
+            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 9 }}>
+              <Sparkles size={14} color={PURPLE} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: PURPLE }}>
+                  Continuer avec Julia
+                </div>
+                <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>
+                  IA vocale · accompagnement immédiat
+                </div>
+              </div>
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Code display */}
       <div style={{

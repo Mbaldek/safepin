@@ -54,7 +54,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
-  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, setTransitSegments } = useStore()
+  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setMapFitBounds, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, selectedRouteIdx: storeSelectedRouteIdx, setTransitSegments } = useStore()
   const pins = useStore((s) => s.pins)
 
 
@@ -215,12 +215,16 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     })()
   }, [departCoords, selectedDest, routeMode, setPendingRoutes, pins])
 
-  // ── Fly to destination when selected ─────────
+  // ── Fit map to show both depart + destination ─────────
   useEffect(() => {
-    if (!selectedDest) return
-    const [lng, lat] = selectedDest.center
-    setMapFlyTo({ lat, lng, zoom: 14 })
-  }, [selectedDest, setMapFlyTo])
+    if (!selectedDest || !departCoords) return
+    const [dLng, dLat] = selectedDest.center
+    const [sLng, sLat] = departCoords
+    const sw: [number, number] = [Math.min(sLng, dLng), Math.min(sLat, dLat)]
+    const ne: [number, number] = [Math.max(sLng, dLng), Math.max(sLat, dLat)]
+    // bottomPadding accounts for the sheet covering ~48vh of screen
+    setMapFitBounds({ sw, ne, bottomPadding: Math.round(window.innerHeight * 0.48) })
+  }, [selectedDest, departCoords, setMapFitBounds])
 
   // ── Defensive cleanup: clear pending routes when trip goes active ──
   useEffect(() => {
@@ -284,6 +288,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     })
     setQuery(r.name)
     destSearch.clear()
+    setHubExpanded(false)
+    escorte.setView('trip-form')
   }
 
   const handleFavoriSelect = (f: FavoriTrajet) => {
@@ -295,6 +301,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       place_type:  ['favorite'],
     })
     setQuery(f.name)
+    setHubExpanded(false)
+    escorte.setView('trip-form')
   }
 
   // ── Depart search handlers ───────────────────
@@ -402,6 +410,55 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [departDragPin])
 
+  // ── Route tap on map → open trip-detail ────────
+  useEffect(() => {
+    function onQuickLaunch(e: Event) {
+      const idx = (e as CustomEvent).detail?.idx
+      if (typeof idx === 'number') {
+        setSelectedIdx(idx)
+        setSelectedRouteIdx(idx)
+        escorte.setView('trip-detail')
+      }
+    }
+    window.addEventListener('route-quick-launch', onQuickLaunch)
+    return () => window.removeEventListener('route-quick-launch', onQuickLaunch)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Sync trip-detail when user taps a different route on the map ──
+  useEffect(() => {
+    if (escorte.view !== 'trip-detail') return
+    if (storeSelectedRouteIdx === null || storeSelectedRouteIdx === selectedIdx) return
+    setSelectedIdx(storeSelectedRouteIdx)
+    const route = fetchedRoutes[storeSelectedRouteIdx]
+    if (route) {
+      setRouteInfo({ duration: route.duration, distance: route.distance })
+      if (route.steps) {
+        const segs: RouteSegment[] = route.steps.map(s => ({
+          coords: s.coords,
+          color: s.mode === 'walking' ? '#94A3B8' : (s.lineColor || '#3BB4C1'),
+          dashed: s.mode === 'walking',
+        }))
+        setTransitSegments(segs)
+      } else {
+        setTransitSegments(null)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeSelectedRouteIdx])
+
+  // ── Fit map to depart+dest when trip-detail opens ──
+  useEffect(() => {
+    if (escorte.view !== 'trip-detail') return
+    if (!departCoords || !selectedDest) return
+    const [dLng, dLat] = departCoords
+    const [aLng, aLat] = selectedDest.center
+    const sw: [number, number] = [Math.min(dLng, aLng), Math.min(dLat, aLat)]
+    const ne: [number, number] = [Math.max(dLng, aLng), Math.max(dLat, aLat)]
+    setMapFitBounds({ sw, ne, bottomPadding: Math.round(window.innerHeight * 0.68) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [escorte.view])
+
   // ── Trip launch ────────────────────────────────
   const handleStartTrip = async () => {
     if (!selectedDest || !departCoords) return
@@ -455,9 +512,17 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       transition={springConfig}
       style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
     >
+      <AnimatePresence mode="wait">
       {hubExpanded ? (
         /* ═══ DESTINATION PICKER (expanded hub) ═══ */
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}>
+        <motion.div
+          key="hub-expanded"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}
+        >
           {/* Search results overlay */}
           {destSearch.results.length > 0 && (
             <div style={{
@@ -566,15 +631,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 }}
                 style={{
                   width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                  background: selectedDest ? '#A78BFA' : C.el,
-                  border: `1px solid ${selectedDest ? '#A78BFA' : C.border}`,
+                  background: selectedDest ? '#A78BFA' : query.trim() ? '#34D399' : C.el,
+                  border: `1px solid ${selectedDest ? '#A78BFA' : query.trim() ? '#34D399' : C.border}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: selectedDest ? 'pointer' : 'default',
-                  opacity: selectedDest ? 1 : 0.4,
+                  cursor: selectedDest || query.trim() ? 'pointer' : 'default',
+                  opacity: selectedDest || query.trim() ? 1 : 0.4,
                   transition: 'all 200ms',
                 }}
               >
-                <ChevronRight size={14} strokeWidth={2.5} color={selectedDest ? '#fff' : C.t3} />
+                <ChevronRight size={14} strokeWidth={2.5} color={selectedDest || query.trim() ? '#fff' : C.t3} />
               </button>
             </div>
 
@@ -692,10 +757,10 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2,
               flexShrink: 0, marginBottom: 12, scrollbarWidth: 'none',
             }}>
-              {(favoris.length > 0 ? favoris.slice(0, 4) : [
-                { id: 'mk1', name: 'Maison', dest_lat: 48.8566, dest_lng: 2.3522, color: '#34D399' },
-                { id: 'mk2', name: 'Bureau', dest_lat: 48.8738, dest_lng: 2.2950, color: '#3BB4C1' },
-                { id: 'mk3', name: 'Salle de sport', dest_lat: 48.8606, dest_lng: 2.3376, color: '#A78BFA' },
+              {(favoris.length > 0 ? favoris : [
+                { id: 'mk1', name: 'Maison', dest_lat: 48.8566, dest_lng: 2.3522, color: '#34D399', dest_address: 'Paris Centre' },
+                { id: 'mk2', name: 'Bureau', dest_lat: 48.8738, dest_lng: 2.2950, color: '#3BB4C1', dest_address: 'Paris 16e' },
+                { id: 'mk3', name: 'Salle de sport', dest_lat: 48.8606, dest_lng: 2.3376, color: '#A78BFA', dest_address: 'Paris 1er' },
               ] as any[]).map(f => {
                 const distKm = (userLat && userLng)
                   ? (haversineMeters({ lat: userLat, lng: userLng }, { lat: f.dest_lat, lng: f.dest_lng }) / 1000).toFixed(1)
@@ -703,19 +768,16 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 return (
                   <button
                     key={f.id}
-                    onClick={() => favoris.length > 0 ? handleFavoriSelect(f as typeof favoris[0]) : undefined}
+                    onClick={() => handleFavoriSelect(f as FavoriTrajet)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
-                      padding: '7px 11px', borderRadius: 11,
+                      display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                      padding: '5px 10px', borderRadius: 9,
                       border: `1px solid ${C.border}`, background: C.el,
                       cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: f.color || '#34D399', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: C.t1, whiteSpace: 'nowrap' }}>{f.name}</div>
-                      {distKm && <div style={{ fontSize: 10, color: C.t3, whiteSpace: 'nowrap' }}>{distKm} km</div>}
-                    </div>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: f.color || '#34D399', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, fontWeight: 500, color: C.t1, whiteSpace: 'nowrap' }}>{f.name}</span>
                   </button>
                 )
               })}
@@ -764,6 +826,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                         place_type: ['recent'],
                       })
                       setQuery(r.dest_name)
+                      setHubExpanded(false)
+                      escorte.setView('trip-form')
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 11,
@@ -801,10 +865,17 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               })}
             </div>
           </div>
-        </div>
+        </motion.div>
       ) : (
         /* ═══ HUB COLLAPSED (CTAs) ═══ */
-        <div style={{ padding: '0 18px 18px' }}>
+        <motion.div
+          key="hub-collapsed"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          style={{ padding: '0 18px 18px' }}
+        >
           {/* Title */}
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: tk.tt, marginBottom: 12 }}>
             Mon trajet
@@ -864,8 +935,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               </div>
             </motion.button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </motion.div>
   )
 
@@ -886,6 +958,10 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       isDark={isDark}
       escorte={escorte}
       onCancel={() => escorte.endEscorte()}
+      onContinueWithJulia={() => {
+        escorte.setJuliaActive(true)
+        escorte.setView('escorte-live')
+      }}
     />
   )
 
@@ -1073,8 +1149,8 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         style={{ display:'flex', flexDirection:'column', height:'100%' }}
       >
         <div style={{
-          flex:1, overflowY:'auto', padding:'6px 20px 0',
-          display:'flex', flexDirection:'column', gap:8,
+          flex:1, overflowY:'auto', padding:'4px 20px 0',
+          display:'flex', flexDirection:'column', gap:5,
           scrollbarWidth:'none',
           position:'relative',
         }}>
@@ -1121,9 +1197,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                 onClick={handleStartTrip}
                 disabled={escorte.isStarting}
                 style={{
-                  background: C.btn, color: C.btnTxt,
-                  padding:'8px 16px', borderRadius:99,
-                  fontSize:14, fontWeight:600, border:'none',
+                  background: '#34D399', color: '#fff',
+                  padding:'5px 12px', borderRadius:99,
+                  fontSize:12, fontWeight:600, border:'none',
                   cursor: escorte.isStarting ? 'default' : 'pointer',
                   opacity: escorte.isStarting ? 0.7 : 1,
                   fontFamily:'inherit', flexShrink:0,
@@ -1209,15 +1285,17 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               {/* Itinéraires */}
               {fetchedRoutes.length > 0 && (
                 <>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'6px 0 2px' }}>
-                    <span style={{ fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase' as const, color: C.t3 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'3px 0 1px' }}>
+                    <span style={{ fontSize:9, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase' as const, color: C.t3 }}>
                       Itinéraires
                     </span>
                   </div>
                   <div>
                     {fetchedRoutes.map((route, idx) => (
                       <div key={route.id}>
-                        <button
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => {
                             setSelectedIdx(idx)
                             setSelectedRouteIdx(idx)
@@ -1234,6 +1312,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                             }
                             escorte.setView('trip-detail')
                           }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                           style={{ width:'100%', background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left' as const }}
                         >
                           <RouteCard
@@ -1250,7 +1329,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
                             nearbyIncidents={route.nearbyIncidents}
                             nearbyPinIds={route.nearbyPinIds}
                           />
-                        </button>
+                        </div>
                         {idx < fetchedRoutes.length - 1 && (
                           <div style={{ height:1, background: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB' }} />
                         )}
@@ -1580,20 +1659,20 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   return (
     <motion.div
       initial={{ y: '100%' }}
-      animate={{ y: 0, height: sheetH }}
+      animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={springConfig}
       className="sheet-glow sheet-highlight"
       style={{
-        position:            'absolute',
+        position:            'fixed',
         bottom:              64,
         left:                0,
         right:               0,
-        background:          d ? 'rgba(10,18,32,0.96)' : 'rgba(248,250,252,0.97)',
+        height:              sheetH,
+        zIndex:              250,
+        background:          d ? 'rgba(10,18,32,0.88)' : 'rgba(248,250,252,0.92)',
         backdropFilter:      'blur(32px) saturate(180%)',
         WebkitBackdropFilter:'blur(32px) saturate(180%)',
-        borderTopLeftRadius:  T.radiusXl,
-        borderTopRightRadius: T.radiusXl,
         borderTop:           `1px solid ${d ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)'}`,
         borderLeft:          `1px solid ${d ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.60)'}`,
         borderRight:         `1px solid ${d ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.60)'}`,
