@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Ring Button — Breveil</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #D8DDE4;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 48px;
+  transition: background 0.3s;
+}
+
+.controls {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+}
+.ctrl {
+  padding: 6px 14px; border-radius: 9999px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.6);
+  color: #64748B; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s;
+}
+.ctrl.on { background: #1E293B; border-color: #1E293B; color: white; }
+
+.sizes-row {
+  display: flex; gap: 80px; align-items: center; flex-wrap: wrap; justify-content: center;
+}
+.item {
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+}
+.item span {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #64748B;
+}
+
+/* ═══════════════════════════════
+   GOLD RING + DOUBLE SPINNER
+═══════════════════════════════ */
+.gr {
+  position: relative; border-radius: 50%;
+  cursor: pointer; overflow: visible;
+  display: flex; align-items: center; justify-content: center;
+  animation: grBreathe 5s ease-in-out infinite;
+  transition: transform 0.12s;
+}
+.gr:active { transform: scale(0.91) !important; animation: none; }
+
+@keyframes grBreathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
+@keyframes glow { 0%,100%{opacity:0.75} 50%{opacity:1} }
+
+/* ── Frosted body ── */
+.gr-body {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(ellipse at 44% 36%,
+    rgba(255,255,255,1)    0%,
+    rgba(255,252,240,0.96) 18%,
+    rgba(255,242,210,0.80) 42%,
+    rgba(250,228,170,0.52) 62%,
+    rgba(240,212,140,0.28) 78%,
+    rgba(228,196,110,0.10) 92%,
+    transparent 100%
+  );
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ── Static gold ring (the lamp ring with gap at bottom) ── */
+.gr-ring-static {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  animation: glow 5s ease-in-out infinite;
+}
+
+/* ── SPINNER 1 — outer, clockwise, faster ── */
+.gr-spin1 {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  animation: spin1 4s linear infinite;
+}
+@keyframes spin1 { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(360deg)} }
+
+/* ── SPINNER 2 — inner, counter-clockwise, slower ── */
+.gr-spin2 {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  animation: spin2 7s linear infinite;
+}
+@keyframes spin2 { from{transform:translate(-50%,-50%) rotate(0deg)} to{transform:translate(-50%,-50%) rotate(-360deg)} }
+
+/* Spinner arc content — conic gradient showing ~200deg arc, rest transparent */
+.spin-arc {
+  width: 100%; height: 100%; border-radius: 50%;
+}
+
+/* ── Warm glow behind everything ── */
+.gr-glow {
+  position: absolute; border-radius: 50%; z-index: -1;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  animation: grGlow 5s ease-in-out infinite;
+}
+@keyframes grGlow {
+  0%,100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+  50%      { opacity: 1.0; transform: translate(-50%,-50%) scale(1.05); }
+}
+
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="ctrl on" onclick="setBg('#D8DDE4')" id="bg-l">Fond clair</button>
+  <button class="ctrl" onclick="setBg('#8A9AAA')" id="bg-m">Fond mid</button>
+  <button class="ctrl" onclick="setBg('#141820')" id="bg-d">Fond sombre</button>
+  <button class="ctrl on" onclick="toggleAnim()" id="anim-btn">Animations</button>
+</div>
+
+<div class="sizes-row">
+
+  <!-- 52px -->
+  <div class="item">
+    <div class="gr" style="width:52px;height:52px" onclick="press(this)">
+      <!-- outer glow bloom -->
+      <div class="gr-glow" style="width:120px;height:120px;background:radial-gradient(circle,rgba(210,160,20,0.22) 0%,rgba(180,130,10,0.10) 45%,transparent 68%)"></div>
+      <!-- body -->
+      <div class="gr-body"></div>
+      <!-- static ring gap-bottom -->
+      <div class="gr-ring-static" style="background:conic-gradient(from 90deg at 50% 50%,#C8900A 0deg,#E8B020 40deg,#F5C830 80deg,#F0C020 140deg,#D4A010 190deg,#C09000 230deg,transparent 263deg,transparent 297deg,#B08008 312deg,#C8900A 360deg);mask:radial-gradient(circle,transparent 23px,black 24px,black 26px,transparent 27px);-webkit-mask:radial-gradient(circle,transparent 23px,black 24px,black 26px,transparent 27px)"></div>
+      <!-- spinner 1 outer — CW fast -->
+      <div class="gr-spin1" style="width:64px;height:64px">
+        <div class="spin-arc" style="background:conic-gradient(from 0deg,rgba(255,220,80,0) 0deg,rgba(255,220,80,0) 100deg,rgba(255,220,80,0.3) 140deg,rgba(255,210,60,0.8) 180deg,rgba(255,200,40,1) 210deg,rgba(255,210,60,0.8) 240deg,rgba(255,220,80,0.3) 280deg,rgba(255,220,80,0) 320deg,rgba(255,220,80,0) 360deg);mask:radial-gradient(circle,transparent 29px,black 30px,black 32px,transparent 33px);-webkit-mask:radial-gradient(circle,transparent 29px,black 30px,black 32px,transparent 33px)"></div>
+      </div>
+      <!-- spinner 2 inner — CCW slow -->
+      <div class="gr-spin2" style="width:56px;height:56px">
+        <div class="spin-arc" style="background:conic-gradient(from 0deg,rgba(240,180,20,0) 0deg,rgba(240,180,20,0) 120deg,rgba(240,180,20,0.25) 160deg,rgba(240,170,10,0.65) 200deg,rgba(245,180,20,0.85) 230deg,rgba(240,170,10,0.60) 260deg,rgba(240,180,20,0.20) 300deg,rgba(240,180,20,0) 340deg,rgba(240,180,20,0) 360deg);mask:radial-gradient(circle,transparent 25px,black 26px,black 27.5px,transparent 28.5px);-webkit-mask:radial-gradient(circle,transparent 25px,black 26px,black 27.5px,transparent 28.5px)"></div>
+      </div>
+    </div>
+    <span>52px · carte</span>
+  </div>
+
+  <!-- 88px — REFERENCE -->
+  <div class="item">
+    <div class="gr" style="width:88px;height:88px" onclick="press(this)">
+      <div class="gr-glow" style="width:200px;height:200px;background:radial-gradient(circle,rgba(210,160,20,0.25) 0%,rgba(180,130,10,0.12) 45%,transparent 68%)"></div>
+      <div class="gr-body"></div>
+      <!-- static ring -->
+      <div class="gr-ring-static" style="background:conic-gradient(from 90deg at 50% 50%,#C8900A 0deg,#E8B020 40deg,#F5C830 80deg,#F0C020 140deg,#D4A010 190deg,#C09000 230deg,transparent 263deg,transparent 297deg,#B08008 312deg,#C8900A 360deg);mask:radial-gradient(circle,transparent 40px,black 41px,black 44px,transparent 45px);-webkit-mask:radial-gradient(circle,transparent 40px,black 41px,black 44px,transparent 45px)"></div>
+      <!-- spinner 1 outer CW -->
+      <div class="gr-spin1" style="width:108px;height:108px">
+        <div class="spin-arc" style="background:conic-gradient(from 0deg,rgba(255,220,80,0) 0deg,rgba(255,220,80,0) 100deg,rgba(255,220,80,0.3) 140deg,rgba(255,210,60,0.8) 180deg,rgba(255,200,40,1) 210deg,rgba(255,210,60,0.8) 240deg,rgba(255,220,80,0.3) 280deg,rgba(255,220,80,0) 320deg,rgba(255,220,80,0) 360deg);mask:radial-gradient(circle,transparent 50px,black 51px,black 54px,transparent 55px);-webkit-mask:radial-gradient(circle,transparent 50px,black 51px,black 54px,transparent 55px)"></div>
+      </div>
+      <!-- spinner 2 inner CCW -->
+      <div class="gr-spin2" style="width:96px;height:96px">
+        <div class="spin-arc" style="background:conic-gradient(from 0deg,rgba(240,180,20,0) 0deg,rgba(240,180,20,0) 120deg,rgba(240,180,20,0.25) 160deg,rgba(240,170,10,0.65) 200deg,rgba(245,180,20,0.85) 230deg,rgba(240,170,10,0.60) 260deg,rgba(240,180,20,0.20) 300deg,rgba(240,180,20,0) 340deg,rgba(240,180,20,0) 360deg);mask:radial-gradient(circle,transparent 44px,black 45px,black 47px,transparent 48px);-webkit-mask:radial-gradient(circle,transparent 44px,black 45px,black 47px,transparent 48px)"></div>
+      </div>
+    </div>
+    <span>88px · référence</span>
+  </div>
+
+  <!-- 120px -->
+  <div class="item">
+    <div class="gr" style="width:120px;height:120px" onclick="press(this)">
+      <div class="gr-glow" style="width:275px;height:275px;background:radial-gradient(circle,rgba(210,160,20,0.25) 0%,rgba(180,130,10,0.12) 45%,transparent 68%)"></div>
+      <div class="gr-body"></div>
+      <!-- static ring -->
+      <div class="gr-ring-static" style="background:conic-gradient(from 90deg at 50% 50%,#C8900A 0deg,#E8B020 40deg,#F5C830 80deg,#F0C020 140deg,#D4A010 190deg,#C09000 230deg,transparent 263deg,transparent 297deg,#B08008 312deg,#C8900A 360deg);mask:radial-gradient(circle,transparent 55px,black 56px,black 60px,transparent 61px);-webkit-mask:radial-gradient(circle,transparent 55px,black 56px,black 60px,transparent 61px)"></div>
+      <!-- spinner 1 outer CW -->
+      <div class="gr-spin1" style="width:148px;height:148px">
+        <div class="spin-arc" style="background:conic-gradient(from 0deg,rgba(255,220,80,0) 0deg,rgba(255,220,80,0) 100deg,rgba(255,220,80,0.3) 140deg,rgba(255,210,60,0.8) 180deg,rgba(255,200,40,1) 210deg,rgba(255,210,60,0.8) 240deg,rgba(255,220,80,0.3) 280deg,rgba(255,220,80,0) 320deg,rgba(255,220,80,0) 360deg);mask:radial-gradient(circle,transparent 69px,black 70px,black 74px,transparent 75px);-webkit-mask:radial-gradient(circle,transparent 69px,black 70px,black 74px,transparent 75px)"></div>
+      </div>
+      <!-- spinner 2 inner CCW -->
+      <div class="gr-spin2" style="width:132px;height:132px">
+        <div class="spin-arc" style="background:conic-gradient(from 0deg,rgba(240,180,20,0) 0deg,rgba(240,180,20,0) 120deg,rgba(240,180,20,0.25) 160deg,rgba(240,170,10,0.65) 200deg,rgba(245,180,20,0.85) 230deg,rgba(240,170,10,0.60) 260deg,rgba(240,180,20,0.20) 300deg,rgba(240,180,20,0) 340deg,rgba(240,180,20,0) 360deg);mask:radial-gradient(circle,transparent 61px,black 62px,black 65px,transparent 66px);-webkit-mask:radial-gradient(circle,transparent 61px,black 62px,black 65px,transparent 66px)"></div>
+      </div>
+    </div>
+    <span>120px · solo</span>
+  </div>
+
+</div>
+
+<script>
+function setBg(color) {
+  document.body.style.background = color;
+  document.querySelectorAll('.ctrl').forEach(b => b.classList.remove('on'));
+}
+function toggleAnim() {
+  const btn = document.getElementById('anim-btn');
+  const on = btn.classList.toggle('on');
+  btn.textContent = on ? 'Animations' : 'Statique';
+  document.querySelectorAll('*').forEach(el => {
+    el.style.animationPlayState = on ? 'running' : 'paused';
+  });
+}
+function press(el) {
+  el.style.transform = 'scale(0.88)';
+  el.style.animation = 'none';
+  setTimeout(() => { el.style.transform=''; el.style.animation=''; }, 180);
+}
+</script>
+</body>
+</html>

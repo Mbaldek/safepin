@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS Button — Breveil</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #1A1A1A;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+}
+
+.size-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 80px;
+  flex-wrap: wrap;
+}
+
+.btn-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.btn-wrap span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+/* ═══════════════════════
+   THE BUTTON — 3D BOWL
+═══════════════════════ */
+.sos {
+  position: relative;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: breathe 3.6s ease-in-out infinite;
+  transition: transform 0.12s;
+}
+.sos:active { transform: scale(0.91) !important; animation: none; }
+@keyframes breathe {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.025); }
+}
+
+/* ── Outer shell — matte dark red rim ── */
+.sos-shell {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* Matte dark red outer — like the lampshade edge */
+  background:
+    /* top-left highlight edge */
+    radial-gradient(ellipse at 28% 22%, rgba(200,50,50,0.55) 0%, transparent 38%),
+    /* base dark red */
+    radial-gradient(circle at 50% 50%,
+      #8B0000  0%,
+      #700000 30%,
+      #560000 55%,
+      #3D0000 72%,
+      #2A0000 100%
+    );
+  /* thick rim shadow to create 3D depth */
+  box-shadow:
+    /* outer drop shadow */
+    0 20px 60px rgba(0,0,0,0.9),
+    0 8px 24px rgba(0,0,0,0.7),
+    /* inner top shadow = the bowl rim thickness */
+    inset 0 3px 12px rgba(255,100,100,0.12),
+    inset 0 -4px 20px rgba(0,0,0,0.6);
+}
+
+/* ── Concave bowl surface — the lit interior ── */
+.sos-bowl {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* ── The inner glow — radiates FROM the dot edge outward ── */
+.sos-glow {
+  position: absolute;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%,
+      /* hot zone right around dot position — no white center since dot has its own corona */
+      transparent               0%,
+      transparent              14%,
+      rgba(255,200,50,0.55)    20%,
+      rgba(255,100,10,0.70)    28%,
+      rgba(220,30,0,0.60)      40%,
+      rgba(160,0,0,0.40)       56%,
+      transparent              72%
+    );
+  animation: glowPulse 3.6s ease-in-out infinite;
+  z-index: 3;
+}
+@keyframes glowPulse {
+  0%,100% { opacity: 0.72; transform: scale(0.93); }
+  50%      { opacity: 1.00; transform: scale(1.07); }
+}
+
+/* ── Centre dot — same dark red as outer shell ── */
+.sos-dot {
+  position: absolute;
+  border-radius: 50%;
+  /* same matte dark red as the outer rim */
+  background: radial-gradient(circle at 38% 32%,
+    #8B1010 0%,
+    #6B0000 35%,
+    #4A0000 65%,
+    #330000 100%
+  );
+  z-index: 5;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  /* the critical effect: blazing white-yellow corona right at the edge */
+  box-shadow:
+    0 0 0 1.5px rgba(255,255,200,0.7),
+    0 0 4px 3px rgba(255,240,120,0.85),
+    0 0 8px 6px rgba(255,200,50,0.6),
+    0 0 14px 10px rgba(255,120,0,0.35),
+    0 0 22px 14px rgba(200,0,0,0.18),
+    inset 0 1px 2px rgba(255,80,0,0.15);
+  animation: dotCorona 3.6s ease-in-out infinite;
+}
+@keyframes dotCorona {
+  0%,100% {
+    box-shadow:
+      0 0 0 1.5px rgba(255,255,180,0.6),
+      0 0 4px 3px rgba(255,240,100,0.75),
+      0 0 8px 6px rgba(255,180,30,0.5),
+      0 0 14px 10px rgba(255,100,0,0.3),
+      0 0 22px 14px rgba(180,0,0,0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(255,255,220,0.95),
+      0 0 5px 4px rgba(255,255,150,1),
+      0 0 10px 8px rgba(255,220,60,0.75),
+      0 0 18px 13px rgba(255,130,0,0.45),
+      0 0 30px 18px rgba(200,0,0,0.22);
+  }
+}
+
+/* ── Concentric inner ring (faint gold line like the lamp) ── */
+.sos-ring-inner {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(220,80,0,0.35);
+  z-index: 3;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* ── Outer diffusion halo (large soft bloom) ── */
+.sos-diffuse {
+  position: absolute;
+  border-radius: 50%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: -1;
+}
+.sos-diffuse-1 {
+  background: radial-gradient(circle,
+    rgba(220,0,0,0.32) 0%,
+    rgba(180,0,0,0.18) 30%,
+    rgba(120,0,0,0.09) 55%,
+    transparent 72%
+  );
+  animation: diffuse1 3.6s ease-in-out infinite;
+}
+.sos-diffuse-2 {
+  background: radial-gradient(circle,
+    rgba(255,40,0,0.14) 0%,
+    rgba(200,0,0,0.07) 40%,
+    transparent 68%
+  );
+  animation: diffuse2 3.6s ease-in-out infinite 0.3s;
+}
+@keyframes diffuse1 {
+  0%,100% { opacity: 0.7; transform: translate(-50%,-50%) scale(1); }
+  50%      { opacity: 1;   transform: translate(-50%,-50%) scale(1.06); }
+}
+@keyframes diffuse2 {
+  0%,100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); }
+  50%      { opacity: 0.85; transform: translate(-50%,-50%) scale(1.1); }
+}
+
+/* ── Outer pulse rings ── */
+.sos-pulse {
+  position: absolute;
+  border-radius: 50%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulseRing 3.6s ease-in-out infinite;
+}
+.sos-pulse-1 {
+  border: 1.5px solid rgba(220,0,0,0.55);
+}
+.sos-pulse-2 {
+  border: 1px solid rgba(200,0,0,0.28);
+  animation-delay: 0.55s;
+}
+.sos-pulse-3 {
+  border: 0.5px solid rgba(180,0,0,0.14);
+  animation-delay: 1.1s;
+}
+@keyframes pulseRing {
+  0%,100% { opacity: 0.9;  transform: translate(-50%,-50%) scale(1); }
+  50%      { opacity: 0.15; transform: translate(-50%,-50%) scale(1.08); }
+}
+
+/* ── Toggle controls ── */
+.controls {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+}
+.ctrl {
+  padding: 7px 16px; border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,0.11);
+  background: rgba(255,255,255,0.05);
+  color: #64748B; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+.ctrl.on { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.35); color: #EF4444; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="ctrl on" onclick="toggleBg()" id="bg-btn">Fond sombre</button>
+  <button class="ctrl on" onclick="toggleAnim()" id="anim-btn">Animations</button>
+</div>
+
+<div class="size-row">
+
+  <!-- SMALL — 64px (on-map size) -->
+  <div class="btn-wrap">
+    <div class="sos" id="sos-sm" style="width:64px;height:64px" onclick="triggerPress('sos-sm')">
+      <!-- diffuse outer bloom -->
+      <div class="sos-diffuse sos-diffuse-1" style="width:160px;height:160px"></div>
+      <div class="sos-diffuse sos-diffuse-2" style="width:210px;height:210px"></div>
+      <!-- shell -->
+      <div class="sos-shell"></div>
+      <!-- bowl surface -->
+      <div class="sos-bowl" style="inset:6px"></div>
+      <!-- glow -->
+      <div class="sos-glow" style="inset:6px"></div>
+      <!-- inner ring -->
+      <div class="sos-ring-inner" style="width:38px;height:38px"></div>
+      <!-- dot -->
+      <div class="sos-dot" style="width:13px;height:13px"></div>
+      <!-- outer pulses -->
+      <div class="sos-pulse sos-pulse-1" style="width:78px;height:78px"></div>
+      <div class="sos-pulse sos-pulse-2" style="width:94px;height:94px"></div>
+      <div class="sos-pulse sos-pulse-3" style="width:112px;height:112px"></div>
+    </div>
+    <span>64px · carte</span>
+  </div>
+
+  <!-- MEDIUM — 88px (featured) -->
+  <div class="btn-wrap">
+    <div class="sos" id="sos-md" style="width:88px;height:88px" onclick="triggerPress('sos-md')">
+      <div class="sos-diffuse sos-diffuse-1" style="width:220px;height:220px"></div>
+      <div class="sos-diffuse sos-diffuse-2" style="width:290px;height:290px"></div>
+      <div class="sos-shell"></div>
+      <div class="sos-bowl" style="inset:8px"></div>
+      <div class="sos-glow" style="inset:8px"></div>
+      <div class="sos-ring-inner" style="width:52px;height:52px"></div>
+      <div class="sos-dot" style="width:17px;height:17px"></div>
+      <div class="sos-pulse sos-pulse-1" style="width:106px;height:106px"></div>
+      <div class="sos-pulse sos-pulse-2" style="width:126px;height:126px"></div>
+      <div class="sos-pulse sos-pulse-3" style="width:148px;height:148px"></div>
+    </div>
+    <span>88px · référence</span>
+  </div>
+
+  <!-- LARGE — 120px (standalone) -->
+  <div class="btn-wrap">
+    <div class="sos" id="sos-lg" style="width:120px;height:120px" onclick="triggerPress('sos-lg')">
+      <div class="sos-diffuse sos-diffuse-1" style="width:300px;height:300px"></div>
+      <div class="sos-diffuse sos-diffuse-2" style="width:400px;height:400px"></div>
+      <div class="sos-shell"></div>
+      <div class="sos-bowl" style="inset:11px"></div>
+      <div class="sos-glow" style="inset:11px"></div>
+      <div class="sos-ring-inner" style="width:72px;height:72px"></div>
+      <div class="sos-dot" style="width:22px;height:22px"></div>
+      <div class="sos-pulse sos-pulse-1" style="width:142px;height:142px"></div>
+      <div class="sos-pulse sos-pulse-2" style="width:168px;height:168px"></div>
+      <div class="sos-pulse sos-pulse-3" style="width:198px;height:198px"></div>
+    </div>
+    <span>120px · plein écran</span>
+  </div>
+
+</div>
+
+<script>
+let darkBg = true;
+let animOn = true;
+
+function toggleBg() {
+  darkBg = !darkBg;
+  document.body.style.background = darkBg ? '#1A1A1A' : '#E8EEF4';
+  document.getElementById('bg-btn').textContent = darkBg ? 'Fond sombre' : 'Fond clair';
+}
+
+function toggleAnim() {
+  animOn = !animOn;
+  document.getElementById('anim-btn').classList.toggle('on', animOn);
+  document.getElementById('anim-btn').textContent = animOn ? 'Animations' : 'Statique';
+  const style = animOn ? '' : 'none';
+  document.querySelectorAll('.sos, .sos-glow, .sos-label, .sos-pulse').forEach(el => {
+    el.style.animationPlayState = animOn ? 'running' : 'paused';
+  });
+}
+
+function triggerPress(id) {
+  const el = document.getElementById(id);
+  el.style.transform = 'scale(0.88)';
+  el.style.animation = 'none';
+  setTimeout(() => {
+    el.style.transform = '';
+    el.style.animation = '';
+  }, 180);
+}
+</script>
+</body>
+</html>

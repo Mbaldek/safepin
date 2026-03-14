@@ -15,7 +15,7 @@ import { usePresenceHeartbeat } from '@/lib/usePresence';
 import { updateStreak } from '@/lib/streaks';
 import { haversineMeters } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft, Plus, Shield, SlidersHorizontal } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Shield, SlidersHorizontal } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
@@ -1026,16 +1026,17 @@ activeTrip, setActiveTrip,
               onClick={() => setShowFilterPopover((v) => !v)}
               aria-label="Filtrer les signalements"
               style={{
-                position: 'absolute', top: 66, right: 50, zIndex: 10,
-                width: 29, height: 29, borderRadius: 4,
-                backgroundColor: (showFilterPopover || filterActiveCount > 0) ? '#3BB4C1' : '#fff',
-                border: (showFilterPopover || filterActiveCount > 0) ? 'none' : '1px solid rgba(0,0,0,0.08)',
-                boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+                position: 'absolute', top: 58, right: 46, zIndex: 10,
+                width: 32, height: 32, borderRadius: 9999,
+                background: (showFilterPopover || filterActiveCount > 0) ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
+                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                border: 'none',
+                boxShadow: (showFilterPopover || filterActiveCount > 0) ? '0 0 0 3px rgba(59,180,193,0.30)' : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0,
               }}
             >
-              <SlidersHorizontal size={14} strokeWidth={2} color={(showFilterPopover || filterActiveCount > 0) ? '#fff' : '#333'} />
+              <SlidersHorizontal size={16} strokeWidth={2} style={{ color: (showFilterPopover || filterActiveCount > 0) ? '#fff' : 'var(--text-muted)' }} />
               {filterActiveCount > 0 && !showFilterPopover && (
                 <span style={{
                   position: 'absolute', top: -4, right: -4,
@@ -1299,64 +1300,156 @@ activeTrip, setActiveTrip,
                 </span>
               </div>
             </button>
-            {/* Walk With Me */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <button
-                onClick={() => { setActiveTab('trip'); escorte.setView('escorte-intro'); }}
-                style={{
-                  position: 'fixed',
-                  bottom: 200,
-                  right: 20,
-                  width: 50, height: 50, borderRadius: '50%', border: 'none',
-                  background: 'linear-gradient(145deg, #4DC8D4 0%, #2A8F9A 55%, #1A5F68 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', overflow: 'hidden', zIndex: 50,
-                  animation: 'wwm-glow 2.8s ease-in-out infinite',
-                }}
-                title="Marche avec moi"
-              >
-                <span style={{
-                  position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)',
-                  animation: 'wwm-shimmer 3s ease-in-out infinite',
-                }} />
-                <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </button>
-            </div>
+            {/* Walk With Me — Diamond button */}
+            {(() => {
+              const isMAMActive = escorte.view !== 'hub';
+              return (
+                <div
+                  onClick={() => { setActiveTab('trip'); escorte.setView('escorte-intro'); }}
+                  style={{
+                    position: 'fixed',
+                    bottom: 260,
+                    right: 20,
+                    width: 50,
+                    height: 50,
+                    borderRadius: '26%',
+                    cursor: 'pointer',
+                    overflow: 'visible',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transform: isMAMActive ? 'rotate(-45deg)' : 'rotate(45deg)',
+                    transition: 'transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    zIndex: 15,
+                  }}
+                >
+                  {/* INNER — breathe scale */}
+                  <div style={{
+                    position: 'relative',
+                    width: 50,
+                    height: 50,
+                    borderRadius: '26%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    animation: 'mamBreathe 5s ease-in-out infinite',
+                  }}>
+                    {/* shadow */}
+                    <div style={{
+                      position: 'absolute', borderRadius: '26%', zIndex: 0, pointerEvents: 'none',
+                      width: 110, height: 110,
+                      top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                      filter: 'blur(8px)',
+                      background: isMAMActive
+                        ? 'radial-gradient(ellipse at 58% 62%, rgba(25,110,135,0.18) 0%, rgba(18,95,118,0.08) 42%, transparent 68%)'
+                        : 'radial-gradient(ellipse at 58% 62%, rgba(155,163,178,0.24) 0%, rgba(145,155,172,0.10) 42%, transparent 68%)',
+                      transition: 'background 0.6s ease',
+                    }} />
+                    {/* glow2 teal — visible only active */}
+                    <div style={{
+                      position: 'absolute', borderRadius: '50%', zIndex: 0, pointerEvents: 'none',
+                      width: 108, height: 108,
+                      top: '50%', left: '50%',
+                      filter: 'blur(8px)',
+                      opacity: isMAMActive ? 1 : 0,
+                      background: 'radial-gradient(circle, rgba(59,180,193,0.55) 0%, rgba(34,168,184,0.30) 38%, rgba(20,155,175,0.10) 62%, transparent 80%)',
+                      transition: 'opacity 0.6s ease',
+                      animation: 'mamGlow2 3.5s ease-in-out infinite 0.5s',
+                    }} />
+                    {/* glow1 */}
+                    <div style={{
+                      position: 'absolute', borderRadius: '50%', zIndex: 1, pointerEvents: 'none',
+                      width: 96, height: 96,
+                      top: '50%', left: '50%',
+                      background: isMAMActive
+                        ? 'radial-gradient(circle, rgba(195,245,252,0.72) 0%, rgba(110,222,238,0.46) 28%, rgba(59,180,193,0.22) 50%, rgba(18,148,170,0.07) 68%, transparent 82%)'
+                        : 'radial-gradient(circle, rgba(255,255,248,0.60) 0%, rgba(255,248,224,0.38) 30%, rgba(255,238,190,0.15) 52%, transparent 70%)',
+                      transition: 'background 0.6s ease',
+                      animation: 'mamGlow1 3.5s ease-in-out infinite',
+                    }} />
+                    {/* tile */}
+                    <div style={{
+                      position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 2,
+                      background: isMAMActive
+                        ? 'linear-gradient(145deg, #E6F7FA 0%, #C4ECF5 45%, #A2E1EF 100%)'
+                        : 'linear-gradient(145deg, #F9F9F9 0%, #F1F1F1 45%, #E7E7E7 100%)',
+                      boxShadow: isMAMActive
+                        ? '-4px -4px 10px rgba(255,255,255,0.90), 5px 7px 16px rgba(25,95,115,0.28), 2px 3px 8px rgba(18,85,105,0.20), inset -2px -2px 5px rgba(255,255,255,0.75), inset 1px 1px 3px rgba(30,140,160,0.12), 0 0 0 1.5px rgba(59,180,193,0.38), 0 0 16px rgba(59,180,193,0.28)'
+                        : '-5px -5px 12px rgba(255,255,255,0.95), 6px 8px 18px rgba(170,178,194,0.55), 3px 4px 9px rgba(160,170,186,0.38), inset -2px -2px 5px rgba(255,255,255,0.85), inset 1px 1px 3px rgba(150,160,176,0.10)',
+                      transition: 'background 0.6s ease, box-shadow 0.6s ease',
+                    }} />
+                    {/* specular */}
+                    <div style={{
+                      position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 3, pointerEvents: 'none',
+                      opacity: isMAMActive ? 0.55 : 1,
+                      transition: 'opacity 0.6s ease',
+                      background: 'radial-gradient(ellipse at 28% 26%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.46) 24%, rgba(255,255,255,0.10) 52%, transparent 68%)',
+                    }} />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Report button — stacked above SOS on the right */}
-            <motion.button
+            <div
               onClick={() => {
                 const loc = useStore.getState().userLocation;
                 if (loc) setNewPinCoords({ lat: loc.lat, lng: loc.lng });
                 setActiveSheet('report');
               }}
-              whileTap={{ scale: 0.93 }}
-
               style={{
                 position: 'fixed',
-                bottom: 140,
+                bottom: 178,
                 right: 20,
-                width: 50,
-                height: 50,
+                width: 52,
+                height: 52,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3BB4C1, #0E7490)',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(59,180,193,0.4)',
+                zIndex: 50,
+                overflow: 'visible',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 50,
+                cursor: 'pointer',
+                animation: 'grBreathe 5s ease-in-out infinite',
               }}
             >
-              <Plus size={22} color="#fff" strokeWidth={2} />
-            </motion.button>
+              {/* warm glow bloom behind */}
+              <div style={{
+                position: 'absolute', borderRadius: '50%', zIndex: -1,
+                width: 120, height: 120,
+                top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                background: 'radial-gradient(circle, rgba(210,160,20,0.22) 0%, rgba(180,130,10,0.10) 45%, transparent 68%)',
+                animation: 'grGlow 5s ease-in-out infinite',
+                pointerEvents: 'none',
+              }} />
+
+              {/* frosted body */}
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'radial-gradient(ellipse at 44% 36%, rgba(255,255,255,1) 0%, rgba(255,252,240,0.96) 18%, rgba(255,242,210,0.80) 42%, rgba(250,228,170,0.52) 62%, rgba(240,212,140,0.28) 78%, rgba(228,196,110,0.10) 92%, transparent 100%)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)',
+              }} />
+
+              {/* static gold ring, gap at bottom */}
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'conic-gradient(from 90deg, #C8900A 0deg, #E8B020 40deg, #F5C830 80deg, #F0C020 140deg, #D4A010 190deg, #C09000 230deg, transparent 263deg, transparent 297deg, #B08008 312deg, #C8900A 360deg)',
+                WebkitMaskImage: 'radial-gradient(circle, transparent 23px, black 24px, black 26px, transparent 27px)',
+                maskImage: 'radial-gradient(circle, transparent 23px, black 24px, black 26px, transparent 27px)',
+                animation: 'grGlow 5s ease-in-out infinite',
+                pointerEvents: 'none',
+              }} />
+
+              {/* single spinner arc rotating over the ring */}
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'conic-gradient(from 0deg, transparent 0deg, transparent 240deg, rgba(255,240,160,0.3) 270deg, rgba(255,230,100,0.7) 310deg, rgba(255,245,180,1) 350deg, transparent 360deg)',
+                WebkitMaskImage: 'radial-gradient(circle, transparent 23px, black 24px, black 26px, transparent 27px)',
+                maskImage: 'radial-gradient(circle, transparent 23px, black 24px, black 26px, transparent 27px)',
+                animation: 'grSpin 2.2s linear infinite',
+                pointerEvents: 'none',
+              }} />
+            </div>
 
             {/* Safe spaces toggle — left of GPS geolocate */}
             <button

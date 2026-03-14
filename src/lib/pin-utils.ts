@@ -31,7 +31,7 @@ export function getPinOpacity(pin: { created_at: string; last_confirmed_at?: str
   const hoursAgo = (Date.now() - effectiveDate.getTime()) / (1000 * 60 * 60);
   const maxHours = DECAY_HOURS[pin.category] || 24;
   const ratio = Math.min(hoursAgo / maxHours, 1);
-  return Math.max(1 - ratio * 0.85, 0.15);
+  return Math.max(1 - ratio * 0.75, 0.25);
 }
 
 /**

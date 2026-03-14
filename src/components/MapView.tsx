@@ -943,7 +943,7 @@ function MapView({
     const source = map.current.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
       // At zoom < 12 DB clusters are shown instead — clear individual pins from GL source
-      source.setData(mapZoom < 12
+      source.setData(zoomRef.current < 12
         ? { type: 'FeatureCollection', features: [] }
         : buildGeoJSON(regularPins));
     }
@@ -965,13 +965,19 @@ function MapView({
     prevPinIdsRef.current = currentIds;
 
     // ── All visible pins — rendered as <MapPin> in JSX ────────────────
-    setFilteredRegularPins(regularPins);
-    setFilteredTransportPins(pins.filter((pin) => passesFilters(pin) && pin.is_transport));
+    // Stabilise references: only update state if the set of pin IDs actually changed
+    const regularIds = regularPins.map(p => p.id).join(',');
+    setFilteredRegularPins(prev => prev.map(p => p.id).join(',') === regularIds ? prev : regularPins);
+
+    const transportPins = pins.filter((pin) => passesFilters(pin) && pin.is_transport);
+    const transportIds = transportPins.map(p => p.id).join(',');
+    setFilteredTransportPins(prev => prev.map(p => p.id).join(',') === transportIds ? prev : transportPins);
 
     // Ghost trail cleanup (kept for legacy)
     ghostTrailRef.current.forEach((m) => m.remove());
     ghostTrailRef.current = [];
-  }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet, mapZoom]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pins, mapFilters, mapReady, layersReady, theme, activeSheet, setSelectedPin, setActiveSheet]);
 
   // ── DB spatial cluster layer update (zoom < 12) ───────────────────────────
   useEffect(() => {
@@ -1310,7 +1316,7 @@ function MapView({
   // ── UI ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full overflow-hidden">
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* Compass button — visible when map is rotated, below GPS control */}

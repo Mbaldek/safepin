@@ -871,7 +871,25 @@ body {
    MAPBOX CONTROL OVERRIDES
    ============================================ */
 .mapboxgl-ctrl-top-right {
-  top: 66px !important;
+  top: 58px !important;
+  right: 6px !important;
+  padding: 0 !important;
+}
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  margin: 0 !important;
+}
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group {
+  background: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 9999px !important;
 }
 
 /* ============================================
@@ -917,10 +935,49 @@ body {
   50% { transform: scale(1.35); opacity: 0.7; }
 }
 
-@keyframes sosPulse {
-  0%   { transform: scale(1);   opacity: 0.8; }
-  70%  { transform: scale(1.6); opacity: 0;   }
-  100% { transform: scale(1.6); opacity: 0;   }
+/* ── SOS 3D Bowl keyframes (from sos-btn.html mockup) ── */
+@keyframes sosBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+@keyframes sosGlowPulse {
+  0%, 100% { opacity: 0.72; transform: scale(0.93); }
+  50% { opacity: 1.00; transform: scale(1.07); }
+}
+
+@keyframes sosDotCorona {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1.5px rgba(255,255,180,0.6),
+      0 0 4px 3px rgba(255,240,100,0.75),
+      0 0 8px 6px rgba(255,180,30,0.5),
+      0 0 14px 10px rgba(255,100,0,0.3),
+      0 0 22px 14px rgba(180,0,0,0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(255,255,220,0.95),
+      0 0 5px 4px rgba(255,255,150,1),
+      0 0 10px 8px rgba(255,220,60,0.75),
+      0 0 18px 13px rgba(255,130,0,0.45),
+      0 0 30px 18px rgba(200,0,0,0.22);
+  }
+}
+
+@keyframes sosPulseRing {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.15; }
+}
+
+@keyframes sosDiffuse1 {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes sosDiffuse2 {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
 }
 
 @keyframes previewPulse {
@@ -1046,10 +1103,6 @@ body {
 }
 
 @keyframes wwm-shimmer { 0% { left: -100%; } 60%, 100% { left: 140%; } }
-@keyframes wwm-glow {
-  0%, 100% { box-shadow: 0 4px 18px rgba(42,143,154,0.55), 0 1px 3px rgba(0,0,0,0.3); }
-  50%       { box-shadow: 0 6px 28px rgba(42,143,154,0.75), 0 1px 3px rgba(0,0,0,0.3); }
-}
 
 @keyframes callPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.25); }
@@ -1077,6 +1130,11 @@ body {
 @keyframes reportPositifBreathe {
   0%, 100% { transform: scale(1); opacity: 0.7; }
   50%      { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes chipFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1.5px); }
 }
 
 /* CercleSheet call animations */
@@ -1171,6 +1229,34 @@ body {
 .trip-stat-card:nth-child(2)::after  { animation-delay: -1s; }
 .trip-stat-card:nth-child(3)::before { animation-delay: -2s; }
 .trip-stat-card:nth-child(3)::after  { animation-delay: -2s; }
+
+/* ── Gold Ring Spinner (Report FAB) ── */
+@keyframes grBreathe {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+@keyframes grGlow {
+  0%,100% { opacity: 0.72; }
+  50%      { opacity: 1; }
+}
+@keyframes grSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── MAM Diamond Button ── */
+@keyframes mamBreathe {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.026); }
+}
+@keyframes mamGlow1 {
+  0%,100% { opacity: 0.55; transform: translate(-50%,-50%) scale(1); }
+  50%     { opacity: 1;    transform: translate(-50%,-50%) scale(1.08); }
+}
+@keyframes mamGlow2 {
+  0%,100% { opacity: 0.35; transform: translate(-50%,-50%) scale(0.96); }
+  50%     { opacity: 0.70; transform: translate(-50%,-50%) scale(1.07); }
+}
 
 @keyframes tripGoldSweep {
   0%   { background-position: 100% 100%, 0% 0%; }

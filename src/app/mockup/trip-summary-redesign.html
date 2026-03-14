@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breveil — Trip Summary</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal:   #3BB4C1;
+  --green:  #34D399;
+  --warn:   #FBBF24;
+  --danger: #EF4444;
+  --purple: #A78BFA;
+  --gold:   #F5C341;
+}
+
+/* ── DARK ── */
+[data-theme="dark"] {
+  --bg:   #080F1C;
+  --s0:   #0D1626;
+  --s1:   #131F30;
+  --s2:   #1A2840;
+  --s3:   #223050;
+  --t1:   #FFFFFF;
+  --t2:   #94A3B8;
+  --t3:   #546070;
+  --b1:   rgba(255,255,255,0.05);
+  --b2:   rgba(255,255,255,0.09);
+  --b3:   rgba(255,255,255,0.16);
+}
+
+/* ── LIGHT ── */
+[data-theme="light"] {
+  --bg:   #E2EBF2;
+  --s0:   #F8FAFC;
+  --s1:   #FFFFFF;
+  --s2:   #F1F6FA;
+  --s3:   #E8EFF5;
+  --t1:   #0D1626;
+  --t2:   #4A5C6E;
+  --t3:   #8FA0AE;
+  --b1:   rgba(13,22,38,0.05);
+  --b2:   rgba(13,22,38,0.09);
+  --b3:   rgba(13,22,38,0.16);
+}
+
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+html, body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 64px 24px 48px;
+  transition: background 0.3s;
+}
+
+/* ── TOOLBAR ── */
+.toolbar {
+  position: fixed; top:0; left:0; right:0; z-index:100;
+  height: 52px;
+  background: rgba(8,15,28,0.85);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex; align-items:center; justify-content:center; gap:8px;
+}
+[data-theme="light"] .toolbar {
+  background: rgba(226,235,242,0.9);
+  border-bottom-color: rgba(13,22,38,0.08);
+}
+.tb-btn {
+  height:30px; padding:0 14px; border-radius:9999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:transparent; color:rgba(255,255,255,0.55);
+  font-size:12px; font-weight:500; cursor:pointer; font-family:inherit;
+  transition: all 0.18s;
+}
+[data-theme="light"] .tb-btn { border-color:rgba(13,22,38,0.14); color:var(--t2); }
+.tb-btn.on { background:var(--teal); border-color:var(--teal); color:#fff; }
+.tb-sep { width:1px; height:18px; background:rgba(255,255,255,0.1); }
+[data-theme="light"] .tb-sep { background:rgba(13,22,38,0.1); }
+
+/* ── PHONE ── */
+.phone {
+  width: 375px; height: 720px;
+  border-radius: 50px; overflow: hidden;
+  position: relative;
+  background: var(--s0);
+  border: 1px solid var(--b2);
+  box-shadow:
+    0 0 0 5px rgba(255,255,255,0.03),
+    0 40px 100px rgba(0,0,0,0.45);
+}
+[data-theme="light"] .phone {
+  box-shadow:
+    0 0 0 5px rgba(255,255,255,0.5),
+    0 40px 100px rgba(0,0,0,0.14);
+}
+
+/* ── MAP BG (visible en haut) ── */
+.map-bg {
+  position: absolute; top:0; left:0; right:0; height:55%;
+  background: var(--s2);
+  overflow: hidden;
+}
+[data-theme="dark"] .map-bg { background:#101c2c; }
+
+.map-bg::before {
+  content:'';
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(59,180,193,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,180,193,0.06) 1px, transparent 1px);
+  background-size:38px 38px;
+}
+[data-theme="light"] .map-bg::before {
+  background-image:
+    linear-gradient(rgba(59,180,193,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,180,193,0.15) 1px, transparent 1px);
+}
+
+/* route line on map */
+.route-line {
+  position:absolute; top:20%; left:18%; right:22%; height:3px;
+  background: linear-gradient(90deg, var(--teal), var(--green));
+  border-radius:9999px; opacity:0.6;
+  transform:rotate(-8deg);
+}
+.route-dot-start, .route-dot-end {
+  position:absolute; width:10px; height:10px;
+  border-radius:50%; border:2px solid white;
+  top:calc(20% - 3px);
+}
+.route-dot-start { left:18%; background:var(--teal); }
+.route-dot-end   { right:22%; background:var(--green);
+  box-shadow: 0 0 0 5px rgba(52,211,153,0.2); }
+
+/* map bottom fade */
+.map-bg::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:80px;
+  background: linear-gradient(0deg, var(--s0) 0%, transparent 100%);
+}
+
+/* ── SHEET ── */
+.sheet {
+  position: absolute; bottom:0; left:0; right:0; top:35%;
+  background: var(--s1);
+  border-radius: 28px 28px 0 0;
+  border-top: 1px solid var(--b2);
+  display: flex; flex-direction:column;
+  overflow: hidden;
+  animation: sheetIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes sheetIn {
+  from { transform:translateY(30px); opacity:0; }
+  to   { transform:translateY(0); opacity:1; }
+}
+
+.handle-row { padding:10px 0 0; display:flex; justify-content:center; flex-shrink:0; }
+.handle { width:36px; height:4px; border-radius:9999px; background:var(--b3); }
+
+/* ── CHECK HERO ── */
+.check-hero {
+  display:flex; justify-content:center;
+  padding: 20px 0 16px; flex-shrink:0;
+}
+.check-ring {
+  width:68px; height:68px; border-radius:50%; position:relative;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg,
+    rgba(52,211,153,0.18) 0%,
+    rgba(52,211,153,0.06) 100%);
+  border: 2px solid rgba(52,211,153,0.3);
+}
+.check-ring::before {
+  content:'';
+  position:absolute; inset:-6px; border-radius:50%;
+  border:2px solid rgba(52,211,153,0.1);
+  animation: rippleOut 2.5s ease-out infinite;
+}
+@keyframes rippleOut {
+  0%   { transform:scale(1); opacity:0.5; }
+  100% { transform:scale(1.25); opacity:0; }
+}
+
+/* ── TITLE BLOCK ── */
+.title-block {
+  text-align:center; padding:0 24px 16px; flex-shrink:0;
+}
+.arrived-title {
+  font-size:22px; font-weight:700; color:var(--t1);
+  letter-spacing:-0.02em; line-height:1.2;
+  margin-bottom:6px;
+}
+.arrived-dest {
+  font-size:14px; font-weight:600; color:var(--t2);
+  margin-bottom:3px;
+}
+.arrived-meta {
+  font-size:12px; color:var(--t3);
+}
+
+/* ── SCORE BADGE ── */
+.score-wrap {
+  display:flex; justify-content:center; margin-bottom:16px; flex-shrink:0;
+}
+.score-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 14px; border-radius:9999px;
+  font-size:12px; font-weight:600;
+}
+.score-safe   { background:rgba(52,211,153,0.1);  color:var(--green);  border:1px solid rgba(52,211,153,0.22); }
+.score-med    { background:rgba(251,191,36,0.1);   color:var(--warn);   border:1px solid rgba(251,191,36,0.22); }
+.score-risky  { background:rgba(239,68,68,0.1);    color:var(--danger); border:1px solid rgba(239,68,68,0.22); }
+
+/* ── CIRCLE NOTIF ── */
+.circle-notif {
+  margin: 0 20px 16px;
+  display:flex; align-items:center; gap:10px;
+  padding:11px 14px; border-radius:14px;
+  background:rgba(52,211,153,0.06);
+  border:1px solid rgba(52,211,153,0.15);
+  flex-shrink:0;
+}
+.notif-avatars { display:flex; }
+.nav-small {
+  width:28px; height:28px; border-radius:50%;
+  border:2px solid var(--s1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; color:white; flex-shrink:0;
+}
+.nav-small:not(:first-child) { margin-left:-8px; }
+.notif-text { flex:1; }
+.notif-line1 { font-size:12px; font-weight:600; color:var(--green); line-height:1.3; }
+.notif-line2 { font-size:11px; color:var(--t3); margin-top:1px; }
+
+/* ── STATS ── */
+.stats {
+  display:flex; gap:8px; padding:0 20px; margin-bottom:16px; flex-shrink:0;
+}
+.stat-card {
+  flex:1; background:var(--s2);
+  border-radius:11px; padding:9px 6px;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  position:relative; overflow:hidden;
+  /* golden border via box-shadow + gradient border trick */
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+/* animated golden outline */
+.stat-card::before {
+  content:'';
+  position:absolute; inset:0; border-radius:11px; z-index:0;
+  border: 1px solid transparent;
+  background: linear-gradient(var(--s2), var(--s2)) padding-box,
+              linear-gradient(135deg, transparent 0%, #F5C341 40%, transparent 60%, #F5C341 80%, transparent 100%) border-box;
+  background-size: 100% 100%, 300% 300%;
+  animation: goldSweep 3s linear infinite;
+}
+/* shimmer sweep overlay */
+.stat-card::after {
+  content:'';
+  position:absolute; inset:0; border-radius:11px; z-index:1;
+  background: linear-gradient(105deg,
+    transparent 30%,
+    rgba(245,195,65,0.07) 48%,
+    rgba(245,195,65,0.13) 52%,
+    transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmerSweep 3s ease-in-out infinite;
+}
+.stat-card:nth-child(2)::before { animation-delay: -1s; }
+.stat-card:nth-child(2)::after  { animation-delay: -1s; }
+.stat-card:nth-child(3)::before { animation-delay: -2s; }
+.stat-card:nth-child(3)::after  { animation-delay: -2s; }
+
+@keyframes goldSweep {
+  0%   { background-position: 100% 100%, 0% 0%; }
+  100% { background-position: 100% 100%, 100% 100%; }
+}
+@keyframes shimmerSweep {
+  0%   { background-position: -100% 0; }
+  60%  { background-position: 200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.stat-card > * { position:relative; z-index:2; }
+
+.stat-val {
+  font-size:17px; font-weight:700; color:var(--t1);
+  letter-spacing:-0.02em; line-height:1.1;
+}
+.stat-val.green { color:var(--green); }
+.stat-unit { font-size:10px; font-weight:500; color:var(--t3); }
+.stat-ic { margin-bottom:1px; }
+
+/* ── SHEET TOP ── */
+.sheet-top {
+  position: relative;
+  flex-shrink: 0;
+}
+.sheet-icons {
+  position: absolute; top: 8px; right: 14px;
+  display: flex; gap: 4px; align-items: center;
+}
+.sheet-ic-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--b2); background: var(--s2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--t3);
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.sheet-ic-btn:hover { color: var(--t2); border-color: var(--b3); background: var(--s3); }
+.close-btn { color: var(--t2); }
+
+/* ── STATUS BAR ── */
+.status-bar {
+  position:absolute; top:0; left:0; right:0; z-index:10;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:15px 26px 0; pointer-events:none;
+}
+.sb-time { font-size:13px; font-weight:700; color:white; }
+[data-theme="light"] .sb-time { color: #1a2a3a; }
+.sb-right { display:flex; align-items:center; gap:5px; }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<nav class="toolbar">
+  <div style="display:flex;align-items:center;gap:6px">
+    <span style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.07em">Score</span>
+    <button class="tb-btn on" id="bs-safe"  onclick="setScore('safe')">✓ Sûr</button>
+    <button class="tb-btn"    id="bs-med"   onclick="setScore('med')">⚠ Modéré</button>
+    <button class="tb-btn"    id="bs-risky" onclick="setScore('risky')">✕ Risqué</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn on" id="btn-theme" onclick="toggleTheme()" style="background:var(--teal);border-color:var(--teal);color:#fff">☀️ Light</button>
+  </div>
+</nav>
+
+<!-- PHONE -->
+<div class="phone">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="white"><rect x="0" y="4" width="2.5" height="8" rx="1" opacity="0.35"/><rect x="4.5" y="2.5" width="2.5" height="9.5" rx="1" opacity="0.6"/><rect x="9" y="1" width="2.5" height="11" rx="1" opacity="0.85"/><rect x="13.5" y="0" width="2.5" height="12" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 24 17" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M1 5s5-4 11-4 11 4 11 4" opacity="0.38"/><path d="M4.5 9s3.5-2.5 7.5-2.5 7.5 2.5 7.5 2.5" opacity="0.65"/><path d="M8 13s2-1 4-1 4 1 4 1"/><circle cx="12" cy="16" r="1.5" fill="white" stroke="none"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="white" opacity="0.38"/><rect x="2" y="2" width="17" height="9" rx="2" fill="white"/><path d="M24 4.5v4a2 2 0 000-4z" fill="white" opacity="0.45"/></svg>
+    </div>
+  </div>
+
+  <!-- Map bg with route -->
+  <div class="map-bg">
+    <div class="route-line"></div>
+    <div class="route-dot-start"></div>
+    <div class="route-dot-end"></div>
+  </div>
+
+  <!-- Sheet -->
+  <div class="sheet">
+    <div class="sheet-top">
+      <div class="handle-row"><div class="handle"></div></div>
+      <div class="sheet-icons">
+        <button class="sheet-ic-btn" title="Voir le résumé">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </button>
+        <button class="sheet-ic-btn" title="Partager">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <button class="sheet-ic-btn close-btn" title="Retour à la carte">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Checkmark hero -->
+    <div class="check-hero">
+      <div class="check-ring">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+             stroke="#34D399" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="title-block">
+      <div class="arrived-title">Vous êtes arrivée !</div>
+      <div class="arrived-dest">Gare du Nord</div>
+      <div class="arrived-meta">Trajet enregistré · 21 min · 3,4 km</div>
+    </div>
+
+    <!-- Score badge -->
+    <div class="score-wrap">
+      <div class="score-badge score-safe" id="scoreBadge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span id="scoreText">Trajet sûr</span>
+      </div>
+    </div>
+
+    <!-- Circle notif -->
+    <div class="circle-notif">
+      <div class="notif-avatars">
+        <div class="nav-small" style="background:linear-gradient(135deg,#34D399,#1E3A5F)">MC</div>
+        <div class="nav-small" style="background:linear-gradient(135deg,#3BB4C1,#4A2C5A)">SL</div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-line1">Marie C. et Sophie L. ont été notifiées</div>
+        <div class="notif-line2">Ton cercle sait que tu es bien arrivée</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="#34D399" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <svg class="stat-ic" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="var(--teal)" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <div class="stat-val">21</div>
+        <div class="stat-unit">min</div>
+      </div>
+      <div class="stat-card">
+        <svg class="stat-ic" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="var(--purple)" stroke-width="2" stroke-linecap="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        <div class="stat-val">3,4</div>
+        <div class="stat-unit">km</div>
+      </div>
+      <div class="stat-card">
+        <svg class="stat-ic" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="#34D399" stroke-width="2" stroke-linecap="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <div class="stat-val green">3</div>
+        <div class="stat-unit">évités</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let dark = false;
+
+const scores = {
+  safe:  { cls:'score-safe',  text:'Trajet sûr',     icon:'shield' },
+  med:   { cls:'score-med',   text:'Trajet modéré',  icon:'alert'  },
+  risky: { cls:'score-risky', text:'Trajet risqué',  icon:'x'      },
+};
+
+function setScore(s) {
+  const badge = document.getElementById('scoreBadge');
+  const txt   = document.getElementById('scoreText');
+  ['score-safe','score-med','score-risky'].forEach(c => badge.classList.remove(c));
+  badge.classList.add(scores[s].cls);
+  txt.textContent = scores[s].text;
+
+  ['bs-safe','bs-med','bs-risky'].forEach(id =>
+    document.getElementById(id).classList.remove('on'));
+  document.getElementById('bs-'+s).classList.add('on');
+}
+
+function toggleTheme() {
+  dark = !dark;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.getElementById('btn-theme').textContent = dark ? '🌙 Dark' : '☀️ Light';
+}
+</script>
+</body>
+</html>

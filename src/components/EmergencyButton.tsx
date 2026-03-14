@@ -419,20 +419,8 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           0%   { opacity: 0.6; }
           100% { opacity: 0;   }
         }
-        @keyframes sos-dot-pulse {
-          0%, 100% { transform: scale(0.65); opacity: 0.55; }
-          50%      { transform: scale(1.15); opacity: 1; }
-        }
-        @keyframes sos-ring-pulse {
-          0%   { transform: scale(0.85); opacity: 0.6; }
-          100% { transform: scale(1.22); opacity: 0; }
-        }
-        @keyframes sos-shine {
-          0%        { left: -75%; }
-          60%, 100% { left: 130%; }
-        }
-        .sos-fab:hover:not(:disabled) { transform: scale(1.10) !important; box-shadow: 0 8px 28px rgba(239,68,68,0.56) !important; }
-        .sos-fab:active:not(:disabled) { transform: scale(0.92) !important; }
+        .sos-fab:hover:not(:disabled) { transform: scale(1.10) !important; }
+        .sos-fab:active:not(:disabled) { transform: scale(0.91) !important; animation: none !important; }
       `}</style>
 
       {/* ── Hold progress — centered overlay, above the thumb ──────── */}
@@ -756,33 +744,6 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         />
       )}
 
-      {/* ── Radial pulse rings (outside button) ─────── */}
-      <div
-        aria-hidden
-        style={{
-          position: 'fixed',
-          bottom: 80, right: 20,
-          width: 46, height: 46,
-          borderRadius: 9999,
-          pointerEvents: 'none',
-          zIndex: 99,
-        }}
-      >
-        <div style={{
-          position: 'absolute', inset: -7,
-          borderRadius: 9999,
-          border: '2px solid rgba(239,68,68,0.30)',
-          animation: 'sos-ring-pulse 2s ease-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', inset: -15,
-          borderRadius: 9999,
-          border: '2px solid rgba(239,68,68,0.14)',
-          animation: 'sos-ring-pulse 2s ease-out infinite',
-          animationDelay: '0.52s',
-        }} />
-      </div>
-
       {/* ── FAB — hold 3 seconds to activate ────────────────────────── */}
       <button
         onPointerDown={handleFabPointerDown}
@@ -795,58 +756,89 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         className="sos-fab"
         style={{
           position: 'fixed',
-          bottom: 80, right: 20, width: 46, height: 46, zIndex: 100,
-          borderRadius: 9999,
-          background: 'linear-gradient(135deg, #F87171, #DC2626)',
-          boxShadow: '0 4px 18px rgba(239,68,68,0.42), inset 0 1px 0 rgba(255,255,255,0.20)',
+          bottom: 80, right: 20, width: 50, height: 50, zIndex: 100,
+          borderRadius: '50%',
+          background: 'transparent',
           border: 'none',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           opacity: phase === 'idle' ? 1 : 0.5,
-          transition: 'transform 0.18s ease, box-shadow 0.18s ease, opacity 0.3s ease',
+          transition: 'transform 0.12s ease, opacity 0.3s ease',
           touchAction: 'none',
           userSelect: 'none',
-          overflow: 'hidden',
+          animation: 'sosBreathe 3.6s ease-in-out infinite',
         }}
       >
-        {/* Hold progress ring */}
-        {fabHoldProgress > 0 && (
-          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 50 50" fill="none">
-            <circle
-              cx="25" cy="25" r="23"
-              stroke="white" strokeWidth="1.5"
-              strokeDasharray={`${fabHoldProgress * 144.5} 144.5`}
-              strokeLinecap="round"
-              transform="rotate(-90 25 25)"
-              opacity="0.35"
-            />
-          </svg>
-        )}
-        {/* Shine sweep */}
+        {/* Diffuse outer bloom */}
         <div style={{
-          position: 'absolute',
-          top: '-50%',
-          left: '-75%',
-          width: '50%',
-          height: '200%',
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)',
-          transform: 'skewX(-20deg)',
-          pointerEvents: 'none',
-          animation: 'sos-shine 3.2s ease-in-out infinite',
+          position: 'absolute', width: 125, height: 125, borderRadius: '50%',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          background: 'radial-gradient(circle, rgba(220,0,0,0.32) 0%, rgba(180,0,0,0.18) 30%, rgba(120,0,0,0.09) 55%, transparent 72%)',
+          animation: 'sosDiffuse1 3.6s ease-in-out infinite',
+          pointerEvents: 'none', zIndex: -1,
         }} />
-        {/* White dot */}
         <div style={{
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          background: 'white',
-          boxShadow: '0 0 8px rgba(255,255,255,0.55)',
-          animation: 'sos-dot-pulse 1.6s ease-in-out infinite',
-          position: 'relative',
-          zIndex: 1,
-          flexShrink: 0,
+          position: 'absolute', width: 164, height: 164, borderRadius: '50%',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          background: 'radial-gradient(circle, rgba(255,40,0,0.14) 0%, rgba(200,0,0,0.07) 40%, transparent 68%)',
+          animation: 'sosDiffuse2 3.6s ease-in-out infinite 0.3s',
+          pointerEvents: 'none', zIndex: -1,
+        }} />
+
+        {/* Shell — matte dark red rim */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          background: 'radial-gradient(ellipse at 28% 22%, rgba(220,60,60,0.6) 0%, transparent 40%), radial-gradient(circle at 50% 50%, #A01010 0%, #8B0000 25%, #700000 50%, #580000 75%, #420000 100%)',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.6), 0 4px 14px rgba(0,0,0,0.4), inset 0 3px 12px rgba(255,100,100,0.18), inset 0 -3px 14px rgba(0,0,0,0.4)',
+        }} />
+
+        {/* Bowl surface */}
+        <div style={{
+          position: 'absolute', inset: 5, borderRadius: '50%', overflow: 'hidden',
+        }} />
+
+        {/* Inner glow — radiates from dot edge outward */}
+        <div style={{
+          position: 'absolute', inset: 5, borderRadius: '50%',
+          background: 'radial-gradient(circle at 50% 50%, transparent 0%, transparent 14%, rgba(255,200,50,0.55) 20%, rgba(255,100,10,0.70) 28%, rgba(220,30,0,0.60) 40%, rgba(160,0,0,0.40) 56%, transparent 72%)',
+          animation: 'sosGlowPulse 3.6s ease-in-out infinite',
+          zIndex: 3, pointerEvents: 'none',
+        }} />
+
+        {/* Inner ring — faint gold line */}
+        <div style={{
+          position: 'absolute', width: 30, height: 30, borderRadius: '50%',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          border: '1px solid rgba(200,50,20,0.50)',
+          zIndex: 3, pointerEvents: 'none',
+        }} />
+
+        {/* Centre dot — dark red with blazing corona */}
+        <div className="sos-dot-corona" style={{
+          position: 'absolute', width: 10, height: 10, borderRadius: '50%',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          background: 'radial-gradient(circle at 38% 32%, #A01818 0%, #8B0000 35%, #600000 65%, #480000 100%)',
+          boxShadow: '0 0 0 1.5px rgba(255,255,200,0.7), 0 0 4px 3px rgba(255,240,120,0.85), 0 0 8px 6px rgba(255,200,50,0.6), 0 0 14px 10px rgba(255,120,0,0.35), 0 0 22px 14px rgba(200,0,0,0.18), inset 0 1px 2px rgba(255,80,0,0.15)',
+          animation: 'sosDotCorona 3.6s ease-in-out infinite',
+          zIndex: 5,
+        }} />
+
+        {/* Outer pulse rings */}
+        <div style={{
+          position: 'absolute', width: 61, height: 61, borderRadius: '50%',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          border: '1.5px solid rgba(220,0,0,0.55)',
+          animation: 'sosPulseRing 3.6s ease-in-out infinite',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', width: 73, height: 73, borderRadius: '50%',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          border: '1px solid rgba(200,0,0,0.28)',
+          animation: 'sosPulseRing 3.6s ease-in-out infinite 0.55s',
+          pointerEvents: 'none',
         }} />
       </button>
     </>

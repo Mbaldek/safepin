@@ -3,10 +3,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Users, Navigation, Search, Clock,
+  Users, Navigation, Search,
   ChevronLeft, ChevronRight, Check,
-  Star, MapPin, X,
-  ArrowUpDown, History
+  MapPin, X, Pencil,
+  ArrowUpDown,
 } from 'lucide-react'
 import { T, tok, springConfig } from '@/lib/tokens'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
@@ -14,7 +14,6 @@ import { useFavoris }       from '@/hooks/useFavoris'
 import { useRecents }       from '@/hooks/useRecents'
 import { useDestinationSearch, formatSearchDistance } from '@/hooks/useDestinationSearch'
 import type { SearchResult } from '@/hooks/useDestinationSearch'
-import { FavoriButton }     from './escorte/FavoriButton'
 import { calcETA, calcDist } from '@/lib/escorteHelpers'
 import { getColors, getCardStyle, getBtnPrimary, SHEET_HEIGHTS } from './escorte/escorte-styles'
 import EscorteIntroView     from './escorte/EscorteIntroView'
@@ -22,6 +21,7 @@ import EscorteNotifyingView  from './escorte/EscorteNotifyingView'
 import EscorteArrivedModal  from './escorte/EscorteArrivedModal'
 import EscorteLiveView      from './escorte/EscorteLiveView'
 import { fetchRoutesWithAvoidance, formatDuration, formatDistance } from '@/lib/directions'
+import { haversineMeters } from '@/lib/utils'
 import { scoreRoute, scoreTransitRoute, countCorridorIncidents, getStepAlerts } from '@/lib/route-scoring'
 import RouteCard from '@/components/trip/RouteCard'
 import type { RouteOption, RouteSegment } from '@/stores/useStore'
@@ -56,7 +56,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const departSearch = useDestinationSearch(userLat, userLng)
   const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, setTransitSegments } = useStore()
   const pins = useStore((s) => s.pins)
-  const setShowWalkHistory = useStore((s) => s.setShowWalkHistory)
+
 
   // ── Local state ────────────────────────────────
   const [query,       setQuery]       = useState('')
@@ -64,6 +64,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const [routeMode,   setRouteMode]   = useState<RouteMode>('walk')
   const [withCircle,  setWithCircle]  = useState(true)
   const [showFavoris, setShowFavoris] = useState(false)
+  const [hubExpanded, setHubExpanded] = useState(false)
 
   // ── Depart state ─────────────────────────────
   const [departAddress, setDepartAddress] = useState<string | null>(null)
@@ -262,7 +263,9 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   }, [shouldHaveAudio])
 
   // ── Sheet height per view ──────────────────────
-  const sheetH = SHEET_HEIGHTS[escorte.view] ?? '60vh'
+  const sheetH = escorte.view === 'hub' && hubExpanded
+    ? '70vh'
+    : (SHEET_HEIGHTS[escorte.view] ?? '60vh')
 
   // ── Search handler ─────────────────────────────
   const handleSearch = (v: string) => {
@@ -292,7 +295,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       place_type:  ['favorite'],
     })
     setQuery(f.name)
-    escorte.setView('trip-form')
   }
 
   // ── Depart search handlers ───────────────────
@@ -311,6 +313,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   // ── Back to hub — cleanup routes ─────────────
   const handleBackToHub = () => {
     escorte.setView('hub')
+    setHubExpanded(false)
     setSelectedDest(null)
     setQuery('')
     setRouteInfo(null)
@@ -442,7 +445,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   //  RENDER VIEWS
   // ─────────────────────────────────────────────
 
-  // ── VIEW : HUB ────────────────────────────────
+  // ── VIEW : HUB (collapsed = CTAs, expanded = destination picker) ──
   const renderHub = () => (
     <motion.div
       key="hub"
@@ -450,193 +453,419 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -32 }}
       transition={springConfig}
-      style={{ padding: '0 18px 18px', height: '100%', overflowY: 'auto', scrollbarWidth: 'none' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: tk.tp, marginBottom: 2 }}>
-            Mon trajet
-          </div>
-          <div style={{ fontSize: 12, color: tk.tt, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Clock size={10} strokeWidth={1.5} color={tk.tt} />
-            {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · Paris
-          </div>
-        </div>
-        <button onClick={onClose} style={{
-          width: 28, height: 28, borderRadius: '50%',
-          background: tk.ih, border: `1px solid ${tk.bd}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-        }}>
-          <X size={12} strokeWidth={2.5} color={tk.tt} />
-        </button>
-      </div>
+      {hubExpanded ? (
+        /* ═══ DESTINATION PICKER (expanded hub) ═══ */
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}>
+          {/* Search results overlay */}
+          {destSearch.results.length > 0 && (
+            <div style={{
+              position: 'absolute', top: 120, left: 20, right: 20, zIndex: 10,
+              background: C.card, border: `1px solid ${C.border}`,
+              borderRadius: 14, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            }}>
+              {destSearch.results.slice(0, 5).map((r, i) => (
+                <div
+                  key={r.id}
+                  onClick={() => handleResultSelect(r)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                    cursor: 'pointer',
+                    borderBottom: i < Math.min(destSearch.results.length, 5) - 1
+                      ? `1px solid ${C.border}` : 'none',
+                  }}
+                >
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 9, flexShrink: 0, fontSize: 13,
+                    background: r.type === 'poi' ? 'rgba(59,180,193,0.10)' : C.el,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {r.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: C.t1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.t3, marginTop: 1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.address}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-      {/* Keyframes for history pill pulse */}
-      <style>{`
-        @keyframes histPulseGlow {
-          0%,100% { transform: scale(0.6); opacity: 0.55; }
-          50%      { transform: scale(1.45); opacity: 0; }
-        }
-        @keyframes histPulseRing {
-          0%,100% { transform: scale(0.65); opacity: 0.5; }
-          50%      { transform: scale(1.6); opacity: 0; }
-        }
-      `}</style>
+          {/* Depart search results overlay */}
+          {editingDepart && departSearch.results.length > 0 && (
+            <div style={{
+              position: 'absolute', top: 80, left: 20, right: 20, zIndex: 10,
+              background: C.card, border: `1px solid ${C.border}`,
+              borderRadius: 14, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            }}>
+              {departSearch.results.slice(0, 4).map((r, i) => (
+                <div
+                  key={r.id}
+                  onClick={() => {
+                    handleDepartResultSelect(r)
+                    setEditingDepart(false)
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                    cursor: 'pointer',
+                    borderBottom: i < Math.min(departSearch.results.length, 4) - 1
+                      ? `1px solid ${C.border}` : 'none',
+                  }}
+                >
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                    background: 'rgba(52,211,153,0.10)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <MapPin size={12} strokeWidth={1.5} color="#34D399" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: C.t1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.t3, marginTop: 1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.address}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-      {/* CTA side-by-side */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 12 }}>
-        {/* MAM */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => escorte.setView('escorte-intro')}
-          style={{
-            flex: 1, padding: '14px 10px', borderRadius: 14,
-            background: d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
-            border: `1px solid ${T.gradientStart}35`,
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 6,
-            cursor: 'pointer', textAlign: 'center',
-          }}
-        >
-          <div style={{
-            width: 30, height: 30, borderRadius: 9,
-            background: 'rgba(59,180,193,0.12)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Users size={15} strokeWidth={1.5} color={T.gradientStart} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>Marche avec moi</div>
-            <div style={{ fontSize: 9, color: tk.tt, marginTop: 2 }}>Cercle alerté · sans destination</div>
-          </div>
-        </motion.button>
+          <div style={{ padding: '4px 20px 0', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            {/* Header: Back + Title + Forward */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexShrink: 0 }}>
+              <button
+                onClick={() => { setHubExpanded(false); setQuery(''); setSelectedDest(null); destSearch.clear(); setEditingDepart(false) }}
+                style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  background: C.el, border: `1px solid ${C.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                }}
+              >
+                <ChevronLeft size={14} strokeWidth={2.5} color={C.t2} />
+              </button>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.t1 }}>
+                Trajet avec destination
+              </span>
+              <button
+                onClick={() => {
+                  if (selectedDest) {
+                    setHubExpanded(false)
+                    escorte.setView('trip-form')
+                  }
+                }}
+                style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  background: selectedDest ? '#A78BFA' : C.el,
+                  border: `1px solid ${selectedDest ? '#A78BFA' : C.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: selectedDest ? 'pointer' : 'default',
+                  opacity: selectedDest ? 1 : 0.4,
+                  transition: 'all 200ms',
+                }}
+              >
+                <ChevronRight size={14} strokeWidth={2.5} color={selectedDest ? '#fff' : C.t3} />
+              </button>
+            </div>
 
-        {/* DEST */}
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => escorte.setView('trip-form')}
-          style={{
-            flex: 1, padding: '14px 10px', borderRadius: 14,
-            background: 'rgba(167,139,250,0.07)',
-            border: '1px solid rgba(167,139,250,0.20)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 6,
-            cursor: 'pointer', textAlign: 'center',
-          }}
-        >
-          <div style={{
-            width: 30, height: 30, borderRadius: 9,
-            background: 'rgba(167,139,250,0.12)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Navigation size={15} strokeWidth={1.5} color={'#A78BFA'} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>Trajet avec destination</div>
-            <div style={{ fontSize: 9, color: tk.tt, marginTop: 2 }}>Itinéraire protégé · arrivée tracée</div>
-          </div>
-        </motion.button>
+            {/* Départ + Destination card */}
+            <div style={{
+              display: 'flex', gap: 10, marginBottom: 12, flexShrink: 0,
+              background: C.el, border: `1px solid ${C.border}`,
+              borderRadius: 12, padding: '10px 12px',
+            }}>
+              {/* Dots column */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, paddingTop: 6 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399' }} />
+                <div style={{ width: 1, height: 16, borderLeft: '2px dashed', borderColor: C.border }} />
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444' }} />
+              </div>
 
-        {/* History pill */}
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowWalkHistory(true); onClose(); }}
-          style={{
-            width: 52, flexShrink: 0, borderRadius: 12,
-            background: 'rgba(59,180,193,0.08)',
-            border: '1px solid rgba(59,180,193,0.20)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: 5,
-            cursor: 'pointer', position: 'relative', overflow: 'hidden',
-          }}
-        >
-          <div style={{ position: 'absolute', width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,180,193,0.20) 0%, transparent 68%)', animation: 'histPulseGlow 2.6s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(59,180,193,0.25)', animation: 'histPulseRing 2.6s ease-in-out infinite', animationDelay: '0.55s' }} />
-          <History size={14} color={T.gradientStart} style={{ position: 'relative', zIndex: 2 }} />
-          <span style={{ fontSize: 7, fontWeight: 700, color: T.gradientStart, textAlign: 'center', lineHeight: 1.2, position: 'relative', zIndex: 2, textTransform: 'uppercase' }}>
-            Marches
-          </span>
-        </button>
-      </div>
+              {/* Fields column */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {/* Départ */}
+                {editingDepart ? (
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      autoFocus
+                      value={departQuery}
+                      onChange={e => handleDepartSearch(e.target.value)}
+                      onBlur={() => setTimeout(() => { if (!departQuery) setEditingDepart(false) }, 200)}
+                      placeholder="Rechercher un départ..."
+                      autoComplete="off"
+                      style={{
+                        width: '100%', height: 32,
+                        padding: '0 28px 0 8px',
+                        borderRadius: 8, border: `1px solid ${C.border}`,
+                        background: C.card, color: C.t1,
+                        fontFamily: 'inherit', fontSize: 12, fontWeight: 400,
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={() => { setEditingDepart(false); setDepartQuery(''); departSearch.clear() }}
+                      style={{
+                        position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      }}
+                    >
+                      <X size={11} strokeWidth={2} color={C.t3} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => setEditingDepart(true)}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 12, fontWeight: 500, color: C.t1,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {departAddress || 'Ma position actuelle'}
+                      </div>
+                    </div>
+                    <Pencil size={10} strokeWidth={1.5} color={C.t3} style={{ flexShrink: 0 }} />
+                  </div>
+                )}
 
-      <div style={{ height: 1, background: tk.bd, margin: '0 0 10px' }} />
+                {/* Separator */}
+                <div style={{ height: 1, background: C.border }} />
 
-      {/* Favoris row */}
-      <button
-        onClick={() => setShowFavoris(true)}
-        style={{
-          width: '100%', background: 'rgba(245,195,65,0.06)',
-          border: '1px solid rgba(245,195,65,0.18)', borderRadius: 12,
-          padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 9,
-          cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
-        }}
-      >
-        <Star size={14} strokeWidth={1.5} color={T.accentGold} />
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: T.accentGold, textAlign: 'left' }}>
-          Mes favoris
-        </span>
-        {favoris.length > 0 && (
-          <span style={{ background: 'rgba(245,195,65,0.15)', color: T.accentGold, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100 }}>
-            {favoris.length}
-          </span>
-        )}
-        <ChevronRight size={12} strokeWidth={1.5} color={T.accentGold} />
-      </button>
+                {/* Destination search */}
+                <div style={{ position: 'relative' }}>
+                  <Search size={13} strokeWidth={2.2} color={C.t3}
+                    style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  <input
+                    id="dest-input"
+                    autoFocus={!editingDepart}
+                    value={query}
+                    onChange={e => handleSearch(e.target.value)}
+                    placeholder="Où allez-vous ?"
+                    autoComplete="off"
+                    style={{
+                      width: '100%', height: 32,
+                      padding: '0 28px 0 28px',
+                      borderRadius: 8, border: `1px solid ${C.border}`,
+                      background: C.card, color: C.t1,
+                      fontFamily: 'inherit', fontSize: 12, fontWeight: 400,
+                      outline: 'none',
+                    }}
+                  />
+                  {selectedDest && (
+                    <button
+                      onClick={() => { setSelectedDest(null); setQuery('') }}
+                      style={{
+                        position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      }}
+                    >
+                      <X size={11} strokeWidth={2} color={C.t3} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
-      {/* Recents */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: tk.tt }}>
-          Recents
-        </span>
-        <span style={{ fontSize: 11, fontWeight: 500, color: T.gradientStart, cursor: 'pointer' }}>
-          Voir tout
-        </span>
-      </div>
+            {/* Favoris */}
+            <div style={{
+              fontSize: 10, fontWeight: 600, color: C.t3,
+              textTransform: 'uppercase', letterSpacing: '0.07em',
+              display: 'flex', alignItems: 'center', gap: 5,
+              marginBottom: 8, flexShrink: 0,
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="#F5C341" stroke="none">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg> Favoris
+            </div>
+            <div style={{
+              display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2,
+              flexShrink: 0, marginBottom: 12, scrollbarWidth: 'none',
+            }}>
+              {(favoris.length > 0 ? favoris.slice(0, 4) : [
+                { id: 'mk1', name: 'Maison', dest_lat: 48.8566, dest_lng: 2.3522, color: '#34D399' },
+                { id: 'mk2', name: 'Bureau', dest_lat: 48.8738, dest_lng: 2.2950, color: '#3BB4C1' },
+                { id: 'mk3', name: 'Salle de sport', dest_lat: 48.8606, dest_lng: 2.3376, color: '#A78BFA' },
+              ] as any[]).map(f => {
+                const distKm = (userLat && userLng)
+                  ? (haversineMeters({ lat: userLat, lng: userLng }, { lat: f.dest_lat, lng: f.dest_lng }) / 1000).toFixed(1)
+                  : null
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => favoris.length > 0 ? handleFavoriSelect(f as typeof favoris[0]) : undefined}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
+                      padding: '7px 11px', borderRadius: 11,
+                      border: `1px solid ${C.border}`, background: C.el,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: f.color || '#34D399', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: C.t1, whiteSpace: 'nowrap' }}>{f.name}</div>
+                      {distKm && <div style={{ fontSize: 10, color: C.t3, whiteSpace: 'nowrap' }}>{distKm} km</div>}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
 
-      {recents.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 11, color: tk.tt }}>
-          Aucun trajet recent
-        </div>
-      ) : recents.slice(0, 3).map(r => (
-        <motion.button
-          key={r.id}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            if (r.dest_lat && r.dest_lng) {
-              setSelectedDest({
-                id:         r.id,
-                place_name: r.dest_address ?? r.dest_name,
-                text:       r.dest_name,
-                center:     [r.dest_lng, r.dest_lat],
-                place_type: ['recent'],
-              })
-              setQuery(r.dest_name)
-              escorte.setView('trip-form')
-            }
-          }}
-          style={{
-            width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '5px 6px', borderRadius: 10, marginBottom: 1, textAlign: 'left',
-          }}
-        >
-          <div style={{
-            width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-            background: tk.ih, border: `1px solid ${tk.bd}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Clock size={11} strokeWidth={1.5} color={tk.tt} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: tk.tp }}>{r.dest_name}</div>
-            <div style={{ fontSize: 9, color: tk.tt, marginTop: 1 }}>
-              {new Date(r.used_at).toLocaleDateString('fr-FR', { weekday: 'short' })}
-              {r.duration_min ? ` · ${r.duration_min} min` : ''}
+            {/* Récents */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexShrink: 0, marginBottom: 2,
+            }}>
+              <span style={{
+                fontSize: 10, fontWeight: 600, color: C.t3,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+              }}>Récents</span>
+              <span style={{ fontSize: 11, fontWeight: 500, color: T.gradientStart, cursor: 'pointer' }}>
+                Voir tout
+              </span>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, scrollbarWidth: 'none' }}>
+              {(recents.length > 0 ? recents.slice(0, 4) : [
+                { id: 'mr1', dest_name: 'Gare du Nord', dest_address: 'Paris 10e', dest_lat: 48.8809, dest_lng: 2.3553, used_at: new Date().toISOString(), duration_min: 18, distance_km: 1.8, score: 15 },
+                { id: 'mr2', dest_name: 'Châtelet – Les Halles', dest_address: 'Paris 1er', dest_lat: 48.8606, dest_lng: 2.3472, used_at: new Date(Date.now() - 86400000).toISOString(), duration_min: 24, distance_km: 2.3, score: 45 },
+                { id: 'mr3', dest_name: 'Opéra Garnier', dest_address: 'Paris 9e', dest_lat: 48.8720, dest_lng: 2.3316, used_at: new Date(Date.now() - 172800000).toISOString(), duration_min: 31, distance_km: 3.1, score: 10 },
+              ] as any[]).map((r, i, arr) => {
+                const isSafe = r.score == null || r.score <= 30
+                const scoreLabel = r.score != null
+                  ? (r.score <= 30 ? 'Sûr' : r.score <= 60 ? 'Modéré' : 'Risqué')
+                  : 'Sûr'
+                const scoreColor = isSafe ? '#34D399' : (r.score != null && r.score <= 60 ? '#FBBF24' : '#EF4444')
+                const RECENT_COLORS = [
+                  { color: '#A78BFA', bg: 'rgba(167,139,250,0.1)' },
+                  { color: '#3BB4C1', bg: 'rgba(59,180,193,0.1)' },
+                  { color: '#34D399', bg: 'rgba(52,211,153,0.1)' },
+                  { color: '#F5C341', bg: 'rgba(245,195,65,0.1)' },
+                ]
+                const rc = RECENT_COLORS[i % RECENT_COLORS.length]
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => {
+                      setSelectedDest({
+                        id: r.id,
+                        place_name: r.dest_address ?? r.dest_name,
+                        text: r.dest_name,
+                        center: [r.dest_lng, r.dest_lat],
+                        place_type: ['recent'],
+                      })
+                      setQuery(r.dest_name)
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 11,
+                      padding: '9px 0', cursor: 'pointer',
+                      borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                    }}
+                  >
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 10,
+                      background: rc.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Navigation size={13} strokeWidth={2.2} color={rc.color} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 12, fontWeight: 500, color: C.t1,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3,
+                      }}>{r.dest_name}</div>
+                      <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>
+                        {r.duration_min ? `${r.duration_min} min` : ''}{r.distance_km ? ` · ${r.distance_km} km` : ''}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 9999,
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                      background: isSafe ? 'rgba(52,211,153,0.1)' : (r.score != null && r.score <= 60 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)'),
+                      color: scoreColor,
+                      border: `1px solid ${isSafe ? 'rgba(52,211,153,0.18)' : (r.score != null && r.score <= 60 ? 'rgba(251,191,36,0.18)' : 'rgba(239,68,68,0.18)')}`,
+                    }}>
+                      {scoreLabel}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-          <ChevronRight size={11} strokeWidth={1.5} color={tk.tt} />
-        </motion.button>
-      ))}
+        </div>
+      ) : (
+        /* ═══ HUB COLLAPSED (CTAs) ═══ */
+        <div style={{ padding: '0 18px 18px' }}>
+          {/* Title */}
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: tk.tt, marginBottom: 12 }}>
+            Mon trajet
+          </div>
+
+          {/* CTA side-by-side */}
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
+            {/* MAM */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => escorte.setView('escorte-intro')}
+              style={{
+                flex: 1, padding: '14px 10px', borderRadius: 14,
+                background: d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
+                border: `1px solid ${T.gradientStart}35`,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 6,
+                cursor: 'pointer', textAlign: 'center',
+              }}
+            >
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                background: 'rgba(59,180,193,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Users size={15} strokeWidth={1.5} color={T.gradientStart} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>Marche avec moi</div>
+                <div style={{ fontSize: 9, color: tk.tt, marginTop: 2 }}>Cercle alerté · sans destination</div>
+              </div>
+            </motion.button>
+
+            {/* DEST */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setHubExpanded(true)}
+              style={{
+                flex: 1, padding: '14px 10px', borderRadius: 14,
+                background: 'rgba(167,139,250,0.07)',
+                border: '1px solid rgba(167,139,250,0.20)',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 6,
+                cursor: 'pointer', textAlign: 'center',
+              }}
+            >
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                background: 'rgba(167,139,250,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Navigation size={15} strokeWidth={1.5} color={'#A78BFA'} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: tk.tp }}>Trajet avec destination</div>
+                <div style={{ fontSize: 9, color: tk.tt, marginTop: 2 }}>Itinéraire protégé · arrivée tracée</div>
+              </div>
+            </motion.button>
+          </div>
+        </div>
+      )}
     </motion.div>
   )
 
@@ -843,34 +1072,51 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         transition={springConfig}
         style={{ display:'flex', flexDirection:'column', height:'100%' }}
       >
-        {/* Handle */}
         <div style={{
-          width:28, height:4, borderRadius:2, margin:'8px auto 0', flexShrink:0,
-          background: C.handle,
-        }} />
-
-        <div style={{
-          flex:1, overflowY:'auto', padding:'9px 14px 16px',
+          flex:1, overflowY:'auto', padding:'6px 20px 0',
           display:'flex', flexDirection:'column', gap:8,
           scrollbarWidth:'none',
+          position:'relative',
         }}>
-          {/* Header */}
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <button
-              onClick={handleBackToHub}
-              style={{
-                width:26, height:26, borderRadius:'50%', flexShrink:0,
-                background: C.el,
-                border:`1px solid ${C.border}`,
-                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-              }}
-            >
-              <ChevronLeft size={10} strokeWidth={2.5} color={C.t2} />
-            </button>
-            <span style={{ fontSize:13, fontWeight:700, color: C.btn, flex:1 }}>
-              Trajet avec destination
-            </span>
-            {selectedDest && (
+          {!selectedDest ? (
+            /* No dest selected — redirect to hub expanded */
+            <div style={{ padding: 20, textAlign: 'center', color: C.t3, fontSize: 12 }}>
+              <button
+                onClick={() => { setHubExpanded(true); escorte.setView('hub') }}
+                style={{ background: 'none', border: 'none', color: C.t2, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}
+              >
+                ← Choisir une destination
+              </button>
+            </div>
+          ) : (<>
+            {/* ── DESTINATION SELECTED — card + routes ── */}
+
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <button
+                onClick={() => {
+                  setSelectedDest(null)
+                  setQuery('')
+                  setRouteInfo(null)
+                  setPendingRoutes(null)
+                  setFetchedRoutes([])
+                  setEditingDepart(false)
+                  setDepartDragPin(null)
+                  setDepartQuery('')
+                  setHubExpanded(true)
+                  escorte.setView('hub')
+                }}
+                style={{
+                  width:26, height:26, borderRadius:'50%', flexShrink:0,
+                  background: C.el, border:`1px solid ${C.border}`,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                }}
+              >
+                <ChevronLeft size={10} strokeWidth={2.5} color={C.t2} />
+              </button>
+              <span style={{ fontSize:13, fontWeight:700, color: C.btn, flex:1 }}>
+                Trajet avec destination
+              </span>
               <button
                 onClick={handleStartTrip}
                 disabled={escorte.isStarting}
@@ -885,130 +1131,44 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
               >
                 {escorte.isStarting ? 'Démarrage…' : `${routeDurationLabel ?? 'Démarrer'} →`}
               </button>
-            )}
-          </div>
+            </div>
 
-          {/* Card départ → destination */}
-          <div style={{
-            display:'flex', alignItems:'center', gap:8,
-            background: C.el,
-            border:`1px solid ${C.border}`,
-            borderRadius:12, padding:'9px 11px',
-          }}>
-            {/* Connecteur */}
-            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flexShrink:0 }}>
-              <div style={{ width:7, height:7, borderRadius:'50%', background:'#34D399' }} />
-              <div style={{ width:1, height:14, background: C.border }} />
-              <div style={{ width:7, height:7, borderRadius:'50%', background:'#EF4444' }} />
-            </div>
-            {/* Adresses */}
-            <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:5 }}>
-              <div
-                onClick={handleOpenDepartPicker}
-                style={{ fontSize:11, fontWeight:500, color: C.t2, cursor:'pointer',
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
-              >
-                {departAddress ?? 'Ma position actuelle'}
+            {/* Card départ → destination */}
+            <div style={{
+              display:'flex', alignItems:'center', gap:8,
+              background: C.el, border:`1px solid ${C.border}`,
+              borderRadius:12, padding:'9px 11px',
+            }}>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, flexShrink:0 }}>
+                <div style={{ width:7, height:7, borderRadius:'50%', background:'#34D399' }} />
+                <div style={{ width:1, height:14, background: C.border }} />
+                <div style={{ width:7, height:7, borderRadius:'50%', background:'#EF4444' }} />
               </div>
-              <div
-                onClick={() => document.getElementById('dest-input')?.focus()}
-                style={{ fontSize:12, fontWeight:600, cursor:'pointer',
-                  color: selectedDest ? (C.btn) : (C.t3),
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
-              >
-                {selectedDest?.text ?? 'Rechercher une destination…'}
+              <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:5 }}>
+                <div
+                  onClick={handleOpenDepartPicker}
+                  style={{ fontSize:11, fontWeight:500, color: C.t2, cursor:'pointer',
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
+                >
+                  {departAddress ?? 'Ma position actuelle'}
+                </div>
+                <div style={{ fontSize:12, fontWeight:600, color: C.btn,
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {selectedDest.text}
+                </div>
               </div>
-            </div>
-            {/* Swap */}
-            {selectedDest && (
               <div
                 onClick={handleSwapDepartDest}
                 style={{
                   width:24, height:24, borderRadius:'50%', flexShrink:0, cursor:'pointer',
-                  background: C.card,
-                  border:`1px solid ${C.border}`,
+                  background: C.card, border:`1px solid ${C.border}`,
                   display:'flex', alignItems:'center', justifyContent:'center',
                 }}
               >
                 <ArrowUpDown size={10} strokeWidth={2} color={C.t2} />
               </div>
-            )}
-          </div>
-
-          {/* Input recherche — seulement si pas de destination */}
-          {!selectedDest && (
-            <div style={{ position:'relative' }}>
-              <Search size={13} strokeWidth={1.5} color={C.t3}
-                style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
-              <input
-                id="dest-input"
-                autoFocus
-                value={query}
-                onChange={e => handleSearch(e.target.value)}
-                placeholder="Restaurant, adresse, lieu…"
-                style={{
-                  width:'100%', background: C.card,
-                  border:'1px solid rgba(59,180,193,0.35)',
-                  boxShadow:'0 0 0 3px rgba(59,180,193,0.08)',
-                  borderRadius:10, padding:'9px 12px 9px 34px',
-                  fontSize:16, fontFamily:'inherit', color: C.btn, outline:'none',
-                }}
-              />
-              {/* Résultats */}
-              {destSearch.results.length > 0 && (
-                <div style={{
-                  position:'absolute', top:'100%', left:0, right:0, zIndex:50, marginTop:4,
-                  background: C.card,
-                  border:`1px solid ${C.border}`,
-                  borderRadius:12, overflow:'hidden', boxShadow:'0 8px 24px rgba(0,0,0,0.2)',
-                }}>
-                  {destSearch.results.slice(0,5).map((r, i) => (
-                    <div
-                      key={r.id}
-                      onClick={() => handleResultSelect(r)}
-                      style={{
-                        display:'flex', alignItems:'center', gap:9, padding:'9px 12px',
-                        cursor:'pointer',
-                        borderBottom: i < Math.min(destSearch.results.length,5)-1
-                          ? `1px solid ${C.border}` : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width:30, height:30, borderRadius:9, flexShrink:0, fontSize:14,
-                        background: r.type === 'poi' ? 'rgba(59,180,193,0.10)' : (C.el),
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                      }}>
-                        {r.icon}
-                      </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color: C.btn,
-                          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {r.name}
-                        </div>
-                        <div style={{ fontSize:10, color: C.t3,
-                          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {r.address}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          )}
-
-          {/* Favoris accès rapide */}
-          {!selectedDest && favoris.length > 0 && (
-            <div>
-              <div style={{ fontSize:8, fontWeight:800, textTransform:'uppercase',
-                letterSpacing:'0.08em', color: C.t3, marginBottom:6 }}>Accès rapide</div>
-              <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none' }}>
-                {favoris.slice(0,4).map(f => (
-                  <FavoriButton key={f.id} favori={f} isDark={d} onClick={handleFavoriSelect} />
-                ))}
-              </div>
-            </div>
-          )}
+          </>)}
 
           {/* Transport + CTA — seulement si destination choisie */}
           {selectedDest && (
@@ -1429,22 +1589,33 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
         bottom:              64,
         left:                0,
         right:               0,
-        background:          d ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
-        backdropFilter:      'blur(40px)',
-        WebkitBackdropFilter:'blur(40px)',
+        background:          d ? 'rgba(10,18,32,0.96)' : 'rgba(248,250,252,0.97)',
+        backdropFilter:      'blur(32px) saturate(180%)',
+        WebkitBackdropFilter:'blur(32px) saturate(180%)',
         borderTopLeftRadius:  T.radiusXl,
         borderTopRightRadius: T.radiusXl,
-        border:              `1px solid ${tk.bd}`,
+        borderTop:           `1px solid ${d ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)'}`,
+        borderLeft:          `1px solid ${d ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.60)'}`,
+        borderRight:         `1px solid ${d ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.60)'}`,
         borderBottom:        'none',
-        boxShadow:           T.shadowLg,
+        boxShadow:           d
+          ? '0 -1px 0 rgba(255,255,255,0.06),inset 0 1px 0 rgba(255,255,255,0.08),0 -20px 60px rgba(59,180,193,0.04),0 8px 32px rgba(0,0,0,0.40)'
+          : '0 -1px 0 rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.95),0 8px 32px rgba(0,0,0,0.08)',
         display:             'flex',
         flexDirection:       'column',
         overflow:            'hidden',
       }}
     >
+      {/* Teal glow line */}
+      <div style={{
+        position: 'absolute', top: 0, left: '12%', right: '12%', height: 1,
+        background: 'linear-gradient(90deg,transparent,rgba(59,180,193,0.4),rgba(255,255,255,0.25),rgba(59,180,193,0.4),transparent)',
+        borderRadius: 9999, pointerEvents: 'none',
+      }} />
+
       {/* Handle */}
-      <div style={{ padding: '10px 0 0', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: d ? T.borderStrong : 'rgba(15,23,42,0.16)' }} />
+      <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 34, height: 4, borderRadius: 9999, background: d ? 'rgba(255,255,255,0.13)' : 'rgba(10,18,32,0.13)' }} />
       </div>
 
       {/* Content */}

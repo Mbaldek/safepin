@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS Button — Tuning comparaison</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0F172A;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  padding: 40px 20px;
+}
+h2 { color: #94A3B8; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+.row { display: flex; gap: 80px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.col { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+/* ═══ SHARED ANIMS ═══ */
+@keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+@keyframes glowPulse { 0%,100% { opacity: 0.72; transform: scale(0.93); } 50% { opacity: 1; transform: scale(1.07); } }
+@keyframes dotCorona {
+  0%,100% { box-shadow: 0 0 0 1.5px rgba(255,255,180,0.6), 0 0 4px 3px rgba(255,240,100,0.75), 0 0 8px 6px rgba(255,180,30,0.5), 0 0 14px 10px rgba(255,100,0,0.3), 0 0 22px 14px rgba(180,0,0,0.15); }
+  50% { box-shadow: 0 0 0 1.5px rgba(255,255,220,0.95), 0 0 5px 4px rgba(255,255,150,1), 0 0 10px 8px rgba(255,220,60,0.75), 0 0 18px 13px rgba(255,130,0,0.45), 0 0 30px 18px rgba(200,0,0,0.22); }
+}
+@keyframes pulseRing { 0%,100% { opacity: 0.9; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 0.15; transform: translate(-50%,-50%) scale(1.08); } }
+@keyframes diffuse1 { 0%,100% { opacity: 0.7; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.06); } }
+@keyframes diffuse2 { 0%,100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 0.85; transform: translate(-50%,-50%) scale(1.1); } }
+
+/* ═══ BASE ═══ */
+.sos {
+  position: relative; width: 50px; height: 50px;
+  border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  animation: breathe 3.6s ease-in-out infinite;
+}
+
+/* ═══ A — BEFORE (quasi-noir) ═══ */
+.a .shell {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(ellipse at 28% 22%, rgba(200,50,50,0.55) 0%, transparent 38%),
+              radial-gradient(circle at 50% 50%, #8B0000 0%, #700000 30%, #560000 55%, #3D0000 72%, #2A0000 100%);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 8px 24px rgba(0,0,0,0.7),
+              inset 0 3px 12px rgba(255,100,100,0.12), inset 0 -4px 20px rgba(0,0,0,0.6);
+}
+.a .glow {
+  position: absolute; inset: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 14%, rgba(255,200,50,0.55) 20%, rgba(255,100,10,0.70) 28%, rgba(220,30,0,0.60) 40%, rgba(160,0,0,0.40) 56%, transparent 72%);
+  animation: glowPulse 3.6s ease-in-out infinite; z-index: 3;
+}
+.a .ring-inner {
+  position: absolute; width: 30px; height: 30px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  border: 1px solid rgba(220,80,0,0.35); z-index: 3;
+}
+.a .dot {
+  position: absolute; width: 10px; height: 10px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: radial-gradient(circle at 38% 32%, #8B1010 0%, #6B0000 35%, #4A0000 65%, #330000 100%);
+  animation: dotCorona 3.6s ease-in-out infinite; z-index: 5;
+}
+
+/* ═══ B — AFTER (rouge sombre visible) ═══ */
+.b .shell {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(ellipse at 28% 22%, rgba(220,60,60,0.6) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, #A01010 0%, #8B0000 25%, #700000 50%, #580000 75%, #420000 100%);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.6), 0 4px 14px rgba(0,0,0,0.4),
+              inset 0 3px 12px rgba(255,100,100,0.18), inset 0 -3px 14px rgba(0,0,0,0.4);
+}
+.b .glow {
+  position: absolute; inset: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 14%, rgba(255,200,50,0.55) 20%, rgba(255,100,10,0.70) 28%, rgba(220,30,0,0.60) 40%, rgba(160,0,0,0.40) 56%, transparent 72%);
+  animation: glowPulse 3.6s ease-in-out infinite; z-index: 3;
+}
+.b .ring-inner {
+  position: absolute; width: 30px; height: 30px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  border: 1px solid rgba(200,50,20,0.50); z-index: 3;
+}
+.b .dot {
+  position: absolute; width: 10px; height: 10px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: radial-gradient(circle at 38% 32%, #A01818 0%, #8B0000 35%, #600000 65%, #480000 100%);
+  animation: dotCorona 3.6s ease-in-out infinite; z-index: 5;
+}
+
+/* ═══ shared layers ═══ */
+.diffuse1 {
+  position: absolute; width: 125px; height: 125px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: radial-gradient(circle, rgba(220,0,0,0.32) 0%, rgba(180,0,0,0.18) 30%, rgba(120,0,0,0.09) 55%, transparent 72%);
+  animation: diffuse1 3.6s ease-in-out infinite; pointer-events: none; z-index: -1;
+}
+.diffuse2 {
+  position: absolute; width: 164px; height: 164px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: radial-gradient(circle, rgba(255,40,0,0.14) 0%, rgba(200,0,0,0.07) 40%, transparent 68%);
+  animation: diffuse2 3.6s ease-in-out infinite 0.3s; pointer-events: none; z-index: -1;
+}
+.pulse1 {
+  position: absolute; width: 61px; height: 61px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  border: 1.5px solid rgba(220,0,0,0.55);
+  animation: pulseRing 3.6s ease-in-out infinite; pointer-events: none;
+}
+.pulse2 {
+  position: absolute; width: 73px; height: 73px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  border: 1px solid rgba(200,0,0,0.28);
+  animation: pulseRing 3.6s ease-in-out infinite 0.55s; pointer-events: none;
+}
+
+.toggle-row {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+}
+.ctrl {
+  padding: 7px 16px; border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,0.11);
+  background: rgba(255,255,255,0.05);
+  color: #64748B; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+}
+.ctrl.on { background: rgba(59,180,193,0.15); border-color: rgba(59,180,193,0.35); color: #3BB4C1; }
+</style>
+</head>
+<body>
+
+<div class="toggle-row">
+  <button class="ctrl on" onclick="toggleBg()" id="bg-btn">Dark (app)</button>
+  <button class="ctrl" onclick="toggleBg2()" id="bg2-btn">Light</button>
+</div>
+
+<div class="row">
+  <div class="col">
+    <h2>AVANT — quasi noir</h2>
+    <div class="sos a">
+      <div class="diffuse1"></div>
+      <div class="diffuse2"></div>
+      <div class="shell"></div>
+      <div class="glow"></div>
+      <div class="ring-inner"></div>
+      <div class="dot"></div>
+      <div class="pulse1"></div>
+      <div class="pulse2"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2>APRÈS — rouge sombre visible</h2>
+    <div class="sos b">
+      <div class="diffuse1"></div>
+      <div class="diffuse2"></div>
+      <div class="shell"></div>
+      <div class="glow"></div>
+      <div class="ring-inner"></div>
+      <div class="dot"></div>
+      <div class="pulse1"></div>
+      <div class="pulse2"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let dark = true;
+function toggleBg() {
+  dark = true;
+  document.body.style.background = '#0F172A';
+  document.getElementById('bg-btn').classList.add('on');
+  document.getElementById('bg2-btn').classList.remove('on');
+}
+function toggleBg2() {
+  dark = false;
+  document.body.style.background = '#E8EEF4';
+  document.getElementById('bg2-btn').classList.add('on');
+  document.getElementById('bg-btn').classList.remove('on');
+}
+</script>
+</body>
+</html>

@@ -228,6 +228,9 @@ export function MapPin({ map, pin, onClick, showLabels = true, opacity = 1, isNe
 
   // Create marker once on mount (key={pin.id} in parent handles identity)
   useEffect(() => {
+    // Guard: skip if map is in a transitional state (e.g. style reload)
+    try { if (!map.getContainer()) return; } catch { return; }
+
     const catDetails = CATEGORY_DETAILS[pin.category];
     const config = CATEGORY_CONFIG[pin.category] ?? (catDetails ? {
       color: CATEGORY_GROUPS[catDetails.group]?.color.text ?? '#64748B',

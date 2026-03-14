@@ -125,7 +125,8 @@
       "Bash(taskkill //F //IM next-server.exe)",
       "Bash(start http://localhost:3000/map)",
       "Bash(find /c/Users/mathi/Desktop/safepin -maxdepth 2 -type f \\\\\\(-name .env* -o -name *.env \\\\\\))",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(sed \"s/[''''\"\"].*//\")"
     ]
   }
 }

@@ -85,6 +85,25 @@ const FIXED = {
   semanticSuccess: '#34D399', semanticSuccessSoft: 'rgba(52,211,153,0.12)',
 };
 
+const CHIP_PALETTE: Record<string, { bg: string; text: string; led: string; hex: string }> = {
+  // DANGER — blush/peach
+  assault:    { bg: 'linear-gradient(145deg,#FFCCC4,#FFB5A7)', text: '#6B2C24', led: 'rgba(200,80,70,0.45)',   hex: 'FFB5A7' },
+  harassment: { bg: 'linear-gradient(145deg,#FDE4DF,#FCD5CE)', text: '#703030', led: 'rgba(205,100,90,0.40)',  hex: 'FCD5CE' },
+  theft:      { bg: 'linear-gradient(145deg,#FCE9D8,#F9DCC4)', text: '#6B3A1A', led: 'rgba(200,130,70,0.40)', hex: 'F9DCC4' },
+  following:  { bg: 'linear-gradient(145deg,#FBF3F1,#F8EDEB)', text: '#6A3030', led: 'rgba(195,100,95,0.35)', hex: 'F8EDEB' },
+  // ATTENTION — sand/taupe/warm
+  suspect:    { bg: 'linear-gradient(145deg,#E8EBE6,#DADDD8)', text: '#4A4A3E', led: 'rgba(160,155,130,0.42)', hex: 'DADDD8' },
+  group:      { bg: 'linear-gradient(145deg,#FFDAB8,#FEC89A)', text: '#6B4410', led: 'rgba(200,150,60,0.42)',  hex: 'FEC89A' },
+  unsafe:     { bg: 'linear-gradient(145deg,#F3F2EC,#ECEBE4)', text: '#4E4C3E', led: 'rgba(165,158,130,0.38)', hex: 'ECEBE4' },
+  lighting:   { bg: 'linear-gradient(145deg,#FCE9D6,#F9DCC4)', text: '#684015', led: 'rgba(195,135,70,0.38)', hex: 'F9DCC4' },
+  blocked:    { bg: 'linear-gradient(145deg,#F5F6F8,#EEF0F2)', text: '#404855', led: 'rgba(140,150,168,0.38)', hex: 'EEF0F2' },
+  closed:     { bg: 'linear-gradient(145deg,#FFFFFF,#FAFAFF)', text: '#404450', led: 'rgba(140,148,175,0.35)', hex: 'FAFAFF' },
+  // POSITIF — mint/sage/teal
+  safe:       { bg: 'linear-gradient(145deg,#D8EFEC,#C8E8E4)', text: '#1E5C55', led: 'rgba(80,178,165,0.42)',  hex: 'C8E8E4' },
+  help:       { bg: 'linear-gradient(145deg,#C6E4E6,#B0D7D8)', text: '#1A5258', led: 'rgba(70,168,175,0.42)',  hex: 'B0D7D8' },
+  presence:   { bg: 'linear-gradient(145deg,#7A8F8F,#6A7E7E)', text: '#E8F2F2', led: 'rgba(150,200,200,0.45)', hex: '6A7E7E' },
+};
+
 const allItems = groups.flatMap(g => g.items);
 
 // Steps: 1 = category, 2 = details (merged transport+media+desc), '2b' = positive, 3 = success
@@ -106,6 +125,7 @@ export function ReportSheet() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [establishmentType, setEstablishmentType] = useState<string | null>(null);
   const [positifNote, setPositifNote] = useState('');
@@ -338,27 +358,64 @@ export function ReportSheet() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     {group.items.map((item, ci) => {
                       const isSelected = cat === item.value;
+                      const isHovered = hoveredChip === item.value;
+                      const palette = CHIP_PALETTE[item.value];
+                      if (!palette) return null;
                       return (
                         <button
                           key={item.value}
                           onClick={() => { setCat(item.value); setStep(['safe','help','presence'].includes(item.value) ? '2b' : 2); }}
+                          onMouseEnter={() => setHoveredChip(item.value)}
+                          onMouseLeave={() => setHoveredChip(null)}
                           style={{
+                            position: 'relative',
                             display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '10px 10px', borderRadius: 14,
-                            background: isSelected ? c.sel : group.bg,
-                            border: `1.5px solid ${isSelected ? c.accent : 'transparent'}`,
-                            color: isSelected ? c.text : group.color,
-                            fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
-                            animation: `reportCellIn 0.3s ${gi * 0.08 + ci * 0.04}s both ease-out`,
+                            padding: '7px 10px', borderRadius: 10,
+                            background: palette.bg,
+                            border: 'none',
+                            boxShadow: isSelected
+                              ? 'inset 0 0 0 1.5px rgba(0,0,0,0.12), 0 3px 10px rgba(0,0,0,0.15)'
+                              : '-1px -1px 4px rgba(255,255,255,0.70), 2px 3px 7px rgba(0,0,0,0.14)',
+                            cursor: 'pointer', textAlign: 'left',
+                            overflow: 'hidden',
+                            minHeight: 36,
+                            animation: `chipFloat ${3.5 + ci * 0.10}s ease-in-out ${gi * 0.08 + ci * 0.16}s infinite`,
+                            transition: 'box-shadow 0.2s, filter 0.2s',
+                            filter: isHovered ? 'brightness(1.04)' : 'none',
+                            animationPlayState: (isHovered || isSelected) ? 'paused' : 'running',
                           }}
                         >
-                          <span style={{ fontSize: 16, lineHeight: 1, animation: group.id === 'positive' ? 'reportPositifBreathe 3s ease-in-out infinite' : undefined }}>
+                          {/* LED bottom edge */}
+                          <div style={{
+                            position: 'absolute', left: 0, right: 0, bottom: 0, height: 2,
+                            borderRadius: '0 0 10px 10px',
+                            background: `linear-gradient(90deg, transparent, ${palette.led}, transparent)`,
+                            opacity: (isHovered || isSelected) ? 1 : 0,
+                            transition: 'opacity 0.2s',
+                            pointerEvents: 'none',
+                          }} />
+                          <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>
                             {item.emoji}
                           </span>
-                          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            flex: 1, fontSize: 11, fontWeight: 400,
+                            color: palette.text,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
                             {item.label}
                           </span>
-                          {isSelected && <Check size={12} color={c.accent} style={{ flexShrink: 0 }} />}
+                          {/* Hex watermark */}
+                          <span style={{
+                            position: 'absolute', right: 6, bottom: 3,
+                            fontSize: 8, fontWeight: 500, letterSpacing: '0.05em',
+                            color: palette.text, opacity: isHovered ? 0.50 : 0.22,
+                            fontVariantNumeric: 'tabular-nums',
+                            transition: 'opacity 0.2s',
+                            pointerEvents: 'none',
+                            textTransform: 'uppercase',
+                          }}>
+                            {palette.hex}
+                          </span>
                         </button>
                       );
                     })}
