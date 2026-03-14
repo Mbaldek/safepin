@@ -90,6 +90,7 @@ export default function TripSummaryModal({
 
       {/* Sheet */}
       <motion.div
+        className="sheet-glow sheet-highlight"
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 30, opacity: 0 }}
@@ -97,13 +98,15 @@ export default function TripSummaryModal({
         style={{
           flex: 1,
           position: "relative",
-          background: C.sheet[th],
+          background: th === 'dark' ? 'rgba(19,31,48,0.88)' : 'rgba(255,255,255,0.92)',
           borderRadius: "28px 28px 0 0",
           borderTop: `1px solid ${C.bd[th]}`,
           display: "flex", flexDirection: "column",
           overflow: "hidden",
           pointerEvents: "auto",
           paddingBottom: 20,
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
         }}
       >
         {/* Handle */}

@@ -118,6 +118,7 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.97 }}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="sheet-glow sheet-highlight"
           style={{
             position: 'fixed',
             top: 56,
@@ -129,9 +130,9 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
             display: 'flex',
             flexDirection: 'column' as const,
             zIndex: 300,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            background: sheetBg,
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)',
+            background: isDark ? 'rgba(18,26,44,0.88)' : 'rgba(255,255,255,0.92)',
             border: `1px solid ${brd}`,
             boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           }}

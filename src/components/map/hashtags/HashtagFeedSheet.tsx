@@ -52,6 +52,7 @@ export function HashtagFeedSheet({
 
   return (
     <motion.div
+      className="sheet-glow sheet-highlight"
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
@@ -62,7 +63,7 @@ export function HashtagFeedSheet({
         left:                 0,
         right:                0,
         height:               '72%',
-        background:           isDark ? '#334155' : '#FFFFFF',
+        background:           isDark ? 'rgba(51,65,85,0.88)' : 'rgba(255,255,255,0.92)',
         borderTopLeftRadius:  24,
         borderTopRightRadius: 24,
         border:               `1px solid ${tk.bd}`,
@@ -72,6 +73,8 @@ export function HashtagFeedSheet({
         flexDirection:        'column',
         overflow:             'hidden',
         zIndex:               300,
+        backdropFilter:       'blur(40px)',
+        WebkitBackdropFilter: 'blur(40px)',
       }}
     >
       {/* Handle */}

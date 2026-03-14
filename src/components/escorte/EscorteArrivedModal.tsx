@@ -41,6 +41,7 @@ export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSu
       {/* Modal card */}
       <motion.div
         key="arrived"
+        className="sheet-glow sheet-highlight"
         initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-50%' }}
         animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
         exit={{ opacity: 0, x: '-50%', y: '-50%' }}
@@ -50,12 +51,14 @@ export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSu
           top: '50%', left: '50%',
           width: '88%', maxWidth: 360,
           borderRadius: 24,
-          background: 'var(--surface-card)',
+          background: isDark ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
           zIndex: 300,
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           border: '1px solid var(--border-default)',
           padding: '28px 24px 24px',
           textAlign: 'center',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
         }}
       >
         <motion.div

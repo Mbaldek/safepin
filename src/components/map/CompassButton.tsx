@@ -18,7 +18,7 @@ export default function CompassButton({ bearing, isDark, onReset }: CompassButto
       onClick={onReset}
       style={{
         position: 'absolute',
-        top: 56,
+        top: 112,
         right: 10,
         width: 44,
         height: 44,

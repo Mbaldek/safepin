@@ -410,14 +410,15 @@ export default function CallSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={springSheet}
+            className="sheet-glow sheet-highlight"
             style={{
               position: 'fixed',
               bottom: 0,
               left: 0, right: 0,
               zIndex: 700,
               borderRadius: '20px 20px 0 0',
-              background: C.glass,
-              backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
+              background: isDark ? 'rgba(10,18,30,0.88)' : 'rgba(255,255,255,0.92)',
+              backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
               borderTop: `1px solid ${C.borderM}`,
               overflow: 'hidden',
               maxHeight: '70vh',

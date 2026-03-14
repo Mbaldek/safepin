@@ -207,10 +207,6 @@ type Store = {
   showIncidentsList: boolean;
   setShowIncidentsList: (v: boolean) => void;
 
-  // Walk With Me panel
-  showWalkWithMe: boolean;
-  setShowWalkWithMe: (v: boolean) => void;
-
   // Walk History sheet
   showWalkHistory: boolean;
   setShowWalkHistory: (v: boolean) => void;
@@ -386,10 +382,6 @@ export const useStore = create<Store>((set) => ({
   // Incidents list overlay
   showIncidentsList: false,
   setShowIncidentsList: (v) => set({ showIncidentsList: v }),
-
-  // Walk With Me panel
-  showWalkWithMe: false,
-  setShowWalkWithMe: (v) => set({ showWalkWithMe: v }),
 
   // Walk History sheet
   showWalkHistory: false,

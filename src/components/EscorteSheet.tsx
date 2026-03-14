@@ -18,9 +18,9 @@ import { FavoriButton }     from './escorte/FavoriButton'
 import { calcETA, calcDist } from '@/lib/escorteHelpers'
 import { getColors, getCardStyle, getBtnPrimary, SHEET_HEIGHTS } from './escorte/escorte-styles'
 import EscorteIntroView     from './escorte/EscorteIntroView'
-import EscorteNotifyingModal from './escorte/EscorteNotifyingModal'
+import EscorteNotifyingView  from './escorte/EscorteNotifyingView'
 import EscorteArrivedModal  from './escorte/EscorteArrivedModal'
-import EscorteLiveOverlay   from './escorte/EscorteLiveOverlay'
+import EscorteLiveView      from './escorte/EscorteLiveView'
 import { fetchRoutesWithAvoidance, formatDuration, formatDistance } from '@/lib/directions'
 import { scoreRoute, scoreTransitRoute } from '@/lib/route-scoring'
 import RouteCard from '@/components/trip/RouteCard'
@@ -56,7 +56,6 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const departSearch = useDestinationSearch(userLat, userLng)
   const { setPendingRoutes, setActiveRoute, setMapFlyTo, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, setTransitSegments } = useStore()
   const pins = useStore((s) => s.pins)
-  const setShowWalkWithMe  = useStore((s) => s.setShowWalkWithMe)
   const setShowWalkHistory = useStore((s) => s.setShowWalkHistory)
 
   // ── Local state ────────────────────────────────
@@ -453,7 +452,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginBottom: 8 }}>
         <motion.button
           whileTap={{ scale: 0.98 }}
-          onClick={() => setShowWalkWithMe(true)}
+          onClick={() => escorte.setView('escorte-intro')}
           style={{
             flex:           1,
             background:     d ? 'rgba(59,180,193,0.08)' : 'rgba(59,180,193,0.07)',
@@ -644,14 +643,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     <EscorteIntroView
       isDark={isDark}
       escorte={escorte}
+      userId={userId}
       onBack={() => escorte.setView('hub')}
       onStart={escorte.startEscorteImmediate}
     />
   )
 
-  // ── VIEW : NOTIFYING — extracted ────────────────
+  // ── VIEW : NOTIFYING — inline view ────────────────
   const renderNotifying = () => (
-    <EscorteNotifyingModal
+    <EscorteNotifyingView
       isDark={isDark}
       escorte={escorte}
       onCancel={() => escorte.endEscorte()}
@@ -1150,19 +1150,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
     />
   )
 
-  // ─────────────────────────────────────────────
-  //  RENDER ESCORTE LIVE (overlay plein ecran) — extracted
-  // ─────────────────────────────────────────────
-  if (escorte.view === 'escorte-live') {
-    return (
-      <EscorteLiveOverlay
-        isDark={isDark}
-        escorte={escorte}
-        onEndCall={() => escorte.endEscorte(false)}
-        onStop={() => escorte.endEscorte(false)}
-      />
-    )
-  }
+  // ── VIEW : ESCORTE LIVE — inline view ─────────
+  const renderLive = () => (
+    <EscorteLiveView
+      isDark={isDark}
+      escorte={escorte}
+      onEndCall={() => endCallGlobal()}
+      onStop={() => escorte.endEscorte(false)}
+    />
+  )
 
   // ─────────────────────────────────────────────
   //  SHEET CONTAINER
@@ -1173,12 +1169,15 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
       animate={{ y: 0, height: sheetH }}
       exit={{ y: '100%' }}
       transition={springConfig}
+      className="sheet-glow sheet-highlight"
       style={{
         position:            'absolute',
         bottom:              64,
         left:                0,
         right:               0,
-        background:          d ? T.surfaceElevated : '#FFFFFF',
+        background:          d ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
+        backdropFilter:      'blur(40px)',
+        WebkitBackdropFilter:'blur(40px)',
         borderTopLeftRadius:  T.radiusXl,
         borderTopRightRadius: T.radiusXl,
         border:              `1px solid ${tk.bd}`,
@@ -1203,6 +1202,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
           {escorte.view === 'hub'              && renderHub()}
           {escorte.view === 'escorte-intro'    && renderEscorteIntro()}
           {escorte.view === 'escorte-notifying'&& renderNotifying()}
+          {escorte.view === 'escorte-live'    && renderLive()}
           {escorte.view === 'trip-form'        && renderTripForm()}
           {escorte.view === 'trip-active'      && renderTripActive()}
           {escorte.view === 'arrived'          && renderArrived()}

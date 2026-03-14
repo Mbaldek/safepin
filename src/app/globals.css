@@ -413,6 +413,14 @@
   --safe: var(--semantic-success);
   --warn: var(--semantic-warning);
   --blue: #6A5FA8;
+
+  /* ── Map light palette ── */
+  --map-bg: #C8D8E6;
+  --map-water: #B0C8DC;
+  --map-park: #BDD0C8;
+  --map-building: #C0D0DE;
+  --map-road-sec: rgba(255,255,255,0.55);
+  --map-road-main: rgba(255,255,255,0.90);
 }
 
 /* ============================================
@@ -823,6 +831,47 @@ body {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   SHEET GLOW + GLASSMORPHISM
+   ============================================ */
+
+/* Glow de surface — halo teal ambiant (dark = default) */
+.sheet-glow {
+  box-shadow:
+    0 0 40px rgba(59, 180, 193, 0.08),
+    0 0 80px rgba(59, 180, 193, 0.04);
+}
+[data-theme="light"] .sheet-glow {
+  box-shadow:
+    0 0 40px rgba(15, 23, 42, 0.06),
+    0 0 80px rgba(15, 23, 42, 0.03);
+}
+
+/* Inner highlight — ligne lumineuse en haut du panel */
+.sheet-highlight {
+  position: relative;
+}
+.sheet-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-theme="light"] .sheet-highlight::before {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.06), transparent);
+}
+
+/* ============================================
+   MAPBOX CONTROL OVERRIDES
+   ============================================ */
+.mapboxgl-ctrl-top-right {
+  top: 66px !important;
 }
 
 /* ============================================

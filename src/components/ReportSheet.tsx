@@ -272,11 +272,14 @@ export function ReportSheet() {
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="sheet-glow sheet-highlight"
         style={{
           width: 'calc(100% - 32px)',
           maxWidth: 420,
           pointerEvents: 'auto',
-          background: c.card,
+          background: isDark ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
           borderRadius: 20,
           boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
         }}

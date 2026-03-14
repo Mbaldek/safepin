@@ -53,8 +53,8 @@ export function getBtnPrimary(C: EscorteColors): React.CSSProperties {
 export const SHEET_HEIGHTS: Record<string, string> = {
   'hub':               '52vh',
   'escorte-intro':     '50vh',
-  'escorte-notifying': '52vh',
-  'escorte-live':      '72vh',
+  'escorte-notifying': '55vh',
+  'escorte-live':      '62vh',
   'trip-form':         '50vh',
   'trip-active':       '0px',
   'arrived':           '0px',

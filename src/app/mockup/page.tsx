@@ -3,7 +3,8 @@
 import Link from "next/link";
 
 const mockups = [
-  { href: "/mockup/funnel-escorte", label: "EscorteSheet Funnel", description: "Hub + trip-form · favoris_trajets + trajets_recents" },
+  { href: "/mockup/funnel-escorte", label: "EscorteSheet Funnel", description: "Hub (repos) + destination panel · favoris chips + récents avec badges" },
+  { href: "/mockup/mam-panel", label: "MAM 3 États", description: "Marche avec moi — 3 états : démarrer, attente, active" },
   { href: "/mockup/trip-hud", label: "Unified Trip HUD", description: "ActiveHUD — merged TripHUD + TripActiveHUD with live timer, Julia, circle, SOS" },
   { href: "/mockup/trip-summary", label: "Trip Summary Modal", description: "End-of-trip arrival modal with stats" },
 ];

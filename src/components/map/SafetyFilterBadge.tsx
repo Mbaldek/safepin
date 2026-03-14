@@ -15,7 +15,7 @@ export default function SafetyFilterBadge({ filter, isDark, onClear }: SafetyFil
 
   return (
     <div style={{
-      position: 'absolute', top: 56, left: 12, zIndex: 20,
+      position: 'absolute', top: 66, left: 12, zIndex: 20,
       display: 'flex', alignItems: 'center', gap: 6,
       background: 'rgba(239,68,68,0.9)', backdropFilter: 'blur(8px)',
       borderRadius: 100, padding: '6px 10px 6px 12px',

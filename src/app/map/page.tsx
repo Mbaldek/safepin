@@ -41,7 +41,6 @@ import { prefetchFeed } from '@/lib/prefetchFeed';
 const EscorteSheet = dynamic(() => import('@/components/EscorteSheet'), { ssr: false });
 const JuliaChat = dynamic(() => import('@/components/julia/JuliaChat'), { ssr: false });
 const SettingsSheet = dynamic(() => import('@/components/settings/SettingsSheet'), { ssr: false });
-const WalkWithMePanel = dynamic(() => import('@/components/WalkWithMePanel'), { ssr: false });
 const WalkHistorySheet = dynamic(() => import('@/components/WalkHistorySheet'), { ssr: false });
 const TripHUD = dynamic(() => import('@/components/TripHUD'), { ssr: false });
 const RouteQuickCard = dynamic(() => import('@/components/trip/RouteQuickCard'), { ssr: false });
@@ -169,7 +168,6 @@ export default function MapPage() {
     showIncidentsList, setShowIncidentsList,
 activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
-    showWalkWithMe, setShowWalkWithMe,
     showWalkHistory, setShowWalkHistory,
     mapFilters, setMapFilters,
     showSafeSpaces, setShowSafeSpaces,
@@ -347,7 +345,6 @@ activeTrip, setActiveTrip,
   const [showFilterPopover, setShowFilterPopover] = useState(false);
 
   const [safetyFilter, setSafetyFilter] = useState<string | null>(null);
-  // showWalkWithMe is now in the Zustand store
 
   // Debounced DB search — fires when searchQuery changes
   useEffect(() => {
@@ -437,7 +434,15 @@ activeTrip, setActiveTrip,
   }, [activeSheet]);
 
   // Layer state (controls passed to MapView)
-  const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>('custom');
+  const [mapStyle, setMapStyle] = useState<'custom' | 'streets' | 'light' | 'dark'>(isDark ? 'custom' : 'light');
+  // Sync map style with theme — custom (dark) ↔ light
+  useEffect(() => {
+    setMapStyle((prev) => {
+      if (isDark && prev === 'light') return 'custom';
+      if (!isDark && prev === 'custom') return 'light';
+      return prev;
+    });
+  }, [isDark]);
   const [showBus, setShowBus] = useState(false);
   const [showMetroRER, setShowMetroRER] = useState(false);
   const [showPharmacy, setShowPharmacy] = useState(false);
@@ -984,7 +989,7 @@ activeTrip, setActiveTrip,
           onMapTap={handleMapTap}
         />
 
-        {activeTab === 'map' && !showWalkWithMe && !showWalkHistory && escorte.view !== 'trip-active' && (
+        {activeTab === 'map' && !showWalkHistory && escorte.view !== 'trip-active' && (
           <EmergencyButton userId={userId} />
         )}
 
@@ -1012,7 +1017,7 @@ activeTrip, setActiveTrip,
               onClick={() => setShowFilterPopover((v) => !v)}
               aria-label="Filtrer les signalements"
               style={{
-                position: 'absolute', top: 10, right: 50, zIndex: 10,
+                position: 'absolute', top: 66, right: 50, zIndex: 10,
                 width: 29, height: 29, borderRadius: 4,
                 backgroundColor: (showFilterPopover || filterActiveCount > 0) ? '#3BB4C1' : '#fff',
                 border: (showFilterPopover || filterActiveCount > 0) ? 'none' : '1px solid rgba(0,0,0,0.08)',
@@ -1042,7 +1047,7 @@ activeTrip, setActiveTrip,
                   style={{ position: 'fixed', inset: 0, zIndex: 59 }}
                 />
                 <div style={{
-                  position: 'absolute', top: 44, right: 10, zIndex: 60,
+                  position: 'absolute', top: 100, right: 10, zIndex: 60,
                   width: 260, borderRadius: 12,
                   background: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
                   backdropFilter: 'blur(20px)',
@@ -1218,7 +1223,7 @@ activeTrip, setActiveTrip,
               background: 'rgba(76,175,121,0.12)',
               border: '1px solid rgba(76,175,121,0.25)',
             }}
-            onClick={() => setShowWalkWithMe(true)}
+            onClick={() => { setActiveTab('trip'); escorte.setView('escorte-intro'); }}
           >
             <span className="w-2 h-2 rounded-full animate-pulse"
                   style={{ backgroundColor: 'var(--safe)' }} />
@@ -1288,7 +1293,7 @@ activeTrip, setActiveTrip,
             {/* Walk With Me */}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <button
-                onClick={() => setShowWalkWithMe(true)}
+                onClick={() => { setActiveTab('trip'); escorte.setView('escorte-intro'); }}
                 style={{
                   position: 'fixed',
                   bottom: 200,
@@ -1431,7 +1436,7 @@ activeTrip, setActiveTrip,
 
         {/* Escorte sheet — trip tab */}
         <AnimatePresence>
-          {activeTab === 'trip' && !showWalkWithMe && userId && (
+          {activeTab === 'trip' && userId && (
             <EscorteSheet
               key="escorte-sheet"
               userId={userId}
@@ -1530,17 +1535,6 @@ activeTrip, setActiveTrip,
       </AnimatePresence>
 
 
-      {/* ── Walk With Me panel ─────────────────────────────────────── */}
-      <AnimatePresence>
-        {showWalkWithMe && userId && (
-          <WalkWithMePanel
-            key="walk-with-me"
-            userId={userId}
-            destination={activeTrip?.destination?.label ?? ''}
-            onClose={() => { setShowWalkWithMe(false); setActiveTab('map'); }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── Walk History sheet ──────────────────────────────────────── */}
       <AnimatePresence>

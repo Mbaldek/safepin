@@ -128,6 +128,7 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
           {/* sheet */}
           <motion.div
             key="cercle-sheet"
+            className="sheet-glow sheet-highlight"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -138,7 +139,9 @@ export default function CercleSheet({ open, onClose }: CercleSheetProps) {
               left: 0,
               right: 0,
               height: '65%',
-              background: t.sheetBg,
+              background: isDark ? 'rgba(13,20,40,0.88)' : 'rgba(255,255,255,0.92)',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
               borderTopLeftRadius: 26,
               borderTopRightRadius: 26,
               zIndex: 201,

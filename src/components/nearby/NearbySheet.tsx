@@ -169,6 +169,7 @@ export default function NearbySheet({ onClose }: Props) {
   return (
     <motion.div
       ref={containerRef}
+      className="sheet-glow sheet-highlight"
       initial={{ height: getSnapHeight('half') }}
       animate={{ height: currentHeight }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -177,7 +178,7 @@ export default function NearbySheet({ onClose }: Props) {
         bottom: 64,
         left: 0,
         right: 0,
-        backgroundColor: C.sheet,
+        backgroundColor: isDark ? 'rgba(26,37,64,0.88)' : 'rgba(255,255,255,0.92)',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         zIndex: 301,
@@ -185,6 +186,8 @@ export default function NearbySheet({ onClose }: Props) {
         flexDirection: 'column',
         overflow: 'hidden',
         boxShadow: '0 -4px 30px rgba(0,0,0,0.2)',
+        backdropFilter: 'blur(40px)',
+        WebkitBackdropFilter: 'blur(40px)',
       }}
     >
       {/* Drag handle */}

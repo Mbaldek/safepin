@@ -281,13 +281,14 @@ export default function SafeSpaceDetailSheet({ safeSpace, userId, isOpen, onClos
           {/* Sheet */}
           <motion.div
             key="ss-sheet"
+            className="sheet-glow sheet-highlight"
             style={{
               position: 'fixed',
               bottom: 64,
               left: 0,
               right: 0,
               zIndex: 200,
-              background: d ? T.surfaceElevated : T.surfaceElevatedL,
+              background: d ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               borderTop: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
@@ -297,6 +298,8 @@ export default function SafeSpaceDetailSheet({ safeSpace, userId, isOpen, onClos
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
             }}
             initial={{ y: '100%', opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

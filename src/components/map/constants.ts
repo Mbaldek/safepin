@@ -14,7 +14,7 @@ import { PENDING_LYRS } from './layers/PendingRoutesLayer';
 export const STYLE_URLS: Record<string, string> = {
   custom:  'mapbox://styles/matlab244/cmm6okd7v005q01s49w19fac0',
   streets: 'mapbox://styles/mapbox/streets-v12',
-  light:   'mapbox://styles/mapbox/light-v11',
+  light:   'mapbox://styles/matlab244/cmm6okd7v005q01s49w19fac0',
   dark:    'mapbox://styles/mapbox/dark-v11',
 };
 
