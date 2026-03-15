@@ -608,10 +608,10 @@ activeTrip, setActiveTrip,
       if (cancelled) return;
       const now = new Date().toISOString();
 
-      if (mapViewport && mapViewport.zoom >= 12) {
+      if (mapViewport && mapViewport.zoom >= 8) {
         // ── Viewport-based spatial load via PostGIS ──────────────────────────
         const { lat, lng, radiusM, zoom } = mapViewport;
-        const radius = Math.min(radiusM * 1.3, zoom < 14 ? 8_000 : 15_000);
+        const radius = Math.min(radiusM * 1.3, zoom < 10 ? 60_000 : zoom < 12 ? 25_000 : zoom < 14 ? 8_000 : 15_000);
 
         const [{ data: spatialPins, error }, { data: ownPins } = { data: [] }] = await Promise.all([
           supabase.rpc('pins_nearby', { p_lat: lat, p_lng: lng, p_radius_m: radius }),
@@ -632,7 +632,7 @@ activeTrip, setActiveTrip,
         setPins(result);
         setDbClusters([]);
 
-      } else if (mapViewport && mapViewport.zoom < 12) {
+      } else if (mapViewport && mapViewport.zoom < 8) {
         // ── Low zoom: DB spatial clustering via ST_ClusterDBSCAN ─────────────
         const { lat, lng, radiusM, zoom } = mapViewport;
         const eps = zoom < 7 ? 5000 : zoom < 9 ? 2000 : 800;

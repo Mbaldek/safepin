@@ -98,7 +98,7 @@ export default function TripSummaryModal({
         style={{
           flex: 1,
           position: "relative",
-          background: th === 'dark' ? 'rgba(19,31,48,0.88)' : 'rgba(255,255,255,0.92)',
+          background: th === 'dark' ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
           borderTop: `1px solid ${C.bd[th]}`,
           display: "flex", flexDirection: "column",
           overflow: "hidden",

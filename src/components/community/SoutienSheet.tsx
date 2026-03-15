@@ -58,7 +58,7 @@ export default function SoutienSheet({ postId, onClose }: SoutienSheetProps) {
           bottom: 64,
           left: 0,
           right: 0,
-          background: 'rgba(30,41,59,0.88)',
+          background: 'rgba(30,41,59,0.92)',
           padding: '16px 16px 32px',
           zIndex: 411,
           animation: 'sos-slideUp 0.3s cubic-bezier(0.16,1,0.3,1)',

@@ -6,7 +6,7 @@ import { X, Camera, Video, Mic, MapPin, ChevronLeft, ChevronRight, Loader2, Lock
 import { useStore } from '@/stores/useStore';
 import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { showBreveilToast } from '@/components/GlobalToast';
 
 const groups = [
   {
@@ -269,10 +269,11 @@ export function ReportSheet() {
       setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
 
       // Success toast instead of step 3
-      toast.success('Signalement envoyé !', {
-        description: `${catItem?.emoji} ${catItem?.label} — visible par la communauté`,
+      showBreveilToast('success', {
+        title: 'Signalement envoyé !',
+        desc: `${catItem?.emoji} ${catItem?.label} — visible par la communauté`,
         duration: 3000,
-      });
+      }, isDark);
       handleClose();
     } catch (error) {
       const e = error as Record<string, unknown>;
@@ -322,8 +323,7 @@ export function ReportSheet() {
           background: isDark ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
           backdropFilter: 'blur(40px)',
           WebkitBackdropFilter: 'blur(40px)',
-          borderTopLeftRadius: isToolbar ? 0 : 16,
-          borderTopRightRadius: isToolbar ? 0 : 16,
+          ...(isToolbar && { borderTopLeftRadius: 0, borderTopRightRadius: 0 }),
           overflow: 'hidden',
         }}
       >
@@ -780,10 +780,11 @@ export function ReportSheet() {
                       if (error) throw error;
                       if (data) addPin(data);
                       setMapFlyTo({ lat: newPinCoords.lat, lng: newPinCoords.lng, zoom: 16 });
-                      toast.success('Lieu positif ajouté !', {
-                        description: `${catItem?.emoji} ${catItem?.label} — visible immédiatement`,
+                      showBreveilToast('success', {
+                        title: 'Lieu positif ajouté !',
+                        desc: `${catItem?.emoji} ${catItem?.label} — visible immédiatement`,
                         duration: 3000,
-                      });
+                      }, isDark);
                       handleClose();
                     } catch {
                       // submission failed silently

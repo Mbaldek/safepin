@@ -469,7 +469,7 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
         bottom: 0, left: 0, right: 0,
         height: '70vh',
         maxHeight: '84%',
-        background: isDark ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
+        background: isDark ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
         backdropFilter: 'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
         display: 'flex', flexDirection: 'column',

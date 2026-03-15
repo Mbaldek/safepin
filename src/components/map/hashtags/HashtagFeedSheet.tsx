@@ -63,7 +63,7 @@ export function HashtagFeedSheet({
         left:                 0,
         right:                0,
         height:               '72%',
-        background:           isDark ? 'rgba(51,65,85,0.88)' : 'rgba(255,255,255,0.92)',
+        background:           isDark ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
         border:               `1px solid ${tk.bd}`,
         borderBottom:         'none',
         display:              'flex',

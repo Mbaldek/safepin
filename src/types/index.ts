@@ -747,6 +747,7 @@ export type Escorte = {
   circle_notified: boolean;
   audio_active: boolean;
   julia_active: boolean;
+  invite_code?: string | null;
   started_at: string;
   ended_at?: string;
 };

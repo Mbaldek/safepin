@@ -8,6 +8,8 @@ const mockups = [
   { href: "/mockup/trip-hud", label: "Unified Trip HUD", description: "ActiveHUD — merged TripHUD + TripActiveHUD with live timer, Julia, circle, SOS" },
   { href: "/mockup/trip-summary", label: "Trip Summary Modal", description: "End-of-trip arrival modal with stats" },
   { href: "/mockup/route-detail", label: "Route Detail", description: "Détail route — hero incidents évités, stats, itinéraire walk/transit, segments timeline" },
+  { href: "/mockup/escorte-live", label: "Escorte Live View", description: "HUD live escorte — destination, next step (walk/transit), timer REC, audio, participants" },
+  { href: "/mockup/chat-v2", label: "Chat v2 + GIF", description: "Chat DM + Groupe — bulles, rich cards, typing dots, GIF picker Tenor, dark/light" },
 ];
 
 export default function MockupIndex() {

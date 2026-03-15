@@ -273,6 +273,34 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
     setSending(false);
   }, [msgInput, pendingFile, activeGroup, userId, sending, clearPending, isDark]);
 
+  const handleGifSelect = useCallback(async (gifUrl: string) => {
+    if (!activeGroup || !userId) return;
+    const optimisticId = 'opt-gif-' + Date.now();
+    const optimistic: ChatMessage = {
+      id: optimisticId,
+      user_id: userId,
+      content: '',
+      media_url: gifUrl,
+      type: 'image',
+      created_at: new Date().toISOString(),
+      display_name: 'Moi',
+      avatar_emoji: null,
+    };
+    setMessages(prev => [...prev, optimistic]);
+    setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 50);
+    const { error } = await supabase.from('community_messages').insert({
+      community_id: activeGroup,
+      user_id: userId,
+      content: '',
+      media_url: gifUrl,
+      type: 'image',
+    });
+    if (error) {
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      bToast.danger({ title: 'Erreur envoi GIF' }, isDark);
+    }
+  }, [activeGroup, userId, isDark]);
+
   const q = searchQuery.toLowerCase();
   const filteredMy = myGroups.filter((g) => !q || g.name.toLowerCase().includes(q));
   const filteredDiscover = discoverGroups.filter((g) => !q || g.name.toLowerCase().includes(q));
@@ -465,6 +493,7 @@ export default function GroupesTab({ isDark, userId, onCreateGroup, refreshKey, 
           value={msgInput}
           onChange={setMsgInput}
           onSend={handleSend}
+          onGifSelect={handleGifSelect}
           sending={sending}
           placeholder={chatPlaceholder}
           onFilePick={handleFilePick}

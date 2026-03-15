@@ -180,6 +180,22 @@ export default function ChatView({
     }
   };
 
+  const handleGifSelect = useCallback(async (gifUrl: string) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      await sendSupportMessage(
+        conversationId,
+        sendAsUserId,
+        '',
+        { media_url: gifUrl, content_type: 'image' }
+      );
+      notifyDmRecipient(conversationId, sendAsUserId, '🎞 GIF');
+    } finally {
+      setSending(false);
+    }
+  }, [conversationId, sendAsUserId, sending]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Messages */}
@@ -229,6 +245,7 @@ export default function ChatView({
         uploading={uploading}
         sending={sending}
         placeholder={chatPlaceholder}
+        onGifSelect={handleGifSelect}
       />
     </div>
   );

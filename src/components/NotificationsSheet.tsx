@@ -131,7 +131,8 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
             zIndex: 300,
             backdropFilter: 'blur(40px)',
             WebkitBackdropFilter: 'blur(40px)',
-            background: isDark ? 'rgba(18,26,44,0.88)' : 'rgba(255,255,255,0.92)',
+            background: isDark ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
+            borderRadius: 16,
             border: `1px solid ${brd}`,
           }}
         >

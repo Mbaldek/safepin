@@ -178,7 +178,7 @@ export default function NearbySheet({ onClose }: Props) {
         bottom: 64,
         left: 0,
         right: 0,
-        backgroundColor: isDark ? 'rgba(26,37,64,0.88)' : 'rgba(255,255,255,0.92)',
+        backgroundColor: isDark ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
         zIndex: 301,
         display: 'flex',
         flexDirection: 'column',

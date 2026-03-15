@@ -416,7 +416,7 @@ export default function CallSheet() {
               bottom: 0,
               left: 0, right: 0,
               zIndex: 700,
-              background: isDark ? 'rgba(10,18,30,0.88)' : 'rgba(255,255,255,0.92)',
+              background: isDark ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
               backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
               borderTop: `1px solid ${C.borderM}`,
               overflow: 'hidden',

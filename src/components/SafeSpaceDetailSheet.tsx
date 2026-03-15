@@ -288,7 +288,7 @@ export default function SafeSpaceDetailSheet({ safeSpace, userId, isOpen, onClos
               left: 0,
               right: 0,
               zIndex: 200,
-              background: d ? 'rgba(30,41,59,0.88)' : 'rgba(255,255,255,0.92)',
+              background: d ? 'rgba(30,41,59,0.92)' : 'rgba(255,255,255,0.95)',
               borderTop: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
               borderLeft: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
               borderRight: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
