@@ -247,7 +247,7 @@ export function useEscorte(userId: string) {
   const fetchCircleMembers = async (escorteId: string) => {
     const { data } = await supabase
       .from('escorte_circle')
-      .select('*, profiles(id, name, avatar_url)')
+      .select('*, profiles!escorte_circle_contact_id_profiles_fkey(id, name, avatar_url)')
       .eq('escorte_id', escorteId)
     if (data) setCircleMembers(data)
   }
