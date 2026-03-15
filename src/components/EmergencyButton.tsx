@@ -49,7 +49,8 @@ async function dispatchToContacts(
 export default function EmergencyButton({ userId }: { userId: string | null }) {
   const toast = useToast();
   const { userLocation, setUserLocation } = useStore();
-  useTheme(); // subscribe to theme changes for CSS var updates
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const t = useTranslations('emergency');
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -756,7 +757,7 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
         className="sos-fab"
         style={{
           position: 'fixed',
-          bottom: 80, right: 20, width: 50, height: 50, zIndex: 100,
+          bottom: 80, right: 20, width: 56, height: 56, zIndex: 100,
           borderRadius: '50%',
           background: 'transparent',
           border: 'none',
@@ -768,76 +769,39 @@ export default function EmergencyButton({ userId }: { userId: string | null }) {
           transition: 'transform 0.12s ease, opacity 0.3s ease',
           touchAction: 'none',
           userSelect: 'none',
-          animation: 'sosBreathe 3.6s ease-in-out infinite',
         }}
       >
-        {/* Diffuse outer bloom */}
-        <div style={{
-          position: 'absolute', width: 125, height: 125, borderRadius: '50%',
-          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          background: 'radial-gradient(circle, rgba(220,0,0,0.32) 0%, rgba(180,0,0,0.18) 30%, rgba(120,0,0,0.09) 55%, transparent 72%)',
-          animation: 'sosDiffuse1 3.6s ease-in-out infinite',
-          pointerEvents: 'none', zIndex: -1,
-        }} />
-        <div style={{
-          position: 'absolute', width: 164, height: 164, borderRadius: '50%',
-          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          background: 'radial-gradient(circle, rgba(255,40,0,0.14) 0%, rgba(200,0,0,0.07) 40%, transparent 68%)',
-          animation: 'sosDiffuse2 3.6s ease-in-out infinite 0.3s',
-          pointerEvents: 'none', zIndex: -1,
-        }} />
-
-        {/* Shell — matte dark red rim */}
+        {/* Glassmorphic shell */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '50%',
-          background: 'radial-gradient(ellipse at 28% 22%, rgba(220,60,60,0.6) 0%, transparent 40%), radial-gradient(circle at 50% 50%, #A01010 0%, #8B0000 25%, #700000 50%, #580000 75%, #420000 100%)',
-          boxShadow: '0 12px 36px rgba(0,0,0,0.6), 0 4px 14px rgba(0,0,0,0.4), inset 0 3px 12px rgba(255,100,100,0.18), inset 0 -3px 14px rgba(0,0,0,0.4)',
+          background: isDark ? 'rgba(18,6,6,0.82)' : 'rgba(255,255,255,0.88)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          border: '1.5px solid rgba(239,68,68,0.28)',
+          boxShadow: '0 4px 20px rgba(239,68,68,0.32), 0 1px 4px rgba(0,0,0,0.10)',
         }} />
 
-        {/* Bowl surface */}
-        <div style={{
-          position: 'absolute', inset: 5, borderRadius: '50%', overflow: 'hidden',
-        }} />
-
-        {/* Inner glow — radiates from dot edge outward */}
-        <div style={{
-          position: 'absolute', inset: 5, borderRadius: '50%',
-          background: 'radial-gradient(circle at 50% 50%, transparent 0%, transparent 14%, rgba(255,200,50,0.55) 20%, rgba(255,100,10,0.70) 28%, rgba(220,30,0,0.60) 40%, rgba(160,0,0,0.40) 56%, transparent 72%)',
-          animation: 'sosGlowPulse 3.6s ease-in-out infinite',
-          zIndex: 3, pointerEvents: 'none',
-        }} />
-
-        {/* Inner ring — faint gold line */}
-        <div style={{
-          position: 'absolute', width: 30, height: 30, borderRadius: '50%',
-          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          border: '1px solid rgba(200,50,20,0.50)',
-          zIndex: 3, pointerEvents: 'none',
-        }} />
-
-        {/* Centre dot — dark red with blazing corona */}
-        <div className="sos-dot-corona" style={{
-          position: 'absolute', width: 10, height: 10, borderRadius: '50%',
-          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          background: 'radial-gradient(circle at 38% 32%, #A01818 0%, #8B0000 35%, #600000 65%, #480000 100%)',
-          boxShadow: '0 0 0 1.5px rgba(255,255,200,0.7), 0 0 4px 3px rgba(255,240,120,0.85), 0 0 8px 6px rgba(255,200,50,0.6), 0 0 14px 10px rgba(255,120,0,0.35), 0 0 22px 14px rgba(200,0,0,0.18), inset 0 1px 2px rgba(255,80,0,0.15)',
-          animation: 'sosDotCorona 3.6s ease-in-out infinite',
-          zIndex: 5,
-        }} />
+        {/* SOS label */}
+        <span style={{
+          position: 'relative', zIndex: 2,
+          fontSize: 11, fontWeight: 900, color: '#EF4444',
+          letterSpacing: '0.12em', userSelect: 'none',
+          fontFamily: 'inherit',
+        }}>SOS</span>
 
         {/* Outer pulse rings */}
         <div style={{
-          position: 'absolute', width: 61, height: 61, borderRadius: '50%',
+          position: 'absolute', width: 72, height: 72, borderRadius: '50%',
           top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          border: '1.5px solid rgba(220,0,0,0.55)',
+          border: '1.5px solid rgba(239,68,68,0.38)',
           animation: 'sosPulseRing 3.6s ease-in-out infinite',
           pointerEvents: 'none',
         }} />
         <div style={{
-          position: 'absolute', width: 73, height: 73, borderRadius: '50%',
+          position: 'absolute', width: 88, height: 88, borderRadius: '50%',
           top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          border: '1px solid rgba(200,0,0,0.28)',
-          animation: 'sosPulseRing 3.6s ease-in-out infinite 0.55s',
+          border: '1px solid rgba(239,68,68,0.16)',
+          animation: 'sosPulseRing 3.6s ease-in-out infinite 0.6s',
           pointerEvents: 'none',
         }} />
       </button>

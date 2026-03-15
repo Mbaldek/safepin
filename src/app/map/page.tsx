@@ -891,17 +891,35 @@ activeTrip, setActiveTrip,
     <div id="main-content" role="main" className="h-dvh flex flex-col">
 
       {/* ── Top bar (floating transparent overlay) ────────────────── */}
-      <div
+      <motion.div
         className="absolute top-0 left-0 right-0 z-50"
+        animate={{
+          backgroundColor: showSearch && activeTab === 'map'
+            ? (isDark ? 'rgba(15,23,42,0.96)' : 'rgba(255,255,255,0.97)')
+            : 'rgba(0,0,0,0)',
+          borderBottomColor: showSearch && activeTab === 'map'
+            ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')
+            : 'rgba(0,0,0,0)',
+          backdropFilter: showSearch && activeTab === 'map' ? 'blur(20px)' : 'blur(0px)',
+        }}
+        transition={{ duration: 0.22, ease: 'easeInOut' }}
         style={{
           height: 56,
-          pointerEvents: 'none',
-          ...(showSearch && activeTab === 'map' ? { backgroundColor: 'var(--surface-card)', borderBottom: '1px solid var(--border)', pointerEvents: 'auto' as const } : {}),
+          pointerEvents: showSearch && activeTab === 'map' ? 'auto' : 'none',
+          borderBottom: '1px solid transparent',
         }}
       >
         <div className="flex items-center gap-3 px-4 h-full" style={{ pointerEvents: 'auto' }}>
+          <AnimatePresence mode="wait" initial={false}>
           {showSearch && activeTab === 'map' ? (
-            <>
+            <motion.div
+              key="search-active"
+              className="flex items-center gap-3 w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
               {/* Back arrow — exit search */}
               <button
                 onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchSections([]); }}
@@ -911,7 +929,12 @@ activeTrip, setActiveTrip,
                 <ChevronLeft size={20} strokeWidth={2} style={{ color: 'var(--text-primary)' }} />
               </button>
               {/* Inline search — fills header */}
-              <div className="flex-1 min-w-0">
+              <motion.div
+                className="flex-1 min-w-0"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.05 }}
+              >
                 <AutocompleteInput
                   value={searchQuery}
                   onChange={(text, coords) => {
@@ -921,10 +944,17 @@ activeTrip, setActiveTrip,
                   autoFocus
                   localSections={searchSections}
                 />
-              </div>
-            </>
+              </motion.div>
+            </motion.div>
           ) : (
-            <>
+            <motion.div
+              key="search-idle"
+              className="flex items-center w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
               {/* Logo */}
               <div className="flex items-center gap-2">
                 <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true" className="text-[var(--text-primary)]" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
@@ -942,10 +972,23 @@ activeTrip, setActiveTrip,
                   <button
                     onClick={() => { if (showSearch) { setShowSearch(false); return; } closeAllPanels(); setShowSearch(true); }}
                     aria-label="Search location"
-                    className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
-                    style={{ background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                    className="flex items-center justify-center rounded-full transition-all hover:opacity-90 active:scale-95"
+                    style={{
+                      width: 36, height: 36,
+                      background: isDark
+                        ? 'rgba(255,255,255,0.10)'
+                        : 'rgba(255,255,255,0.82)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      border: isDark
+                        ? '1px solid rgba(255,255,255,0.14)'
+                        : '1px solid rgba(0,0,0,0.07)',
+                      boxShadow: isDark
+                        ? '0 2px 8px rgba(0,0,0,0.25)'
+                        : '0 2px 10px rgba(0,0,0,0.10)',
+                    }}
                   >
-                    <Search size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
+                    <Search size={15} strokeWidth={2.2} style={{ color: isDark ? 'rgba(255,255,255,0.70)' : 'rgba(0,0,0,0.50)' }} />
                   </button>
                 )}
                 {/* Notification bell */}
@@ -987,10 +1030,11 @@ activeTrip, setActiveTrip,
                   <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
                 </button>
               </div>
-            </>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Map tab — visible for map, trip, community AND mykova tabs ── */}
       <div className={`flex-1 relative min-h-0 ${activeTab !== 'map' && activeTab !== 'trip' && activeTab !== 'me' && activeTab !== 'community' && activeTab !== 'cercle' ? 'hidden' : 'flex flex-col'}`}>

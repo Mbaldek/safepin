@@ -43,7 +43,6 @@ export default function VerificationNudgeSheet({
         backgroundColor: surfaceCard,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        borderTop: `1px solid ${borderDefault}`,
         padding: '14px 16px 24px',
       }}
     >

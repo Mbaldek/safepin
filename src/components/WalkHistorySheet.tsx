@@ -475,7 +475,6 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
         display: 'flex', flexDirection: 'column',
         zIndex: 310,
         overflow: 'hidden',
-        borderTop: `1px solid ${C.borderSubtle}`,
       }}
     >
       {/* Handle */}
