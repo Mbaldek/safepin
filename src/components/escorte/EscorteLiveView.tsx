@@ -6,6 +6,7 @@ import { Check, MicOff, PhoneOff, Navigation, Footprints, Send, Share2, Square }
 import { tok, springConfig } from '@/lib/tokens'
 import { formatElapsed, avatarColor } from '@/lib/escorteHelpers'
 import type { UseEscorteReturn } from '@/hooks/useEscorte'
+import { useEscorteElapsed } from '@/hooks/useEscorte'
 import { getColors } from './escorte-styles'
 import { useAudioCall } from '@/stores/useAudioCall'
 import { useStore } from '@/stores/useStore'
@@ -43,6 +44,9 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
   const selev = d ? '#1E293B' : '#F1F5F9'
   const teal12 = 'rgba(59,180,193,0.12)'
   const teal24 = 'rgba(59,180,193,0.24)'
+
+  const isActive = !!escorte.activeEscorte
+  const elapsed = useEscorteElapsed(isActive, escorte.activeEscorte?.started_at)
 
   const vocalCount = escorte.circleMembers.filter(m => m.status === 'vocal').length
   const activeMembers = escorte.circleMembers.filter(m => m.status !== 'inactive')
@@ -116,10 +120,10 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
   const destAddress = escorte.activeEscorte?.dest_address
   const etaMinutes = escorte.activeEscorte?.eta_minutes
   const progressPct = etaMinutes && etaMinutes > 0
-    ? Math.min(100, Math.round((escorte.elapsed / 60 / etaMinutes) * 100))
+    ? Math.min(100, Math.round((elapsed / 60 / etaMinutes) * 100))
     : 0
   const etaRemaining = etaMinutes
-    ? Math.max(0, etaMinutes - Math.floor(escorte.elapsed / 60))
+    ? Math.max(0, etaMinutes - Math.floor(elapsed / 60))
     : null
   const circumference = 2 * Math.PI * 14 // r=14
   const dashOffset = circumference - (progressPct / 100) * circumference
@@ -195,7 +199,7 @@ export default function EscorteLiveView({ isDark, escorte, onEndCall, onStop }: 
         }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 300, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: tk.tp, lineHeight: 1 }}>
-              {formatElapsed(escorte.elapsed)}
+              {formatElapsed(elapsed)}
             </div>
             <div style={{ fontSize: 9, color: C.t2, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
               <motion.div

@@ -495,7 +495,7 @@ export function ConfirmIncidentModal({
                   Ajouter une preuve (optionnel)
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                   {([
                     { id: 'photo' as const, icon: Image, label: 'Photo' },
                     { id: 'video' as const, icon: Video, label: 'Vidéo' },
@@ -516,11 +516,10 @@ export function ConfirmIncidentModal({
                         }}
                         style={{
                           display: 'flex',
-                          flexDirection: 'column',
                           alignItems: 'center',
                           gap: 6,
-                          padding: '12px 8px',
-                          borderRadius: 12,
+                          padding: '6px 14px',
+                          borderRadius: 99,
                           background: sel
                             ? 'rgba(59,180,193,0.08)'
                             : d ? T.interactiveHover : 'rgba(15,23,42,0.03)',
@@ -530,29 +529,14 @@ export function ConfirmIncidentModal({
                           fontFamily: 'inherit',
                         }}
                       >
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 9,
-                            background: sel
-                              ? 'rgba(59,180,193,0.10)'
-                              : d ? T.interactiveHover : T.interactiveHoverL,
-                            border: `1px solid ${sel ? 'rgba(59,180,193,0.25)' : d ? T.borderSubtle : T.borderSubtleL}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <m.icon
-                            size={18}
-                            color={sel ? T.gradientStart : d ? T.textTertiary : T.textTertiaryL}
-                            strokeWidth={1.5}
-                          />
-                        </div>
+                        <m.icon
+                          size={15}
+                          color={sel ? T.gradientStart : d ? T.textTertiary : T.textTertiaryL}
+                          strokeWidth={1.5}
+                        />
                         <span
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 500,
                             color: sel ? T.gradientStart : d ? T.textSecondary : T.textSecondaryL,
                           }}

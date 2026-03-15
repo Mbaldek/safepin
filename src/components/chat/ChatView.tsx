@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/useToast';
 import { sendSupportMessage, markConversationRead, notifyDmRecipient } from '@/lib/support';
 import ChatBubble, { type ChatColors } from './ChatBubble';
 import ChatTextBar from './ChatTextBar';
+import GifPicker from './GifPicker';
 import type { DirectMessage } from '@/types';
 
 export interface ChatViewProps {
@@ -43,6 +45,7 @@ export default function ChatView({
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const chatPlaceholder = useMemo(() => {
@@ -196,6 +199,8 @@ export default function ChatView({
     }
   }, [conversationId, sendAsUserId, sending]);
 
+  const handleGifToggle = useCallback(() => setGifOpen(prev => !prev), []);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Messages */}
@@ -231,6 +236,28 @@ export default function ChatView({
         ))}
       </div>
 
+      {/* GIF Picker animé — entre messages et input */}
+      <AnimatePresence>
+        {gifOpen && (
+          <motion.div
+            key="gif-picker"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            style={{ overflow: 'hidden', flexShrink: 0 }}
+          >
+            <GifPicker
+              onSelect={(url) => {
+                handleGifSelect(url);
+                setGifOpen(false);
+              }}
+              onClose={() => setGifOpen(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input */}
       <ChatTextBar
         isDark={isDark}
@@ -246,6 +273,8 @@ export default function ChatView({
         sending={sending}
         placeholder={chatPlaceholder}
         onGifSelect={handleGifSelect}
+        gifOpen={gifOpen}
+        onGifToggle={handleGifToggle}
       />
     </div>
   );

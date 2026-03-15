@@ -56,7 +56,8 @@ const F = {
 export default function CityContextPanel({ onClose }: { onClose: () => void }) {
   const isDark = useIsDark();
   const C = getColors(isDark);
-  const { userLocation, pins } = useStore();
+  const userLocation = useStore((s) => s.userLocation);
+  const pins = useStore((s) => s.pins);
 
   const [district, setDistrict] = useState<string | null>(null);
   const [stops, setStops] = useState<TransitStop[]>([]);

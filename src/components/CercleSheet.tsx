@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, Phone } from 'lucide-react'
 import { useTheme } from '@/stores/useTheme'
@@ -35,7 +35,7 @@ const STATUS_LABEL: Record<CircleMember['status'], string> = {
 }
 
 // ── component ────────────────────────────────────────────
-export default function CercleSheet({ open, onClose }: CercleSheetProps) {
+function CercleSheet({ open, onClose }: CercleSheetProps) {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -562,6 +562,8 @@ function OfflineCard({ member: m, index, tokens: t, onDM }: {
     </motion.div>
   )
 }
+
+export default memo(CercleSheet);
 
 function isDarkBg(hex: string): boolean {
   return hex.toLowerCase().includes('1e') || hex.toLowerCase().includes('33')

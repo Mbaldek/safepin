@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useIsDark } from '@/hooks/useIsDark';
 import { Pin } from '@/types';
 import { bToast } from '@/components/GlobalToast';
@@ -16,10 +17,12 @@ import { updateStreak } from '@/lib/streaks';
 import { haversineMeters } from '@/lib/utils';
 import { isPinBeyondGrace } from '@/lib/pin-utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Search, Menu, X, List, ChevronLeft, Shield, SlidersHorizontal } from 'lucide-react';
+import { Bell, Search, Menu, X, List, ChevronLeft, Shield } from 'lucide-react';
 import MapView from '@/components/MapView';
 import { BreveilMonogram } from '@/components/BrandAssets';
 import { PinDetailSheet } from '@/components/map/PinDetailSheet';
+import { MapFilterPopover } from '@/components/map/MapFilterPopover';
+import { ReportCrosshair } from '@/components/map/ReportCrosshair';
 import { ReportSheet } from '@/components/ReportSheet';
 import AutocompleteInput, { type AutocompleteSection } from '@/components/AutocompleteInput';
 import EmergencyButton from '@/components/EmergencyButton';
@@ -34,6 +37,9 @@ import OfflineBanner from '@/components/OfflineBanner';
 import InstallPrompt from '@/components/InstallPrompt';
 import CommunityTooltip from '@/components/CommunityTooltip';
 import { useEscorte } from '@/hooks/useEscorte';
+import { useRealtimeDmBadge } from '@/hooks/useRealtimeDmBadge';
+import { useRealtimePins } from '@/hooks/useRealtimePins';
+import { useRealtimeLiveSessions } from '@/hooks/useRealtimeLiveSessions';
 import { useUiStore } from '@/stores/uiStore';
 import FloatingCallPill from '@/components/FloatingCallPill';
 import CallSheet from '@/components/CallSheet';
@@ -157,17 +163,16 @@ async function registerPush(userId: string) {
 export default function MapPage() {
   const router = useRouter();
   const {
-    pins, setPins, addPin, updatePin,
+    pins, setPins,
     activeSheet, setActiveSheet, selectedPin, setSelectedPin,
     activeTab, setActiveTab,
     setUserProfile, setUserId, userId,
-    addNotification, notifications,
+    notifications,
     setPendingRoutes,
     isSharingLocation, setIsSharingLocation, setWatchedLocation,
     userLocation, userProfile, setNewPinCoords,
-    setLiveSessions, addLiveSession, updateLiveSession,
     showIncidentsList, setShowIncidentsList,
-activeTrip, setActiveTrip,
+    activeTrip, setActiveTrip,
     setActiveRoute, setTransitSegments,
     showWalkHistory, setShowWalkHistory,
     mapFilters, setMapFilters,
@@ -177,7 +182,27 @@ activeTrip, setActiveTrip,
     mapViewport, setDbClusters,
     pendingRoutes,
     reportPlaceMode,
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    pins: s.pins, setPins: s.setPins,
+    activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet, selectedPin: s.selectedPin, setSelectedPin: s.setSelectedPin,
+    activeTab: s.activeTab, setActiveTab: s.setActiveTab,
+    setUserProfile: s.setUserProfile, setUserId: s.setUserId, userId: s.userId,
+    notifications: s.notifications,
+    setPendingRoutes: s.setPendingRoutes,
+    isSharingLocation: s.isSharingLocation, setIsSharingLocation: s.setIsSharingLocation, setWatchedLocation: s.setWatchedLocation,
+    userLocation: s.userLocation, userProfile: s.userProfile, setNewPinCoords: s.setNewPinCoords,
+    showIncidentsList: s.showIncidentsList, setShowIncidentsList: s.setShowIncidentsList,
+    activeTrip: s.activeTrip, setActiveTrip: s.setActiveTrip,
+    setActiveRoute: s.setActiveRoute, setTransitSegments: s.setTransitSegments,
+    showWalkHistory: s.showWalkHistory, setShowWalkHistory: s.setShowWalkHistory,
+    mapFilters: s.mapFilters, setMapFilters: s.setMapFilters,
+    showSafeSpaces: s.showSafeSpaces, setShowSafeSpaces: s.setShowSafeSpaces,
+    showPinLabels: s.showPinLabels, setShowPinLabels: s.setShowPinLabels,
+    setTripPrefill: s.setTripPrefill,
+    mapViewport: s.mapViewport, setDbClusters: s.setDbClusters,
+    pendingRoutes: s.pendingRoutes,
+    reportPlaceMode: s.reportPlaceMode,
+  })));
   const isDark = useIsDark();
   const tMap = useTranslations('map');
   const escorte = useEscorte(userId ?? '');
@@ -477,8 +502,8 @@ activeTrip, setActiveTrip,
   // Map style defaults to Breveil custom — user can change in Settings
 
   // Filter active count for badge
-  const poiActive = showPharmacy && showHospital && showPolice;
-  const filterActiveCount = [
+  const poiActive = useMemo(() => showPharmacy && showHospital && showPolice, [showPharmacy, showHospital, showPolice]);
+  const filterActiveCount = useMemo(() => [
     !mapFilters.showDanger,
     !mapFilters.showWarning,
     !mapFilters.showInfra,
@@ -486,16 +511,16 @@ activeTrip, setActiveTrip,
     poiActive,
     mapFilters.confirmedOnly,
     mapFilters.age !== 'all',
-  ].filter(Boolean).length;
+  ].filter(Boolean).length, [mapFilters, poiActive]);
 
   // Count of unresolved emergency pins created in the last 2 hours (red badge on "Nearby" button)
-  const emergencyNearbyCount = pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length;
+  const emergencyNearbyCount = useMemo(() => pins.filter((p) => p.is_emergency && !p.resolved_at && (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 < 2).length, [pins]);
 
   const ambientPill = useMemo(() => getAmbientPill(pins, userLocation), [pins, userLocation]);
 
   const deepLinkHandled = useRef(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 
   // Auth + push + profile setup
   useEffect(() => {
@@ -550,51 +575,12 @@ activeTrip, setActiveTrip,
     return () => clearTimeout(timer);
   }, [userId]);
 
-  // Fetch unread DM count periodically
-  const { unreadDmCount, setUnreadDmCount } = useStore();
-  useEffect(() => {
-    if (!userId) return;
-    async function fetchUnread() {
-      const { data } = await supabase
-        .from('dm_conversations')
-        .select('id, user1_id, user2_id, last_message_at, user1_last_read_at, user2_last_read_at, last_message_sender_id')
-        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
-      if (!data) return;
-      let count = 0;
-      for (const c of data) {
-        if (!c.last_message_at || c.last_message_sender_id === userId) continue;
-        const readAt = c.user1_id === userId ? c.user1_last_read_at : c.user2_last_read_at;
-        if (!readAt || new Date(c.last_message_at) > new Date(readAt)) count++;
-      }
-      setUnreadDmCount(count);
-    }
-    fetchUnread();
-
-    // Realtime: instant badge update when a DM conversation is updated
-    const channel = supabase
-      .channel('dm_badge_realtime')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'dm_conversations' },
-        (payload) => {
-          const row = payload.new as any;
-          if (row.user1_id !== userId && row.user2_id !== userId) return;
-          if (row.last_message_sender_id === userId) return; // I sent it
-          const readAt = row.user1_id === userId ? row.user1_last_read_at : row.user2_last_read_at;
-          if (!readAt || new Date(row.last_message_at) > new Date(readAt)) {
-            fetchUnread();
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, setUnreadDmCount]);
+  // Realtime DM badge (extracted hook)
+  useRealtimeDmBadge();
+  const unreadDmCount = useStore((s) => s.unreadDmCount);
 
   // Load pins (exclude hidden pins unless the user owns them; filter simulated client-side)
-  const { showSimulated, setShowSimulated, pinsVersion } = useStore();
+  const { showSimulated, setShowSimulated, pinsVersion } = useStore(useShallow((s) => ({ showSimulated: s.showSimulated, setShowSimulated: s.setShowSimulated, pinsVersion: s.pinsVersion })));
 
   // Auto-enable showSimulated via URL param (e.g. from admin "See on map")
   useEffect(() => {
@@ -750,115 +736,9 @@ activeTrip, setActiveTrip,
     }).eq('id', userId).then(() => {});
   }, [userId, userLocation?.lat, userLocation?.lng]);
 
-  // Realtime: new/updated pins
-  const handleNewPin = useCallback((pin: Pin) => {
-    const exists = useStore.getState().pins.some((p) => p.id === pin.id);
-    if (!exists) addPin(pin);
-    if (pin.is_emergency) {
-      setSosPin(pin);
-      addNotification({
-        id: crypto.randomUUID(),
-        type: 'emergency',
-        title: '🆘 Emergency alert nearby!',
-        body: pin.description?.slice(0, 100) ?? 'Someone needs help in your area',
-        read: false,
-        created_at: new Date().toISOString(),
-        pin_id: pin.id,
-      });
-    } else {
-      // Suppress toast during quiet hours
-      const qh = quietHoursRef.current;
-      let inQuiet = false;
-      if (qh.enabled) {
-        const now = new Date().toTimeString().slice(0, 5);
-        inQuiet = qh.start > qh.end ? (now >= qh.start || now < qh.end) : (now >= qh.start && now < qh.end);
-      }
-      if (!inQuiet) bToast.info(
-        {
-          title: 'Nouveau signalement à proximité',
-          desc: 'Un incident vient d\'être signalé près de vous',
-          cta: 'Voir sur la carte →',
-        },
-        isDark
-      );
-    }
-    // Notify nearby users (server-side push) — only triggered by the pin creator
-    if (pin.user_id === useStore.getState().userId) {
-      fetch('/api/notify-nearby', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin }),
-      }).catch(() => {});
-    }
-  }, [addPin, addNotification]);
-
-  // Realtime: comment on own pin → notification
-  const handleNewComment = useCallback((payload: { pin_id: string; display_name: string | null; content: string }) => {
-    const store = useStore.getState();
-    const pin = store.pins.find((p) => p.id === payload.pin_id);
-    if (!pin || pin.user_id !== store.userId) return;
-    addNotification({
-      id: crypto.randomUUID(),
-      type: 'comment',
-      title: '💬 New comment on your pin',
-      body: `${payload.display_name ?? 'Someone'}: ${payload.content.slice(0, 80)}`,
-      read: false,
-      created_at: new Date().toISOString(),
-      pin_id: payload.pin_id,
-    });
-  }, [addNotification]);
-
-  // Realtime: vote on own pin → notification
-  const handleNewVote = useCallback((payload: { pin_id: string }) => {
-    const store = useStore.getState();
-    const pin = store.pins.find((p) => p.id === payload.pin_id);
-    if (!pin || pin.user_id !== store.userId) return;
-    addNotification({
-      id: crypto.randomUUID(),
-      type: 'vote',
-      title: '👍 Someone confirmed your report',
-      body: null,
-      read: false,
-      created_at: new Date().toISOString(),
-      pin_id: payload.pin_id,
-    });
-  }, [addNotification]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('realtime-all')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pins' },
-        (payload) => handleNewPin(payload.new as Pin))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pins' },
-        (payload) => updatePin(payload.new as Pin))
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'pins' },
-        (payload) => { const old = payload.old as { id?: string }; if (old?.id) setPins(useStore.getState().pins.filter(p => p.id !== old.id)); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_comments' },
-        (payload) => handleNewComment(payload.new as { pin_id: string; display_name: string | null; content: string }))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pin_votes' },
-        (payload) => handleNewVote(payload.new as { pin_id: string }))
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [handleNewPin, updatePin, handleNewComment, handleNewVote]);
-
-  // ── Live sessions realtime ────────────────────────────────────────────────
-  useEffect(() => {
-    // Load active sessions on mount
-    supabase
-      .from('live_sessions')
-      .select('*')
-      .is('ended_at', null)
-      .then(({ data }) => { if (data) setLiveSessions(data as import('@/types').LiveSession[]); });
-
-    const liveChannel = supabase
-      .channel('live-sessions')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_sessions' },
-        (payload) => addLiveSession(payload.new as import('@/types').LiveSession))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_sessions' },
-        (payload) => updateLiveSession(payload.new as import('@/types').LiveSession))
-      .subscribe();
-    return () => { supabase.removeChannel(liveChannel); };
-  }, [setLiveSessions, addLiveSession, updateLiveSession]);
+  // Realtime pins + live sessions (extracted hooks)
+  useRealtimePins(setSosPin, quietHoursRef);
+  useRealtimeLiveSessions();
 
   // ── Onboarding gate — redirect to /onboarding if not completed ────────────
   useEffect(() => {
@@ -893,102 +773,137 @@ activeTrip, setActiveTrip,
       {/* ── Top bar (floating transparent overlay) ────────────────── */}
       <div
         className="absolute top-0 left-0 right-0 z-50"
-        style={{
-          height: 56,
-          pointerEvents: 'none',
-          ...(showSearch && activeTab === 'map' ? { backgroundColor: 'var(--surface-card)', borderBottom: '1px solid var(--border)', pointerEvents: 'auto' as const } : {}),
-        }}
+        style={{ height: 52, pointerEvents: 'none' }}
       >
-        <div className="flex items-center gap-3 px-4 h-full" style={{ pointerEvents: 'auto' }}>
-          {showSearch && activeTab === 'map' ? (
-            <>
-              {/* Back arrow — exit search */}
-              <button
-                onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchSections([]); }}
-                aria-label="Close search"
-                className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0 transition hover:opacity-80"
+        <div className="flex items-center gap-2 px-3.5 h-full" style={{ pointerEvents: 'auto' }}>
+          {/* Logo */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <svg width={22} height={22} viewBox="0 0 80 80" fill="none" aria-hidden="true" className="text-[var(--text-primary)]" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
+              <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="currentColor" strokeWidth="5" strokeLinecap="round" fill="none" />
+              <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="currentColor" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.5" />
+              <circle cx="40" cy="22" r="4.5" fill="currentColor" />
+            </svg>
+          </div>
+          <div className="flex-1" />
+          {/* Right icons */}
+          <div className="flex items-center gap-1.5">
+            {/* Notification bell */}
+            <button
+              onClick={() => { if (showNotifications) { setShowNotifications(false); return; } closeAllPanels(); setShowNotifications(true); }}
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+              className="relative w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
+              style={{
+                background: showNotifications
+                  ? '#3BB4C1'
+                  : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                boxShadow: showNotifications ? '0 0 0 3px rgba(59,180,193,0.30)' : 'none',
+              }}
+            >
+              <Bell size={15} strokeWidth={2} style={{ color: showNotifications ? '#fff' : 'var(--text-muted)' }} />
+              {unreadCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
+                  style={{ backgroundColor: '#EF4444', color: '#fff' }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            {/* Settings / burger menu */}
+            <button
+              aria-label="Settings"
+              className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
+              style={{
+                backgroundColor: showSettings ? 'var(--accent)' : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              onClick={() => { if (showSettings) { setShowSettings(false); return; } closeAllPanels(); setShowSettings(true); }}
+            >
+              <Menu size={15} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
+            </button>
+            {/* Search — morph icon → bar */}
+            {activeTab === 'map' && (
+              <div
+                style={{
+                  position: 'relative',
+                  width: showSearch ? 'clamp(200px, 45vw, 300px)' : 32,
+                  height: 32,
+                  transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  flexShrink: 0,
+                }}
               >
-                <ChevronLeft size={20} strokeWidth={2} style={{ color: 'var(--text-primary)' }} />
-              </button>
-              {/* Inline search — fills header */}
-              <div className="flex-1 min-w-0">
-                <AutocompleteInput
-                  value={searchQuery}
-                  onChange={(text, coords) => {
-                    setSearchQuery(text);
-                    if (coords) useStore.getState().setMapFlyTo({ lng: coords[0], lat: coords[1], zoom: 15 });
+                <div
+                  onClick={() => {
+                    if (!showSearch) { closeAllPanels(); setShowSearch(true); }
                   }}
-                  autoFocus
-                  localSections={searchSections}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Logo */}
-              <div className="flex items-center gap-2">
-                <svg width={28} height={28} viewBox="0 0 80 80" fill="none" aria-hidden="true" className="text-[var(--text-primary)]" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
-                  <path d="M20 60 Q20 30, 40 20 Q60 30, 60 60" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" />
-                  <path d="M28 55 Q28 35, 40 28 Q52 35, 52 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.6" />
-                  <circle cx="40" cy="22" r="4" fill="currentColor" />
-                </svg>
-                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.05em', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>BREVEIL</span>
-              </div>
-              <div className="flex-1" />
-              {/* Right icons */}
-              <div className="flex items-center gap-2">
-                {/* Search icon — map tab only */}
-                {activeTab === 'map' && (
-                  <button
-                    onClick={() => { if (showSearch) { setShowSearch(false); return; } closeAllPanels(); setShowSearch(true); }}
-                    aria-label="Search location"
-                    className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
-                    style={{ background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                  >
-                    <Search size={16} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
-                  </button>
-                )}
-                {/* Notification bell */}
-                <button
-                  onClick={() => { if (showNotifications) { setShowNotifications(false); return; } closeAllPanels(); setShowNotifications(true); }}
-                  aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-                  className="relative w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
                   style={{
-                    background: showNotifications
-                      ? '#3BB4C1'
+                    position: 'absolute', top: 0, right: 0,
+                    height: 32,
+                    width: '100%',
+                    borderRadius: 99,
+                    background: showSearch
+                      ? (isDark ? '#16243A' : '#FFFFFF')
                       : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    boxShadow: showNotifications ? '0 0 0 3px rgba(59,180,193,0.30)' : 'none',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: `0.5px solid ${showSearch ? (isDark ? 'rgba(59,180,193,0.25)' : 'rgba(59,180,193,0.20)') : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')}`,
+                    boxShadow: showSearch
+                      ? (isDark ? '0 2px 12px rgba(0,0,0,0.25), 0 0 0 1.5px rgba(59,180,193,0.18)' : '0 2px 12px rgba(0,0,0,0.08), 0 0 0 1.5px rgba(59,180,193,0.18)')
+                      : '0 1px 3px rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: showSearch ? '0 10px' : '0',
+                    justifyContent: showSearch ? 'flex-start' : 'center',
+                    cursor: showSearch ? 'text' : 'pointer',
+                    overflow: 'hidden',
+                    transition: 'background 0.2s, box-shadow 0.2s, border-color 0.2s, padding 0.3s',
                   }}
                 >
-                  <Bell size={16} strokeWidth={2} style={{ color: showNotifications ? '#fff' : 'var(--text-muted)' }} />
-                  {unreadCount > 0 && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] rounded-full text-[0.5rem] font-black flex items-center justify-center px-1"
-                      style={{ backgroundColor: '#EF4444', color: '#fff' }}
-                    >
-                      {unreadCount}
-                    </span>
+                  <Search size={13} strokeWidth={2.5} style={{ color: isDark ? '#475569' : '#94A3B8', flexShrink: 0 }} />
+                  {showSearch && (
+                    <div className="flex-1 min-w-0" style={{ opacity: 1, transition: 'opacity 0.15s 0.1s' }}>
+                      <AutocompleteInput
+                        value={searchQuery}
+                        onChange={(text, coords) => {
+                          setSearchQuery(text);
+                          if (coords) useStore.getState().setMapFlyTo({ lng: coords[0], lat: coords[1], zoom: 15 });
+                        }}
+                        autoFocus
+                        compact
+                        placeholder="Rechercher..."
+                        localSections={searchSections}
+                        onBlur={() => {
+                          if (!searchQuery) {
+                            setShowSearch(false);
+                            setSearchSections([]);
+                          }
+                        }}
+                      />
+                    </div>
                   )}
-                </button>
-                {/* Settings / burger menu */}
-                <button
-                  aria-label="Settings"
-                  className="w-8 h-8 flex items-center justify-center rounded-full transition hover:opacity-80"
-                  style={{
-                    backgroundColor: showSettings ? 'var(--accent)' : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                  }}
-                  onClick={() => { if (showSettings) { setShowSettings(false); return; } closeAllPanels(); setShowSettings(true); }}
-                >
-                  <Menu size={16} strokeWidth={2} style={{ color: showSettings ? '#FFFFFF' : 'var(--text-muted)' }} />
-                </button>
+                  {showSearch && searchQuery && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSearchQuery(''); setSearchSections([]); }}
+                      style={{
+                        width: 18, height: 18, borderRadius: '50%',
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <X size={10} strokeWidth={3} style={{ color: isDark ? '#94A3B8' : '#64748B' }} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -1016,208 +931,20 @@ activeTrip, setActiveTrip,
         )}
 
 
-        {/* Filter button — replaces old POI toggle */}
+        {/* Filter popover */}
         {activeTab === 'map' && (
-          <>
-            <button
-              onClick={() => setShowFilterPopover((v) => !v)}
-              aria-label="Filtrer les signalements"
-              style={{
-                position: 'absolute', top: 58, right: 46, zIndex: 10,
-                width: 32, height: 32, borderRadius: 9999,
-                background: (showFilterPopover || filterActiveCount > 0) ? '#3BB4C1' : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)'),
-                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                border: 'none',
-                boxShadow: (showFilterPopover || filterActiveCount > 0) ? '0 0 0 3px rgba(59,180,193,0.30)' : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: 0,
-              }}
-            >
-              <SlidersHorizontal size={16} strokeWidth={2} style={{ color: (showFilterPopover || filterActiveCount > 0) ? '#fff' : 'var(--text-muted)' }} />
-              {filterActiveCount > 0 && !showFilterPopover && (
-                <span style={{
-                  position: 'absolute', top: -4, right: -4,
-                  minWidth: 14, height: 14, borderRadius: 7,
-                  background: '#EF4444', color: '#fff',
-                  fontSize: 8, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{filterActiveCount}</span>
-              )}
-            </button>
-
-            {/* Filter popover */}
-            {showFilterPopover && (
-              <>
-                {/* Backdrop */}
-                <div
-                  onClick={() => setShowFilterPopover(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 59 }}
-                />
-                <div style={{
-                  position: 'absolute', top: 100, right: 10, zIndex: 60,
-                  width: 260, borderRadius: 12,
-                  background: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
-                  backdropFilter: 'blur(20px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-                  padding: 12,
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#94A3B8' : '#64748B', marginBottom: 8 }}>
-                    Catégories
-                  </div>
-                  {[
-                    { emoji: '🚨', label: 'Danger', key: 'showDanger' as const, value: mapFilters.showDanger },
-                    { emoji: '⚠️', label: 'Vigilance', key: 'showWarning' as const, value: mapFilters.showWarning },
-                    { emoji: '🚧', label: 'Infrastructure', key: 'showInfra' as const, value: mapFilters.showInfra },
-                    { emoji: '💚', label: 'Positif', key: 'showPositive' as const, value: mapFilters.showPositive },
-                  ].map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => setMapFilters({ ...mapFilters, [item.key]: !item.value })}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                        background: item.value
-                          ? (isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)')
-                          : 'transparent',
-                        opacity: item.value ? 1 : 0.45,
-                        transition: 'all 150ms',
-                      }}
-                    >
-                      <span style={{ fontSize: 13 }}>{item.emoji}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#E2E8F0' : '#1E293B', flex: 1, textAlign: 'left' }}>{item.label}</span>
-                      <div style={{
-                        width: 32, height: 18, borderRadius: 9, padding: 2,
-                        background: item.value ? '#3BB4C1' : (isDark ? '#334155' : '#CBD5E1'),
-                        transition: 'background 150ms',
-                      }}>
-                        <div style={{
-                          width: 14, height: 14, borderRadius: 7, background: '#fff',
-                          transform: item.value ? 'translateX(14px)' : 'translateX(0)',
-                          transition: 'transform 150ms',
-                        }} />
-                      </div>
-                    </button>
-                  ))}
-
-                  {/* Lieux SOS toggle */}
-                  <button
-                    onClick={() => {
-                      const next = !poiActive;
-                      setShowPharmacy(next); setShowHospital(next); setShowPolice(next);
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                      padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: poiActive
-                        ? (isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)')
-                        : 'transparent',
-                      opacity: poiActive ? 1 : 0.45,
-                      transition: 'all 150ms',
-                    }}
-                  >
-                    <span style={{ fontSize: 13 }}>🏥</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#E2E8F0' : '#1E293B', flex: 1, textAlign: 'left' }}>Lieux SOS</span>
-                    <div style={{
-                      width: 32, height: 18, borderRadius: 9, padding: 2,
-                      background: poiActive ? '#3BB4C1' : (isDark ? '#334155' : '#CBD5E1'),
-                      transition: 'background 150ms',
-                    }}>
-                      <div style={{
-                        width: 14, height: 14, borderRadius: 7, background: '#fff',
-                        transform: poiActive ? 'translateX(14px)' : 'translateX(0)',
-                        transition: 'transform 150ms',
-                      }} />
-                    </div>
-                  </button>
-
-                  {/* Divider */}
-                  <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '8px 0' }} />
-
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#94A3B8' : '#64748B', marginBottom: 6 }}>
-                    Qualité
-                  </div>
-
-                  {/* Confirmés only toggle */}
-                  <button
-                    onClick={() => setMapFilters({ ...mapFilters, confirmedOnly: !mapFilters.confirmedOnly })}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                      padding: '7px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: mapFilters.confirmedOnly
-                        ? (isDark ? 'rgba(59,180,193,0.12)' : 'rgba(59,180,193,0.08)')
-                        : 'transparent',
-                      transition: 'all 150ms',
-                    }}
-                  >
-                    <span style={{ fontSize: 13 }}>✅</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#E2E8F0' : '#1E293B', flex: 1, textAlign: 'left' }}>Confirmés uniquement</span>
-                    <div style={{
-                      width: 32, height: 18, borderRadius: 9, padding: 2,
-                      background: mapFilters.confirmedOnly ? '#3BB4C1' : (isDark ? '#334155' : '#CBD5E1'),
-                      transition: 'background 150ms',
-                    }}>
-                      <div style={{
-                        width: 14, height: 14, borderRadius: 7, background: '#fff',
-                        transform: mapFilters.confirmedOnly ? 'translateX(14px)' : 'translateX(0)',
-                        transition: 'transform 150ms',
-                      }} />
-                    </div>
-                  </button>
-
-                  {/* Divider */}
-                  <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '8px 0' }} />
-
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: isDark ? '#94A3B8' : '#64748B', marginBottom: 6 }}>
-                    Période
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {([
-                      { label: 'Tous', value: 'all' },
-                      { label: '1h', value: '1h' },
-                      { label: "Aujourd'hui", value: 'today' },
-                      { label: '7 jours', value: '7d' },
-                    ] as const).map((item) => (
-                      <button
-                        key={item.value}
-                        onClick={() => setMapFilters({ ...mapFilters, age: item.value })}
-                        style={{
-                          padding: '4px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                          fontSize: 11, fontWeight: 600,
-                          background: mapFilters.age === item.value
-                            ? '#3BB4C1'
-                            : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
-                          color: mapFilters.age === item.value
-                            ? '#fff'
-                            : (isDark ? '#CBD5E1' : '#64748B'),
-                          transition: 'all 150ms',
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Reset link */}
-                  {filterActiveCount > 0 && (
-                    <button
-                      onClick={() => {
-                        setMapFilters({ ...mapFilters, showDanger: true, showWarning: true, showInfra: true, showPositive: true, confirmedOnly: false, age: 'all' });
-                        setShowPharmacy(true); setShowHospital(true); setShowPolice(true);
-                      }}
-                      style={{
-                        display: 'block', width: '100%', marginTop: 8, padding: '6px 0',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: 11, fontWeight: 600, color: '#3BB4C1', textAlign: 'center',
-                      }}
-                    >
-                      Réinitialiser
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </>
+          <MapFilterPopover
+            isDark={isDark}
+            showFilterPopover={showFilterPopover}
+            setShowFilterPopover={setShowFilterPopover}
+            mapFilters={mapFilters}
+            setMapFilters={setMapFilters}
+            poiActive={poiActive}
+            setShowPharmacy={setShowPharmacy}
+            setShowHospital={setShowHospital}
+            setShowPolice={setShowPolice}
+            filterActiveCount={filterActiveCount}
+          />
         )}
 
         {/* Location sharing chip — visible while Walk With Me broadcast is active */}
@@ -1391,7 +1118,7 @@ activeTrip, setActiveTrip,
           </>
         )}
 
-        {/* Walk With Me — Diamond button (outside activeTab===map so animation plays on tab switch) */}
+        {/* Walk With Me — Diamond button */}
         {(activeTab === 'map' || escorte.view !== 'hub') && (() => {
           const isMAMActive = escorte.view !== 'hub';
           return (
@@ -1408,78 +1135,22 @@ activeTrip, setActiveTrip,
                 height: 50,
                 borderRadius: '26%',
                 cursor: 'pointer',
-                overflow: 'visible',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transform: isMAMActive ? 'rotate(-45deg)' : 'rotate(45deg)',
                 transition: 'transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 zIndex: 15,
+                background: isDark ? 'rgba(22,36,58,0.95)' : '#FFFFFF',
+                border: isDark ? '0.5px solid rgba(255,255,255,0.1)' : '0.5px solid rgba(10,18,32,0.1)',
+                boxShadow: isDark
+                  ? '0 4px 16px rgba(0,0,0,0.5)'
+                  : '0 4px 16px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)',
               }}
             >
-              {/* INNER — breathe scale */}
-              <div style={{
-                position: 'relative',
-                width: 50,
-                height: 50,
-                borderRadius: '26%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                animation: 'mamBreathe 5s ease-in-out infinite',
-              }}>
-                {/* shadow */}
-                <div style={{
-                  position: 'absolute', borderRadius: '26%', zIndex: 0, pointerEvents: 'none',
-                  width: 110, height: 110,
-                  top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-                  filter: 'blur(8px)',
-                  background: isMAMActive
-                    ? 'radial-gradient(ellipse at 58% 62%, rgba(25,110,135,0.18) 0%, rgba(18,95,118,0.08) 42%, transparent 68%)'
-                    : 'radial-gradient(ellipse at 58% 62%, rgba(155,163,178,0.24) 0%, rgba(145,155,172,0.10) 42%, transparent 68%)',
-                  transition: 'background 0.6s ease',
-                }} />
-                {/* glow2 teal — visible only active */}
-                <div style={{
-                  position: 'absolute', borderRadius: '50%', zIndex: 0, pointerEvents: 'none',
-                  width: 108, height: 108,
-                  top: '50%', left: '50%',
-                  filter: 'blur(8px)',
-                  opacity: isMAMActive ? 1 : 0,
-                  background: 'radial-gradient(circle, rgba(59,180,193,0.55) 0%, rgba(34,168,184,0.30) 38%, rgba(20,155,175,0.10) 62%, transparent 80%)',
-                  transition: 'opacity 0.6s ease',
-                  animation: 'mamGlow2 3.5s ease-in-out infinite 0.5s',
-                }} />
-                {/* glow1 */}
-                <div style={{
-                  position: 'absolute', borderRadius: '50%', zIndex: 1, pointerEvents: 'none',
-                  width: 96, height: 96,
-                  top: '50%', left: '50%',
-                  background: isMAMActive
-                    ? 'radial-gradient(circle, rgba(195,245,252,0.72) 0%, rgba(110,222,238,0.46) 28%, rgba(59,180,193,0.22) 50%, rgba(18,148,170,0.07) 68%, transparent 82%)'
-                    : 'radial-gradient(circle, rgba(255,255,248,0.60) 0%, rgba(255,248,224,0.38) 30%, rgba(255,238,190,0.15) 52%, transparent 70%)',
-                  transition: 'background 0.6s ease',
-                  animation: 'mamGlow1 3.5s ease-in-out infinite',
-                }} />
-                {/* tile */}
-                <div style={{
-                  position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 2,
-                  background: isMAMActive
-                    ? 'linear-gradient(145deg, #E6F7FA 0%, #C4ECF5 45%, #A2E1EF 100%)'
-                    : 'linear-gradient(145deg, #F9F9F9 0%, #F1F1F1 45%, #E7E7E7 100%)',
-                  boxShadow: isMAMActive
-                    ? '-4px -4px 10px rgba(255,255,255,0.90), 5px 7px 16px rgba(25,95,115,0.28), 2px 3px 8px rgba(18,85,105,0.20), inset -2px -2px 5px rgba(255,255,255,0.75), inset 1px 1px 3px rgba(30,140,160,0.12), 0 0 0 1.5px rgba(59,180,193,0.38), 0 0 16px rgba(59,180,193,0.28)'
-                    : '-5px -5px 12px rgba(255,255,255,0.95), 6px 8px 18px rgba(170,178,194,0.55), 3px 4px 9px rgba(160,170,186,0.38), inset -2px -2px 5px rgba(255,255,255,0.85), inset 1px 1px 3px rgba(150,160,176,0.10)',
-                  transition: 'background 0.6s ease, box-shadow 0.6s ease',
-                }} />
-                {/* specular */}
-                <div style={{
-                  position: 'absolute', inset: 0, borderRadius: '26%', zIndex: 3, pointerEvents: 'none',
-                  opacity: isMAMActive ? 0.55 : 1,
-                  transition: 'opacity 0.6s ease',
-                  background: 'radial-gradient(ellipse at 28% 26%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.46) 24%, rgba(255,255,255,0.10) 52%, transparent 68%)',
-                }} />
-              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isMAMActive ? '#3BB4C1' : (isDark ? '#64748B' : '#94A3B8')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isMAMActive ? 'rotate(45deg)' : 'rotate(-45deg)' }}>
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
             </div>
           );
         })()}
@@ -1492,16 +1163,15 @@ activeTrip, setActiveTrip,
           isVisible={escorte.view === 'trip-active'}
           destName={escorte.activeEscorte?.dest_name ?? ''}
           etaMinutes={escorte.activeEscorte?.eta_minutes ?? 0}
-          tripProgress={
-            escorte.activeEscorte?.eta_minutes
-              ? Math.min(100, (escorte.elapsed / (escorte.activeEscorte.eta_minutes * 60)) * 100)
-              : 0
-          }
+          startedAt={escorte.activeEscorte?.started_at}
           juliaActive={escorte.juliaActive}
           onArrived={() => {
+            const elapsedSec = escorte.activeEscorte?.started_at
+              ? Math.max(0, Math.floor((Date.now() - new Date(escorte.activeEscorte.started_at).getTime()) / 1000))
+              : 0;
             setTripSummaryData({
               destination: escorte.activeEscorte?.dest_name ?? '',
-              elapsedSeconds: escorte.elapsed,
+              elapsedSeconds: elapsedSec,
               distanceM: escorte.distanceM,
               incidentsAvoided: escorte.incidentsAvoided,
               score: 75,
@@ -1667,48 +1337,7 @@ activeTrip, setActiveTrip,
       />
 
       {/* ── Crosshair overlay for pin placement ── */}
-      <AnimatePresence>
-        {reportPlaceMode && (
-          <motion.div
-            key="report-crosshair"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              position: 'fixed',
-              top: 'calc((100vh - 174px) / 2)',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 50,
-              pointerEvents: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            {/* Crosshair icon */}
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <circle cx="24" cy="24" r="8" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="2" fill="none" opacity="0.7" />
-              <line x1="24" y1="4" x2="24" y2="16" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
-              <line x1="24" y1="32" x2="24" y2="44" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
-              <line x1="4" y1="24" x2="16" y2="24" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
-              <line x1="32" y1="24" x2="44" y2="24" stroke={isDark ? '#fff' : '#1E293B'} strokeWidth="1.5" opacity="0.5" />
-              <circle cx="24" cy="24" r="2.5" fill={isDark ? '#3BB4C1' : '#1E3A5F'} />
-            </svg>
-            <span style={{
-              fontSize: 10, fontWeight: 600,
-              color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.6)',
-              background: isDark ? 'rgba(15,23,42,0.6)' : 'rgba(255,255,255,0.8)',
-              padding: '2px 8px', borderRadius: 6,
-              backdropFilter: 'blur(8px)',
-            }}>
-              Déplace la carte
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ReportCrosshair reportPlaceMode={reportPlaceMode} isDark={isDark} />
 
       {/* ── New Report Sheet (v2) ── */}
       <AnimatePresence>

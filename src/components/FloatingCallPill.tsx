@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X } from 'lucide-react'
 import { Room, RoomEvent } from 'livekit-client'
@@ -22,7 +22,7 @@ interface FloatingCallPillProps {
   onEscorteTap?: () => void
 }
 
-export default function FloatingCallPill({ onEscorteTap }: FloatingCallPillProps = {}) {
+function FloatingCallPill({ onEscorteTap }: FloatingCallPillProps = {}) {
   const isDark = useIsDark()
   const userId = useStore((s) => s.userId) ?? ''
 
@@ -260,3 +260,5 @@ export default function FloatingCallPill({ onEscorteTap }: FloatingCallPillProps
     </AnimatePresence>
   )
 }
+
+export default memo(FloatingCallPill);

@@ -2,16 +2,17 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useStore } from '@/stores/useStore';
 import { getCount } from '@/lib/offlineQueue';
 
-export default function OfflineBanner() {
+function OfflineBanner() {
   const t = useTranslations('offline');
-  const { offlineQueueCount, setOfflineQueueCount } = useStore();
+  const offlineQueueCount = useStore((s) => s.offlineQueueCount);
+  const setOfflineQueueCount = useStore((s) => s.setOfflineQueueCount);
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
@@ -71,3 +72,5 @@ export default function OfflineBanner() {
     </AnimatePresence>
   );
 }
+
+export default memo(OfflineBanner);

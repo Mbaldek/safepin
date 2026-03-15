@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { X, Camera, Video, Mic, MapPin, ChevronLeft, ChevronRight, Loader2, Lock } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useIsDark } from '@/hooks/useIsDark';
 import { supabase } from '@/lib/supabase';
 import { showBreveilToast } from '@/components/GlobalToast';
@@ -122,7 +123,7 @@ const STEP_HEIGHTS: Record<ReportStep, { default: string; full: string }> = {
 export function ReportSheet() {
   const isDark = useIsDark();
   const C = getColors(isDark);
-  const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo, setReportPlaceMode } = useStore();
+  const { activeSheet, setActiveSheet, newPinCoords, userId, addPin, setMapFlyTo, setReportPlaceMode } = useStore(useShallow((s) => ({ activeSheet: s.activeSheet, setActiveSheet: s.setActiveSheet, newPinCoords: s.newPinCoords, userId: s.userId, addPin: s.addPin, setMapFlyTo: s.setMapFlyTo, setReportPlaceMode: s.setReportPlaceMode })));
 
   const [step, setStep] = useState<ReportStep>('category');
   const [snap, setSnap] = useState<SnapPoint>('default');
@@ -340,10 +341,8 @@ export function ReportSheet() {
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={0.1}
               onDragEnd={handleDragEnd}
-              style={{ cursor: 'grab', padding: '8px 0 4px', display: 'flex', justifyContent: 'center' }}
-            >
-              <div style={{ width: 32, height: 4, borderRadius: 2, background: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }} />
-            </motion.div>
+              style={{ padding: '4px 0' }}
+            />
           )}
 
           {/* ═══ TOOLBAR — Place mode ═══ */}
@@ -813,4 +812,4 @@ export function ReportSheet() {
   );
 }
 
-export default ReportSheet;
+export default memo(ReportSheet);

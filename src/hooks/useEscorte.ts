@@ -4,13 +4,34 @@ import { useStore } from '@/stores/useStore'
 import { haversineMetersRaw } from '@/lib/utils'
 import type { Escorte, EscorteCircleMember, EscorteView, RouteMode } from '@/types'
 
+// ── Isolated elapsed timer — does NOT cause parent re-renders ──
+export function useEscorteElapsed(isActive: boolean, startedAt?: string) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!isActive) { setElapsed(0); return }
+
+    // Initialise from startedAt if available (handles remounts)
+    if (startedAt) {
+      const offset = Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+      setElapsed(offset)
+    } else {
+      setElapsed(0)
+    }
+
+    const id = setInterval(() => setElapsed(s => s + 1), 1000)
+    return () => clearInterval(id)
+  }, [isActive, startedAt])
+
+  return elapsed
+}
+
 export type UseEscorteReturn = ReturnType<typeof useEscorte>
 
 export function useEscorte(userId: string) {
   const [view, setView] = useState<EscorteView>('hub')
   const [activeEscorte, setActiveEscorte] = useState<Escorte | null>(null)
   const [circleMembers, setCircleMembers] = useState<EscorteCircleMember[]>([])
-  const [elapsed, setElapsed] = useState(0)
   const [juliaCd, setJuliaCd] = useState(30) // 30s countdown
   const [juliaActive, setJuliaActive] = useState(false)
   const [escorteError, setEscorteError] = useState<string | null>(null)
@@ -18,7 +39,6 @@ export function useEscorte(userId: string) {
   const [incidentsAvoided, setIncidentsAvoided] = useState(0)
   const [distanceM, setDistanceM] = useState(0)
   const watchRef = useRef<number | null>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const juliaCdRef = useRef<NodeJS.Timeout | null>(null)
   const loadingRef = useRef(false)
   const prevCoordsRef = useRef<{ lat: number; lng: number } | null>(null)
@@ -62,7 +82,6 @@ export function useEscorte(userId: string) {
       // 3. Transition — always happens even if notifyCircle failed
       setView('escorte-notifying')
       startGPSTracking(escorte.id)
-      startElapsedTimer()
     } finally {
       loadingRef.current = false
       setIsStarting(false)
@@ -111,7 +130,6 @@ export function useEscorte(userId: string) {
     }
     setView('trip-active')
     startGPSTracking(escorte.id)
-    startElapsedTimer()
     } finally {
       loadingRef.current = false
     }
@@ -215,12 +233,6 @@ export function useEscorte(userId: string) {
     )
   }, [])
 
-  // ── ELAPSED TIMER ────────────────────────────────
-  const startElapsedTimer = useCallback(() => {
-    setElapsed(0)
-    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
-  }, [])
-
   // ── SUBSCRIBE CIRCLE REALTIME ────────────────────
   useEffect(() => {
     if (!activeEscorte) return
@@ -257,19 +269,20 @@ export function useEscorte(userId: string) {
     if (!activeEscorte) return
 
     if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
-    if (timerRef.current) clearInterval(timerRef.current)
     if (juliaCdRef.current) clearInterval(juliaCdRef.current)
 
+    const now = new Date()
     await supabase
       .from('escortes')
       .update({
         status: 'ended',
-        ended_at: new Date().toISOString(),
+        ended_at: now.toISOString(),
       })
       .eq('id', activeEscorte.id)
 
     // Sauvegarder dans trajets_recents si mode trip
     if (activeEscorte.mode === 'trip' && activeEscorte.dest_name) {
+      const elapsedSec = Math.max(0, Math.floor((now.getTime() - new Date(activeEscorte.started_at).getTime()) / 1000))
       await supabase.from('trajets_recents').insert({
         user_id: userId,
         escorte_id: activeEscorte.id,
@@ -277,12 +290,12 @@ export function useEscorte(userId: string) {
         dest_address: activeEscorte.dest_address ?? null,
         dest_lat: activeEscorte.dest_lat ?? null,
         dest_lng: activeEscorte.dest_lng ?? null,
-        duration_min: Math.round(elapsed / 60),
+        duration_min: Math.round(elapsedSec / 60),
       })
     }
 
     setView(arrived ? 'arrived' : 'hub')
-  }, [activeEscorte, elapsed, userId])
+  }, [activeEscorte, userId])
 
   // ── SOS ──────────────────────────────────────────
   const triggerSOS = useCallback(async () => {
@@ -302,7 +315,6 @@ export function useEscorte(userId: string) {
   useEffect(() => {
     return () => {
       if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
-      if (timerRef.current) clearInterval(timerRef.current)
       if (juliaCdRef.current) clearInterval(juliaCdRef.current)
     }
   }, [])
@@ -311,14 +323,12 @@ export function useEscorte(userId: string) {
     setView('hub')
     setActiveEscorte(null)
     setCircleMembers([])
-    setElapsed(0)
   }, [])
 
   return {
     view, setView,
     activeEscorte,
     circleMembers,
-    elapsed,
     juliaCd,
     juliaActive, setJuliaActive,
     escorteError,

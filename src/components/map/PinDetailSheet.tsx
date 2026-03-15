@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Check, CheckCircle2, MapPin, Users,
@@ -11,6 +11,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useIsDark } from '@/hooks/useIsDark'
 import { useStore } from '@/stores/useStore'
+import { useShallow } from 'zustand/react/shallow'
 import { useUiStore } from '@/stores/uiStore'
 import { usePullToDismiss } from '@/hooks/usePullToDismiss'
 import { supabase } from '@/lib/supabase'
@@ -108,7 +109,7 @@ function PinDetailSheet({
   const toast = useToast()
   const isDark = useIsDark()
   const d = isDark
-  const { updatePin, pins, setSelectedPin, setActiveSheet, userLocation } = useStore()
+  const { updatePin, pins, setSelectedPin, setActiveSheet, userLocation } = useStore(useShallow((s) => ({ updatePin: s.updatePin, pins: s.pins, setSelectedPin: s.setSelectedPin, setActiveSheet: s.setActiveSheet, userLocation: s.userLocation })))
   const { openCommunityDM } = useUiStore()
 
   type EvidenceItem = { type: 'photo' | 'video'; url: string; activity: string }
@@ -546,6 +547,53 @@ function PinDetailSheet({
                     ) : null}
                   </span>
                 </div>
+
+                {!alreadyConfirmed && !isResolved && (
+                  <div style={{
+                    display: 'flex', gap: 8, marginTop: 12,
+                  }}>
+                    <button
+                      onClick={() => setShowConfirmModal(true)}
+                      style={{
+                        flex: 1,
+                        padding: '9px 10px',
+                        borderRadius: 12,
+                        border: `1px solid ${cat.colorBorder}`,
+                        background: cat.colorSoft,
+                        color: cat.color,
+                        fontSize: 12, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '0.8' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+                    >
+                      <Check size={13} strokeWidth={2.5} />
+                      Oui, toujours là
+                    </button>
+                    <button
+                      onClick={handleFalseReport}
+                      style={{
+                        flex: 1,
+                        padding: '9px 10px',
+                        borderRadius: 12,
+                        border: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
+                        background: d ? T.interactiveHover : 'rgba(15,23,42,0.04)',
+                        color: d ? T.textTertiary : T.textTertiaryL,
+                        fontSize: 12, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '0.7' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+                    >
+                      <X size={13} strokeWidth={2.5} />
+                      Non, disparu
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* ── MEDIA EVIDENCE ──────────────────── */}
@@ -609,66 +657,6 @@ function PinDetailSheet({
                   )}
                 </div>
               )}
-
-              {/* ── CTA ZONE ──────────────────────── */}
-              <div style={{
-                padding: '12px 18px 10px',
-                borderBottom: `1px solid ${d ? T.borderSubtle : T.borderSubtleL}`,
-              }}>
-                {!alreadyConfirmed && !isResolved && (
-                  <button
-                    onClick={() => setShowConfirmModal(true)}
-                    style={{
-                      background: d ? '#FFFFFF' : '#0F172A',
-                      color: d ? '#0F172A' : '#FFFFFF',
-                      borderRadius: 32, padding: '15px 20px',
-                      fontSize: 15, fontWeight: 600,
-                      border: 'none', width: '100%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      position: 'relative', zIndex: 1, pointerEvents: 'auto',
-                      transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)'
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.22)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0) scale(1)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
-                  >
-                    <Check size={15} strokeWidth={2.5} />
-                    {"J'ai vu cet incident · Confirmer"}
-                  </button>
-                )}
-                {alreadyConfirmed && !isResolved && (
-                  <div style={{
-                    background: T.semanticSuccessSoft,
-                    border: '1px solid rgba(52,211,153,0.25)',
-                    color: T.semanticSuccess,
-                    borderRadius: 32, padding: '15px 20px',
-                    fontSize: 15, fontWeight: 600, width: '100%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}>
-                    <Check size={15} strokeWidth={2.5} />
-                    Tu as confirmé cet incident
-                  </div>
-                )}
-                {isResolved && (
-                  <div style={{
-                    background: T.semanticSuccessSoft,
-                    border: '1px solid rgba(52,211,153,0.22)',
-                    color: T.semanticSuccess,
-                    borderRadius: 32, padding: '15px 20px',
-                    fontSize: 15, fontWeight: 600, width: '100%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}>
-                    <CheckCircle2 size={15} strokeWidth={1.5} />
-                    Incident résolu
-                  </div>
-                )}
-              </div>
 
               {/* ── SECONDARY ACTIONS GRID ─────────── */}
               <div style={{
@@ -1005,5 +993,6 @@ function PinDetailSheet({
   )
 }
 
-export default PinDetailSheet
+const PinDetailSheetMemo = memo(PinDetailSheet)
+export default PinDetailSheetMemo
 export { PinDetailSheet }

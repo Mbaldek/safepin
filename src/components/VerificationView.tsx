@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/stores/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useIsDark } from '@/hooks/useIsDark';
 import { useToast } from '@/hooks/useToast';
 
@@ -60,7 +61,7 @@ export default function VerificationView({ onClose }: { onClose: () => void }) {
   const isDark = useIsDark();
   const c = getColors(isDark);
   const STATUS_CONFIG = getStatusConfig(c);
-  const { userId, userProfile, setUserProfile } = useStore();
+  const { userId, userProfile, setUserProfile } = useStore(useShallow((s) => ({ userId: s.userId, userProfile: s.userProfile, setUserProfile: s.setUserProfile })));
   const [phase, setPhase] = useState<'idle' | 'loading' | 'active' | 'done'>('idle');
   const currentStatus: VerifStatus = (userProfile?.verification_status as VerifStatus) ?? 'unverified';
   const [displayStatus, setDisplayStatus] = useState<VerifStatus>(currentStatus);

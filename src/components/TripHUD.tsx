@@ -1,13 +1,14 @@
 'use client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Sparkles, Share2, AlertTriangle, Check } from 'lucide-react'
+import { useEscorteElapsed } from '@/hooks/useEscorte'
 
 interface TripHUDProps {
   isDark:       boolean
   isVisible:    boolean        // view === 'trip-active'
   destName:     string
   etaMinutes:   number
-  tripProgress: number         // 0–100
+  startedAt?:   string         // escorte.started_at — used to compute progress internally
   juliaActive:  boolean
   onArrived:    () => void
   onTerminate:  () => void
@@ -16,8 +17,12 @@ interface TripHUDProps {
 
 export default function TripHUD({
   isDark, isVisible, destName, etaMinutes,
-  tripProgress, juliaActive, onArrived, onTerminate, onSOS,
+  startedAt, juliaActive, onArrived, onTerminate, onSOS,
 }: TripHUDProps) {
+  const elapsed = useEscorteElapsed(isVisible, startedAt)
+  const tripProgress = etaMinutes
+    ? Math.min(100, (elapsed / (etaMinutes * 60)) * 100)
+    : 0
 
   const C = {
     t1:      isDark ? '#FFFFFF'                : '#0F172A',

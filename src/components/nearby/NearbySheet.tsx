@@ -2,10 +2,11 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { Shield, ChevronUp, X } from 'lucide-react';
 import { useStore } from '@/stores/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useIsDark } from '@/hooks/useIsDark';
 import { CATEGORY_DETAILS, CATEGORY_GROUPS } from '@/types';
 import { haversineMeters } from '@/lib/utils';
@@ -84,10 +85,10 @@ const tabs = ['Signalements', 'Sécurité', 'Alertes'] as const;
 
 type Props = { onClose: () => void };
 
-export default function NearbySheet({ onClose }: Props) {
+function NearbySheet({ onClose }: Props) {
   const isDark = useIsDark();
   const C = getColors(isDark);
-  const { pins, userLocation, setSelectedPin, setActiveSheet, setMapFlyTo } = useStore();
+  const { pins, userLocation, setSelectedPin, setActiveSheet, setMapFlyTo } = useStore(useShallow((s) => ({ pins: s.pins, userLocation: s.userLocation, setSelectedPin: s.setSelectedPin, setActiveSheet: s.setActiveSheet, setMapFlyTo: s.setMapFlyTo })));
 
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Signalements');
   const [severityFilter, setSeverityFilter] = useState<string>('Tous');
@@ -557,3 +558,5 @@ function EmptyState({ C }: { C: Colors }) {
     </motion.div>
   );
 }
+
+export default memo(NearbySheet);

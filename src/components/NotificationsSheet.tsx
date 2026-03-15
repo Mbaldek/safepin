@@ -2,10 +2,11 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 import { useStore } from '@/stores/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 import type { AppNotification } from '@/types';
@@ -43,9 +44,9 @@ function getDotColor(type: string): string {
 
 /* ── component ──────────────────────────────────────────────────── */
 
-export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStory }: { onClose: () => void; onOpenSettings?: () => void; onOpenStory?: (storyId: string) => void }) {
+function NotificationsSheet({ onClose, onOpenSettings, onOpenStory }: { onClose: () => void; onOpenSettings?: () => void; onOpenStory?: (storyId: string) => void }) {
   const isDark = useIsDark();
-  const { notifications, markNotificationsRead, setActiveTab, userId } = useStore();
+  const { notifications, markNotificationsRead, setActiveTab, userId } = useStore(useShallow((s) => ({ notifications: s.notifications, markNotificationsRead: s.markNotificationsRead, setActiveTab: s.setActiveTab, userId: s.userId })));
   const focusTrapRef = useFocusTrap(true, onClose);
   const [hydrated, setHydrated] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -328,3 +329,5 @@ export default function NotificationsSheet({ onClose, onOpenSettings, onOpenStor
     </>
   );
 }
+
+export default memo(NotificationsSheet);

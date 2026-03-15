@@ -27,6 +27,7 @@ import RouteCard from '@/components/trip/RouteCard'
 import type { RouteOption, RouteSegment } from '@/stores/useStore'
 import { fetchTransitRoute, formatTransitDuration } from '@/lib/transit'
 import { useStore } from '@/stores/useStore'
+import { useShallow } from 'zustand/react/shallow'
 import FavorisManager from './FavorisManager'
 import { useToast } from '@/hooks/useToast'
 import type { FavoriTrajet, MapboxSuggestion, RouteMode } from '@/types'
@@ -54,7 +55,7 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const { recents } = useRecents(userId)
   const destSearch   = useDestinationSearch(userLat, userLng)
   const departSearch = useDestinationSearch(userLat, userLng)
-  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setMapFitBounds, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, selectedRouteIdx: storeSelectedRouteIdx, setTransitSegments } = useStore()
+  const { setPendingRoutes, setActiveRoute, setMapFlyTo, setMapFitBounds, setDepartDragPin, departDragPin, pendingRoutes: storeRoutes, setTripPrefill, setSelectedRouteIdx, selectedRouteIdx: storeSelectedRouteIdx, setTransitSegments } = useStore(useShallow((s) => ({ setPendingRoutes: s.setPendingRoutes, setActiveRoute: s.setActiveRoute, setMapFlyTo: s.setMapFlyTo, setMapFitBounds: s.setMapFitBounds, setDepartDragPin: s.setDepartDragPin, departDragPin: s.departDragPin, pendingRoutes: s.pendingRoutes, setTripPrefill: s.setTripPrefill, setSelectedRouteIdx: s.setSelectedRouteIdx, selectedRouteIdx: s.selectedRouteIdx, setTransitSegments: s.setTransitSegments })))
   const pins = useStore((s) => s.pins)
   const pinsRef = useRef(pins)
   pinsRef.current = pins
@@ -1658,14 +1659,20 @@ export default function EscorteSheet({ userId, isDark, userLat, userLng, escorte
   const renderTripActive = () => null
 
   // ── VIEW : ARRIVED — extracted ─────────────────
-  const renderArrived = () => (
-    <EscorteArrivedModal
-      isDark={isDark}
-      escorte={escorte}
-      onClose={() => { escorte.setView('hub'); onClose() }}
-      onShowSummary={() => toast.info('Résumé du trajet bientôt disponible')}
-    />
-  )
+  const renderArrived = () => {
+    const arrivedElapsed = escorte.activeEscorte?.started_at
+      ? Math.max(0, Math.floor((Date.now() - new Date(escorte.activeEscorte.started_at).getTime()) / 1000))
+      : 0
+    return (
+      <EscorteArrivedModal
+        isDark={isDark}
+        escorte={escorte}
+        elapsedSeconds={arrivedElapsed}
+        onClose={() => { escorte.setView('hub'); onClose() }}
+        onShowSummary={() => toast.info('Résumé du trajet bientôt disponible')}
+      />
+    )
+  }
 
   // ── VIEW : ESCORTE LIVE — inline view ─────────
   const renderLive = () => (

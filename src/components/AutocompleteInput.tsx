@@ -25,6 +25,8 @@ interface Props {
   placeholder?: string;
   localSections?: AutocompleteSection[];
   autoFocus?: boolean;
+  onBlur?: () => void;
+  compact?: boolean;
 }
 
 function getColors(isDark: boolean) {
@@ -53,10 +55,12 @@ export default function AutocompleteInput({
   placeholder,
   localSections,
   autoFocus,
+  onBlur: onBlurProp,
+  compact,
 }: Props) {
   const isDark = useIsDark();
   const C = getColors(isDark);
-  const { userLocation } = useStore();
+  const userLocation = useStore((s) => s.userLocation);
   const [open, setOpen]         = useState(false);
   const [geoResults, setGeoResults] = useState<ACSuggestion[]>([]);
   const [loading, setLoading]   = useState(false);
@@ -117,10 +121,13 @@ export default function AutocompleteInput({
         value={value}
         onChange={(e) => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => { setTimeout(() => setOpen(false), 150); onBlurProp?.(); }}
         placeholder={placeholder}
-        className="w-full rounded-xl px-4 py-2.5 outline-none"
-        style={{
+        className={compact ? 'w-full outline-none bg-transparent' : 'w-full rounded-xl px-4 py-2.5 outline-none'}
+        style={compact ? {
+          color: C.textPrimary,
+          fontSize: 12,
+        } : {
           backgroundColor: C.card,
           border: `1.5px solid ${C.border}`,
           color: C.textPrimary,

@@ -475,12 +475,8 @@ export default function WalkHistorySheet({ userId, onClose }: WalkHistorySheetPr
         display: 'flex', flexDirection: 'column',
         zIndex: 310,
         overflow: 'hidden',
-        borderTop: `1px solid ${C.borderSubtle}`,
       }}
     >
-      {/* Handle */}
-      <div style={{ width: 36, height: 4, borderRadius: 9999, background: C.borderDefault, margin: '10px auto 0', flexShrink: 0 }} />
-
       {/* Header */}
       <div style={{ padding: '12px 16px 0', flexShrink: 0 }}>
         {/* Header row */}

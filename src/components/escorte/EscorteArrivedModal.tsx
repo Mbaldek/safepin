@@ -10,11 +10,12 @@ import { getColors } from './escorte-styles'
 interface Props {
   isDark: boolean
   escorte: UseEscorteReturn
+  elapsedSeconds: number
   onClose: () => void
   onShowSummary: () => void
 }
 
-export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSummary }: Props) {
+export default function EscorteArrivedModal({ isDark, escorte, elapsedSeconds, onClose, onShowSummary }: Props) {
   const d  = isDark
   const tk = tok(isDark)
   const C  = getColors(isDark)
@@ -79,13 +80,13 @@ export default function EscorteArrivedModal({ isDark, escorte, onClose, onShowSu
           {escorte.activeEscorte?.dest_name ?? 'Destination'}
         </div>
         <div style={{ fontSize: 11, color: tk.tt, marginBottom: 16 }}>
-          Trajet enregistré · {Math.round(escorte.elapsed / 60)} min · {distKm} km
+          Trajet enregistré · {Math.round(elapsedSeconds / 60)} min · {distKm} km
         </div>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
           {[
-            { val: String(Math.round(escorte.elapsed / 60)), unit: 'min',    color: tk.tp, accent: false },
+            { val: String(Math.round(elapsedSeconds / 60)), unit: 'min',    color: tk.tp, accent: false },
             { val: distKm,                                    unit: 'km',     color: tk.tp, accent: false },
             { val: String(escorte.incidentsAvoided),           unit: 'évités', color: T.semanticSuccess, accent: true },
           ].map((s, i) => (

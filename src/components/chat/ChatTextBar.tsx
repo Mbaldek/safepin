@@ -1,8 +1,7 @@
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback } from 'react';
 import { Plus, Send, X } from 'lucide-react';
-import GifPicker from './GifPicker';
 
 interface ChatTextBarProps {
   isDark: boolean;
@@ -19,6 +18,8 @@ interface ChatTextBarProps {
   placeholder?: string;
   disabled?: boolean;
   onGifSelect?: (gifUrl: string) => void;
+  gifOpen?: boolean;
+  onGifToggle?: () => void;
 }
 
 function getColors(isDark: boolean) {
@@ -38,13 +39,12 @@ export default function ChatTextBar({
   onFilePick, pendingPreview, pendingFileName,
   pendingIsVideo, onClearPending,
   uploading, sending, placeholder = 'Message...',
-  disabled, onGifSelect,
+  disabled, onGifSelect, gifOpen, onGifToggle,
 }: ChatTextBarProps) {
   const c = getColors(isDark);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasContent = value.trim().length > 0 || !!pendingPreview;
-  const [gifOpen, setGifOpen] = useState(false);
 
   const handleInput = useCallback(() => {
     const el = textareaRef.current;
@@ -68,17 +68,6 @@ export default function ChatTextBar({
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* GIF Picker */}
-      {gifOpen && onGifSelect && (
-        <GifPicker
-          onSelect={(url) => {
-            onGifSelect(url);
-            setGifOpen(false);
-          }}
-          onClose={() => setGifOpen(false)}
-        />
-      )}
-
       <div style={{ background: c.card }}>
         {/* Media preview strip */}
         {pendingPreview && (
@@ -166,7 +155,7 @@ export default function ChatTextBar({
           {/* GIF button */}
           {onGifSelect && (
             <button
-              onClick={() => setGifOpen(prev => !prev)}
+              onClick={() => onGifToggle?.()}
               style={{
                 width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
                 background: gifOpen ? c.teal : 'rgba(59,180,193,0.10)',
